@@ -1,0 +1,690 @@
+"use client";
+
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import kyInstance from "@/lib/ky";
+import { RoomData, MessagesSection, MessageData } from "@/lib/types";
+import Message, { TypingIndicator } from "./Message";
+import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Frown,
+  Loader2,
+  RefreshCw,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
+import { useSession } from "../SessionProvider";
+import MessagesSkeleton from "./skeletons/MessagesSkeleton";
+import { toast } from "@/components/ui/use-toast";
+import RoomHeader from "./RoomHeader";
+import { useMenuBar } from "@/context/MenuBarContext";
+import { useEffect, useRef, useState } from "react";
+import { useActiveRoom } from "@/context/ChatContext";
+import { usePathname, useRouter } from "next/navigation";
+import { t } from "@/context/LanguageContext";
+import ChatSkeleton from "./skeletons/ChatSkeleton";
+import { useProgress } from "@/context/ProgressContext";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { useSocket } from "@/components/providers/SocketProvider";
+import { MessageType } from "@prisma/client";
+import Linkify from "@/components/Linkify";
+import UserAvatar from "@/components/UserAvatar";
+
+interface ChatProps {
+  roomId: string | null;
+  initialData: RoomData | undefined;
+  onClose: () => void;
+}
+
+// Interface pour nos messages locaux temporaires
+interface SentMessageState {
+  tempId: string;
+  roomId: string;
+  content: string;
+  recipientId?: string;
+  type: MessageType;
+  status: "sending" | "error";
+}
+
+export default function Chat({ roomId, initialData, onClose }: ChatProps) {
+  const { socket, isConnected } = useSocket();
+  const { isVisible, setIsVisible } = useMenuBar();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { startNavigation: navigate } = useProgress();
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [messageInputExpanded, setMessageInputExpanded] = useState(true);
+
+  // État pour gérer les messages en cours d'envoi (Optimistic UI)
+  const [sentMessages, setSentMessages] = useState<SentMessageState[]>([]);
+  const [newMessages, setNewMessages] = useState<MessageData[]>([]);
+
+  const { unableToLoadChat, noMessage, dataError, search } = t();
+  const queryClient = useQueryClient();
+  const { user: loggedUser } = useSession();
+
+  // --- ÉTAT POUR LES UTILISATEURS QUI ÉCRIVENT ---
+  const [typingUsers, setTypingUsers] = useState<
+    { id: string; displayName: string; avatarUrl: string }[]
+  >([]);
+
+  // --- GESTION DU SOCKET : JOIN / LEAVE / EVENTS ---
+  useEffect(() => {
+    if (!socket || !isConnected || !roomId) return;
+
+    // 1. Rejoindre la room
+    socket.emit("join_room", roomId);
+
+    const handleJoinError = (error: string) => {
+      toast({ variant: "destructive", description: error });
+    };
+
+    // 2. Écouter la confirmation de réception (Broadcast du serveur)
+    // Cela nous permet de supprimer le message temporaire "Envoi..." car le vrai message va apparaître
+    const handleReceiveMessage = (data: {
+      newMessage: MessageData;
+      roomId: string;
+    }) => {
+      console.log(newMessages);
+      
+      if (
+        data.roomId === roomId
+      ) {
+        // On supprime le message temporaire correspondant
+        setNewMessages((prev) => [
+          ...prev.filter((msg) => msg.id !== data.newMessage.id),
+          data.newMessage,
+        ]);
+      }
+    };
+
+    const handleTypingUpdate = (data: {
+      roomId: string;
+      typingUsers: { id: string; displayName: string; avatarUrl: string }[];
+    }) => {
+      if (data.roomId === roomId) {
+        console.log(data.typingUsers)
+        setTypingUsers(data.typingUsers);
+      }
+    };
+
+    // --- GESTION DE LA SUPPRESSION (Nouveau) ---
+    const handleMessageDeleted = (data: { messageId: string, roomId: string }) => {
+      if (data.roomId !== roomId) return;
+
+      // 1. Mettre à jour les "newMessages" (ceux reçus via socket avant refresh)
+      setNewMessages((prev) => prev.filter((msg) => msg.id !== data.messageId));
+
+      // 2. Mettre à jour le cache React Query (Infinite Query)
+      // C'est un peu technique : il faut parcourir toutes les pages et filtrer le message
+      queryClient.setQueryData<MessagesSection>(
+        ["room", "messages", roomId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.filter((msg: MessageData) => msg.id !== data.messageId),
+            })),
+          };
+        }
+      );
+
+      // Si le message supprimé était le dernier affiché, on peut vouloir invalider les rooms
+      // Mais le serveur envoie déjà "rooms_list_data", donc la sidebar devrait se mettre à jour seule.
+    };
+
+    socket.on("typing_update", handleTypingUpdate);
+
+    // 3. Gestion des erreurs d'envoi
+    const handleError = (error: { message: string }) => {
+      toast({ variant: "destructive", description: error.message });
+      // On pourrait marquer le message comme "échoué" ici
+      setSentMessages((prev) =>
+        prev.map((msg) => ({ ...msg, status: "error" })),
+      );
+    };
+
+    socket.on("room_error", handleJoinError);
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("message_deleted", handleMessageDeleted); // Listener ajouté
+    socket.on("error", handleError);
+
+    return () => {
+      socket.off("room_error", handleJoinError);
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("message_deleted", handleMessageDeleted); // Clean up
+      socket.off("error", handleError);
+      socket.emit("leave_room", roomId);
+      socket.off("typing_update", handleTypingUpdate);
+      setTypingUsers([]); // Reset la liste
+    };
+  }, [socket, isConnected, roomId, loggedUser?.id, queryClient]); // Ajout de queryClient aux dépendances
+
+  // --- GESTION NAVIGATION & UI ---
+  useEffect(() => {
+    setIsVisible(!roomId);
+    if (roomId && window.location.pathname !== "/messages/chat") {
+      history.pushState(null, "", "/messages/chat");
+      navigate("/messages/chat");
+    }
+    return () => {
+      setIsVisible(true);
+    };
+  }, [isVisible, setIsVisible, router, pathname, roomId, navigate]);
+
+  const handlePopState = () => {
+    const currentPathname = window.location.pathname;
+    if (prevPathname === "/messages/chat" && currentPathname === "/messages") {
+      onClose();
+    }
+    setPrevPathname(currentPathname);
+  };
+
+  useEffect(() => {
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevPathname]);
+
+  useEffect(() => {
+    setPrevPathname(pathname);
+  }, [pathname]);
+
+  // --- DATA FETCHING ---
+  const {
+    data: room,
+    isError: isRoomError,
+    isLoading,
+  } = useQuery({
+    queryKey: ["room", "data", roomId],
+    queryFn: () =>
+      kyInstance.get(`/api/messages/${roomId}/chat-data`).json<RoomData>(),
+    initialData,
+    staleTime: Infinity,
+    throwOnError: false,
+    refetchOnWindowFocus: false,
+    enabled: !!roomId,
+  });
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+    useInfiniteQuery({
+      queryKey: ["room", "messages", roomId],
+      queryFn: ({ pageParam }) =>
+        kyInstance
+          .get(
+            `/api/messages/${roomId}/msgs`,
+            pageParam ? { searchParams: { cursor: pageParam } } : {},
+          )
+          .json<MessagesSection>(),
+      initialPageParam: null as string | null,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      staleTime: Infinity,
+      refetchOnMount: true,
+      throwOnError: false,
+      enabled: !!roomId,
+    });
+
+  if (!roomId) return null;
+  if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
+
+  const roomName = room?.name || roomId || "Chat";
+
+  if (!room || isRoomError || !loggedUser) {
+    if (!isLoading) {
+      toast({
+        variant: "destructive",
+        description: unableToLoadChat.replace("[name]", roomName),
+      });
+      onClose();
+    }
+    return null;
+  }
+
+  const loggedMember = room.members.find(
+    (member) => member.userId === loggedUser.id,
+  );
+  const isSaved = room.id === `saved-${loggedMember?.userId}`;
+  const isMember = !(
+    loggedMember?.type === "OLD" || loggedMember?.type === "BANNED"
+  );
+  let message = "Envoi de messages non autorisés";
+
+  const messages = data?.pages.flatMap((page) => page?.messages) || [];
+
+  const otherUser = !room.isGroup
+    ? room.members.find((user) => user?.userId !== loggedMember?.userId)
+        ?.user || null
+    : null;
+  const handleTypingStart = () => {
+    if (!socket || !roomId) return;
+
+    // Émettre typing_start immédiatement
+    socket.emit("typing_start", roomId);
+  };
+  const handleTypingStop = () => {
+    if (!socket || !roomId) return;
+
+    // Émettre typing_stop immédiatement
+    socket.emit("typing_stop", roomId);
+  };
+
+  // --- FONCTION D'ENVOI DE MESSAGE ---
+  const handleSendMessage = async (content: string) => {
+    if (!socket || !roomId) return;
+    handleTypingStop();
+
+    const tempId = crypto.randomUUID();
+    const newMessage = {
+      id: tempId,
+      content: content.trim(),
+      senderId: loggedUser.id,
+      roomId: roomId,
+      createdAt: new Date().toISOString(),
+      sender: loggedUser,
+      status: "sending",
+    };
+
+    // Mise à jour optimiste de l'UI
+    queryClient.setQueryData(["room", "messages", roomId], (old: any) => {
+      console.log(old);
+      
+      return({
+      ...old,
+      pages: old.pages.map((page: any, index: number) =>
+        index === 0
+          ? { ...page, messages: [newMessage, ...page.messages] }
+          : page,
+      ),
+    })});
+
+    socket.emit("send_message", {
+      content: content.trim(),
+      roomId,
+      type: "CONTENT",
+    });
+  };
+
+  // Fonction pour rééssayer l'envoi
+  function handleRetryMessage(msg: SentMessageState) {
+    if (!socket) return;
+
+    // Remettre en statut "sending"
+    setSentMessages((prev) =>
+      prev.map((m) =>
+        m.tempId === msg.tempId ? { ...m, status: "sending" } : m,
+      ),
+    );
+
+    socket.emit("send_message", {
+      content: msg.content,
+      roomId: msg.roomId,
+      type: msg.type,
+      recipientId: msg.recipientId,
+    });
+  }
+
+  return (
+    <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
+      {/* HEADER */}
+      <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
+        <div
+          className="flex cursor-pointer hover:text-red-500"
+          onClick={onClose}
+          title="Fermer la discussion"
+        >
+          <ArrowLeft size={35} className="sm:hidden" />
+        </div>
+        <RoomHeader
+          initialRoom={room}
+          roomId={room.id}
+          onDelete={onClose}
+          isGroup={room.isGroup}
+        />
+        <div
+          className="flex cursor-pointer hover:text-red-500"
+          onClick={onClose}
+          title="Fermer la discussion"
+        >
+          <X size={25} className="max-sm:hidden" />
+        </div>
+      </div>
+
+      {/* ZONE DE MESSAGES */}
+      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
+        <InfiniteScrollContainer
+          className="flex w-full flex-col-reverse gap-4 p-4 px-2"
+          onBottomReached={() => {
+            hasNextPage && !isFetchingNextPage && fetchNextPage();
+          }}
+          reversed
+        >
+          {status === "pending" && <MessagesSkeleton />}
+
+          {/* État vide */}
+          {status === "success" &&
+            !hasNextPage &&
+            !messages.length &&
+            sentMessages.length === 0 && (
+              <p className="my-auto flex w-full flex-1 select-none items-center justify-center px-2 text-center italic text-muted-foreground">
+                {noMessage}
+              </p>
+            )}
+
+          {status === "error" && (
+            <div className="flex w-full flex-1 select-none flex-col items-center px-3 py-8 text-center italic text-muted-foreground">
+              <Frown size={100} />
+              <h2 className="text-xl">{dataError}</h2>
+            </div>
+          )}
+
+          {status === "success" && (
+            <>
+              {/* Indicateur de frappe  */}
+              <TypingIndicator typingUsers={typingUsers} />
+              {newMessages.map((msg, i) => {
+                const showTime =
+                  i === newMessages.length - 1 || (i % 20 === 0 && i !== 0);
+
+                return (
+                  <Message
+                    key={msg.id || i}
+                    message={msg}
+                    room={room}
+                    showTime={showTime}
+                  />
+                );
+              })}
+              {sentMessages.map((msg) => (
+                <SendingMessage
+                  key={msg.tempId}
+                  content={msg.content}
+                  status={msg.status}
+                  onRetry={() => handleRetryMessage(msg)}
+                />
+              ))}
+
+              {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query) */}
+              {messages.map((message, index) => {
+                const showTime =
+                  index === messages.length - 1 ||
+                  (index % 20 === 0 && index !== 0);
+
+                return (
+                  <Message
+                    key={message.id || index}
+                    message={message}
+                    room={room}
+                    showTime={showTime}
+                  />
+                );
+              })}
+            </>
+          )}
+        </InfiniteScrollContainer>
+        {isFetchingNextPage && (
+          <div className="flex w-full justify-center">
+            <Loader2 className="mx-auto my-3 animate-spin" />
+          </div>
+        )}
+      </div>
+
+      {/* BARRE DE SAISIE */}
+      <div className="absolute bottom-0 w-full bg-gradient-to-t from-card/80 to-transparent">
+        <div className={cn("flex p-2", !messageInputExpanded && "gap-2")}>
+          <div
+            className={cn(
+              "flex w-fit items-end gap-0 transition-all duration-75",
+              !messageInputExpanded && "w-full gap-3",
+            )}
+          >
+            <Button
+              variant="outline"
+              onClick={() => setMessageInputExpanded(!messageInputExpanded)}
+              title={search}
+              className="aspect-square size-12 cursor-pointer p-2 outline-input"
+            >
+              <Search className="size-5" />
+            </Button>
+            {
+              <div
+                className={cn(
+                  "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2",
+                  messageInputExpanded
+                    ? "invisible w-0 overflow-hidden"
+                    : "w-full",
+                )}
+              >
+                <Input
+                  placeholder={search + "..."}
+                  className={cn(
+                    "max-h-[10rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 outline-none ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
+                  )}
+                />
+              </div>
+            }
+          </div>
+
+          {/* Logique d'affichage du formulaire selon les droits */}
+          {!isSaved
+            ? !room.isGroup &&
+              !otherUser?.id && (
+                <div className="relative flex w-full select-none items-center justify-center gap-1 rounded-3xl border border-input bg-background p-1 px-5 py-1.5 text-center font-semibold ring-primary ring-offset-background transition-[width] duration-75">
+                  <p>{message}</p>
+                </div>
+              )
+            : !!roomId && (
+                <MessageForm
+                  expanded={messageInputExpanded}
+                  onExpanded={() => setMessageInputExpanded(true)}
+                  onSubmit={handleSendMessage}
+                  onTypingStart={handleTypingStart}
+                  onTypingStop={handleTypingStop}
+                />
+              )}
+          {!isMember ? (
+            <div className="relative flex w-full select-none items-center justify-center gap-1 rounded-3xl border border-input bg-background p-1 px-5 py-1.5 text-center font-semibold ring-primary ring-offset-background transition-[width] duration-75">
+              <p>{message}</p>
+            </div>
+          ) : (
+            !!roomId &&
+            ((!room.isGroup && otherUser?.id) || room.isGroup) && (
+              <MessageForm
+                expanded={messageInputExpanded}
+                onExpanded={() => setMessageInputExpanded(true)}
+                onSubmit={handleSendMessage}
+                onTypingStart={handleTypingStart}
+                onTypingStop={handleTypingStop}
+              />
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- SOUS-COMPOSANTS ---
+
+interface MessageFormProps {
+  expanded: boolean;
+  onExpanded: () => void;
+  onSubmit: (content: string) => void;
+  onTypingStart?: () => void; // Trigger de début de saisie
+  onTypingStop?: () => void; // Trigger de fin de saisie
+}
+
+export function MessageForm({
+  expanded,
+  onExpanded,
+  onSubmit,
+  onTypingStart,
+  onTypingStop,
+}: MessageFormProps) {
+  const { typeMessage } = t();
+  const [input, setInput] = useState("");
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Gère l'envoi et réinitialise le typing
+  const triggerSubmit = () => {
+    if (input.trim()) {
+      onSubmit(input);
+      setInput("");
+      // On arrête immédiatement l'indicateur typing lors de l'envoi
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      onTypingStop?.();
+    }
+  };
+
+  function handleBtnClick() {
+    if (expanded) {
+      triggerSubmit();
+    } else {
+      onExpanded();
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      triggerSubmit();
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInput(val);
+
+    // Déclencher le début de saisie
+    onTypingStart?.();
+
+    // Gérer la fin de saisie (debounce)
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      onTypingStop?.();
+    }, 3000);
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
+        expanded ? "" : "aspect-square w-fit rounded-full p-0",
+      )}
+    >
+      <Textarea
+        placeholder={typeMessage}
+        className={cn(
+          "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
+          expanded ? "relative w-full" : "invisible absolute w-0",
+        )}
+        rows={1}
+        value={input}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+      />
+      <Button
+        size={!expanded ? "icon" : "default"}
+        disabled={expanded && !input.trim()}
+        onClick={handleBtnClick}
+        className={cn(
+          "rounded-full p-2",
+          expanded
+            ? ""
+            : "h-[50px] w-[50px] rounded-full border-none outline-none",
+        )}
+        variant={expanded && input.trim() ? "default" : "outline"}
+      >
+        <Send />
+      </Button>
+    </div>
+  );
+}
+
+interface SendingMessageProps {
+  content: string;
+  status: "sending" | "error";
+  onRetry: () => void;
+}
+
+function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleRetryClick = () => {
+    setIsRetrying(true);
+    onRetry();
+    // Reset visual loading state after delay
+    setTimeout(() => setIsRetrying(false), 2000);
+  };
+
+  return (
+    <div className="relative flex w-full flex-col gap-3 duration-300">
+      <div className="flex w-full flex-row-reverse gap-2">
+        <div className="group/message relative flex w-fit max-w-[75%] select-none flex-col items-end">
+          <div className="flex w-fit items-center gap-1">
+            {/* Bouton Retry */}
+            {status === "error" && (
+              <button
+                onClick={handleRetryClick}
+                disabled={isRetrying}
+                className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Réessayer l'envoi"
+              >
+                <RefreshCw
+                  className={cn("h-4 w-4", isRetrying && "animate-spin")}
+                />
+              </button>
+            )}
+
+            {/* Bulle Message */}
+            <div className="relative h-fit w-fit">
+              <Linkify>
+                <p
+                  className={cn(
+                    "w-fit select-none rounded-3xl px-4 py-2 transition-all duration-300 *:font-bold",
+                    status === "sending"
+                      ? "cursor-wait bg-primary/70 text-primary-foreground opacity-80"
+                      : "",
+                    status === "error"
+                      ? "border border-destructive/50 bg-destructive/10 text-destructive"
+                      : "",
+                  )}
+                >
+                  {content}
+                </p>
+              </Linkify>
+            </div>
+          </div>
+
+          {/* Status Text */}
+          <div className="mt-1 flex justify-end px-1">
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+              {status === "sending" && (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Envoi...
+                </>
+              )}
+              {status === "error" && (
+                <span className="flex items-center gap-1 text-destructive">
+                  <AlertCircle className="h-3 w-3" /> Échec
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,47 @@
+.gadient-post {
+  @apply flex;
+  @apply items-center;
+  @apply justify-center;
+  @apply text-3xl;
+  @apply font-semibold;
+  @apply aspect-video;
+  @apply bg-foreground;
+  @apply text-background;
+  @apply text-center;
+}
+.gadient-post:has(> p) {
+  @apply min-h-28;
+}
+.gradient-1 {
+  background: hsl(var(--gradient-1-default));
+  background: var(--gradient-1);
+  @apply text-[hsl(var(--gradient-1-foreground))];
+}
+.gradient-2 {
+  background: hsl(var(--gradient-2-default));
+  background: var(--gradient-2);
+  color: var(--gradient-2-foreground);
+  @apply text-[hsl(var(--gradient-2-foreground))];
+}
+.gradient-3 {
+  background: hsl(var(--gradient-3-default));
+  background: var(--gradient-3);
+  @apply text-[hsl(var(--gradient-3-foreground))];
+}
+.gradient-4 {
+  background: hsl(var(--gradient-4-default));
+  color: hsl(var(--gradient-4-foreground));
+  @apply bg-[hsl(var(--gradient-4-default))];
+  @apply text-[hsl(var(--gradient-4-foreground))];
+  @apply border-input;
+  @apply border;
+}
+.gradient-5 {
+  background: hsl(var(--gradient-5-default));
+  background: var(--gradient-5);
+  color: hsl(var(--gradient-5-foreground));
+  @apply bg-[var(--gradient-5)];
+  @apply text-[hsl(var(--gradient-5-foreground))];
+  @apply border-input;
+  @apply border;
+}

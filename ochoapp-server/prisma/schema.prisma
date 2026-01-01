@@ -1,0 +1,400 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model User {
+  id                   String         @id @default(cuid())
+  username             String         @unique
+  displayName          String
+  email                String?        @unique
+  passwordHash         String?
+  birthday             DateTime?
+  googleId             String?        @unique
+  githubId             String?        @unique
+  facebookId           String?        @unique
+  avatarUrl            String?
+  bio                  String?
+  session              Session[]
+  following            Follow[]       @relation("Following")
+  followers            Follow[]       @relation("Followers")
+  rooms                RoomMember[]
+  sentMessages         Message[]      @relation("Sender")
+  receivedMessages     Message[]      @relation("Recipient")
+  lastMessages         LastMessage[]
+  reads                Read[]
+  posts                Post[]
+  likes                Like[]
+  comments             Comment[]
+  commentLikes         CommentLike[]
+  bookmarks            Bookmark[]
+  receivedNotification Notification[] @relation("Recipient")
+  issuedNotification   Notification[] @relation("Issuer")
+
+  lastSeen       DateTime        @default(now())
+  isOnline       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  Reaction       Reaction[]
+  verified       VerifiedUsers[]
+  relevanceScore PostUserScore[]
+  oldUserData    OldUserData[]
+  searches       SearchHistory[]
+
+  @@map("users")
+}
+
+model OldUserData {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  password  String
+  email     String
+  birthday  DateTime
+  createdAt DateTime @default(now())
+
+  @@map("old_user_data")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devices   Device[]
+
+  @@map("sessions")
+}
+
+enum DeviceType {
+  ANDROID
+  IOS
+  WEB
+  DESKTOP
+  UNKNOWN
+}
+
+model Device {
+  id        String     @id @default(cuid())
+  sessionId String
+  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  deviceId  String
+  type      DeviceType @default(UNKNOWN)
+  model     String?
+  logged    Boolean    @default(true)
+  ip        String?
+  location  String?
+  createdAt DateTime   @default(now())
+
+  @@unique([sessionId, deviceId])
+}
+
+model AuthCode {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+
+  @@unique([id, userId])
+  @@map("auth_code")
+}
+
+model VerifiedUsers {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerifiedType @default(STANDARD)
+  expiresAt DateTime?
+
+  @@map("verified_users")
+}
+
+enum VerifiedType {
+  STANDARD
+  GOLDEN
+}
+
+model Follow {
+  followerId  String
+  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  folowing    User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Room {
+  id             String        @id @default(cuid())
+  name           String?
+  description    String?
+  groupAvatarUrl String?
+  isGroup        Boolean       @default(false)
+  members        RoomMember[]
+  maxMembers     Int           @default(300)
+  messages       Message[]
+  lastMessages   LastMessage[]
+  privilege      Privilege     @default(DEFAULT)
+  createdAt      DateTime      @default(now())
+
+  @@map("rooms")
+}
+
+enum Privilege {
+  DEFAULT
+  MANAGE
+}
+
+model RoomMember {
+  id              String     @id @default(cuid())
+  room            Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId          String
+  user            User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId          String?
+  type            MemberType @default(MEMBER)
+  isTyping        Boolean    @default(false)
+  isUploadingFile Boolean    @default(false)
+  joinedAt        DateTime   @default(now())
+  leftAt          DateTime?
+
+  @@unique([roomId, userId])
+  @@map("chat_members")
+}
+
+enum MemberType {
+  OWNER
+  ADMIN
+  MEMBER
+  OLD
+  BANNED
+}
+
+model Message {
+  id           String        @id @default(cuid())
+  content      String
+  sender       User?         @relation("Sender", fields: [senderId], references: [id], onDelete: SetNull)
+  senderId     String?
+  recipient    User?         @relation("Recipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  recipientId  String?
+  room         Room?         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId       String?
+  reaction     Reaction?     @relation("Sender", fields: [reactionId], references: [id], onDelete: Cascade)
+  reactionId   String?
+  type         MessageType
+  reads        Read[]
+  reactions    Reaction[]
+  lastMessages LastMessage[]
+  createdAt    DateTime      @default(now())
+
+  @@index([roomId, createdAt]) // Optimisation performance
+  @@map("messages")
+}
+
+enum MessageType {
+  CONTENT
+  CREATE
+  DELETE
+  NEWMEMBER
+  LEAVE
+  BAN
+  CLEAR
+  SAVED
+  REACTION
+}
+
+model LastMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, roomId])
+  @@map("last_messages")
+}
+
+model Read {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  readAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@map("reads")
+}
+
+model Reaction {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId       String
+  message         Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reactionMessage Message[] @relation("Sender")
+  content         String
+
+  readAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@map("reactions")
+}
+
+model Post {
+  id                  String         @id @default(cuid())
+  content             String
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gradient            Int?
+  attachments         Media[]
+  likes               Like[]
+  comments            Comment[]
+  bookmarks           Bookmark[]
+  linkedNotifications Notification[]
+
+  createdAt      DateTime        @default(now())
+  relevanceScore Int             @default(0)
+  relevance      PostUserScore[]
+
+  @@map("posts")
+}
+
+model PostUserScore {
+  id             String @id @default(cuid())
+  postId         String
+  userId         String
+  relevanceScore Float
+  post           Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_user_scores")
+}
+
+model Media {
+  id     String    @id @default(cuid())
+  postId String?
+  post   Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  type   MediaType
+  url    String
+
+  createdAt DateTime @default(now())
+
+  @@map("post_media")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Comment {
+  id                  String         @id @default(cuid())
+  content             String
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId              String
+  post                Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  firstLevelCommentId String?
+  firstLevelComment   Comment?       @relation(name: "FirstLevelComment", fields: [firstLevelCommentId], references: [id], onDelete: Cascade)
+  firstLevelOf        Comment[]      @relation(name: "FirstLevelComment")
+  commentId           String?
+  comment             Comment?       @relation(name: "ReplyToComment", fields: [commentId], references: [id], onDelete: Cascade)
+  replies             Comment[]      @relation(name: "ReplyToComment")
+  commentNotification Notification[]
+  type                CommentType    @default(COMMENT)
+  likes               CommentLike[]
+
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+enum CommentType {
+  COMMENT
+  REPLY
+}
+
+model CommentLike {
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@map("comment_likes")
+}
+
+model Like {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Bookmark {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@map("bookmarks")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  recipientId String
+  recipient   User     @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  issuerId    String
+  issuer      User     @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
+  postId      String?
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId   String?
+  comment     Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  COMMENT_LIKE
+  COMMENT_REPLY
+  FOLLOW
+  IDENTIFY
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  createdAt DateTime @default(now())
+
+  @@map("search_history")
+}

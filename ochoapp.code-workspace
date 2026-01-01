@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "./ochoapp-server"
+		},
+		{
+			"path": "./ochoapp-client"
+		}
+	],
+	"settings": {
+		"prisma.pinToPrisma6": true
+	}
+}

@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 224, 5%, 95%;
+    --foreground: 224 71.4% 4.1%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 1rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --logo-background: 199, 97%, 50%;
+    --logo-foreground: 213, 99%, 44%, 0.141;
+    --logo: 211, 93%, 11%;
+    --logo-icon: 200, 97%, 50%;
+    --logo-text: 200, 97%, 50%;
+
+    --gradient-1: radial-gradient(
+      circle,
+      hsl(334, 65%, 81%) 0%,
+      hsl(212, 66%, 75%) 100%
+    );
+    --gradient-1-default: 334, 65%, 81%;
+    --gradient-1-foreground: 224 71.4% 4.1%;
+    --gradient-2: radial-gradient(
+      circle,
+      hsl(230, 96%, 62%) 0%,
+      hsl(348, 97%, 63%) 100%
+    );
+    --gradient-2-default: 230, 96%, 62%;
+    --gradient-2-foreground: 0 0% 95%;
+    --gradient-3: radial-gradient(
+      circle,
+      hsl(276, 51%, 47%) 0%,
+      hsl(0, 98%, 55%) 50%,
+      hsl(35, 97%, 63%) 100%
+    );
+    --gradient-3-default: 276, 51%, 47%;
+    --gradient-3-foreground: 0 0% 95%;
+    
+    --gradient-4-default: 248, 15%, 11%;
+    --gradient-4-foreground: 0 0% 95%;
+
+    --gradient-5: radial-gradient(at center, hsl(169, 40%, 63%), hsl(241, 69%, 58%));
+    --gradient-5-default: 169, 40%, 63%;
+    --gradient-5-foreground: 224 71.4% 4.1%;
+  }
+
+  .dark {
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 95%;
+
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --logo: 200, 97%, 50%;
+    --logo-icon: 211, 93%, 11%;
+    --logo-text: 210, 67%, 96%;
+    --logo-background: 211, 96%, 11%;
+    --logo-foreground: 210, 67%, 96%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    @apply box-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  ::-webkit-scrollbar {
+    @apply h-2 w-2;
+  }
+
+  /* Track */
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-md bg-primary/20 transition-all;
+  }
+
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    @apply sm:bg-primary;
+  }
+  ::-webkit-scrollbar-thumb:active {
+    @apply max-sm:bg-primary;
+  }
+}
+

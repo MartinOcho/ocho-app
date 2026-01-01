@@ -1,0 +1,336 @@
+"use client";
+
+import UserAvatar from "@/components/UserAvatar";
+import { RoomData, NotificationCountInfo, UserData } from "@/lib/types";
+import { useSession } from "../SessionProvider";
+import GroupAvatar from "@/components/GroupAvatar";
+import { MessageType, VerifiedType } from "@prisma/client";
+import Time from "@/components/Time";
+import { cn } from "@/lib/utils";
+import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
+import kyInstance from "@/lib/ky";
+import FormattedInt from "@/components/FormattedInt";
+import { usePathname, useRouter } from "next/navigation";
+import { t } from "@/context/LanguageContext";
+import Verified from "@/components/Verified";
+import { useProgress } from "@/context/ProgressContext";
+import { useEffect, useState } from "react";
+import { useSocket } from "@/components/providers/SocketProvider";
+
+interface RoomProps {
+  room: RoomData;
+  active: boolean;
+  onSelect: () => void;
+}
+
+export default function RoomPreview({ room, active, onSelect }: RoomProps) {
+  const { user: loggedinUser } = useSession();
+  const { socket, isConnected } = useSocket();
+  const [typing, setTyping] = useState<{
+    isTyping: boolean;
+    typingUsers: {
+      id: string;
+      displayName: string;
+      avatarUrl: string;
+    }[];
+  }>({ isTyping: false, typingUsers: [] });
+
+  useEffect(() => {
+    if (!socket || !isConnected || !room.id) return;
+    socket.on(
+      "typing_update",
+      (data: {
+        roomId: string;
+        typingUsers: { id: string; displayName: string; avatarUrl: string }[];
+      }) => {
+        const isTyping = !!data.typingUsers
+          .filter((u) => u.id !== loggedinUser?.id)
+          .filter((u) => u.displayName !== undefined).length;
+        if (data.roomId === room.id) {
+          setTyping({
+            isTyping,
+            typingUsers: data.typingUsers
+              .filter((u) => u.id !== loggedinUser?.id)
+              .filter((u) => u.displayName !== undefined),
+          });
+        }
+      },
+    );
+    return () => {
+      socket.off("typing_update");
+    };
+  }, [socket, isConnected, room.id]);
+
+  const typingText = !!typing.typingUsers.length
+    ? typing.typingUsers.length === 1
+      ? `${typing.typingUsers[0].displayName.split(" ")[0] || "Utilisateur OchoApp"} écrit...`
+      : typing.typingUsers.length === 2
+        ? `${typing.typingUsers[0].displayName.split(" ")[0] || "Utilisateur OchoApp"} et ${typing.typingUsers[1].displayName.split(" ")[0]} écrivent...`
+        : `${typing.typingUsers[0].displayName.split(" ")[0] || "Utilisateur OchoApp"}, ${typing.typingUsers[1].displayName.split(" ")[0]} et ${typing.typingUsers.length - 2 == 1 ? typing.typingUsers[2].displayName.split(" ")[0] : `${typing.typingUsers.length - 2} autres`} écrivent...`
+    : "";
+  const {
+    appUser,
+    groupChat,
+    you,
+    newMember,
+    youAddedMember,
+    addedYou,
+    addedMember,
+    memberLeft,
+    youRemovedMember,
+    removedYou,
+    removedMember,
+    memberBanned,
+    youBannedMember,
+    bannedYou,
+    bannedMember,
+    youCreatedGroup,
+    createdGroup,
+    canChatWithYou,
+    youReactedToYourMessage,
+    youReactedToMessage,
+    reactedToMessage,
+    reactedMemberMessage,
+    messageYourself,
+    noPreview,
+    canNoLongerInteract,
+    noMessage,
+    deletedChat,
+  } = t();
+  const { startNavigation: navigate } = useProgress();
+  const router = useRouter();
+
+  const queryKey: QueryKey = ["unread-chat-messages", room.id];
+  const queryClient = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey,
+    queryFn: () =>
+      kyInstance
+        .get(`/api/messages/${room.id}/unread-count`)
+        .json<NotificationCountInfo>(),
+    refetchInterval: active ? 2_000 : 50_000,
+    initialData: { unreadCount: 0 },
+    throwOnError: false,
+  });
+
+  const { unreadCount } = data;
+  const isSaved = room.id === `saved-${loggedinUser.id}`;
+
+  const otherUser: UserData | null = isSaved
+    ? room.members.find((member) => member.userId === loggedinUser.id)?.user ||
+      null
+    : room?.members.filter((member) => member.userId !== loggedinUser.id)[0]
+        .user;
+
+  const expiresAt = otherUser?.verified?.[0]?.expiresAt;
+  const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
+
+  const expired = canExpire && expiresAt ? new Date() < expiresAt : false;
+
+  const isVerified =
+    (isSaved ? !!otherUser?.verified[0] : !!otherUser?.verified[0]) &&
+    !expired &&
+    !room.isGroup;
+  const verifiedType: VerifiedType | undefined = isVerified
+    ? otherUser?.verified[0].type || "STANDARD"
+    : undefined;
+
+  const verifiedCheck = isVerified ? (
+    <Verified type={verifiedType} prompt={false} />
+  ) : null;
+
+  const messagePreview = room?.messages[0] || {
+    id: "",
+    content: "",
+    senderId: null,
+    sender: null,
+    roomId: room.id,
+    type: "CLEAR",
+    createdAt: Date.now(),
+  };
+
+  let messageType: MessageType = messagePreview?.type;
+  const isSender = messagePreview.sender?.id === loggedinUser.id;
+  const currentMember = room.members.find(
+    (member) => member.userId === loggedinUser.id,
+  );
+
+  const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
+  const senderFirstName =
+    messagePreview.sender?.displayName.split(" ")[0] || appUser;
+  const recipientFirstName =
+    messagePreview.recipient?.displayName.split(" ")[0] || appUser;
+
+  const sender = isSender
+    ? you
+    : room.isGroup
+      ? senderFirstName
+      : otherUserFirstName;
+  const recipient = room?.messages[0]?.recipient || null;
+  let newMemberMsg, oldMemberMsg;
+  const memberName = recipient?.displayName.split(" ")[0] || appUser;
+
+  if (recipient && room.isGroup) {
+    // Check if message type is info of added member
+    if (messageType === "NEWMEMBER") {
+      newMemberMsg = newMember.replace("[name]", memberName);
+      if (room?.messages[0].sender) {
+        room?.messages[0].sender.id === loggedinUser.id
+          ? (newMemberMsg = youAddedMember.replace("[name]", memberName))
+          : (newMemberMsg =
+              recipient.id === loggedinUser.id
+                ? addedYou.replace("[name]", sender || appUser)
+                : addedMember
+                    .replace("[name]", sender || appUser)
+                    .replace("[member]", memberName));
+      }
+    }
+    if (messageType === "LEAVE") {
+      oldMemberMsg = memberLeft.replace("[name]", memberName);
+      if (room?.messages[0].sender) {
+        room?.messages[0].sender.id === loggedinUser.id
+          ? (oldMemberMsg = youRemovedMember.replace("[name]", memberName))
+          : (oldMemberMsg =
+              recipient.id === loggedinUser.id
+                ? removedYou.replace("[name]", sender || appUser)
+                : removedMember
+                    .replace("[name]", sender || appUser)
+                    .replace("[member]", memberName));
+      }
+    }
+    if (messageType === "BAN") {
+      oldMemberMsg = memberBanned.replace("[name]", memberName);
+      if (room?.messages[0].sender) {
+        room?.messages[0].sender.id === loggedinUser.id
+          ? (oldMemberMsg = youBannedMember.replace("[name]", memberName))
+          : (oldMemberMsg =
+              recipient.id === loggedinUser.id
+                ? bannedYou.replace("[name]", sender || appUser)
+                : bannedMember
+                    .replace("[name]", sender || appUser)
+                    .replace("[member]", memberName));
+      }
+    }
+  }
+  const showUserPreview = room.isGroup || isSender;
+  const contentsTypes = {
+    CREATE: room.isGroup
+      ? messagePreview.sender?.id === loggedinUser.id
+        ? youCreatedGroup.replace("[name]", sender || appUser)
+        : createdGroup.replace("[name]", sender || appUser)
+      : canChatWithYou.replace("[name]", otherUserFirstName || appUser),
+    CONTENT: `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`,
+    CLEAR: noPreview,
+    DELETE: deletedChat,
+    SAVED: messageYourself,
+    NEWMEMBER: newMemberMsg,
+    LEAVE: oldMemberMsg,
+    BAN: oldMemberMsg,
+    REACTION: isSender
+      ? recipient?.id === loggedinUser.id
+        ? youReactedToYourMessage
+            .replace("[name]", sender || appUser)
+            .replace("[r]", messagePreview.content)
+        : youReactedToMessage
+            .replace("[name]", sender || appUser)
+            .replace("[r]", messagePreview.content)
+            .replace("[member]", recipientFirstName || appUser)
+      : recipient?.id === loggedinUser.id
+        ? reactedToMessage
+            .replace("[name]", sender || appUser)
+            .replace("[r]", messagePreview.content)
+        : reactedMemberMessage
+            .replace("[name]", sender || appUser)
+            .replace("[r]", messagePreview.content)
+            .replace("[member]", recipientFirstName || appUser),
+  };
+
+  let messagePreviewContent = contentsTypes[messageType];
+
+  if (currentMember?.type === "OLD" || currentMember?.type === "BANNED") {
+    messagePreviewContent = canNoLongerInteract;
+    messageType = "CLEAR";
+  }
+
+  const now = Date.now();
+
+  const isUserOnline =
+    isSaved ||
+    (!!otherUser?.lastSeen &&
+      new Date(otherUser.lastSeen).getTime() - 40 * 1000 > now);
+
+  const select = async () => {
+    onSelect();
+    queryClient.setQueryData(["unread-chat-messages", room.id], {
+      unreadCount: 0,
+    });
+    navigate("/messages/chat");
+  };
+
+  const chatName =
+    room.name ||
+    `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
+    (room.isGroup ? groupChat : appUser);
+
+  return (
+    <li
+      key={room.id}
+      className={`cursor-pointer p-2 ${active && "bg-accent/50"}`}
+      onClick={select}
+      title={messagePreviewContent || noMessage}
+    >
+      <div className="flex items-center space-x-2">
+        {room.isGroup ? (
+          <GroupAvatar size={45} avatarUrl={room.groupAvatarUrl} />
+        ) : (
+          <UserAvatar
+            userId={otherUser?.id || ""}
+            avatarUrl={otherUser?.avatarUrl}
+            size={45}
+          />
+        )}
+        <div className="">
+          <span
+            className={cn(
+              "font-semibold",
+              isVerified && "flex items-center gap-1",
+            )}
+          >
+            {chatName}
+            {verifiedCheck}
+          </span>
+          <div className="flex w-fit max-w-full flex-shrink-0 items-center gap-1 text-sm text-muted-foreground">
+            <span
+              className={cn(
+                "line-clamp-2 text-ellipsis",
+                (messageType !== "CONTENT" || typing.isTyping) &&
+                  "text-xs text-primary",
+                typing.isTyping && "animate-pulse",
+              )}
+            >
+              {typing.isTyping
+                ? typingText
+                : messagePreviewContent || noMessage}
+            </span>
+            {!typing.isTyping && (
+              <>
+                <span>•</span>
+                <span className="line-clamp-1 min-w-fit">
+                  <Time time={messagePreview.createdAt} full={false} />
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        {!!unreadCount && (
+          <span className="relative flex flex-1 items-center justify-end">
+            <span className="relative min-w-fit rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
+              <FormattedInt number={unreadCount} />
+            </span>
+          </span>
+        )}
+      </div>
+    </li>
+  );
+}
