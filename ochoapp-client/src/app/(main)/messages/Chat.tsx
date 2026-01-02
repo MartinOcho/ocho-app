@@ -104,8 +104,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       if (data.roomId === roomId) {
         // On supprime le message temporaire correspondant s'il existe (pour éviter les doublons visuels)
         setNewMessages((prev) => [
-          ...prev.filter((msg) => msg.id !== data.newMessage.id),
           data.newMessage,
+          ...prev.filter((msg) => msg.id !== data.newMessage.id),
         ]);
       }
     };
@@ -212,7 +212,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   } = useQuery({
     queryKey: ["room", "data", roomId],
     queryFn: () =>
-      kyInstance.get(`/api/messages/${roomId}/chat-data`).json<RoomData>(),
+      kyInstance.get(`/api/rooms/${roomId}/chat-data`).json<RoomData>(),
     initialData,
     staleTime: Infinity,
     throwOnError: false,
@@ -226,7 +226,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       queryFn: ({ pageParam }) =>
         kyInstance
           .get(
-            `/api/messages/${roomId}/msgs`,
+            `/api/rooms/${roomId}/msgs`,
             pageParam ? { searchParams: { cursor: pageParam } } : {},
           )
           .json<MessagesSection>(),

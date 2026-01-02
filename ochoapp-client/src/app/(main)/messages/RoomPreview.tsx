@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import FormattedInt from "@/components/FormattedInt";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { t } from "@/context/LanguageContext";
 import Verified from "@/components/Verified";
 import { useProgress } from "@/context/ProgressContext";
@@ -107,7 +107,7 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
     queryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/messages/${room.id}/unread-count`)
+        .get(`/api/rooms/${room.id}/unread-count`)
         .json<NotificationCountInfo>(),
     refetchInterval: active ? 2_000 : 50_000,
     initialData: { unreadCount: 0 },
@@ -255,10 +255,6 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
 
   const now = Date.now();
 
-  const isUserOnline =
-    isSaved ||
-    (!!otherUser?.lastSeen &&
-      new Date(otherUser.lastSeen).getTime() - 40 * 1000 > now);
 
   const select = async () => {
     onSelect();
@@ -272,6 +268,7 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
     room.name ||
     `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
     (room.isGroup ? groupChat : appUser);
+
 
   return (
     <li
@@ -288,6 +285,7 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
             userId={otherUser?.id || ""}
             avatarUrl={otherUser?.avatarUrl}
             size={45}
+            hideBadge={false}
           />
         )}
         <div className="">

@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import { getChatRoomDataInclude, getMessageDataInclude } from "./types";
-import { getFormattedRooms, getMessageReactions } from "./utils";
+import { getFormattedRooms, getMessageReactions, getMessageReads } from "./utils";
 
 dotenv.config();
 
@@ -259,19 +259,6 @@ io.on("connection", async (socket) => {
     }
   });
 
-  // --- CORRECTION MAJEURE ICI ---
-  // Auparavant, le serveur forçait le socket à rejoindre TOUTES les rooms de l'utilisateur.
-  // C'est ce qui causait la réception des "receive_message" pour toutes les conversations.
-  // Nous commentons/supprimons ce bloc pour que le client gère lui-même ses abonnements via "join_room".
-  
-  /* const userRooms = await prisma.roomMember.findMany({
-    where: { userId: userId },
-    select: { roomId: true },
-  });
-  userRooms.forEach((room) => socket.join(room.roomId));
-  console.log(`${displayName} a rejoint ses ${userRooms.length} salons.`);
-  */
-
   // ÉVÉNEMENT POUR REJOINDRE UNE ROOM SÉCURISÉE (Active Chat)
   socket.on("join_room", async (roomId: string) => {
     const userId = socket.data.user.id;
@@ -367,6 +354,62 @@ io.on("connection", async (socket) => {
         .emit("typing_update", { roomId, typingUsers: typingList });
     }
   });
+
+  // --- GESTION DES LECTURES (READS / VUES) ---
+  socket.on(
+    "mark_message_read",
+    async ({ messageId, roomId }: { messageId: string; roomId: string }) => {
+      try {
+        const userId = socket.data.user.id;
+
+        // 1. Validation de l'appartenance à la room (sauf messages sauvegardés)
+        if (!roomId.startsWith("saved-")) {
+          const membership = await prisma.roomMember.findUnique({
+            where: { roomId_userId: { roomId, userId } },
+          });
+          
+          if (!membership || membership.type === "BANNED" || membership.leftAt) {
+            // Utilisateur non autorisé ou parti
+            return; 
+          }
+        }
+
+        // 2. Vérification que le message existe
+        const message = await prisma.message.findUnique({
+          where: { id: messageId },
+        });
+
+        if (!message) return;
+
+        // 3. Application de votre logique "Read Upsert"
+        await prisma.read.upsert({
+          where: {
+            userId_messageId: {
+              userId: userId,
+              messageId,
+            },
+          },
+          create: {
+            userId: userId,
+            messageId,
+          },
+          update: {}, // Rien à mettre à jour si existe déjà
+        });
+
+        // 4. Récupérer la liste mise à jour des lecteurs pour l'envoyer au front
+        const updatedReads = await getMessageReads(messageId);
+
+        // 5. Diffuser à tout le monde dans la room (y compris l'expéditeur)
+        io.to(roomId).emit("message_read_update", {
+          messageId,
+          reads: updatedReads,
+        });
+
+      } catch (error) {
+        console.error("Erreur mark_message_read:", error);
+      }
+    }
+  );
 
   // --- GESTION DES RÉACTIONS ---
   socket.on(

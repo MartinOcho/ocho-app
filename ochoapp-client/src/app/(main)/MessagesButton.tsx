@@ -31,7 +31,7 @@ export default function MessagesButton({
     queryKey: ["unread-chat-messages"],
     queryFn: () =>
       kyInstance
-        .get("/api/messages/unread-count")
+        .get("/api/rooms/unread-count")
         .json<NotificationCountInfo>(),
     initialData: initialState,
     refetchInterval: isProduction ? 45 * 1000 : 50 * 1000,

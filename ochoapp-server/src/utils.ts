@@ -66,6 +66,32 @@ export async function getMessageReactions(
   return Array.from(groupedMap.values());
 }
 
+// RÉCUPÉRER LES LECTURES (READS) ---
+export async function getMessageReads(messageId: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: {
+      reads: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!message) return [];
+  
+  // On retourne la liste des utilisateurs qui ont lu, format identique à votre API
+  return message.reads.map((read) => read.user);
+}
+
 // --- LOGIQUE RÉUTILISABLE POUR OBTENIR LES ROOMS ---
 export async function getFormattedRooms(
   userId: string,

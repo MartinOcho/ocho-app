@@ -10,10 +10,7 @@ import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
 import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
-import {
-  MoreVertical,
-  Undo2,
-} from "lucide-react";
+import { MoreVertical, Undo2 } from "lucide-react";
 import ReactionOverlay, {
   ReactionData,
   ReactionDetailsPopover,
@@ -333,8 +330,10 @@ export default function Message({
     setIsDeleting(true);
   };
 
-  // --- READ STATUS ---
-  const queryKey: QueryKey = ["reads-info", message.id];
+  // --- READ STATUS (VUES) ---
+  const queryKey: QueryKey = ["message", "views", message.id];
+  
+  // 1. Fetch initial via HTTP (comme avant)
   const { data } = useQuery({
     queryKey,
     queryFn: () =>
@@ -342,11 +341,40 @@ export default function Message({
         .get(`/api/message/${messageId}/reads`, { throwHttpErrors: false })
         .json<ReadInfo>(),
     staleTime: Infinity,
-    refetchInterval: 5000,
+    // On enlève le polling (refetchInterval) car le socket s'en charge
     throwOnError: false,
   });
 
   const reads = data?.reads ?? [];
+
+  // 2. Logique Socket pour Marquer comme Lu et Mettre à jour
+  useEffect(() => {
+    if (!socket || !loggedUser || !room) return;
+
+    // A. Si je ne suis pas l'envoyeur, je marque le message comme lu
+    // On vérifie aussi si on ne l'a pas déjà lu pour éviter trop d'emits
+    const isSender = message.senderId === loggedUser.id;
+    const hasRead = reads.some(r => r.id === loggedUser.id);
+
+    if (!isSender && !hasRead) {
+      // On émet l'événement vers le serveur
+      socket.emit("mark_message_read", { messageId, roomId });
+    }
+
+    // B. Écouter les mises à jour des lectures venant du serveur
+    const handleReadUpdate = (data: { messageId: string; reads: any[] }) => {
+      if (data.messageId === messageId) {
+        // Mise à jour immédiate du cache React Query sans refetch
+        queryClient.setQueryData(queryKey, { reads: data.reads });
+      }
+    };
+
+    socket.on("message_read_update", handleReadUpdate);
+
+    return () => {
+      socket.off("message_read_update", handleReadUpdate);
+    };
+  }, [socket, messageId, roomId, loggedUser, message.senderId, reads, queryClient, queryKey]);
 
   const showDetail = isChecked || showTime;
 
@@ -379,7 +407,7 @@ export default function Message({
   const senderFirstName = message.sender?.displayName.split(" ")[0] || appUser;
   const recipientFirstName =
     message.recipient?.displayName.split(" ")[0] || appUser;
-  const isSender = message.sender?.id === loggedUser.id;
+  const isSender = message.senderId === loggedUser.id;
   const isRecipient = message.recipient?.id === loggedUser.id;
 
   let newMemberMsg, oldMemberMsg;
@@ -647,7 +675,17 @@ export default function Message({
                   room.isGroup ? (
                     <span>
                       <span className="font-bold">{seen}</span>
-                      {views.length > 1 ? "..." : "..."}
+                      {views.length > 1
+                        ? seenByAnd
+                            .replace(/-.*?-/, "")
+                            .replace(
+                              "[names]",
+                              views.slice(0, views.length - 1).join(", "),
+                            )
+                            .replace("[name]", views[views.length - 1])
+                        : seenBy
+                            .replace(/-.*?-/, "")
+                            .replace("[name]", views[views.length - 1])}
                     </span>
                   ) : (
                     <span className="font-bold">{seen}</span>

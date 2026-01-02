@@ -74,7 +74,7 @@ export default function RoomHeader({ roomId, isGroup, onDelete, initialRoom }: C
       queryFn: () =>
         kyInstance
           .get(
-            `/api/messages/${roomId}/room-header`
+            `/api/rooms/${roomId}/room-header`
           ).json<RoomData>(),
       staleTime: Infinity,
     });
