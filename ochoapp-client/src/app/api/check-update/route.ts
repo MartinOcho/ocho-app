@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
   const androidCurrentVersion = parseInt(
     process.env.ANDROID_CURRENT_VERSION || "1",
   );
+  const androidVersionName = process.env.ANDROID_VERSION_NAME || "";
   const iosCurrentVersion = parseInt(process.env.IOS_CURRENT_VERSION || "1");
+  const iosVersionName = process.env.IOS_VERSION_NAME || "";
   let isUpToDate = true;
   if (platform.toLowerCase() === "android") {
     isUpToDate = parseInt(version) >= androidCurrentVersion;
@@ -18,6 +20,7 @@ export async function GET(req: NextRequest) {
     ApiResponse<{
       isUpToDate: boolean;
       currentVersion: number;
+      versionName: string;
       downloadUrl: string;
     }>
   >({
@@ -29,6 +32,10 @@ export async function GET(req: NextRequest) {
           ? androidCurrentVersion
           : iosCurrentVersion,
         downloadUrl: "https://github.com/devTeam222/OchoApp/releases/tag/app",
+      versionName:
+        platform.toLowerCase() === "android"
+          ? androidVersionName
+          : iosVersionName,
     },
     message: isUpToDate
       ? "L'application est à jour."
