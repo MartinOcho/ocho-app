@@ -41,9 +41,6 @@ export default function BirthdayDialog() {
     currentBirthday ?? new Date(minimumYear, today.getMonth(), today.getDate()),
   );
 
-  useEffect(() => {
-    console.log("Selected date changed:", selectedDate);
-  }, [selectedDate]);
 
   const day = selectedDate.getDate();
   const month = selectedDate.getMonth();

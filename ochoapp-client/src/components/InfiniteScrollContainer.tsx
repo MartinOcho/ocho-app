@@ -65,7 +65,6 @@ export default function InfiniteScrollContainer({
     root, // Définit dynamiquement le parent défilant comme racine
     rootMargin: "300px",
     onChange(inView) {
-        console.log(inView);
       if (inView) {
         onBottomReached();
       }

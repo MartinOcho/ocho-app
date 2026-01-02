@@ -34,7 +34,6 @@ export async function GET(
       });
   
       if (!message) {
-        console.log(message);
         return Response.json({ error: "Message non trouvé" }, { status: 404 });
       }
   

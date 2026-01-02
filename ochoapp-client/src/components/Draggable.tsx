@@ -143,8 +143,7 @@ export default function Draggable({
 
     if (!touchedScrollableElements.length) {
       setCanscroll(false);
-      console.log("Pull-to-refresh détecté");
-      e.preventDefault(); // Empêcher le rechargement
+      e.preventDefault();
     }
 
     if (!dragging || !draggable) return;

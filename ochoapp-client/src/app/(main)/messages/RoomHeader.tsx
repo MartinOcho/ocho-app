@@ -116,8 +116,6 @@ if (!room) {
     </div>
   }
   if (status === "error") {
-    console.log(error);
-
     return <div className="flex w-full items-center gap-2 px-4 py-3 flex-shrink-0 *:flex-shrink-0">
       <UserAvatar userId={""} avatarUrl={null} size={40}/>
       <div className="flex flex-col gap-2 w-full">

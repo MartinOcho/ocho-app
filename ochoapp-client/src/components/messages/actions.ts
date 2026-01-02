@@ -95,7 +95,6 @@ export async function submitMessage(input: {
       leftAt: true,
     },
   });
-  console.log(roomMembers);
   
   for (const member of roomMembers) {
     const memberId = member.userId;

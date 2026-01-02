@@ -25,18 +25,6 @@ export async function GET(request: NextRequest) {
     if (!uploadThingFileUrl) {
         return NextResponse.json({ error: "File URL is missing" }, { status: 404 });
     }
-
-    // 4. Redirection vers l'URL d'UploadThing
-    // C'est la méthode la plus courante et la plus efficace.
-    // UploadThing fournit déjà les en-têtes nécessaires (Content-Type, Content-Disposition: attachment)
-    // pour forcer le téléchargement et nommer le fichier.
-    // L'URL peut être paramétrée pour forcer le téléchargement si ce n'est pas le comportement par défaut d'UploadThing.
-
-    // Note: Pour s'assurer que le nom de fichier soit celui que vous voulez (OchoApp.apk),
-    // vous pouvez ajouter un paramètre de requête à l'URL de redirection, 
-    // ou vous assurer que l'URL UploadThing elle-même inclut le nom de fichier.
-
-    console.log(`Redirecting to UploadThing URL: ${uploadThingFileUrl}`);
     
     // Le code 302 (Found) ou 307 (Temporary Redirect) est utilisé pour rediriger le navigateur.
     return NextResponse.redirect(uploadThingFileUrl, 307); 

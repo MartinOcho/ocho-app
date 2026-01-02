@@ -95,7 +95,6 @@ export default function Replies({
       );
       onAuthorReplyChange(authorReplied);
       setTargetComment(comment.id);
-      console.log(count);
       onCountChange(count);
       
     }
