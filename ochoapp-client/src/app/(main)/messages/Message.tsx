@@ -24,8 +24,16 @@ import {
   UserMinus,
 } from "lucide-react";
 import { createPortal } from "react-dom";
-import { EMOJI_CATEGORIES, QUICK_REACTIONS, SKIN_TONES } from "./lists/emoji-lists";
-import ReactionOverlay, { ReactionData, ReactionDetailsPopover, ReactionList } from "./reaction/ReactionOverlay";
+import {
+  EMOJI_CATEGORIES,
+  QUICK_REACTIONS,
+  SKIN_TONES,
+} from "./lists/emoji-lists";
+import ReactionOverlay, {
+  ReactionData,
+  ReactionDetailsPopover,
+  ReactionList,
+} from "./reaction/ReactionOverlay";
 
 // --- TYPES ---
 type MessageProps = {
@@ -34,49 +42,117 @@ type MessageProps = {
   showTime?: boolean;
 };
 
-
-
-
-
-// --- SOUS-COMPOSANT : Barre de suppression (Décompte) ---
-const DeletionPlaceholder = ({
+// --- SOUS-COMPOSANT
+export function DeletionPlaceholder({
   onCancel,
   duration = 5000,
 }: {
   onCancel: () => void;
   duration?: number;
-}) => {
+}) {
   const [progress, setProgress] = useState(100);
+  const [timeLeft, setTimeLeft] = useState(duration);
+
+  // Paramètres du cercle SVG (agrandi pour accueillir le texte)
+  const size = 18; // Taille totale du SVG
+  const stroke = 2; // Épaisseur du trait
+  const center = size / 2;
+  const radius = size / 2 - stroke / 2;
+  const circumference = radius * 2 * Math.PI;
 
   useEffect(() => {
     const intervalTime = 50;
     const step = (100 * intervalTime) / duration;
+
     const timer = setInterval(() => {
-      setProgress((prev) => Math.max(0, prev - step));
+      setProgress((prev) => {
+        const nextValue = prev - step;
+        if (nextValue <= 0) {
+          clearInterval(timer);
+          return 0;
+        }
+        return nextValue;
+      });
+
+      // Mise à jour du temps restant pour l'affichage textuel
+      setTimeLeft((prev) => Math.max(0, prev - intervalTime));
     }, intervalTime);
+
     return () => clearInterval(timer);
   }, [duration]);
 
+  // Calcul du décalage pour l'animation du cercle
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  // Conversion du temps restant en secondes (arrondi au supérieur pour éviter d'afficher 0 trop tôt)
+  const secondsLeft = Math.ceil(timeLeft / 1000);
+
   return (
-    <div className="relative flex items-center justify-between gap-2 rounded-3xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-destructive">
-      <div 
-        className="absolute bottom-0 left-0 h-1 bg-destructive/50 transition-all duration-75 ease-linear"
-        style={{ width: `${progress}%` }}
-      />
-      <span className="z-10 text-xs font-semibold italic">Suppression...</span>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onCancel();
-        }}
-        className="z-10 flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-xs font-bold text-foreground shadow-sm transition-transform hover:scale-105 active:scale-95"
-      >
-        <Undo2 size={12} /> Annuler
-      </button>
+    <div className="relative flex w-full justify-end">
+      <div className="relative flex w-fit select-none flex-col items-end">
+        {/* Conteneur principal avec un border-radius maximal (rounded-full) */}
+        <div className="relative flex w-fit items-center justify-between gap-2 overflow-hidden rounded-full border border-destructive/40 bg-destructive/5 p-1.5 pe-4 text-destructive shadow-sm backdrop-blur-sm">
+          {/* Barre de progression linéaire discrète en bas */}
+          <div
+            className="absolute bottom-0 left-0 h-1 bg-destructive/30 transition-all duration-75 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCancel();
+            }}
+            className="z-10 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
+          >
+            {/* Conteneur du Cercle et du Chiffre */}
+            <div className="relative flex items-center justify-center">
+              <svg height={size} width={size} className="-rotate-90 transform">
+                {/* Piste du cercle (fond) */}
+                <circle
+                  stroke="currentColor"
+                  fill="transparent"
+                  strokeWidth={stroke}
+                  className="text-muted-foreground/40 dark:text-muted/50"
+                  r={radius}
+                  cx={center}
+                  cy={center}
+                />
+                {/* Progression active */}
+                <circle
+                  stroke="currentColor"
+                  fill="transparent"
+                  strokeWidth={stroke}
+                  strokeDasharray={circumference}
+                  style={{
+                    strokeDashoffset,
+                    transition: "stroke-dashoffset 75ms linear",
+                  }}
+                  strokeLinecap="round"
+                  className="text-destructive"
+                  r={radius}
+                  cx={center}
+                  cy={center}
+                />
+              </svg>
+              {/* Texte des secondes au centre du cercle */}
+              <span className="absolute inset-0 flex items-center justify-center text-destructive">
+                {secondsLeft}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-0.5 pe-1.5 text-xs font-normal text-primary">
+              <Undo2 size={12} strokeWidth={3} />
+              <span className="uppercase">Annuler</span>
+            </div>
+          </button>
+
+          <span className="z-10 italic tracking-wider">Suppression...</span>
+        </div>
+      </div>
     </div>
   );
-};
-
+}
 
 // --- SOUS-COMPOSANT : CONTENU DE LA BULLE ---
 export const MessageBubbleContent = ({
@@ -96,7 +172,11 @@ export const MessageBubbleContent = ({
 }) => {
   return (
     <div className={cn("relative w-fit", isClone && "h-full")}>
-      <Linkify className={cn(isOwner && "text-emerald-300 dark:text-white font-semibold")}>
+      <Linkify
+        className={cn(
+          isOwner && "font-semibold text-emerald-300 dark:text-white",
+        )}
+      >
         <div
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
@@ -130,9 +210,13 @@ export default function Message({
   const messageId = message.id;
   const roomId = room.id;
   const [isChecked, setIsChecked] = useState(showTime);
-  
-  const [activeOverlayRect, setActiveOverlayRect] = useState<DOMRect | null>(null);
-  const [activeDetailsRect, setActiveDetailsRect] = useState<DOMRect | null>(null);
+
+  const [activeOverlayRect, setActiveOverlayRect] = useState<DOMRect | null>(
+    null,
+  );
+  const [activeDetailsRect, setActiveDetailsRect] = useState<DOMRect | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Refs
@@ -186,7 +270,10 @@ export default function Message({
   useEffect(() => {
     if (!socket) return;
 
-    const handleReactionUpdate = (data: { messageId: string; reactions: ReactionData[] }) => {
+    const handleReactionUpdate = (data: {
+      messageId: string;
+      reactions: ReactionData[];
+    }) => {
       if (data.messageId === messageId) {
         // Le serveur envoie maintenant la structure complète avec les utilisateurs
         queryClient.setQueryData(reactionsQueryKey, data.reactions);
@@ -203,37 +290,42 @@ export default function Message({
   // Actions
   const handleSendReaction = (emoji: string) => {
     if (!socket) return;
-    
+
     // Check if we are removing (clicking the same emoji we already have)
-    const existingReaction = reactions.find(r => r.content === emoji && r.hasReacted);
-    
+    const existingReaction = reactions.find(
+      (r) => r.content === emoji && r.hasReacted,
+    );
+
     if (existingReaction) {
-        socket.emit("remove_reaction", { messageId, roomId });
+      socket.emit("remove_reaction", { messageId, roomId });
     } else {
-        socket.emit("add_reaction", { messageId, roomId, content: emoji });
+      socket.emit("add_reaction", { messageId, roomId, content: emoji });
     }
   };
 
   const handleRemoveMyReaction = () => {
-      if (!socket) return;
-      socket.emit("remove_reaction", { messageId, roomId });
+    if (!socket) return;
+    socket.emit("remove_reaction", { messageId, roomId });
   };
 
   const handleShowDetails = (event: React.MouseEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setActiveDetailsRect(event.currentTarget.getBoundingClientRect());
-  }
+    event.preventDefault();
+    event.stopPropagation();
+    setActiveDetailsRect(event.currentTarget.getBoundingClientRect());
+  };
 
   // --- LOGIQUE SUPPRESSION MESSAGE ---
-  const DELETION_DELAY = 5000; 
+  const DELETION_DELAY = 8000;
   const deleteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isDeleting && !deleteTimerRef.current) {
       deleteTimerRef.current = setTimeout(() => {
         if (socket) {
-           socket.emit("delete_message", { messageId: message.id, roomId: room.id });
+          socket.emit("delete_message", {
+            messageId: message.id,
+            roomId: room.id,
+          });
         }
       }, DELETION_DELAY);
     }
@@ -309,7 +401,7 @@ export default function Message({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isDeleting) return; 
+    if (isDeleting) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setActiveOverlayRect(rect);
   };
@@ -327,51 +419,53 @@ export default function Message({
       : room?.members?.filter((member) => member.userId !== loggedUser.id)[0];
   const messageType: MessageType = message.type;
 
-  const otherUserFirstName = otherUser?.user?.displayName.split(" ")[0] || appUser;
+  const otherUserFirstName =
+    otherUser?.user?.displayName.split(" ")[0] || appUser;
   const senderFirstName = message.sender?.displayName.split(" ")[0] || appUser;
-  const recipientFirstName = message.recipient?.displayName.split(" ")[0] || appUser;
+  const recipientFirstName =
+    message.recipient?.displayName.split(" ")[0] || appUser;
   const isSender = message.sender?.id === loggedUser.id;
   const isRecipient = message.recipient?.id === loggedUser.id;
 
   let newMemberMsg, oldMemberMsg;
   if (message.recipient && room.isGroup) {
-     const memberName = recipientFirstName;
-     if (messageType === "NEWMEMBER") {
-        newMemberMsg = newMember.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (newMemberMsg = youAddedMember.replace("[name]", memberName))
-            : (newMemberMsg = isRecipient
-                ? addedYou.replace("[name]", senderFirstName)
-                : addedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
+    const memberName = recipientFirstName;
+    if (messageType === "NEWMEMBER") {
+      newMemberMsg = newMember.replace("[name]", memberName);
+      if (message.sender) {
+        isSender
+          ? (newMemberMsg = youAddedMember.replace("[name]", memberName))
+          : (newMemberMsg = isRecipient
+              ? addedYou.replace("[name]", senderFirstName)
+              : addedMember
+                  .replace("[name]", senderFirstName)
+                  .replace("[member]", memberName));
       }
-      if (messageType === "LEAVE") {
-        oldMemberMsg = memberLeft.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (oldMemberMsg = youRemovedMember.replace("[name]", memberName))
-            : (oldMemberMsg = isRecipient
-                ? removedYou.replace("[name]", senderFirstName)
-                : removedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
+    }
+    if (messageType === "LEAVE") {
+      oldMemberMsg = memberLeft.replace("[name]", memberName);
+      if (message.sender) {
+        isSender
+          ? (oldMemberMsg = youRemovedMember.replace("[name]", memberName))
+          : (oldMemberMsg = isRecipient
+              ? removedYou.replace("[name]", senderFirstName)
+              : removedMember
+                  .replace("[name]", senderFirstName)
+                  .replace("[member]", memberName));
       }
-      if (messageType === "BAN") {
-        oldMemberMsg = memberBanned.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (oldMemberMsg = youBannedMember.replace("[name]", memberName))
-            : (oldMemberMsg = isRecipient
-                ? bannedYou.replace("[name]", senderFirstName)
-                : bannedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
+    }
+    if (messageType === "BAN") {
+      oldMemberMsg = memberBanned.replace("[name]", memberName);
+      if (message.sender) {
+        isSender
+          ? (oldMemberMsg = youBannedMember.replace("[name]", memberName))
+          : (oldMemberMsg = isRecipient
+              ? bannedYou.replace("[name]", senderFirstName)
+              : bannedMember
+                  .replace("[name]", senderFirstName)
+                  .replace("[member]", memberName));
       }
+    }
   }
 
   const contentsTypes = {
@@ -389,11 +483,21 @@ export default function Message({
     BAN: oldMemberMsg,
     REACTION: isSender
       ? isRecipient
-        ? youReactedToYourMessage.replace("[name]", senderFirstName).replace("[r]", message.content)
-        : youReactedToMessage.replace("[name]", senderFirstName).replace("[r]", message.content).replace("[member]", recipientFirstName)
+        ? youReactedToYourMessage
+            .replace("[name]", senderFirstName)
+            .replace("[r]", message.content)
+        : youReactedToMessage
+            .replace("[name]", senderFirstName)
+            .replace("[r]", message.content)
+            .replace("[member]", recipientFirstName)
       : isRecipient
-        ? reactedToMessage.replace("[name]", senderFirstName).replace("[r]", message.content)
-        : reactedMemberMessage.replace("[name]", senderFirstName).replace("[r]", message.content).replace("[member]", recipientFirstName),
+        ? reactedToMessage
+            .replace("[name]", senderFirstName)
+            .replace("[r]", message.content)
+        : reactedMemberMessage
+            .replace("[name]", senderFirstName)
+            .replace("[r]", message.content)
+            .replace("[member]", recipientFirstName),
   };
 
   const messageDate = new Date(message.createdAt);
@@ -429,159 +533,178 @@ export default function Message({
 
   return (
     <>
-      {activeOverlayRect && (
-        <ReactionOverlay
-          message={message}
-          originalRect={activeOverlayRect}
-          onClose={() => setActiveOverlayRect(null)}
-          isOwner={isOwner}
-          unavailableMessage={unavailableMessage}
-          onDeleteRequest={handleRequestDelete}
-          onReact={handleSendReaction}
-          currentReactions={reactions}
+      {isDeleting ? (
+        <DeletionPlaceholder
+          onCancel={handleCancelDelete}
+          duration={DELETION_DELAY}
         />
-      )}
-
-      {activeDetailsRect && (
-          <ReactionDetailsPopover
-             reactions={reactions}
-             currentUserId={loggedUser.id}
-             onClose={() => setActiveDetailsRect(null)}
-             onRemoveReaction={handleRemoveMyReaction}
-             anchorRect={activeDetailsRect}
-          />
-      )}
-
-      <div
-        className={cn(
-          "relative flex w-full flex-col gap-2",
-          activeOverlayRect ? "z-0" : "",
-        )}
-        ref={messageRef}
-      >
-        <div
-          className={cn(
-            "flex w-full select-none justify-center overflow-hidden text-center text-sm transition-all",
-            !showDetail ? "h-0 opacity-0" : "h-5 opacity-100",
-            showTime && "h-6",
-          )}
-        >
-          <div className={cn(showTime && "rounded-sm bg-primary/30 p-0.5 px-2")}>
-            <Time
-              time={message.createdAt}
-              full
-              relative={showTime && timeDifferenceInDays < 2}
+      ) : (
+        <>
+          {activeOverlayRect && (
+            <ReactionOverlay
+              message={message}
+              originalRect={activeOverlayRect}
+              onClose={() => setActiveOverlayRect(null)}
+              isOwner={isOwner}
+              unavailableMessage={unavailableMessage}
+              onDeleteRequest={handleRequestDelete}
+              onReact={handleSendReaction}
+              currentReactions={reactions}
             />
-          </div>
-        </div>
+          )}
 
-        <div
-          className={cn(
-            "flex w-full gap-2",
-            message.senderId === loggedUser.id && "flex-row-reverse",
+          {activeDetailsRect && (
+            <ReactionDetailsPopover
+              reactions={reactions}
+              currentUserId={loggedUser.id}
+              onClose={() => setActiveDetailsRect(null)}
+              onRemoveReaction={handleRemoveMyReaction}
+              anchorRect={activeDetailsRect}
+            />
           )}
-        >
-          {message.senderId !== loggedUser.id && (
-            <span className="py-2">
-               <UserAvatar
-                  userId={message.senderId}
-                  avatarUrl={message.sender?.avatarUrl}
-                  size={20}
-                  className="flex-none"
-                />
-            </span>
-          )}
-          <div className={"group/message relative w-fit max-w-[75%] select-none"}>
-            {message.senderId !== loggedUser.id && (
-              <div className="ps-2 text-xs font-semibold text-muted-foreground">
-                {message.sender?.displayName || "Utilisateur OchoApp"}
-              </div>
+
+          <div
+            className={cn(
+              "relative flex w-full flex-col gap-2",
+              activeOverlayRect ? "z-0" : "",
             )}
+            ref={messageRef}
+          >
             <div
               className={cn(
-                "flex w-fit flex-col",
-                isOwner ? "items-end" : "items-start"
+                "flex w-full select-none justify-center overflow-hidden text-center text-sm transition-all",
+                !showDetail ? "h-0 opacity-0" : "h-5 opacity-100",
+                showTime && "h-6",
               )}
             >
               <div
                 className={cn(
-                  "flex w-fit items-center gap-1",
-                  !isOwner && "flex-row-reverse",
+                  showTime && "rounded-sm bg-primary/30 p-0.5 px-2",
                 )}
               >
-                <div
-                  className={cn(
-                    "flex size-8 cursor-pointer items-center justify-center rounded-full hover:bg-muted/50",
-                    isDeleting && "invisible",
-                  )}
-                  onClick={handleContextMenu}
-                >
-                  <MoreVertical className="size-5 text-muted-foreground" />
-                </div>
-
-                <div className="relative h-fit w-fit">
-                  {isDeleting ? (
-                    <DeletionPlaceholder 
-                      onCancel={handleCancelDelete} 
-                      duration={DELETION_DELAY}
-                    />
-                  ) : (
-                    <div
-                      ref={bubbleRef}
-                      onContextMenu={handleContextMenu}
-                      className={cn(
-                        activeOverlayRect ? "opacity-0" : "opacity-100",
-                      )}
-                    >
-                      <MessageBubbleContent
-                        message={message}
-                        isOwner={isOwner}
-                        unavailableMessage={unavailableMessage}
-                        toggleCheck={toggleCheck}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className={cn(
-                activeOverlayRect ? "opacity-0" : "opacity-100",
-                "px-2"
-              )}>
-                <ReactionList 
-                    reactions={reactions} 
-                    onReact={handleSendReaction} 
-                    onShowDetails={handleShowDetails}
+                <Time
+                  time={message.createdAt}
+                  full
+                  relative={showTime && timeDifferenceInDays < 2}
                 />
               </div>
             </div>
-          </div>
-        </div>
 
-        <div
-          className={cn(
-            "flex w-full select-none overflow-hidden px-4 py-2 pt-3 text-justify text-xs transition-all",
-            !showDetail ? "h-0 opacity-0" : "opacity-100",
-            message.senderId === loggedUser.id ? "flex-row-reverse" : "ps-10",
-          )}
-          onClick={toggleCheck}
-        >
-           <p className={cn(showDetail ? "animate-appear-b" : "hidden", "max-h-40 w-fit max-w-[50%] text-ellipsis text-start")}>
-            {!!views.length ? (
-              room.isGroup ? (
-                <span>
-                  <span className="font-bold">{seen}</span>
-                  {views.length > 1 ? "..." : "..."} 
+            <div
+              className={cn(
+                "flex w-full gap-2",
+                message.senderId === loggedUser.id && "flex-row-reverse",
+              )}
+            >
+              {message.senderId !== loggedUser.id && (
+                <span className="py-2">
+                  <UserAvatar
+                    userId={message.senderId}
+                    avatarUrl={message.sender?.avatarUrl}
+                    size={20}
+                    className="flex-none"
+                  />
                 </span>
-              ) : (
-                <span className="font-bold">{seen}</span>
-              )
-            ) : (
-              <span className="font-bold">{isSender ? sent : seen}</span>
-            )}
-          </p>
-        </div>
-      </div>
+              )}
+              <div
+                className={
+                  "group/message relative w-fit max-w-[75%] select-none"
+                }
+              >
+                {message.senderId !== loggedUser.id && (
+                  <div className="ps-2 text-xs font-semibold text-muted-foreground">
+                    {message.sender?.displayName || "Utilisateur OchoApp"}
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "flex w-fit flex-col",
+                    isOwner ? "items-end" : "items-start",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex w-fit items-center gap-1",
+                      !isOwner && "flex-row-reverse",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex size-8 cursor-pointer items-center justify-center rounded-full hover:bg-muted/50",
+                        isDeleting && "invisible",
+                      )}
+                      onClick={handleContextMenu}
+                    >
+                      <MoreVertical className="size-5 text-muted-foreground" />
+                    </div>
+
+                    <div className="relative h-fit w-fit">
+                      <div
+                        ref={bubbleRef}
+                        onContextMenu={handleContextMenu}
+                        className={cn(
+                          activeOverlayRect ? "opacity-0" : "opacity-100",
+                        )}
+                      >
+                        <MessageBubbleContent
+                          message={message}
+                          isOwner={isOwner}
+                          unavailableMessage={unavailableMessage}
+                          toggleCheck={toggleCheck}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={cn(
+                      activeOverlayRect ? "opacity-0" : "opacity-100",
+                      "px-2",
+                    )}
+                  >
+                    <ReactionList
+                      reactions={reactions}
+                      onReact={handleSendReaction}
+                      onShowDetails={handleShowDetails}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={cn(
+                "flex w-full select-none overflow-hidden px-4 py-2 pt-3 text-justify text-xs transition-all",
+                !showDetail ? "h-0 opacity-0" : "opacity-100",
+                message.senderId === loggedUser.id
+                  ? "flex-row-reverse"
+                  : "ps-10",
+              )}
+              onClick={toggleCheck}
+            >
+              <p
+                className={cn(
+                  showDetail ? "animate-appear-b" : "hidden",
+                  "max-h-40 w-fit max-w-[50%] text-ellipsis text-start",
+                )}
+              >
+                {!!views.length ? (
+                  room.isGroup ? (
+                    <span>
+                      <span className="font-bold">{seen}</span>
+                      {views.length > 1 ? "..." : "..."}
+                    </span>
+                  ) : (
+                    <span className="font-bold">{seen}</span>
+                  )
+                ) : (
+                  <span className="font-bold">{isSender ? sent : seen}</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

@@ -25,7 +25,6 @@ import { toast } from "@/components/ui/use-toast";
 import RoomHeader from "./RoomHeader";
 import { useMenuBar } from "@/context/MenuBarContext";
 import { useEffect, useRef, useState } from "react";
-import { useActiveRoom } from "@/context/ChatContext";
 import { usePathname, useRouter } from "next/navigation";
 import { t } from "@/context/LanguageContext";
 import ChatSkeleton from "./skeletons/ChatSkeleton";
