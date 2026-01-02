@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
 import Verified from "@/components/Verified";
 import { VerifiedType } from "@prisma/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -67,8 +67,10 @@ export default function RoomHeader({ roomId, isGroup, onDelete, initialRoom }: C
     memberSince,
     thisAccountDeleted,
   } = t();
+  const queryClient = useQueryClient();
+  const queryKey = ["room", "head", roomId]
   const { data, status, error } = useQuery({
-      queryKey: ["room", "head", roomId],
+      queryKey,
       queryFn: () =>
         kyInstance
           .get(
@@ -84,6 +86,16 @@ export default function RoomHeader({ roomId, isGroup, onDelete, initialRoom }: C
     setActive(false);
 
   }, [activeRoomId]);
+  useEffect(() => {
+    if (roomId) {
+      // Clear the old room data
+      setRoom(initialRoom);
+      // Revalidate the new room data
+      queryClient.invalidateQueries({queryKey});
+    }
+  }, [roomId]);
+
+
 
   useEffect(()=>{
     setRoom(initialRoom);

@@ -5,30 +5,15 @@ import Linkify from "@/components/Linkify";
 import { MessageType } from "@prisma/client";
 import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import Time from "@/components/Time";
-import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
 import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
 import {
-  Search,
-  Plus,
-  X,
-  Copy,
-  Reply,
-  Trash2,
-  Forward,
   MoreVertical,
   Undo2,
-  Loader2,
-  UserMinus,
 } from "lucide-react";
-import { createPortal } from "react-dom";
-import {
-  EMOJI_CATEGORIES,
-  QUICK_REACTIONS,
-  SKIN_TONES,
-} from "./lists/emoji-lists";
 import ReactionOverlay, {
   ReactionData,
   ReactionDetailsPopover,
@@ -354,7 +339,7 @@ export default function Message({
     queryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/message/${messageId}/read`, { throwHttpErrors: false })
+        .get(`/api/message/${messageId}/reads`, { throwHttpErrors: false })
         .json<ReadInfo>(),
     staleTime: Infinity,
     refetchInterval: 5000,
@@ -362,36 +347,6 @@ export default function Message({
   });
 
   const reads = data?.reads ?? [];
-
-  const { status } = useQuery({
-    queryKey: ["read-status", messageId, loggedUser.id],
-    queryFn: async () => {
-      const isRead = !!reads.find((read) => read.id === loggedUser.id);
-      if (!isRead) {
-        queryClient.setQueryData<ReadInfo>(queryKey, (oldData) => ({
-          reads: [
-            ...(oldData?.reads ?? []),
-            {
-              id: loggedUser.id,
-              username: loggedUser.username,
-              displayName: loggedUser.displayName,
-            },
-          ],
-        }));
-        return kyInstance.post(`/api/message/${messageId}/read`);
-      }
-      return {};
-    },
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-  });
-
-  if (status === "success") {
-    queryClient.setQueryData(["unread-chat-messages", room.id], {
-      unreadCount: 0,
-    });
-    queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
-  }
 
   const showDetail = isChecked || showTime;
 
