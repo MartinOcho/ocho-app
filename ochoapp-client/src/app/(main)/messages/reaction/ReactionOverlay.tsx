@@ -449,7 +449,7 @@ export function ReactionDetailsPopover({
                           onRemoveReaction();
                           onClose();
                       }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all max-sm:opacity-100"
                       title="Retirer ma réaction"
                      >
                          <HeartOff size={14} />

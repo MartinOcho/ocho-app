@@ -62,7 +62,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const { startNavigation: navigate } = useProgress();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [messageInputExpanded, setMessageInputExpanded] = useState(true);
-  
+
   // State pour la recherche locale de messages
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -123,7 +123,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     };
 
     // --- GESTION DE LA SUPPRESSION ---
-    const handleMessageDeleted = (data: { messageId: string, roomId: string }) => {
+    const handleMessageDeleted = (data: {
+      messageId: string;
+      roomId: string;
+    }) => {
       if (data.roomId !== roomId) return;
 
       // 1. Mettre à jour les "newMessages" (ceux reçus via socket avant refresh)
@@ -138,10 +141,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             ...oldData,
             pages: oldData.pages.map((page: any) => ({
               ...page,
-              messages: page.messages.filter((msg: MessageData) => msg.id !== data.messageId),
+              messages: page.messages.filter(
+                (msg: MessageData) => msg.id !== data.messageId,
+              ),
             })),
           };
-        }
+        },
       );
     };
 
@@ -167,7 +172,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       socket.off("message_deleted", handleMessageDeleted);
       socket.off("error", handleError);
       socket.off("typing_update", handleTypingUpdate);
-      
+
       setTypingUsers([]); // Reset la liste visuelle
     };
   }, [socket, isConnected, roomId, loggedUser?.id, queryClient]);
@@ -244,16 +249,20 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // On filtre si une recherche est active
   const filteredMessages = useMemo(() => {
     if (!searchQuery) return allMessages;
-    return allMessages.filter(msg =>
-      msg.content && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+    return allMessages.filter(
+      (msg) =>
+        msg.content &&
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [allMessages, searchQuery]);
 
   // Idem pour les nouveaux messages socket
   const filteredNewMessages = useMemo(() => {
-     if (!searchQuery) return newMessages;
-     return newMessages.filter(msg =>
-      msg.content && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+    if (!searchQuery) return newMessages;
+    return newMessages.filter(
+      (msg) =>
+        msg.content &&
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [newMessages, searchQuery]);
 
@@ -286,12 +295,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     ? room.members.find((user) => user?.userId !== loggedMember?.userId)
         ?.user || null
     : null;
-    
+
   const handleTypingStart = () => {
     if (!socket || !roomId) return;
     socket.emit("typing_start", roomId);
   };
-  
+
   const handleTypingStop = () => {
     if (!socket || !roomId) return;
     socket.emit("typing_stop", roomId);
@@ -384,8 +393,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           className="flex w-full flex-col-reverse gap-4 p-4 px-2"
           onBottomReached={() => {
             // On désactive le scroll infini si on est en train de chercher pour éviter des comportements étranges
-            if(!searchQuery) {
-                hasNextPage && !isFetchingNextPage && fetchNextPage();
+            if (!searchQuery) {
+              hasNextPage && !isFetchingNextPage && fetchNextPage();
             }
           }}
           reversed
@@ -401,14 +410,18 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 {noMessage}
               </p>
             )}
-            
+
           {/* État recherche vide : Si on a des messages mais que le filtre ne renvoie rien */}
-          {status === "success" && allMessages.length > 0 && filteredMessages.length === 0 && filteredNewMessages.length === 0 && searchQuery && (
-             <div className="my-auto flex w-full flex-1 select-none flex-col items-center justify-center gap-2 px-2 text-center italic text-muted-foreground">
+          {status === "success" &&
+            allMessages.length > 0 &&
+            filteredMessages.length === 0 &&
+            filteredNewMessages.length === 0 &&
+            searchQuery && (
+              <div className="my-auto flex w-full flex-1 select-none flex-col items-center justify-center gap-2 px-2 text-center italic text-muted-foreground">
                 <Search className="opacity-50" />
                 <p>Aucun message trouvé pour "{searchQuery}"</p>
-             </div>
-          )}
+              </div>
+            )}
 
           {status === "error" && (
             <div className="flex w-full flex-1 select-none flex-col items-center px-3 py-8 text-center italic text-muted-foreground">
@@ -421,11 +434,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             <>
               {/* Indicateur de frappe  */}
               <TypingIndicator typingUsers={typingUsers} />
-              
+
               {/* Messages "live" reçus via socket avant refresh (filtrés) */}
               {filteredNewMessages.map((msg, i) => {
                 const showTime =
-                  i === filteredNewMessages.length - 1 || (i % 20 === 0 && i !== 0);
+                  i === filteredNewMessages.length - 1 ||
+                  (i % 20 === 0 && i !== 0);
 
                 return (
                   <Message
@@ -437,7 +451,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   />
                 );
               })}
-              
+
               {/* Messages en cours d'envoi (échecs ou loading) - Pas de filtrage ici généralement */}
               {sentMessages.map((msg) => (
                 <SendingMessage
@@ -486,16 +500,21 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             <Button
               variant="outline"
               onClick={() => {
-                 setMessageInputExpanded(!messageInputExpanded);
-                 if(messageInputExpanded) {
-                    // Si on passe en mode recherche (input visible), on focus
-                 } else {
-                    // Si on ferme, on vide la recherche
-                    setSearchQuery("");
-                 }
+                setMessageInputExpanded(!messageInputExpanded);
+                if (messageInputExpanded) {
+                  // Si on passe en mode recherche (input visible), on focus
+                } else {
+                  // Si on ferme, on vide la recherche
+                  setSearchQuery("");
+                }
               }}
               title={search}
-              className={cn("aspect-square size-12 cursor-pointer p-2 outline-input", !messageInputExpanded && searchQuery && "bg-primary text-primary-foreground")}
+              className={cn(
+                "aspect-square size-12 cursor-pointer p-2 outline-input",
+                !messageInputExpanded &&
+                  searchQuery &&
+                  "bg-primary text-primary-foreground",
+              )}
             >
               {!messageInputExpanded ? <X /> : <Search className="size-5" />}
             </Button>
@@ -600,7 +619,10 @@ export function MessageForm({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    const isEnter = e.key === "Enter";
+    const isPhysicalKeyboard = window.matchMedia("(pointer: fine)").matches;
+
+    if (isEnter && !e.shiftKey && isPhysicalKeyboard) {
       e.preventDefault();
       triggerSubmit();
     }

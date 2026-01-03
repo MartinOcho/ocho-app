@@ -5,7 +5,16 @@ import { useSession } from "../SessionProvider";
 import RoomsLoadingSkeleton from "./skeletons/RoomSkeleton";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useActiveRoom } from "@/context/ChatContext";
-import { Frown, Loader2, MessageSquare, Search, SquarePen, X } from "lucide-react";
+import {
+  ChevronUp,
+  Frown,
+  Loader2,
+  MessageSquare,
+  Search,
+  SearchIcon,
+  SquarePen,
+  X,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
@@ -13,6 +22,7 @@ import { useSocket } from "@/components/providers/SocketProvider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   activeRoom: (room: RoomData) => void;
@@ -255,23 +265,27 @@ export default function SideBar({
   const filteredRooms = rooms.filter((room) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    
+
     // Recherche par nom de groupe
     if (room.isGroup && room.name?.toLowerCase().includes(query)) return true;
-    
+
     // Recherche par nom des membres
-    const memberMatch = room.members.some(m => 
-        m.user?.displayName?.toLowerCase().includes(query) || 
-        m.user?.username?.toLowerCase().includes(query)
+    const memberMatch = room.members.some(
+      (m) =>
+        m.user?.displayName?.toLowerCase().includes(query) ||
+        m.user?.username?.toLowerCase().includes(query),
     );
     if (memberMatch) return true;
 
     // (Optionnel) Recherche dans le dernier message
-    if (room.messages.length > 0 && room.messages[0].content?.toLowerCase().includes(query)) return true;
+    if (
+      room.messages.length > 0 &&
+      room.messages[0].content?.toLowerCase().includes(query)
+    )
+      return true;
 
     return false;
   });
-
 
   if (status === "success" && !activeRoomId && pathname === "/messages/chat") {
     navigate("/messages");
@@ -282,49 +296,51 @@ export default function SideBar({
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex h-[60px] items-center justify-between p-4 text-lg font-bold shadow-sm max-sm:bg-card/50">
-        {!isSearchOpen ? (
-          <>
-            <span>{chats}</span>
-            <div className="flex items-center gap-2">
-               {/* Bouton pour ouvrir la recherche sur mobile/desktop dans le header */}
-              <span
-                className="cursor-pointer hover:text-primary"
-                onClick={() => setIsSearchOpen(true)}
-                title={search}
-              >
-                <Search size={22} />
-              </span>
-              <span
-                className="cursor-pointer hover:text-primary max-sm:hidden"
-                title={startNewChat}
-                onClick={onNewChat}
-              >
-                <SquarePen />
-              </span>
-            </div>
-          </>
-        ) : (
-          <div className="flex w-full items-center gap-2 animate-in fade-in slide-in-from-top-2">
-            <Input 
-                autoFocus
+        <span>{chats}</span>
+        <div className="flex items-center gap-2">
+          {/* Bouton pour ouvrir la recherche sur mobile/desktop dans le header */}
+          <span
+            className="cursor-pointer hover:text-primary"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            title={search}
+          >
+            {isSearchOpen ? <X size={22} /> : <Search size={22} />}
+          </span>
+          <span
+            className="cursor-pointer hover:text-primary max-sm:hidden"
+            title={startNewChat}
+            onClick={onNewChat}
+          >
+            <SquarePen />
+          </span>
+        </div>
+      </div>
+      {isSearchOpen && (
+        <ul className="sticky top-0 z-50 bg-card/30 sm:bg-background/50 p-2 py-1.5">
+          <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
+            <div className="relative w-full">
+              <Input
+                placeholder={search}
+                className={cn("max-w-full rounded-3xl pe-16 transition-all")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={search + "..."}
-                className="h-9"
-            />
-            <span 
-                className="cursor-pointer hover:text-destructive"
-                onClick={() => {
-                    setIsSearchOpen(false);
-                    setSearchQuery("");
-                }}
-            >
-                <X />
-            </span>
-          </div>
-        )}
-      </div>
-
+              />
+              {!!searchQuery.length && (
+                <X
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground"
+                />
+              )}
+              <SearchIcon
+                size={40}
+                className={cn(
+                  "absolute top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground right-3",
+                )}
+              />
+            </div>
+          </li>
+        </ul>
+      )}
       <InfiniteScrollContainer
         className="relative flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
         onBottomReached={() => {
@@ -349,16 +365,18 @@ export default function SideBar({
             </div>
           </div>
         )}
-        
+
         {/* Cas 2 : Des rooms existent, mais la recherche ne donne rien */}
-        {status === "success" && rooms.length > 0 && filteredRooms.length === 0 && (
-             <div className="flex w-full flex-1 select-none items-center justify-center px-3 py-8 text-center italic text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                    <Search size={40} className="opacity-50" />
-                    <p>Aucun résultat trouvé pour "{searchQuery}"</p>
-                </div>
-             </div>
-        )}
+        {status === "success" &&
+          rooms.length > 0 &&
+          filteredRooms.length === 0 && (
+            <div className="flex w-full flex-1 select-none items-center justify-center px-3 py-8 text-center italic text-muted-foreground">
+              <div className="flex flex-col items-center gap-2">
+                <Search size={40} className="opacity-50" />
+                <p>Aucun résultat trouvé pour "{searchQuery}"</p>
+              </div>
+            </div>
+          )}
 
         {status === "error" && rooms.length === 0 && (
           <div className="flex w-full flex-1 select-none items-center px-3 py-8 text-center italic text-muted-foreground">
@@ -373,7 +391,7 @@ export default function SideBar({
           <ul className="">
             {filteredRooms.map((room, index) => (
               <RoomPreview
-                key={room.id} 
+                key={room.id}
                 room={room}
                 active={selectedRoomId === room.id}
                 onSelect={() => handleRoomSelect(room)}
@@ -394,21 +412,21 @@ export default function SideBar({
 
       {/* Bouton flottant mobile conservé, mais qui ouvre aussi la recherche si besoin */}
       {!isSearchOpen && (
-      <div className="fixed bottom-20 right-5 flex gap-2 sm:absolute sm:bottom-5">
-        <div
-          className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:text-muted-foreground dark:bg-muted sm:hidden"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          <Search />
+        <div className="fixed bottom-20 right-5 flex gap-2 sm:absolute sm:bottom-5">
+          <div
+            className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:bg-muted dark:text-muted-foreground sm:hidden"
+            onClick={() => setIsSearchOpen(true)}
+          >
+            <Search />
+          </div>
+          <div
+            className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
+            onClick={onNewChat}
+            title={startNewChat}
+          >
+            <SquarePen />
+          </div>
         </div>
-        <div
-          className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
-          onClick={onNewChat}
-          title={startNewChat}
-        >
-          <SquarePen />
-        </div>
-      </div>
       )}
     </div>
   );

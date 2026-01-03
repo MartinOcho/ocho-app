@@ -139,7 +139,9 @@ io.on("connection", async (socket) => {
           return { ...room, messages: [message] };
         });
         
+        // CORRECTION : On s'assure que le créateur rejoint immédiatement la room socket
         socket.join(newRoom.id);
+        
         members.forEach((memberId) => {
           if (memberId !== userId) {
             io.to(memberId).emit("new_room_created", newRoom);
@@ -663,7 +665,10 @@ io.on("connection", async (socket) => {
             emissionType = "SAVED";
           }
           const newMessage = { ...savedMsg, type: emissionType };
+
+          socket.join(roomId);
           io.to(roomId).emit("receive_message", { newMessage, roomId });
+          
           const updatedRooms = await getFormattedRooms(userId, username);
           io.to(userId).emit("room_list_updated", updatedRooms);
         } else {
@@ -717,12 +722,14 @@ io.on("connection", async (socket) => {
               });
             }
           }
+          socket.join(roomId);
 
           io.to(roomId).emit("receive_message", {
             newMessage,
             roomId,
             newRoom: roomData,
           });
+          
           await Promise.all(
             activeMembers.map(async (member) => {
               if (member.userId && member.user) {
@@ -790,6 +797,7 @@ io.on("connection", async (socket) => {
   });
 });
 
-server.listen(PORT, () => {
+// @ts-expect-error - L'argument de type 'string' n'est pas attribuable au paramètre de type 'number'.
+server.listen(PORT, "0.0.0.0", () => {
   console.log(chalk.blueBright(`🚀 Serveur de chat prêt à l'adresse http://localhost:${PORT}`));
 });
