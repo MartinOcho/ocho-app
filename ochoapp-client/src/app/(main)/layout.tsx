@@ -19,9 +19,6 @@ export default async function Layout({
 }) {
   const session = await validateRequest();
 
-
-
-
   if (!session.user) redirect("/login");
   const authToken = session.session.id;
 
@@ -31,19 +28,17 @@ export default async function Layout({
     token: authToken, // Transmis au client via les props
   };
 
-
-
   return (
     <SessionProvider value={sessionValue}>
       {/* Le SocketProvider enveloppe les enfants pour activer le temps réel partout */}
-      <SocketProvider>
-        <ProgressProvider>
-          <NavigationProvider>
-            <LanguageProvider>
+      <LanguageProvider>
+        <SocketProvider>
+          <ProgressProvider>
+            <NavigationProvider>
               <MenuBarProvider>
                 <SearchProvider>
                   <ChatProvider>
-                    <div className="relative flex h-screen max-h-vh min-h-vh w-full flex-col">
+                    <div className="max-h-vh min-h-vh relative flex h-screen w-full flex-col">
                       <Navbar />
                       <div className="relative h-full max-h-full w-full overflow-hidden">
                         <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
@@ -56,10 +51,10 @@ export default async function Layout({
                   </ChatProvider>
                 </SearchProvider>
               </MenuBarProvider>
-            </LanguageProvider>
-          </NavigationProvider>
-        </ProgressProvider>
-      </SocketProvider>
+            </NavigationProvider>
+          </ProgressProvider>
+        </SocketProvider>
+      </LanguageProvider>
     </SessionProvider>
   );
 }
