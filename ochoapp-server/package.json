@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "npm install --legacy-peer-deps",
     "dev": "nodemon",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "postinstall": "npx prisma generate"
   },
   "keywords": [],
   "author": "",

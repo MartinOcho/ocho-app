@@ -14,6 +14,7 @@ import {
   socketHandler,
   validateSession,
 } from "./utils";
+import path from "path";
 
 dotenv.config();
 
@@ -799,5 +800,5 @@ io.on("connection", async (socket) => {
 
 // @ts-expect-error - L'argument de type 'string' n'est pas attribuable au paramètre de type 'number'.
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(chalk.blueBright(`🚀 Serveur de chat prêt à l'adresse http://localhost:${PORT}`));
+  console.log(chalk.blueBright(`🚀 Serveur de chat prêt sur le port ${PORT}`));
 });
