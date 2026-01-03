@@ -21,6 +21,12 @@ interface SidebarProps {
   onCloseChat: () => void;
 }
 
+// Structure attendue pour la mise à jour de liste (doit correspondre à RoomsSection dans types.ts)
+interface RoomListPayload {
+  rooms: RoomData[];
+  nextCursor?: string | null;
+}
+
 export default function SideBar({
   activeRoom,
   selectedRoomId,
@@ -37,149 +43,192 @@ export default function SideBar({
   // --- SOCKET & STATE ---
   const { socket, isConnected } = useSocket();
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null); // Pour la pagination
+
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  
-  // Modifié : isLoading commence à true, mais sera contrôlé par HTTP d'abord
+
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [status, setStatus] = useState<"pending" | "success" | "error">("pending");
+  const [status, setStatus] = useState<"pending" | "success" | "error">(
+    "pending",
+  );
 
-  // On utilise une ref pour éviter les fermetures (closures) obsolètes dans les listeners socket
   const roomsRef = useRef<RoomData[]>([]);
+  const joinedRoomsRef = useRef<Set<string>>(new Set());
+  const fetchedCursorsRef = useRef<Set<string | null>>(new Set());
 
   const userId = loggedinUser.id;
+  const queryClient = useQueryClient();
+
+  const queryKey = ["rooms", "sidebar", userId];
 
   // --- REQUÊTE HTTP (PRIORITAIRE) ---
-  const { data: httpRooms, isLoading: isHttpLoading, isError: isHttpError } = useQuery({
-    queryKey: ["rooms", "sidebar", userId],
+  const {
+    data: httpRooms,
+    isLoading: isHttpLoading,
+    isError: isHttpError,
+  } = useQuery({
+    queryKey: queryKey,
     queryFn: () => kyInstance.get("/api/room-list").json<RoomData[]>(),
-    staleTime: 1000 * 60 * 1, 
+    staleTime: 1000 * 60 * 5, // 5 minutes de cache
   });
 
+  // --- SYNCHRONISATION HTTP -> STATE LOCAL ---
   useEffect(() => {
     if (httpRooms) {
       setRooms((prev) => {
-        // Optimisation : Si on a déjà des rooms (via socket), on ne remplace pas tout brutalement
-        // sauf si c'est le premier chargement.
+        // Si on a déjà des données via socket, on évite de les écraser brutalement
+        // sauf si la liste locale est vide
         if (prev.length > 0) return prev;
         return httpRooms;
       });
-      
       setStatus("success");
       setIsLoading(false);
     } else if (isHttpError) {
-      console.log("");
+      // Gérer l'erreur si nécessaire
     }
   }, [httpRooms, isHttpError]);
 
-  // Synchroniser la ref avec l'état pour les listeners sockets
   useEffect(() => {
     roomsRef.current = rooms;
   }, [rooms]);
 
   // 1. Fonction pour demander des rooms au serveur (Socket)
-  // Cette fonction sert désormais principalement pour la pagination et la fraîcheur des données
   const fetchRooms = useCallback(
     (nextCursor: string | null = null) => {
       if (!socket || !isConnected) return;
+      if (isFetchingMore) return;
 
-      if (nextCursor) setIsFetchingMore(true);
-      // Note: On ne remet pas isLoading à true ici si on a déjà chargé les données via HTTP
+      if (fetchedCursorsRef.current.has(nextCursor)) return;
 
-      // Émission de l'événement au serveur
+      fetchedCursorsRef.current.add(nextCursor);
+      setIsFetchingMore(true);
+
       socket.emit("get_rooms", {
         cursor: nextCursor,
-        limit: 15, // Taille de la page
+        limit: 15,
       });
-      
-      // Nettoyage : quitter les rooms précédentes (optionnel selon votre logique serveur)
-      return () => {
-        for (const roomId of roomsRef.current.map((r) => r.id)) {
-          socket.emit("leave_room", roomId);
-        }
-      };
     },
-    [socket, isConnected],
+    [socket, isConnected, isFetchingMore],
   );
 
-  // 2. Initialisation et écouteurs d'événements Socket
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    // Listener: Réception de la liste paginée
+    // Handler pour la réponse initiale ou pagination (get_rooms)
     const handleRoomsResponse = (response: {
       rooms: RoomData[];
       nextCursor: string | null;
     }) => {
       setRooms((prev) => {
-        // STRATÉGIE HYBRIDE :
-        // Le HTTP a peut-être déjà chargé ces rooms. On filtre pour éviter les doublons.
         const existingIds = new Set(prev.map((r) => r.id));
         const newRooms = response.rooms.filter((r) => !existingIds.has(r.id));
 
-        // Si la liste actuelle est vide, on prend tout
-        if (prev.length === 0) return response.rooms;
+        const updatedList =
+          prev.length === 0 ? response.rooms : [...prev, ...newRooms];
 
-        // Cas spécial "saved-" ou première page
-        const isFirstPage = response.rooms.some((r) =>
-          r.id.startsWith("saved-"),
-        );
-        return [...prev, ...newRooms];
+        // Mise à jour du cache React Query seulement si c'est le chargement initial
+        if (!cursor && prev.length === 0) {
+          queryClient.setQueryData(queryKey, updatedList);
+        }
+
+        return updatedList;
       });
 
       setCursor(response.nextCursor);
       setHasMore(!!response.nextCursor);
-      
-      // On confirme le succès et la fin du chargement
       setStatus("success");
       setIsLoading(false);
       setIsFetchingMore(false);
     };
 
-    // Listener: Mise à jour temps réel
-    const handleRoomUpdate = (updatedRoom: RoomData) => {
+    // Handler 1: Mise à jour via LISTE (envoi/suppression message)
+    // Le backend renvoie { rooms: RoomData[], nextCursor: ... }
+    const handleRoomListUpdate = (payload: RoomListPayload) => {
+      console.log("Socket: room_list_updated", payload);
+      
       setRooms((prev) => {
-        const otherRooms = prev.filter((r) => r.id !== updatedRoom.id);
-        return [updatedRoom, ...otherRooms]; // Remonte en haut de la liste
+        // Les rooms renvoyées par le backend sont déjà triées (les plus récentes en premier)
+        const newTopRooms = payload.rooms; 
+        const newIds = new Set(newTopRooms.map((r) => r.id));
+
+        // On garde les anciennes rooms qui ne sont PAS dans la nouvelle mise à jour
+        const keptOldRooms = prev.filter((r) => !newIds.has(r.id));
+
+        // On fusionne : nouvelles rooms en haut + anciennes rooms en bas
+        const newList = [...newTopRooms, ...keptOldRooms];
+
+        // Sync du cache
+        queryClient.setQueryData(queryKey, newList);
+
+        return newList;
+      });
+    };
+
+    // Handler 2: Mise à jour via SINGLE ROOM (création)
+    // Le backend renvoie un objet RoomData unique
+    const handleSingleRoomUpdate = (newRoom: RoomData) => {
+      console.log("Socket: single room update", newRoom);
+
+      setRooms((prev) => {
+        // On retire la room si elle existe déjà (pour la remonter)
+        const otherRooms = prev.filter((r) => r.id !== newRoom.id);
+        const newList = [newRoom, ...otherRooms];
+
+        queryClient.setQueryData(queryKey, newList);
+        return newList;
       });
     };
 
     const handleError = () => {
-      // On ne met en erreur que si on n'a AUCUNE donnée affichée (ni HTTP ni Socket)
       if (roomsRef.current.length === 0) {
-          setStatus("error");
+        setStatus("error");
       }
       setIsLoading(false);
       setIsFetchingMore(false);
     };
 
+    // --- BINDING DES EVENTS ---
     socket.on("rooms_list_data", handleRoomsResponse);
-    socket.on("room_list_updated", handleRoomUpdate);
-    socket.on("new_room_created", handleRoomUpdate);
+    
+    // CAS 1: Liste complète mise à jour (Send/Delete message)
+    socket.on("room_list_updated", handleRoomListUpdate);
+    
+    // CAS 2: Nouvelle room unique (Create chat)
+    socket.on("new_room_created", handleSingleRoomUpdate);
+    // Ajout de room_ready pour que le créateur voit aussi la room s'ajouter
+    socket.on("room_ready", handleSingleRoomUpdate);
+    
     socket.on("error_fetching_rooms", handleError);
 
-    fetchRooms(null);
+    // Initial fetch
+    if (rooms.length === 0 && !isHttpLoading) {
+        fetchRooms(null);
+    }
 
     return () => {
       socket.off("rooms_list_data", handleRoomsResponse);
-      socket.off("room_list_updated", handleRoomUpdate);
-      socket.off("new_room_created", handleRoomUpdate);
+      socket.off("room_list_updated", handleRoomListUpdate);
+      socket.off("new_room_created", handleSingleRoomUpdate);
+      socket.off("room_ready", handleSingleRoomUpdate);
       socket.off("error_fetching_rooms", handleError);
     };
-  }, [socket, isConnected]); // fetchRooms est stable via useCallback, pas besoin de l'ajouter
+  }, [socket, isConnected, queryClient, queryKey, cursor, isHttpLoading, fetchRooms, rooms.length]);
 
-  // --- GESTION DE LA SÉLECTION INITIALE ---
+  // --- GESTION DES REJOINTES DE ROOMS ---
   useEffect(() => {
-    if (status === "success" && rooms.length) {
-      if (socket && rooms.length) {
-        // Rejoindre les rooms pour écouter les messages
-        for (const roomId of rooms.map((r) => r.id)) {
-          socket.emit("join_room", roomId);
-        }
-      }
+    if (status !== "success" || !socket) return;
+
+    // Optimisation: ne rejoindre que les nouvelles rooms
+    const roomsToJoin = rooms.filter(r => !joinedRoomsRef.current.has(r.id));
+    
+    if (roomsToJoin.length > 0) {
+        roomsToJoin.forEach(room => {
+            socket.emit("join_room", room.id);
+            joinedRoomsRef.current.add(room.id);
+        });
     }
-  }, [rooms, status, socket]); // Ajout de socket et suppression de roomsRef pour utiliser rooms directement
+  }, [rooms, status, socket]);
 
   function handleRoomSelect(room: RoomData) {
     onCloseChat();
@@ -188,13 +237,10 @@ export default function SideBar({
     setActiveRoomId(room.id);
   }
 
-  // Redirection si nécessaire (logique existante conservée)
   if (status === "success" && !activeRoomId && pathname === "/messages/chat") {
     navigate("/messages");
   }
 
-  // Calculer l'état de chargement global :
-  // On affiche le squelette seulement si on charge HTTP ET qu'on a pas encore de données
   const showSkeleton = (isLoading || isHttpLoading) && rooms.length === 0;
 
   return (
@@ -213,16 +259,13 @@ export default function SideBar({
       <InfiniteScrollContainer
         className="relative flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
         onBottomReached={() => {
-          // On déclenche le chargement via socket seulement si on a un curseur ou qu'on est pas en train de charger
           if (hasMore && !isFetchingMore && !showSkeleton) {
-            fetchRooms(cursor); 
+            fetchRooms(cursor);
           }
         }}
       >
-        {/* Loading Initial : Combine HTTP et Socket states */}
         {showSkeleton && <RoomsLoadingSkeleton />}
 
-        {/* Empty State */}
         {status === "success" && !showSkeleton && !rooms.length && (
           <div className="flex w-full flex-1 select-none items-center px-3 py-8 text-center italic text-muted-foreground">
             <div className="my-8 flex w-full flex-col items-center gap-2 text-center text-muted-foreground">
@@ -236,7 +279,6 @@ export default function SideBar({
           </div>
         )}
 
-        {/* Error State */}
         {status === "error" && rooms.length === 0 && (
           <div className="flex w-full flex-1 select-none items-center px-3 py-8 text-center italic text-muted-foreground">
             <div className="my-8 flex w-full select-none flex-col items-center gap-2 text-center text-muted-foreground">
@@ -246,12 +288,11 @@ export default function SideBar({
           </div>
         )}
 
-        {/* List of Rooms */}
         {rooms.length > 0 && (
           <ul className="">
-            {rooms.map((room) => (
+            {rooms.map((room, index) => (
               <RoomPreview
-                key={room.id}
+                key={room.id} // Utiliser room.id est plus sûr que index pour les listes dynamiques
                 room={room}
                 active={selectedRoomId === room.id}
                 onSelect={() => handleRoomSelect(room)}
@@ -260,11 +301,12 @@ export default function SideBar({
           </ul>
         )}
 
-        {/* Loading More Spinner (Pagination Socket) */}
         {isFetchingMore && (
-          <div className="flex w-full justify-center p-4">
-            <Loader2 className="mx-auto animate-spin" />
-          </div>
+          <ul>
+            <li className="flex w-full justify-center p-4">
+              <Loader2 className="mx-auto animate-spin" />
+            </li>
+          </ul>
         )}
       </InfiniteScrollContainer>
 

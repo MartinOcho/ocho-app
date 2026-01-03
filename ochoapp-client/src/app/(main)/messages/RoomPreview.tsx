@@ -156,7 +156,7 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
   const otherUser: UserData | null = isSaved
     ? room.members.find((member) => member.userId === loggedinUser.id)?.user ||
       null
-    : room?.members.filter((member) => member.userId !== loggedinUser.id)[0]
+    : room?.members?.filter((member) => member.userId !== loggedinUser.id)[0]
         .user;
 
   const expiresAt = otherUser?.verified?.[0]?.expiresAt;

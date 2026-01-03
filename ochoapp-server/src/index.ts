@@ -412,10 +412,10 @@ io.on("connection", async (socket) => {
                 ),
               ]);
 
-              io.to(userId).emit("rooms_list_data", roomsForSender);
+              io.to(userId).emit("room_list_updated", roomsForSender);
 
               io.to(originalMessage.senderId).emit(
-                "rooms_list_data",
+                "room_list_updated",
                 roomsForRecipient
               );
             }
@@ -515,8 +515,8 @@ io.on("connection", async (socket) => {
               getFormattedRooms(originalSenderId, message.sender.username),
             ]);
 
-            io.to(userId).emit("rooms_list_data", roomsForRemover);
-            io.to(originalSenderId).emit("rooms_list_data", roomsForAuthor);
+            io.to(userId).emit("room_list_updated", roomsForRemover);
+            io.to(originalSenderId).emit("room_list_updated", roomsForAuthor);
           }
         }
 
@@ -561,7 +561,7 @@ io.on("connection", async (socket) => {
           });
           io.to(roomId).emit("message_deleted", { messageId, roomId });
           const updatedRooms = await getFormattedRooms(userId, username);
-          io.to(userId).emit("rooms_list_data", updatedRooms);
+          io.to(userId).emit("room_list_updated", updatedRooms);
 
           return;
         }
@@ -613,7 +613,7 @@ io.on("connection", async (socket) => {
                   member.userId,
                   member.user.username
                 );
-                io.to(member.userId).emit("rooms_list_data", updatedRooms);
+                io.to(member.userId).emit("room_list_updated", updatedRooms);
               } catch (e) {
                 console.error(
                   `Erreur refresh sidebar pour ${member.userId}:`,
@@ -665,7 +665,7 @@ io.on("connection", async (socket) => {
           const newMessage = { ...savedMsg, type: emissionType };
           io.to(roomId).emit("receive_message", { newMessage, roomId });
           const updatedRooms = await getFormattedRooms(userId, username);
-          io.to(userId).emit("rooms_list_data", updatedRooms);
+          io.to(userId).emit("room_list_updated", updatedRooms);
         } else {
           
           const membership = await prisma.roomMember.findUnique({
@@ -731,7 +731,7 @@ io.on("connection", async (socket) => {
                     member.userId,
                     member.user.username
                   );
-                  io.to(member.userId).emit("rooms_list_data", updatedRooms);
+                  io.to(member.userId).emit("room_list_updated", updatedRooms);
 
                   if (member.userId !== userId) {
                     io.to(member.userId).emit("unread_count_increment", {

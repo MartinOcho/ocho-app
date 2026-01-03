@@ -243,8 +243,6 @@ export async function getFormattedRooms(
         ],
         messages: [selfMessage as MessageData],
       };
-
-      // On l'ajoute au tout début de la liste
       rooms.unshift(selfRoom);
     }
   }

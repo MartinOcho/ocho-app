@@ -31,14 +31,19 @@ interface ChatHeaderProps {
   roomId: string | null;
   isGroup: boolean;
   onDelete: () => void;
-  initialRoom: RoomData
+  initialRoom: RoomData;
 }
 
-export default function RoomHeader({ roomId, isGroup, onDelete, initialRoom }: ChatHeaderProps) {
+export default function RoomHeader({
+  roomId,
+  isGroup,
+  onDelete,
+  initialRoom,
+}: ChatHeaderProps) {
   const [active, setActive] = useState(false);
   const [expandMembers, setExpandMembers] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [room, setRoom] = useState<RoomData>(initialRoom)
+  const [room, setRoom] = useState<RoomData>(initialRoom);
   const [dialogFocus, setDialogFocus] = useState<"name" | "description" | null>(
     null,
   );
@@ -68,74 +73,89 @@ export default function RoomHeader({ roomId, isGroup, onDelete, initialRoom }: C
     thisAccountDeleted,
   } = t();
   const queryClient = useQueryClient();
-  const queryKey = ["room", "head", roomId]
+  const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({
-      queryKey,
-      queryFn: () =>
-        kyInstance
-          .get(
-            `/api/rooms/${roomId}/room-header`
-          ).json<RoomData>(),
-      staleTime: Infinity,
-    });
+    queryKey,
+    queryFn: () =>
+      kyInstance.get(`/api/rooms/${roomId}/room-header`).json<RoomData>(),
+    staleTime: Infinity,
+  });
 
   const { user: loggedUser } = useSession();
   const { activeRoomId } = useActiveRoom();
 
   useEffect(() => {
     setActive(false);
-
   }, [activeRoomId]);
   useEffect(() => {
     if (roomId) {
       // Clear the old room data
       setRoom(initialRoom);
       // Revalidate the new room data
-      queryClient.invalidateQueries({queryKey});
+      queryClient.invalidateQueries({ queryKey });
     }
   }, [roomId]);
 
-
-
-  useEffect(()=>{
+  useEffect(() => {
     setRoom(initialRoom);
-  }, [])
-  useEffect(()=>{
+  }, []);
+  useEffect(() => {
     if (data) {
       setRoom(data);
     }
-  }, [data])
-if (!room) {
-  if (status === "pending") {
-    return <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50 flex-shrink-0 *:flex-shrink-0">
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="flex flex-col gap-2 w-full">
-          <Skeleton className="h-3 w-60 max-w-full" />
-          <Skeleton className="h-2 w-20 max-w-full" />
-      </div>
-    </div>
+  }, [data]);
+  if (!room) {
+    if (status === "pending") {
+      return (
+        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0 max-sm:bg-card/50">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex w-full flex-col gap-2">
+            <Skeleton className="h-3 w-60 max-w-full" />
+            <Skeleton className="h-2 w-20 max-w-full" />
+          </div>
+        </div>
+      );
+    }
+    if (status === "error") {
+      return (
+        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
+          <UserAvatar userId={""} avatarUrl={null} size={40} />
+          <div className="flex w-full flex-col gap-2">
+            {isGroup ? group : "OchoApp User"}
+          </div>
+        </div>
+      );
+    }
   }
-  if (status === "error") {
-    return <div className="flex w-full items-center gap-2 px-4 py-3 flex-shrink-0 *:flex-shrink-0">
-      <UserAvatar userId={""} avatarUrl={null} size={40}/>
-      <div className="flex flex-col gap-2 w-full">
-          {isGroup ? group : "OchoApp User"}
-      </div>
-    </div>
-  } 
-}
 
   const aMember = addAMember.match(/-(.*?)-/)?.[1] || "a member";
   const addAM = addAMember.replace(/-.*?-/, "");
 
   const isSaved = room.id === `saved-${loggedUser.id}`;
 
+  const emptyUser: UserData = {
+    id: "",
+    username: "",
+    displayName: "",
+    avatarUrl: "",
+    verified: [],
+    bio: null,
+    following: [],
+    followers: [],
+    lastSeen: new Date(0),
+    createdAt: new Date(0),
+    _count: {
+      followers: 0,
+      posts: 0
+    }
+  };
+
   const otherUser =
     room.members.length === 1 && isSaved
       ? room?.members.filter((member) => member.userId === loggedUser.id)?.[0]
-          .user
+          ?.user || emptyUser
       : room?.members.filter((member) => member.userId !== loggedUser.id)?.[0]
-          .user;
+          ?.user || emptyUser;
 
   const expiresAt = isSaved
     ? otherUser?.verified?.[0]?.expiresAt
@@ -160,9 +180,8 @@ if (!room) {
     ? room.name
     : (isSaved
         ? loggedUser.displayName + ` (${you})`
-        : room?.members.filter(
-            (member) => member.userId !== loggedUser.id,
-          )[0].user?.displayName) || (room.isGroup ? groupChat : appUser);
+        : room?.members.filter((member) => member.userId !== loggedUser.id)?.[0]
+            ?.user?.displayName) || (room.isGroup ? groupChat : appUser);
   const weekAgo = new Date(
     new Date(room.createdAt).getTime() - 6 * 24 * 60 * 60 * 1000,
   );
@@ -180,9 +199,9 @@ if (!room) {
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
   // Get owner
-  const owner = [
-    room.members.find((member) => member.type === "OWNER"),
-  ].filter((member) => member?.userId !== loggedinMember?.userId);
+  const owner = [room.members.find((member) => member.type === "OWNER")].filter(
+    (member) => member?.userId !== loggedinMember?.userId,
+  );
   // Get members
   const members = room.members.filter((member) => member.type !== "ADMIN");
 
@@ -282,8 +301,7 @@ if (!room) {
               <div
                 className={cn(
                   "cursor-pointer text-ellipsis text-xl font-bold sm:hover:text-primary sm:hover:underline",
-                  isVerified &&
-                    "flex items-center gap-1",
+                  isVerified && "flex items-center gap-1",
                 )}
                 title="Modifier le nom du groupe"
                 onClick={() => {
@@ -299,7 +317,7 @@ if (!room) {
                 className={cn(
                   "text-xl font-bold",
                   isVerified &&
-                    "flex items-center gap-1 *:line-clamp-1 *:text-ellipsis max-w-full",
+                    "flex max-w-full items-center gap-1 *:line-clamp-1 *:text-ellipsis",
                 )}
               >
                 <span className="flex-1">{chatName}</span>
@@ -410,10 +428,7 @@ if (!room) {
                 {room.isGroup ? (
                   <div className="flex w-full justify-center gap-2">
                     {loggedinMember?.type !== "OLD" && (
-                      <AddMemberDialog
-                        room={room}
-                        className="max-w-44 flex-1"
-                      >
+                      <AddMemberDialog room={room} className="max-w-44 flex-1">
                         <Button
                           variant="outline"
                           className="flex h-fit w-full flex-col gap-2"
@@ -449,7 +464,10 @@ if (!room) {
                     )}
                   </div>
                 ) : (
-                  <OchoLink href={`/users/${otherUser?.username || "-"}`} className="text-inherit">
+                  <OchoLink
+                    href={`/users/${otherUser?.username || "-"}`}
+                    className="text-inherit"
+                  >
                     <Button variant="outline" className="flex gap-1">
                       <UserCircle2 /> {viewProfile}
                     </Button>
@@ -462,7 +480,9 @@ if (!room) {
                   {room.isGroup ? (
                     <>
                       {room.description ? (
-                        <p className="py-2 text-center whitespace-pre-line break-words">{room.description}</p>
+                        <p className="whitespace-pre-line break-words py-2 text-center">
+                          {room.description}
+                        </p>
                       ) : loggedinMember?.type === "ADMIN" ||
                         loggedinMember?.type === "OWNER" ? (
                         <Button
@@ -483,7 +503,11 @@ if (!room) {
                       )}
                     </>
                   ) : (
-                    !!otherUser?.bio && <p className="py-2 text-center whitespace-pre-line break-words">{otherUser.bio}</p>
+                    !!otherUser?.bio && (
+                      <p className="whitespace-pre-line break-words py-2 text-center">
+                        {otherUser.bio}
+                      </p>
+                    )
                   )}
                 </Linkify>
               </div>

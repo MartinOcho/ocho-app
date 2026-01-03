@@ -111,14 +111,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Gestion de la pagination
-    let nextCursor: string | null = null;
-    if (rooms.length > pageSize) {
-      const nextItem = rooms.pop();
-      nextCursor = nextItem ? nextItem.id : null;
-    }
-
-    return Response.json({ rooms, nextCursor });
+    return Response.json(rooms);
   } catch (error) {
     console.error(error);
     return Response.json(
