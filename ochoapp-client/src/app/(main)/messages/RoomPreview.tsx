@@ -34,6 +34,46 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
     }[];
   }>({ isTyping: false, typingUsers: [] });
 
+  const queryClient = useQueryClient();
+
+  // --- GESTION DES MESSAGES NON LUS EN TEMPS RÉEL ---
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // 1. Gestionnaire pour incrémenter le compteur (nouveau message reçu)
+    const handleIncrement = ({ roomId: targetRoomId }: { roomId: string }) => {
+      if (targetRoomId === room.id) {
+        // Mise à jour optimiste du cache React Query
+        queryClient.setQueryData<NotificationCountInfo>(
+          ["room", "unread", room.id],
+          (old) => ({
+            unreadCount: (old?.unreadCount || 0) + 1,
+          })
+        );
+      }
+    };
+
+    // 2. Gestionnaire pour remettre à zéro le compteur (lecture effectuée)
+    const handleClear = ({ roomId: targetRoomId }: { roomId: string }) => {
+      if (targetRoomId === room.id) {
+        queryClient.setQueryData<NotificationCountInfo>(
+          ["room", "unread", room.id],
+          {
+            unreadCount: 0,
+          }
+        );
+      }
+    };
+
+    socket.on("unread_count_increment", handleIncrement);
+    socket.on("unread_count_cleared", handleClear);
+
+    return () => {
+      socket.off("unread_count_increment", handleIncrement);
+      socket.off("unread_count_cleared", handleClear);
+    };
+  }, [socket, isConnected, room.id, queryClient]);
+
   useEffect(() => {
     if (!socket || !isConnected || !room.id) return;
     socket.on(
@@ -58,7 +98,7 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
     return () => {
       socket.off("typing_update");
     };
-  }, [socket, isConnected, room.id]);
+  }, [socket, isConnected, room.id, loggedinUser?.id]);
 
   const typingText = !!typing.typingUsers.length
     ? typing.typingUsers.length === 1
@@ -99,7 +139,6 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
   const { startNavigation: navigate } = useProgress();
 
   const queryKey: QueryKey = ["room", "unread", room.id];
-  const queryClient = useQueryClient();
 
   const { data } = useQuery({
     queryKey,
@@ -249,7 +288,8 @@ export default function RoomPreview({ room, active, onSelect }: RoomProps) {
 
   const select = async () => {
     onSelect();
-    queryClient.setQueryData(["unread-chat-messages", room.id], {
+    // Mise à jour de la clé de cache correcte pour effacer les notifications
+    queryClient.setQueryData(["room", "unread", room.id], {
       unreadCount: 0,
     });
     navigate("/messages/chat");

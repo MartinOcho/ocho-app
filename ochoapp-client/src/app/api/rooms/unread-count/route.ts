@@ -14,7 +14,15 @@ export async function GET() {
       where: {
         members: {
           some: {
-            userId: user.id,
+            AND: [
+              { userId: user.id },
+              {
+                joinedAt: {
+                  lte: new Date(),
+                },
+              },
+              { OR: [{ leftAt: { lt: new Date() } }, { leftAt: null }] },
+            ],
           },
         },
         messages: {

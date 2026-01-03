@@ -21,19 +21,19 @@ export default function NotificationsButton({
   className,
   ...props
 }: NotificationsButtonProps) {
-  const isProduction = process.env.NODE_ENV === "production";
   const { activity, activityCenter, notifications } = t();
   const pathname = usePathname();
   const isMessagesPage = pathname.startsWith("/messages");
 
   const { data } = useQuery({
-    queryKey: ["unread-notifications"],
+    queryKey: ["notification", "count"],
     queryFn: () =>
       kyInstance
         .get("/api/notifications/unread-count")
         .json<NotificationCountInfo>(),
     initialData: initialState,
-    refetchInterval: isProduction ? 45 * 1000 : 50 * 1000,
+    refetchInterval: 5000,
+    refetchOnMount: true,
   });
 
   return (

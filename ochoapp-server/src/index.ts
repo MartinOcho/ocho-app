@@ -405,6 +405,8 @@ io.on("connection", async (socket) => {
           reads: updatedReads,
         });
 
+        io.to(userId).emit("unread_count_cleared", { roomId });
+
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
       }
@@ -912,6 +914,11 @@ io.on("connection", async (socket) => {
                     member.user.username
                   );
                   io.to(member.userId).emit("rooms_list_data", updatedRooms);
+
+                  if (member.userId !== userId) {
+                    io.to(member.userId).emit("unread_count_increment", { roomId });
+                  }
+
                 } catch (e) {
                   console.error("Erreur refresh member:", member.userId);
                 }
