@@ -119,7 +119,7 @@ export default function Post({ post }: PostProps) {
 
 
   return (
-    <article className="group/post flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card">
+    <article className="group/post z-0 flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card">
       <div className="flex justify-between gap-3 p-5">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user} verified={verifiedCheck}>
