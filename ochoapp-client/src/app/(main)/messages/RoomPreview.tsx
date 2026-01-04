@@ -172,14 +172,52 @@ export default function RoomPreview({
     userTyping,
     andOthersTyping,
     multipleTyping,
-  } = t(['appUser', 'groupChat', 'you', 'newMember', 'youAddedMember', 'addedYou', 'addedMember', 'memberLeft', 'youRemovedMember', 'removedYou', 'removedMember', 'memberBanned', 'youBannedMember', 'bannedYou', 'bannedMember', 'youCreatedGroup', 'createdGroup', 'canChatWithYou', 'youReactedToYourMessage', 'youReactedToMessage', 'reactedToMessage', 'reactedMemberMessage', 'messageYourself', 'noPreview', 'canNoLongerInteract', 'noMessage', 'deletedChat', 'savedMessages', 'userTyping', 'andOthersTyping', 'multipleTyping']);
+  } = t([
+    "appUser",
+    "groupChat",
+    "you",
+    "newMember",
+    "youAddedMember",
+    "addedYou",
+    "addedMember",
+    "memberLeft",
+    "youRemovedMember",
+    "removedYou",
+    "removedMember",
+    "memberBanned",
+    "youBannedMember",
+    "bannedYou",
+    "bannedMember",
+    "youCreatedGroup",
+    "createdGroup",
+    "canChatWithYou",
+    "youReactedToYourMessage",
+    "youReactedToMessage",
+    "reactedToMessage",
+    "reactedMemberMessage",
+    "messageYourself",
+    "noPreview",
+    "canNoLongerInteract",
+    "noMessage",
+    "deletedChat",
+    "savedMessages",
+    "userTyping",
+    "andOthersTyping",
+    "multipleTyping",
+  ]);
 
   const typingText = !!typing.typingUsers.length
     ? typing.typingUsers.length === 1
       ? userTyping
       : typing.typingUsers.length === 2
-        ? andOthersTyping.replace('[count]', '1')
-        : multipleTyping.replace('[names]', typing.typingUsers[0].displayName.split(" ")[0] || appUser).replace('[name]', typing.typingUsers[1].displayName.split(" ")[0]).replace('[count]', (typing.typingUsers.length - 2).toString())
+        ? andOthersTyping.replace("[count]", "1")
+        : multipleTyping
+            .replace(
+              "[names]",
+              typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+            )
+            .replace("[name]", typing.typingUsers[1].displayName.split(" ")[0])
+            .replace("[count]", (typing.typingUsers.length - 2).toString())
     : "";
   const { startNavigation: navigate } = useProgress();
 
@@ -212,7 +250,7 @@ export default function RoomPreview({
         ...loggedinUser,
         name: savedMessages,
         displayName: savedMessages,
-    };
+      };
 
   const otherUser: UserData | null = isSaved
     ? currentUser
@@ -251,9 +289,6 @@ export default function RoomPreview({
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
-
-  
-
 
   const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
   const senderFirstName =
@@ -357,10 +392,11 @@ export default function RoomPreview({
     navigate("/messages/chat");
   };
 
-  const chatName =
-    room.name ||
-    `${(isSaved ? savedMessages : otherUser?.displayName) || appUser}` ||
-    (room.isGroup ? groupChat : appUser);
+  const chatName = isSaved
+    ? savedMessages
+    : room.name ||
+      `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
+      (room.isGroup ? groupChat : appUser);
 
   return (
     <li
