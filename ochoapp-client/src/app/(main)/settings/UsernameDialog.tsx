@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
+import { updateUsername } from "@/components/users/action";
 
 export default function UsernameDialog() {
   const { user } = useSession();

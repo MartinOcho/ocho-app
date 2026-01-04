@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { log } from "console";
+import { useUpdateUserMutation } from "@/components/users/mutations";
 
 // Fonction utilitaire pour savoir si une année est bissextile
 function isLeapYear(year: number) {
@@ -31,6 +31,7 @@ function getDaysInMonth(month: number, year: number) {
 export default function BirthdayDialog() {
   const { user } = useSession();
   const lang = t(['noBirthdate', 'day', 'year', 'updateBirthdate', 'mustBeAtLeast13', 'month']);
+  const updateUserMutation = useUpdateUserMutation();
 
   const today = new Date();
   const currentYear = today.getFullYear();
@@ -182,7 +183,11 @@ export default function BirthdayDialog() {
           />
         </div>
 
-        <Button disabled={!isValidBirthday} aria-disabled={!isValidBirthday}>
+        <Button
+          disabled={!isValidBirthday || updateUserMutation.isPending}
+          aria-disabled={!isValidBirthday || updateUserMutation.isPending}
+          onClick={() => updateUserMutation.mutate({ birthday: selectedDate })}
+        >
           {lang.updateBirthdate}
         </Button>
 

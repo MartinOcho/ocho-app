@@ -136,13 +136,6 @@ export default function Options({
       },
     ],
     privacy: [
-      {
-        value: "onlineStatus",
-        label: onlineStatus,
-        icon: <CirclePower size={24} />,
-        action: "default",
-        onClick: (value: string) => console.log(value),
-      },
     ],
     display: [
       {

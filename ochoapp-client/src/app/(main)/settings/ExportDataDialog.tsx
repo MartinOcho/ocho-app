@@ -3,6 +3,7 @@ import { t } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Download } from "lucide-react";
+import { exportUserData } from "@/components/users/action";
 
 export default function ExportDataDialog() {
   const [isLoading, setIsLoading] = useState(false);

@@ -85,8 +85,9 @@ export const createMessageSchema = z.object({
 });
 
 export const updateUserProfileSchema = z.object({
-  displayName: requiredString,
-  bio: z.string().max(1000, "La bio ne peut pas depasser 1000 caractères."),
+  displayName: requiredString.optional(),
+  bio: z.string().max(1000, "La bio ne peut pas depasser 1000 caractères.").optional(),
+  birthday: z.date().optional(),
 });
 
 export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;

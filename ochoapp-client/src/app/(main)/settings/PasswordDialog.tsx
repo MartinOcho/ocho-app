@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useSession } from "../SessionProvider";
+import { updatePassword, hasPassword } from "@/components/users/action";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function PasswordDialog() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,31 +68,17 @@ export default function PasswordDialog() {
     setSuccess(false);
 
     try {
-      const body: any = { password: newPassword };
-      if (hasPassword) {
-        body.currentPassword = currentPassword;
-      }
-
-      const response = await fetch('/api/users/update', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
+      await updatePassword({
+        currentPassword: hasPassword ? currentPassword : undefined,
+        password: newPassword,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        setError(data.error || lang.passwordChangeError);
-      }
+      setSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err) {
-      setError(lang.passwordChangeError);
+      setError(err instanceof Error ? err.message : lang.passwordChangeError);
     } finally {
       setIsLoading(false);
     }

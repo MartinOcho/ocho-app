@@ -371,6 +371,8 @@ export const english = {
   disableAccountWarning: "Your account will be disabled. You can reactivate it by contacting support.",
   accountDisabled: "Your account has been disabled successfully.",
   accountDisableError: "Failed to disable account. Please try again.",
+  userUpdated: "User updated successfully",
+  unableToUpdateUser: "Unable to update user. Please try again.",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -758,6 +760,8 @@ export const french: Vocabulary = {
   disableAccountWarning: "Votre compte sera désactivé. Vous pouvez le réactiver en contactant le support.",
   accountDisabled: "Votre compte a été désactivé avec succès.",
   accountDisableError: "Échec de la désactivation du compte. Veuillez réessayer.",
+  userUpdated: "Utilisateur mis à jour avec succès",
+  unableToUpdateUser: "Impossible de mettre à jour l'utilisateur. Veuillez réessayer.",
 };
 
 export const vocabulary = {
