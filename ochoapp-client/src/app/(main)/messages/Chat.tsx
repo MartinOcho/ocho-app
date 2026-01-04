@@ -14,7 +14,6 @@ import {
   ArrowLeft,
   Frown,
   Loader2,
-  LogOut,
   RefreshCw,
   Search,
   Send,
@@ -58,7 +57,7 @@ interface SentMessageState {
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
-  const { socket, isConnected, isConnecting, retryConnection } = useSocket();
+  const { socket, isConnected, retryConnection } = useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const pathname = usePathname();
   const router = useRouter();
@@ -393,16 +392,13 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- GESTION DU CLIC DROIT (CONTEXT MENU) ---
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault(); // Empêche le menu natif du navigateur
+    e.preventDefault(); 
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
   return (
-    // Ajout de onContextMenu sur le conteneur principal
-    <div 
-      className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30"
-      onContextMenu={handleContextMenu}
-    >
+    // RETRAIT de onContextMenu ici
+    <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
       {/* HEADER */}
       <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
         <div
@@ -427,8 +423,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         </div>
       </div>
 
-      {/* ZONE DE MESSAGES */}
-      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
+      {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
+      <div 
+        className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50"
+      >
+        <div className="absolute z-10 w-full h-full" onContextMenu={handleContextMenu}/>
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2"
           onBottomReached={() => {

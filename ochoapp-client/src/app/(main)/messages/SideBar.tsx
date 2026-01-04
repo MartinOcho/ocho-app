@@ -455,7 +455,7 @@ export default function SideBar({
           </ul>
         )}
 
-        {isFetchingMore && !searchQuery && (
+        {isFetchingMore && !searchQuery && status === "success" && (
           <ul>
             <RoomSkeleton/>
             <li className="flex w-full justify-center p-4">

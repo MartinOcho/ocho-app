@@ -635,7 +635,7 @@ export default function Message({
               )}
             >
               {message.senderId !== loggedUser.id && (
-                <span className="py-2">
+                <span className="py-2 z-20">
                   <UserAvatar
                     userId={message.senderId}
                     avatarUrl={message.sender?.avatarUrl}
@@ -650,7 +650,7 @@ export default function Message({
                 }
               >
                 {message.senderId !== loggedUser.id && (
-                  <div className="ps-2 text-xs font-semibold text-muted-foreground">
+                  <div className="ps-2 text-xs font-semibold text-muted-foreground py-0.5 z-20">
                     {message.sender?.displayName || "Utilisateur OchoApp"}
                   </div>
                 )}
@@ -662,7 +662,7 @@ export default function Message({
                   >
                   <div
                     className={cn(
-                      "flex w-fit items-center gap-1",
+                      "flex w-fit items-center gap-1 z-20",
                       !isOwner && "flex-row-reverse",
                     )}
                     onContextMenu={handleContextMenu}
