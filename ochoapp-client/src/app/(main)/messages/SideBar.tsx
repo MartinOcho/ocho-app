@@ -9,9 +9,11 @@ import {
   Frown,
   Loader2,
   MessageSquare,
+  RefreshCw,
   Search,
   SearchIcon,
   SquarePen,
+  WifiOff,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -22,6 +24,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   activeRoom: (room: RoomData) => void;
@@ -48,7 +51,21 @@ export default function SideBar({
   const { activeRoomId, setActiveRoomId } = useActiveRoom();
   const pathname = usePathname();
   const { startNavigation: navigate } = useProgress();
-  const { chats, startNewChat, noChat, dataError, search, noMessageFoundFor } = t(['chats', 'startNewChat', 'noChat', 'dataError', 'search', 'noMessageFoundFor']);
+  const {
+    chats,
+    startNewChat,
+    noChat,
+    dataError,
+    search,
+    noMessageFoundFor,
+  } = t([
+    "chats",
+    "startNewChat",
+    "noChat",
+    "dataError",
+    "search",
+    "noMessageFoundFor",
+  ]);
 
   // --- SOCKET & STATE ---
   const { socket, isConnected } = useSocket();
@@ -81,6 +98,7 @@ export default function SideBar({
     data: httpRooms,
     isLoading: isHttpLoading,
     isError: isHttpError,
+    refetch: refetchHttp,
   } = useQuery({
     queryKey: queryKey,
     queryFn: () => kyInstance.get("/api/room-list").json<RoomData[]>(),
@@ -100,8 +118,9 @@ export default function SideBar({
       setIsLoading(false);
     } else if (isHttpError) {
       // Gérer l'erreur si nécessaire
+      if (rooms.length === 0) setStatus("error");
     }
-  }, [httpRooms, isHttpError]);
+  }, [httpRooms, isHttpError, rooms.length]);
 
   useEffect(() => {
     roomsRef.current = rooms;
@@ -125,6 +144,15 @@ export default function SideBar({
     },
     [socket, isConnected, isFetchingMore],
   );
+
+  const handleRetry = () => {
+    setIsLoading(true);
+    setStatus("pending");
+    if (socket && !isConnected) {
+      socket.connect();
+    }
+    refetchHttp();
+  };
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -215,7 +243,7 @@ export default function SideBar({
 
     socket.on("error_fetching_rooms", handleError);
 
-    // Initial fetch
+    // Initial fetch via Socket si on n'a pas encore de données HTTP
     if (rooms.length === 0 && !isHttpLoading) {
       fetchRooms(null);
     }
@@ -290,7 +318,7 @@ export default function SideBar({
     navigate("/messages");
   }
 
-  const showSkeleton = (isLoading || isHttpLoading) && rooms.length === 0;
+  const showSkeleton = (isLoading || isHttpLoading) && rooms.length === 0 || status === "pending";
 
   return (
     <div className="relative flex h-full flex-col">
@@ -373,16 +401,42 @@ export default function SideBar({
             <div className="flex w-full flex-1 select-none items-center justify-center px-3 py-8 text-center italic text-muted-foreground">
               <div className="flex flex-col items-center gap-2">
                 <Search size={40} className="opacity-50" />
-                <p>{noMessageFoundFor.replace('[searchQuery]', searchQuery)}</p>
+                <p>
+                  {noMessageFoundFor.replace("[searchQuery]", searchQuery)}
+                </p>
               </div>
             </div>
           )}
 
+        {/* Cas 3 : ERREUR - C'est ici qu'on signale le manque de données + bouton retry */}
         {status === "error" && rooms.length === 0 && (
           <div className="flex w-full flex-1 select-none items-center px-3 py-8 text-center italic text-muted-foreground">
-            <div className="my-8 flex w-full select-none flex-col items-center gap-2 text-center text-muted-foreground">
-              <Frown size={150} />
-              <h2 className="text-xl">{dataError}</h2>
+            <div className="my-8 flex w-full select-none flex-col items-center gap-4 text-center text-muted-foreground">
+              {isConnected ? (
+                // Erreur de données générique si connecté
+                <Frown size={100} />
+              ) : (
+                // Signal spécifique si déconnecté et pas de données
+                <WifiOff size={100} className="text-destructive/50" />
+              )}
+              
+              <div>
+                <h2 className="text-xl font-semibold">{dataError}</h2>
+                {!isConnected && (
+                  <p className="mt-1 text-sm text-muted-foreground/80">
+                    Impossible de charger vos discussions.
+                  </p>
+                )}
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={handleRetry} 
+                className="mt-2 gap-2"
+              >
+                <RefreshCw size={16} />
+                Réessayer la connexion
+              </Button>
             </div>
           </div>
         )}
@@ -410,21 +464,21 @@ export default function SideBar({
         )}
       </InfiniteScrollContainer>
 
-        <div className="fixed bottom-20 right-5 flex gap-2 sm:absolute sm:bottom-5">
-          <div
-            className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:bg-muted dark:text-muted-foreground sm:hidden"
-            onClick={() => setIsSearchOpen(true)}
-          >
-            <Search />
-          </div>
-          <div
-            className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
-            onClick={onNewChat}
-            title={startNewChat}
-          >
-            <SquarePen />
-          </div>
+      <div className="fixed bottom-20 right-5 flex gap-2 sm:absolute sm:bottom-5">
+        <div
+          className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:bg-muted dark:text-muted-foreground sm:hidden"
+          onClick={() => setIsSearchOpen(true)}
+        >
+          <Search />
         </div>
+        <div
+          className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
+          onClick={onNewChat}
+          title={startNewChat}
+        >
+          <SquarePen />
+        </div>
+      </div>
     </div>
   );
 }

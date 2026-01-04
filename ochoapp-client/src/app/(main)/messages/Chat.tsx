@@ -55,7 +55,8 @@ interface SentMessageState {
 }
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
-  const { socket, isConnected } = useSocket();
+  // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
+  const { socket, isConnected, isConnecting } = useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const pathname = usePathname();
   const router = useRouter();
@@ -70,7 +71,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const [sentMessages, setSentMessages] = useState<SentMessageState[]>([]);
   const [newMessages, setNewMessages] = useState<MessageData[]>([]);
 
-  const { unableToLoadChat, noMessage, dataError, search } = t(['unableToLoadChat', 'noMessage', 'dataError', 'search']);
+  const { unableToLoadChat, noMessage, dataError, search } = t([
+    "unableToLoadChat",
+    "noMessage",
+    "dataError",
+    "search",
+  ]);
   const queryClient = useQueryClient();
   const { user: loggedUser } = useSession();
 
@@ -89,10 +95,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- GESTION DU SOCKET : JOIN / LEAVE / EVENTS ---
   useEffect(() => {
-    if (!socket || !isConnected || !roomId) return;
+    if (!socket || !roomId) return;
 
-    // 1. Rejoindre la room
-    socket.emit("join_room", roomId);
+    // Si on est connecté, on rejoint la room
+    if (isConnected) {
+      socket.emit("join_room", roomId);
+    }
 
     const handleJoinError = (error: string) => {
       toast({ variant: "destructive", description: error });
@@ -309,6 +317,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // --- FONCTION D'ENVOI DE MESSAGE ---
   const handleSendMessage = async (content: string) => {
     if (!socket || !roomId) return;
+
+    if (!isConnected) {
+      console.log("Socket déconnecté, tentative de reconnexion...");
+      socket.connect();
+    }
+
     handleTypingStop();
 
     const tempId = Math.random().toString(36).slice(2);
@@ -345,6 +359,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // Fonction pour rééssayer l'envoi
   function handleRetryMessage(msg: SentMessageState) {
     if (!socket) return;
+    
+    // Même logique pour le retry : on s'assure d'être connecté
+    if (!isConnected) {
+        socket.connect();
+    }
 
     // Remettre en statut "sending"
     setSentMessages((prev) =>
