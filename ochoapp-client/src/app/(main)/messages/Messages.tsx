@@ -60,7 +60,7 @@ export default function Messages() {
   // pour permettre l'affichage des données en cache/HTTP.
 
   return (
-    <div className="flex h-full flex-col overflow-hidden sm:rounded-2xl bg-card shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen max-sm:bg-transparent">
+    <div className="flex h-full flex-col sm:rounded-2xl bg-card shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen max-sm:bg-transparent">
       
       {/* Bandeau de notification hors ligne (non bloquant) */}
       {!isConnected && !isConnecting && (
@@ -89,8 +89,8 @@ export default function Messages() {
       {/* Conteneur principal (Layout Chat) */}
       <div
         className={cn(
-          "flex flex-1 overflow-hidden transition-transform duration-300 ease-in-out",
-          (activeRoomId || newChat) && "max-sm:-translate-x-full",
+          "flex flex-1 w-fit transition-transform duration-300 ease-in-out",
+          (activeRoomId || newChat) && "max-sm:-translate-x-[100vw]",
         )}
       >
         <div className="h-full w-screen min-w-60 max-sm:min-w-[100vw] sm:w-1/3 sm:border-r-2">
@@ -106,7 +106,7 @@ export default function Messages() {
             }}
           />
         </div>
-        <div className="relative flex h-full w-screen flex-col max-sm:min-w-[100vw] sm:w-3/4">
+        <div className="relative flex h-full w-screen flex-col max-sm:min-w-screen sm:w-3/4">
           {!activeRoomId && (
             <div className="flex h-full select-none flex-col items-center justify-center px-4 text-center">
               <div className="text-muted-foreground/50">
