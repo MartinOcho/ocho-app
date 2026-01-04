@@ -685,7 +685,7 @@ export default function Message({
                   <div
                     className={cn(
                       activeOverlayRect ? "opacity-0" : "opacity-100",
-                      "px-2",
+                      "px-2 z-20 relative",
                     )}
                   >
                     <ReactionList
