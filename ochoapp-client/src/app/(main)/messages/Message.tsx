@@ -637,7 +637,7 @@ export default function Message({
                   <UserAvatar
                     userId={message.senderId}
                     avatarUrl={message.sender?.avatarUrl}
-                    size={32}
+                    size={24}
                     className="flex-none"
                   />
                 </span>

@@ -32,10 +32,10 @@ function MessageLoadingSkeleton({
   const sizeClass = sizes[size];
 
   return (
-    <div className={`flex w-full gap-2 ${sender ? "flex-row-reverse" : ""}`}>
+    <div className={`flex items-end w-full gap-2 ${sender ? "flex-row-reverse" : ""}`}>
       {!sender && (
         <span className="py-1">
-          <Skeleton className="h h-[18px] w-[18px] rounded-full" />
+          <Skeleton className="size-6 rounded-full" />
         </span>
       )}
       <div

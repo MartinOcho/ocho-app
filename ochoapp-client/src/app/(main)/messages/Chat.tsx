@@ -891,7 +891,7 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
           className="border-2 border-background"
         />
       ) : (
-        <div className="z-10 flex size-5 min-h-8 min-w-8 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+        <div className="z-10 flex size-5 min-h-6 min-w-6 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
           {typingUsers.length || 0}
         </div>
       )}
