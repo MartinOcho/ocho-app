@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle } from "lucide-react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { logout } from "@/app/(auth)/actions";
 import { useQueryClient } from "@tanstack/react-query";
+import kyInstance from "@/lib/ky";
 
 export default function DisableAccountDialog() {
   const [password, setPassword] = useState("");
@@ -39,15 +40,11 @@ export default function DisableAccountDialog() {
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/users/disable', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await kyInstance.post('/api/users/disable', {
         body: JSON.stringify({ password }),
-      });
+      }).json<Record<string, string>>();
 
-      const data = await response.json();
+      const data = response;
 
       if (response.ok) {
         setSuccess(true);

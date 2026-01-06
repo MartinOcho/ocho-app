@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { updateUsername } from "@/components/users/action";
+import kyInstance from "@/lib/ky";
 
 export default function UsernameDialog() {
   const { user } = useSession();
@@ -34,15 +35,11 @@ export default function UsernameDialog() {
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/users/update', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await kyInstance.patch('/api/users/update', {
         body: JSON.stringify({ username: newUsername.trim() }),
-      });
+      }).json<Record<string, string>>();
 
-      const data = await response.json();
+      const data = response;
 
       if (response.ok) {
         setSuccess(true);

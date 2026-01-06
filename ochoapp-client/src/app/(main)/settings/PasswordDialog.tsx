@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { t } from "@/context/LanguageContext";
 import { VocabularyKey } from "@/lib/vocabulary";
+import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
@@ -8,6 +9,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { useSession } from "../SessionProvider";
 import { updatePassword, hasPassword } from "@/components/users/action";
 import { useToast } from "@/components/ui/use-toast";
+import kyInstance from "@/lib/ky";
 
 export default function PasswordDialog() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -22,8 +24,8 @@ export default function PasswordDialog() {
   useEffect(() => {
     const fetchHasPassword = async () => {
       try {
-        const response = await fetch('/api/users/has-password');
-        const data = await response.json();
+        const response = await kyInstance.get('/api/users/has-password').json<Record<string, boolean>>();
+        const data = response;
         setHasPassword(data.hasPassword);
       } catch (err) {
         console.error('Failed to fetch password status:', err);
@@ -165,13 +167,14 @@ export default function PasswordDialog() {
           </Alert>
         )}
 
-        <Button
+        <LoadingButton
           type="submit"
-          disabled={!isFormValid() || isLoading}
+          disabled={!isFormValid()}
+          loading={isLoading}
           className="w-full"
         >
-          {isLoading ? t('updating') : lang.changePassword}
-        </Button>
+          {lang.changePassword}
+        </LoadingButton>
       </form>
     </div>
   );

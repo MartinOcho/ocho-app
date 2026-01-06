@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { exportUserData } from "@/components/users/action";
+import kyInstance from "@/lib/ky";
 
 export default function ExportDataDialog() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,9 +26,7 @@ export default function ExportDataDialog() {
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/users/export', {
-        method: 'GET',
-      });
+      const response = await kyInstance.get('/api/users/export');
 
       if (response.ok) {
         const blob = await response.blob();
@@ -42,7 +41,7 @@ export default function ExportDataDialog() {
 
         setSuccess(true);
       } else {
-        const data = await response.json();
+        const data = await response.json<Record<string, string>>();
         setError(data.error || lang.exportDataError);
       }
     } catch (err) {

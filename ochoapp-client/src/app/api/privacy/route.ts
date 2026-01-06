@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
+import { PrivacyType, PrivacyValue } from "@/lib/types";
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
     const privacySettings = userPrivacies.reduce((acc, up) => {
       acc[up.privacy.type] = up.privacy.value;
       return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<PrivacyType, PrivacyValue>);
 
     return NextResponse.json(privacySettings);
   } catch (error) {

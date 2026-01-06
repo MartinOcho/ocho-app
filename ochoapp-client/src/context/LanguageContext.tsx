@@ -112,7 +112,7 @@ export function t(
       acc[key] = vocabulary[language][key];
       return acc;
     },
-    {} as Record<string, string>,
+    {} as Record<VocabularyKey, string>,
   );
 
   return Array.isArray(keys) ? result : result[keys];

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSession } from "../SessionProvider";
 import { t } from "@/context/LanguageContext";
+import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { PrivacyValue, PrivacyType } from "@/lib/types";
+import kyInstance from "@/lib/ky";
 
 export default function PostPrivacyDialog() {
   const { user } = useSession();
@@ -25,20 +27,19 @@ export default function PostPrivacyDialog() {
     "somethingWentWrong"
   ]);
 
-  const options: { value: PrivacyValue; label: string }[] = [
-    { value: "PUBLIC", label: lang.public },
-    { value: "FOLLOWERS", label: lang.followers },
-    { value: "PRIVATE", label: lang.private },
-    { value: "EVERYONE", label: lang.everyone },
-    { value: "NO_ONE", label: lang.noOne },
+  const options: { value: PrivacyValue; label: string; description: string }[] = [
+    { value: "PUBLIC", label: lang.everyone, description: "Anyone on the platform can see your posts" },
+    { value: "FOLLOWERS", label: lang.followers, description: "Only people who follow you can see your posts" },
+    { value: "PRIVATE", label: lang.private, description: "Only you can see your posts" },
+    { value: "NO_ONE", label: lang.noOne, description: "No one can see your posts" },
   ];
 
   useEffect(() => {
     const fetchCurrentSetting = async () => {
       try {
-        const response = await fetch('/api/privacy');
+        const response = await kyInstance.get('/api/privacy').json<Record<string, string>>();
         if (response.ok) {
-          const settings = await response.json();
+          const settings = response;
           const currentValue = settings.POST_VISIBILITY as PrivacyValue;
           if (currentValue) {
             setSelectedValue(currentValue);
@@ -60,21 +61,18 @@ export default function PostPrivacyDialog() {
     setSuccess(false);
 
     try {
-      const response = await fetch('/api/privacy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await kyInstance.post('/api/privacy', {
         body: JSON.stringify({
           type: "POST_VISIBILITY" as PrivacyType,
           value: selectedValue
         }),
-      });
+      }).json<Record<string, string>>();
+
+      const data = response;
 
       if (response.ok) {
         setSuccess(true);
       } else {
-        const data = await response.json();
         setError(data.error || lang.somethingWentWrong);
       }
     } catch (err) {
@@ -103,10 +101,13 @@ export default function PostPrivacyDialog() {
             key={option.value}
             variant={selectedValue === option.value ? "default" : "outline"}
             onClick={() => setSelectedValue(option.value)}
-            className="justify-start"
+            className="justify-start h-auto p-4"
             disabled={isLoading}
           >
-            {option.label}
+            <div className="flex flex-col items-start">
+              <span className="font-medium">{option.label}</span>
+              <span className="text-sm text-muted-foreground">{option.description}</span>
+            </div>
           </Button>
         ))}
       </div>
@@ -125,10 +126,9 @@ export default function PostPrivacyDialog() {
         </Alert>
       )}
 
-      <Button onClick={handleSave} disabled={isLoading} className="w-full">
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+      <LoadingButton onClick={handleSave} loading={isLoading} className="w-full">
         {lang.save}
-      </Button>
+      </LoadingButton>
     </div>
   );
 }

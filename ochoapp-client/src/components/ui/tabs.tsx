@@ -29,7 +29,7 @@ const tabsConfig = {
     underline:
       "rounded-none border-b-4 border-transparent data-[state=active]:bg-card data-[state=active]:border-primary data-[state=active]:text-foreground hover:bg-card/50",
   },
-} satisfies Record<string, Record<TabVariants, string>>;
+} satisfies Record<"list" | "trigger", Record<TabVariants, string>>;
 
 const TabsVariantContext = React.createContext<TabVariants>("default");
 

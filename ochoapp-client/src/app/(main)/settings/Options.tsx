@@ -33,8 +33,9 @@ import DisableAccountDialog from "./DisableAccountDialog";
 import DeleteAccountDialog from "./DeleteAccountDialog";
 import ProfileVisibilityDialog from "./ProfileVisibilityDialog";
 import PostPrivacyDialog from "./PostPrivacyDialog";
-import MessagePrivacyDialog from "./MessagePrivacyDialog";
 import OnlineStatusVisibilityDialog from "./OnlineStatusVisibilityDialog";
+
+type SubOptionKey = "account" | "privacy" | "display" | "language";
 
 interface OptionsProps {
   setting?: string | null;
@@ -94,7 +95,7 @@ export default function Options({
 
   const queryClient = useQueryClient();
 
-  const subOptions: Record<string, SettingsOption[]> = {
+  const subOptions: Record<SubOptionKey, SettingsOption[]> = {
     account: [
       {
         value: "birthday",

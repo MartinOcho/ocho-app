@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { Vocabulary } from "./vocabulary";
+import { Vocabulary, Language } from "./vocabulary";
 
 export type PrivacyType =
   | "PROFILE_VISIBILITY"
@@ -31,8 +31,8 @@ export type NavigationContextType = {
 };
 
 export type LanguageContextType = {
-  language: string;
-  setLanguage: (language: string) => void;
+  language: Language;
+  setLanguage: (language: Language) => void;
   vocabulary: Vocabulary;
 };
 
