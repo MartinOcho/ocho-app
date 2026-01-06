@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 
 export async function logout(){
     const {session} = await validateRequest()
-
+ 
     if (!session) {
         throw new Error("Action non autorisée");
     }

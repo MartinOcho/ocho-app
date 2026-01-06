@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Settings, { SettingsOption } from "./Settings";
 import { logout } from "@/app/(auth)/actions";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import French from "@/components/flags/French";
 import { useTheme } from "next-themes";
 import US from "@/components/flags/US";
@@ -34,6 +34,11 @@ import DeleteAccountDialog from "./DeleteAccountDialog";
 import ProfileVisibilityDialog from "./ProfileVisibilityDialog";
 import PostPrivacyDialog from "./PostPrivacyDialog";
 import OnlineStatusVisibilityDialog from "./OnlineStatusVisibilityDialog";
+import { toast } from "@/components/ui/use-toast";
+import { DialogClose } from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
+import LoadingButton from "@/components/LoadingButton";
+import { DialogFooter } from "@/components/ui/dialog";
 
 type SubOptionKey = "account" | "privacy" | "display" | "language";
 
@@ -90,8 +95,7 @@ export default function Options({
     "postPrivacy",
     "messagePrivacy",
     "onlineStatusVisibility",
-  ]
-  );
+  ]);
 
   const queryClient = useQueryClient();
 
@@ -257,10 +261,8 @@ export default function Options({
       label: logoutText,
       icon: <LogOutIcon size={24} />,
       action: "destructive",
-      onClick: () => {
-        queryClient.clear();
-        logout();
-      },
+      dialogElement: <LogoutDialog />,
+      onClick: () => {},
     },
   ];
 
@@ -276,6 +278,39 @@ export default function Options({
     return <Settings options={option} setting={setting} label={label} />;
   }
 
-
   return <Settings options={options} setting={setting} />;
+}
+
+function LogoutDialog() {
+  const queryClient = useQueryClient();
+  // create mutation to logout user
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      console.log(error);
+      toast({
+        variant: "destructive",
+        description: t("logoutError"),
+      });
+    },
+  });
+
+  const { mutate, isPending } = logoutMutation;
+  // Dialog content
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">{t("logoutDescription")}</p>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline">{t("cancel")}</Button>
+        </DialogClose>
+        <LoadingButton variant="destructive" loading={isPending} onClick={() => mutate()}>
+          {t("logout")}
+        </LoadingButton>
+      </DialogFooter>
+    </div>
+  );
 }

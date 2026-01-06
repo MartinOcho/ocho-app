@@ -26,12 +26,25 @@ import {
 import { logout } from "@/app/(auth)/actions";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Language, VocabularyKey, VocabularyObject } from "@/lib/vocabulary";
 import { t, useLanguage } from "@/context/LanguageContext";
 import US from "./flags/US";
 import French from "./flags/French";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import LoadingButton from "./LoadingButton";
+import { toast } from "./ui/use-toast";
 
 interface UserButtonProps {
   className?: string;
@@ -54,8 +67,6 @@ export default function UserButton({ className }: UserButtonProps) {
 
   const { theme, setTheme } = useTheme();
 
-  const queryClient = useQueryClient();
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -63,7 +74,12 @@ export default function UserButton({ className }: UserButtonProps) {
           className={cn("aspect-square flex-none rounded-full", className)}
           title={profile}
         >
-          <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} hideBadge={false} />
+          <UserAvatar
+            userId={user.id}
+            avatarUrl={user.avatarUrl}
+            size={40}
+            hideBadge={false}
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
@@ -119,10 +135,13 @@ export default function UserButton({ className }: UserButtonProps) {
           </DropdownMenuPortal>
         </DropdownMenuSub>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="max-sm:hidden">
+          <DropdownMenuSubTrigger className="">
             {language === "fr" && <French className="mr-2 size-4" />}
             {language === "en" && <US className="mr-2 size-4" />}
-            {languageText}
+            {languageText}{" "}
+            {language !== "en" && (
+              <span className="max-sm:hidden">(Language)</span>
+            )}
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent className="max-sm:max-w-48">
@@ -130,7 +149,7 @@ export default function UserButton({ className }: UserButtonProps) {
                 onClick={() => {
                   setLanguage("fr" as Language);
                 }}
-                >
+              >
                 <French className="mr-2 size-4" />
                 Français
                 {language === "fr" && <Check className="mr-2 size-4" />}
@@ -139,7 +158,7 @@ export default function UserButton({ className }: UserButtonProps) {
                 onClick={() => {
                   setLanguage("en" as Language);
                 }}
-                >
+              >
                 <US className="mr-2 size-4" />
                 English
                 {language === "en" && <Check className="mr-2 size-4" />}
@@ -148,16 +167,75 @@ export default function UserButton({ className }: UserButtonProps) {
           </DropdownMenuPortal>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => {
-            queryClient.clear();
-            logout();
-          }}
-        >
-          <LogOutIcon className="mr-2 size-4" />
-          {logoutText}
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="hover:bg-destructive/20">
+          <LogoutDialog />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+export function LogoutDialog({
+  className,
+  children,
+}: {
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const queryClient = useQueryClient();
+  // create mutation to logout user
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      console.log(error);
+      toast({
+        variant: "destructive",
+        description: t("logoutError"),
+      });
+    },
+  });
+
+  const { mutate, isPending } = logoutMutation;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children ? (
+          <span className={className}>{children}</span>
+        ) : (
+          <div
+            className={cn(
+              "flex items-center gap-2 text-destructive",
+              className,
+            )}
+            title={t("logout")}
+          >
+            <LogOutIcon className="size-4" />
+            {t("logout")}
+          </div>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{t("logout")}</DialogTitle>
+          <DialogDescription>{t("logoutDescription")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild disabled={isPending}>
+            <Button variant="outline">{t("cancel")}</Button>
+          </DialogClose>
+            <LoadingButton
+              variant="destructive"
+              onClick={() => mutate()}
+              loading={isPending}
+            >
+              {t("logout")}
+            </LoadingButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
