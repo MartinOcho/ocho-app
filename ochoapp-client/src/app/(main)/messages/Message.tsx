@@ -151,7 +151,7 @@ export function DeletionPlaceholder({
 
             <div className="flex items-center gap-0.5 pe-1.5 text-xs font-normal text-primary">
               <Undo2 size={12} strokeWidth={3} />
-              <span className="uppercase">Annuler</span>
+              <span className="uppercase">{t("cancel")}</span>
             </div>
           </button>
 
