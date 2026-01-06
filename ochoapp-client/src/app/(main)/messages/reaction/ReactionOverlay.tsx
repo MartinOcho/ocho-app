@@ -296,6 +296,10 @@ export function ReactionList ({
   const visibleReactions = showOverflow ? sortedReactions.slice(0, 2) : sortedReactions;
   const overflowCount = sortedReactions.length - 2;
 
+  if (!reactions.length) {
+    return null
+  }
+
   return (
     <div className="flex flex-wrap gap-1 mt-1 z-20">
       {visibleReactions.map((reaction, index) => {

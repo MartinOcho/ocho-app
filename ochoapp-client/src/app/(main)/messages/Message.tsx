@@ -628,7 +628,7 @@ export default function Message({
 
             <div
               className={cn(
-                "flex w-full gap-2",
+                "flex w-full gap-2 items-end",
                 message.senderId === loggedUser.id && "flex-row-reverse",
               )}
             >
@@ -637,7 +637,7 @@ export default function Message({
                   <UserAvatar
                     userId={message.senderId}
                     avatarUrl={message.sender?.avatarUrl}
-                    size={20}
+                    size={32}
                     className="flex-none"
                   />
                 </span>

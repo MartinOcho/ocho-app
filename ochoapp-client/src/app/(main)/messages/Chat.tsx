@@ -886,12 +886,12 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
         <UserAvatar
           userId={typingUsers[0].id}
           avatarUrl={typingUsers[0].avatarUrl}
-          size={20}
+          size={32}
           key={typingUsers[0].id}
           className="border-2 border-background"
         />
       ) : (
-        <div className="z-10 flex size-5 min-h-5 min-w-5 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+        <div className="z-10 flex size-5 min-h-8 min-w-8 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
           {typingUsers.length || 0}
         </div>
       )}
