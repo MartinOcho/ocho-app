@@ -677,7 +677,7 @@ export default function Message({
                           isOwner={isOwner}
                           unavailableMessage={unavailableMessage}
                           toggleCheck={toggleCheck}
-                          highlight={highlight} // Propager la recherche
+                          highlight={highlight}
                         />
                       </div>
                     </div>
