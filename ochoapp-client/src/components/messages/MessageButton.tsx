@@ -1,8 +1,5 @@
 import { useSession } from "@/app/(main)/SessionProvider";
-import {
-  useCreateChatRoomMutation,
-  useSaveMessageMutation,
-} from "./mutations";
+import { useCreateChatRoomMutation, useSaveMessageMutation } from "./mutations";
 import LoadingButton from "../LoadingButton";
 import { MessageCircleMore, Send } from "lucide-react";
 import { useToast } from "../ui/use-toast";
@@ -34,56 +31,51 @@ export default function MessageButton({
 
   const onChatStart = (roomId: string) => {
     setActiveRoomId(roomId);
-  }
+  };
 
-  const handleChatStart = (user: UserData | null = null) => {
-      if (isPending) return;
-      if (!socket) return;
-  
-      setIsPending(true);
-  
-      // Définir les callbacks pour la réponse du serveur
-      // On utilise .once pour n'écouter qu'une seule fois la réponse
-      const handleRoomReady = (room: any) => {
-        setIsPending(false);
-  
-        // Nettoyage des écouteurs pour éviter les doublons
-        socket.off("room_ready", handleRoomReady);
-        socket.off("error_message", handleError);
-      };
-  
-      const handleError = (msg: string) => {
-        setIsPending(false);
-        toast({ variant: "destructive", description: msg });
-        socket.off("room_ready", handleRoomReady);
-        socket.off("error_message", handleError);
-      };
-  
-      socket.on("room_ready", handleRoomReady);
-      socket.on("error_message", handleError);
-  
-      // Logique d'envoi
-      if (user) {
-        // Cas 1 : Message Privé (1v1)
-        const userId = user.id;
-  
-        // Cas spécial : Message à soi-même (Saved Messages)
-        if (loggedinUser.id === userId) {
-          onChatStart("saved-" + loggedinUser.id);
-          return;
-        }
-  
-        socket.emit("start_chat", {
-          targetUserId: userId,
-          isGroup: false,
-        });
-      }
+  const handleChatStart = (userId: string | null = null) => {
+    if (isPending) return;
+    if (!socket) return;
+
+    setIsPending(true);
+
+    // Définir les callbacks pour la réponse du serveur
+    // On utilise .once pour n'écouter qu'une seule fois la réponse
+    const handleRoomReady = (room: any) => {
+      setIsPending(false);
+
+      // Nettoyage des écouteurs pour éviter les doublons
+      socket.off("room_ready", handleRoomReady);
+      socket.off("error_message", handleError);
     };
 
-  const handleSubmit = () => {
-    if (loggedinUser) {
-      handleChatStart(loggedinUser);
+    const handleError = (msg: string) => {
+      setIsPending(false);
+      toast({ variant: "destructive", description: msg });
+      socket.off("room_ready", handleRoomReady);
+      socket.off("error_message", handleError);
+    };
+
+    socket.on("room_ready", handleRoomReady);
+    socket.on("error_message", handleError);
+
+    // Logique d'envoi
+    if (userId) {
+      // Cas spécial : Message à soi-même (Saved Messages)
+      if (loggedinUser.id === userId) {
+        onChatStart("saved-" + loggedinUser.id);
+        return;
+      }
+
+      socket.emit("start_chat", {
+        targetUserId: userId,
+        isGroup: false,
+      });
     }
+  };
+
+  const handleSubmit = () => {
+    handleChatStart(userId);
   };
 
   return (
@@ -93,8 +85,7 @@ export default function MessageButton({
       onClick={handleSubmit}
       {...props}
     >
-      {!(isPending) && <MessageCircleMore size={24} />}{" "}
-      {message}
+      {!isPending && <MessageCircleMore size={24} />} {message}
     </LoadingButton>
   );
 }
