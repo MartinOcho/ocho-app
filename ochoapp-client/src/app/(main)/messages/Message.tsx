@@ -194,7 +194,7 @@ export const MessageBubbleContent = ({
   createdAt?: Date;
 }) => {
   const borderRadiusClass = isOnlyMessageInCluster
-    ? "rounded-3xl"
+    ? "rounded-2xl"
     : isFirstInCluster
     ? isOwner
       ? "rounded-br"
@@ -207,16 +207,16 @@ export const MessageBubbleContent = ({
     ? isOwner
       ? "rounded-tr"
       : "rounded-tl"
-    : "rounded-3xl";
+    : "rounded-2xl";
 
   return (
-    <div className={cn("relative w-fit", isClone && "h-full")}>
+    <div className={cn("relative w-fit pr-2", isClone && "h-full")}>
       <Linkify className={cn(isOwner && "font-semibold text-[#001645]")}>
         <div
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
           className={cn(
-            "relative w-fit rounded-3xl select-none px-4 py-2 transition-all duration-200",
+            "relative w-fit rounded-2xl select-none px-4 py-2 transition-all duration-200",
             isOwner
               ? "bg-[#007AFF] text-white"
               : "bg-primary/10",
@@ -239,7 +239,7 @@ export const MessageBubbleContent = ({
           {createdAt && (
             <time
               className={cn(
-                "mt-1 block text-[11px] opacity-70 text-right",
+                "absolute bottom-0 right-0 block text-[11px] opacity-70 text-right",
                 isOwner ? "text-white/70" : "text-muted-foreground"
               )}
             >

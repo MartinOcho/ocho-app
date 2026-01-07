@@ -919,7 +919,7 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
               <Linkify>
                 <p
                   className={cn(
-                    "w-fit select-none rounded-3xl px-4 py-2 transition-all duration-300 *:font-bold",
+                    "w-fit select-none rounded-2xl px-4 py-2 transition-all duration-300 *:font-bold",
                     status === "sending"
                       ? "cursor-wait bg-[#007AFF]/70 text-emerald-50 opacity-80"
                       : "",
@@ -1021,7 +1021,7 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
           <div className="relative h-fit w-fit">
             <div
               className={cn(
-                "w-fit select-none rounded-3xl bg-primary/10 p-3.5",
+                "w-fit select-none rounded-2xl bg-primary/10 p-3.5",
               )}
             >
               <div className="flex gap-1">
