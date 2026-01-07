@@ -804,7 +804,7 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
 
   return (
     <div className="relative flex w-full flex-col gap-3 duration-300">
-      <div className="flex w-full flex-row-reverse gap-2">
+      <div className="flex w-full flex-row-reverse gap-1">
         <div className="group/message relative flex w-fit max-w-[75%] select-none flex-col items-end">
           <div className="flex w-fit items-center gap-1">
             {/* Bouton Retry */}
