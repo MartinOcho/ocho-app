@@ -239,7 +239,7 @@ export const MessageBubbleContent = ({
           {createdAt && (
             <time
               className={cn(
-                "absolute bottom-0.5 right-3 block text-[11px] opacity-70 text-right",
+                "absolute bottom-0.5 right-3 block text-[8px] opacity-70 text-right *:line-clamp-1",
                 isOwner ? "text-white/70" : "text-muted-foreground"
               )}
             >
