@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { LogOutIcon, LucideAlignVerticalDistributeStart } from "lucide-react";
+import { LogOutIcon } from "lucide-react";
 import { useLeaveGroupMutation } from "./mutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";

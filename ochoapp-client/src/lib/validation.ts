@@ -47,12 +47,6 @@ export const MessageSchema = z.object({
   senderId: z.string(),
 });
 
-export const createRoomSchema = z.object({
-  name: z.string().optional(),
-  isGroup: z.boolean(),
-  recipientId: z.string().optional(),
-  members: z.array(z.string()).optional(),
-});
 
 export const addMemberSchema = z.object({
   roomId: z.string(),
@@ -77,11 +71,6 @@ export const createPostSchema = z.object({
   content: z.string(),
   mediaIds: z.array(z.string()).max(5, "Vous pouvez ajouter jusqu'à 5 médias"),
   gradient: z.number().int().optional(),
-});
-
-export const createMessageSchema = z.object({
-  content: requiredString,
-  roomId: z.string(),
 });
 
 export const updateUserProfileSchema = z.object({
