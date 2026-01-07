@@ -210,13 +210,13 @@ export const MessageBubbleContent = ({
     : "rounded-2xl";
 
   return (
-    <div className={cn("relative w-fit pr-4", isClone && "h-full")}>
+    <div className={cn("relative w-fit", isClone && "h-full")}>
       <Linkify className={cn(isOwner && "font-semibold text-[#001645]")}>
         <div
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
           className={cn(
-            "relative w-fit rounded-2xl select-none px-4 py-2 transition-all duration-200",
+            "relative w-fit rounded-2xl select-none px-4 py-2 pr-6 transition-all duration-200",
             isOwner
               ? "bg-[#007AFF] text-white"
               : "bg-primary/10",
