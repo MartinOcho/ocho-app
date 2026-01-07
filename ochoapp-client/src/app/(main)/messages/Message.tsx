@@ -210,7 +210,7 @@ export const MessageBubbleContent = ({
     : "rounded-2xl";
 
   return (
-    <div className={cn("relative w-fit pr-2", isClone && "h-full")}>
+    <div className={cn("relative w-fit pr-4", isClone && "h-full")}>
       <Linkify className={cn(isOwner && "font-semibold text-[#001645]")}>
         <div
           onClick={!isClone ? toggleCheck : undefined}
@@ -239,7 +239,7 @@ export const MessageBubbleContent = ({
           {createdAt && (
             <time
               className={cn(
-                "absolute bottom-0 right-0 block text-[11px] opacity-70 text-right",
+                "absolute bottom-0 right-2 block text-[11px] opacity-70 text-right",
                 isOwner ? "text-white/70" : "text-muted-foreground"
               )}
             >
