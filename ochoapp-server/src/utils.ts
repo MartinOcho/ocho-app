@@ -362,10 +362,10 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
 
       if (!members?.length) throw new Error("Selectionnez au moins un utilisateur");
 
-      const room = await prisma.room.findUnique({ where: { id: roomId } });
+      const room = await prisma.room.findUnique({ where: { id: roomId }, include: { members: true } });
       if (!room || !room.isGroup) throw new Error("Groupe invalide");
 
-      const existingMembers = await prisma.roomMember.findMany({ where: { roomId } });
+      const existingMembers = room.members;
       if (existingMembers.length >= room.maxMembers) throw new Error("Groupe plein");
 
       const newMembers = members.filter(
@@ -392,48 +392,49 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
             include: getMessageDataInclude(userId),
           });
           
-          await prisma.lastMessage.upsert({
-             where: { userId_roomId: { userId: memberId, roomId } },
-             create: { userId: memberId, messageId: message.id, roomId },
-             update: { messageId: message.id }
-          });
+          // Mise à jour pour TOUS les membres actifs du groupe (Add est public)
+          const activeMemberIds = room.members
+            .filter(m => !["OLD", "BANNED"].includes(m.type))
+            .map(m => {
+              if (!m.userId) return
+              return m.userId
+            })
+            .filter(uid => ( uid !== memberId))
+            .filter((uid): uid is string => uid !== null)
+            .concat(newMembers);
+
+          await Promise.all(activeMemberIds.map(mid => 
+            prisma.lastMessage.upsert({
+               where: { userId_roomId: { userId: mid, roomId } },
+               create: { userId: mid, messageId: message.id, roomId },
+               update: { messageId: message.id, createdAt: new Date() }
+            })
+          ));
           
           return message;
         })
       );
 
-      // Récupérer les données complètes des nouveaux membres pour le client
-      const newMembersList = await prisma.roomMember.findMany({
-        where: { roomId, userId: { in: newMembers } },
-        include: { user: { select: getUserDataSelect(userId) } }
-      });
-
-      // Notifier TOUS les membres du salon (y compris les nouveaux)
       const updatedRoom = await prisma.room.findUnique({
           where: { id: roomId },
           include: getChatRoomDataInclude()
       });
       
-      // 1. Mettre à jour l'UI interne du groupe pour ceux qui y sont
       io.to(roomId).emit("room_updated", updatedRoom);
-      
-      // 2. Envoyer les messages système
       sentInfoMessages.forEach(msg => {
           io.to(roomId).emit("receive_message", { newMessage: msg, roomId });
       });
 
-      // 3. Mettre à jour la sidebar (liste des rooms) pour les nouveaux et les anciens
-      const allCurrentMembers = [...existingMembers.map(m => m.userId), ...newMembers];
-      allCurrentMembers.forEach(async (mid) => {
-        if (!mid) return;
-         const userRooms = await getFormattedRooms(mid, ""); // Username optionnel ici si non utilisé
+      const allMembersToUpdate = (updatedRoom?.members.filter(m => !["OLD", "BANNED"].includes(m.type)).map(m => m.userId) || []).filter((uid) => uid !== undefined) as string[];
+      allMembersToUpdate.forEach(async (mid) => {
+         const userRooms = await getFormattedRooms(mid, "");
          io.to(mid).emit("room_list_updated", userRooms);
          if (newMembers.includes(mid)) {
              io.to(mid).emit("added_to_group", updatedRoom);
          }
       });
 
-      callback({ success: true, data: { newMembersList, userId, roomId } });
+      callback({ success: true, data: { roomId } });
 
     } catch (error: any) {
       console.error("Erreur group_add_members:", error);
@@ -460,7 +461,6 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
             data: { type: newType }
         });
 
-        // Notifier la mise à jour des rôles
         io.to(roomId).emit("member_role_updated", { 
             roomId, 
             userId: targetId, 
@@ -478,10 +478,8 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
   socket.on("group_remove_member", async (input, callback) => {
     try {
         const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-
         if (!targetId) throw new Error("Membre invalide");
 
-        // Vérification logique (existant, pas déjà parti...)
         const roomMember = await prisma.roomMember.findUnique({
             where: { roomId_userId: { roomId, userId: targetId } }
         });
@@ -499,26 +497,30 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
                 content: "leave",
                 roomId,
                 type: "LEAVE",
-                senderId: userId, // L'admin qui a kické
+                senderId: userId, 
                 recipientId: targetId
             },
             include: getMessageDataInclude(userId)
         });
 
-        // Mise à jour last message
-        await prisma.lastMessage.upsert({
-            where: { userId_roomId: { userId: targetId, roomId } },
-            create: { userId: targetId, roomId, messageId: removeMsg.id },
-            update: { messageId: removeMsg.id, createdAt: new Date() }
-        });
+        // Mise à jour UNIQUE pour le banni et l'admin qui a fait l'action (consigne : pas les autres)
+        const relevantUsers = [userId, targetId];
+        await Promise.all(relevantUsers.map(uid => 
+            prisma.lastMessage.upsert({
+                where: { userId_roomId: { userId: uid, roomId } },
+                create: { userId: uid, roomId, messageId: removeMsg.id },
+                update: { messageId: removeMsg.id, createdAt: new Date() }
+            })
+        ));
 
-        // Notification temps réel
         io.to(roomId).emit("member_removed", { roomId, userId: targetId });
         io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
         
-        // Rafraichir les listes
-        const updatedRoomsTarget = await getFormattedRooms(targetId, "");
-        io.to(targetId).emit("room_list_updated", updatedRoomsTarget);
+        // Rafraichir seulement pour les concernés
+        for(const uid of relevantUsers) {
+            const userRooms = await getFormattedRooms(uid, "");
+            io.to(uid).emit("room_list_updated", userRooms);
+        }
 
         callback({ success: true });
 
@@ -549,8 +551,23 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
             include: getMessageDataInclude(userId)
         });
 
+        // Mise à jour UNIQUE pour le banni et l'admin
+        const relevantUsers = [userId, targetId];
+        await Promise.all(relevantUsers.map(uid => 
+            prisma.lastMessage.upsert({
+                where: { userId_roomId: { userId: uid, roomId } },
+                create: { userId: uid, roomId, messageId: banMsg.id },
+                update: { messageId: banMsg.id, createdAt: new Date() }
+            })
+        ));
+
         io.to(roomId).emit("member_banned", { roomId, userId: targetId });
         io.to(roomId).emit("receive_message", { newMessage: banMsg, roomId });
+
+        for(const uid of relevantUsers) {
+            const userRooms = await getFormattedRooms(uid, "");
+            io.to(uid).emit("room_list_updated", userRooms);
+        }
 
         callback({ success: true });
     } catch(error: any) {
@@ -558,11 +575,9 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
     }
   });
 
-  // 5. Quitter le groupe
+  // 5. Quitter le groupe (Volontaire)
   socket.on("group_leave", async (input, callback) => {
       try {
-        // Logique complexe de transfert de propriété
-        // Note: J'ai simplifié ici pour la lisibilité mais la logique de actions.ts doit être conservée
         const { roomId, deleteGroup } = memberActionSchema.parse(input);
         
         const room = await prisma.room.findUnique({
@@ -577,7 +592,6 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
 
         let groupDeleted = false;
 
-        // Logique Propriétaire
         if (roomMember.type === "OWNER") {
             const activeMembers = room.members.filter(m => !["OLD", "BANNED"].includes(m.type));
             
@@ -585,14 +599,13 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
                 await prisma.room.delete({ where: { id: roomId } });
                 groupDeleted = true;
             } else {
-                 // Passation de pouvoir au suivant
                  const nextOwner = activeMembers
                     .filter(m => m.userId !== userId)
                     .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
                  
                  if (nextOwner) {
                      await prisma.roomMember.update({
-                         where: { roomId_userId: { roomId, userId: nextOwner.id } },
+                         where: { roomId_userId: { roomId, userId: nextOwner.userId || "" } },
                          data: { type: "OWNER" }
                      });
                      io.to(roomId).emit("member_role_updated", { roomId, userId: nextOwner.userId, newType: "OWNER" });
@@ -602,7 +615,8 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
 
         if (groupDeleted) {
             io.to(roomId).emit("room_deleted", { roomId });
-            // Pas de callback necessaire si supprimé, ou un simple success
+            const userRooms = await getFormattedRooms(userId, username);
+            io.to(userId).emit("room_list_updated", userRooms);
         } else {
             await prisma.roomMember.update({
                 where: { roomId_userId: { roomId, userId } },
@@ -614,8 +628,27 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
                 include: getMessageDataInclude(userId)
             });
 
+            // Pour un départ volontaire, on met à jour pour TOUS les membres actifs restants + celui qui part
+            const activeMemberIds = room.members
+                .filter(m => !["OLD", "BANNED"].includes(m.type))
+                .map(m => m.userId)
+                .filter((uid): uid is string => uid !== null);
+
+            await Promise.all(activeMemberIds.map(uid => 
+                prisma.lastMessage.upsert({
+                    where: { userId_roomId: { userId: uid, roomId } },
+                    create: { userId: uid, roomId, messageId: leaveMsg.id },
+                    update: { messageId: leaveMsg.id, createdAt: new Date() }
+                })
+            ));
+
             io.to(roomId).emit("member_left", { roomId, userId });
             io.to(roomId).emit("receive_message", { newMessage: leaveMsg, roomId });
+
+            activeMemberIds.forEach(async (uid) => {
+                const userRooms = await getFormattedRooms(uid, "");
+                io.to(uid).emit("room_list_updated", userRooms);
+            });
         }
         
         callback({ success: true });
@@ -647,8 +680,25 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
               include: getMessageDataInclude(userId)
           });
 
+          // Mise à jour pour TOUS les membres actifs (restauration publique)
+          const room = await prisma.room.findUnique({ where: { id: roomId }, include: { members: true } });
+          const activeMemberIds = (room?.members.filter(m => !["OLD", "BANNED"].includes(m.type)).map(m => m.userId) || []).filter((uid): uid is string => uid !== null);
+
+          await Promise.all(activeMemberIds.map(uid => 
+            prisma.lastMessage.upsert({
+                where: { userId_roomId: { userId: uid, roomId } },
+                create: { userId: uid, roomId, messageId: msg.id },
+                update: { messageId: msg.id, createdAt: new Date() }
+            })
+          ));
+
           io.to(roomId).emit("member_restored", { roomId, userId: targetId });
           io.to(roomId).emit("receive_message", { newMessage: msg, roomId });
+
+          activeMemberIds.forEach(async (uid) => {
+            const userRooms = await getFormattedRooms(uid, "");
+            io.to(uid).emit("room_list_updated", userRooms);
+          });
           
           callback({ success: true });
       } catch (error: any) {
