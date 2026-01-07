@@ -68,18 +68,18 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
       currentGroup.push(msg);
       return;
     }
-    
+
     const newerMsg = currentGroup[currentGroup.length - 1];
-    
+
     const isSameSender = newerMsg.senderId === msg.senderId;
-    
+
     const isContent = msg.type === "CONTENT" && newerMsg.type === "CONTENT";
-    
+
     const isNotFull = currentGroup.length < limit;
-    
+
     const date1 = new Date(msg.createdAt);
     const date2 = new Date(newerMsg.createdAt);
-    const isSameDay = 
+    const isSameDay =
       date1.getDate() === date2.getDate() &&
       date1.getMonth() === date2.getMonth() &&
       date1.getFullYear() === date2.getFullYear();
@@ -108,13 +108,12 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 function DateHeader({ date }: { date: Date | string }) {
   return (
     <div className="flex w-full justify-center py-4">
-      <div className="rounded-full bg-muted/50 border border-border px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+      <div className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
         <Time time={new Date(date)} calendar />
       </div>
     </div>
   );
 }
-
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
@@ -127,7 +126,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const [messageInputExpanded, setMessageInputExpanded] = useState(true);
 
   // --- NOUVEAU : État pour le menu contextuel (Click Droit) ---
-  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // State pour la recherche locale de messages
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,7 +181,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       tempId?: string; // On reçoit l'ID temporaire pour le nettoyage
     }) => {
       if (data.roomId === roomId) {
-        
         // 1. Mettre à jour le cache React Query directement
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
@@ -200,12 +201,14 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               ...oldData,
               pages: newPages,
             };
-          }
+          },
         );
 
         // 2. SUPPRIMER le message temporaire correspondant dans sentMessages
         if (data.tempId) {
-          setSentMessages((prev) => prev.filter((msg) => msg.tempId !== data.tempId));
+          setSentMessages((prev) =>
+            prev.filter((msg) => msg.tempId !== data.tempId),
+          );
         }
       }
     };
@@ -255,7 +258,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       // En cas d'erreur globale, on marque tous les messages "sending" comme "error"
       // L'utilisateur pourra réessayer individuellement
       setSentMessages((prev) =>
-        prev.map((msg) => (msg.status === "sending" ? { ...msg, status: "error" } : msg)),
+        prev.map((msg) =>
+          msg.status === "sending" ? { ...msg, status: "error" } : msg,
+        ),
       );
     };
 
@@ -366,8 +371,14 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   }, [newMessages, searchQuery]);
 
   // --- CLUSTERING MEMOISÉ ---
-  const clusteredMessages = useMemo(() => groupMessages(filteredMessages), [filteredMessages]);
-  const clusteredNewMessages = useMemo(() => groupMessages(filteredNewMessages), [filteredNewMessages]);
+  const clusteredMessages = useMemo(
+    () => groupMessages(filteredMessages),
+    [filteredMessages],
+  );
+  const clusteredNewMessages = useMemo(
+    () => groupMessages(filteredNewMessages),
+    [filteredNewMessages],
+  );
 
   if (!roomId) return null;
   if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
@@ -415,17 +426,17 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
     if (!isConnected) {
       console.log("Socket déconnecté, tentative de reconnexion...");
-      retryConnection()
+      retryConnection();
     }
 
     handleTypingStop();
 
     const tempId = Math.random().toString(36).slice(2);
-    
+
     // NOUVELLE LOGIQUE :
     // Au lieu de mettre à jour le cache React Query "optimistiquement" et de risquer des états incohérents,
     // on délègue la gestion de l'affichage temporaire à "sentMessages".
-    
+
     setSentMessages((prev) => [
       ...prev,
       {
@@ -434,7 +445,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         roomId,
         type: "CONTENT",
         status: "sending",
-      }
+      },
     ]);
 
     socket.emit("send_message", {
@@ -448,10 +459,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // Fonction pour rééssayer l'envoi
   function handleRetryMessage(msg: SentMessageState) {
     if (!socket) return;
-    
+
     // Même logique pour le retry : on s'assure d'être connecté
     if (!isConnected) {
-        socket.connect();
+      socket.connect();
     }
 
     // Remettre en statut "sending"
@@ -472,14 +483,18 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- GESTION DU CLIC DROIT (CONTEXT MENU) ---
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
   // --- RENDER HELPER POUR LES GROUPES ---
-  const renderCluster = (group: MessageData[], groupIndex: number, allGroups: MessageData[][]) => {
+  const renderCluster = (
+    group: MessageData[],
+    groupIndex: number,
+    allGroups: MessageData[][],
+  ) => {
     const oldestMessageInGroup = group[group.length - 1];
-    
+
     // Pour savoir si on affiche le header de date, on regarde le groupe suivant (qui est plus ancien dans le tableau de groupes)
     const nextGroup = allGroups[groupIndex + 1];
     const oldestMessageInNextGroup = nextGroup ? nextGroup[0] : null; // On prend le premier (le plus récent) du groupe suivant pour comparer les dates frontières
@@ -505,12 +520,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     // Rendu du cluster
     return (
       <div key={`cluster-${groupIndex}`} className="contents">
-            
-        <div className="flex flex-col-reverse w-full">
+        <div className="flex w-full flex-col-reverse">
           {group.map((msg, msgIndex) => {
             const isVisuallyLast = msgIndex === 0; // Le dernier envoyé (bas)
             const isFirstInCluster = msgIndex === group.length - 1; // Le premier envoyé (haut)
-            const isMiddleInCluster = msgIndex > 0 && msgIndex < group.length - 1;
+            const isMiddleInCluster =
+              msgIndex > 0 && msgIndex < group.length - 1;
             const isOnlyMessageInCluster = group.length === 1;
 
             return (
@@ -519,7 +534,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 message={msg}
                 room={room}
                 highlight={searchQuery}
-                isLastInCluster={isVisuallyLast} 
+                isLastInCluster={isVisuallyLast}
                 isFirstInCluster={isFirstInCluster}
                 isMiddleInCluster={isMiddleInCluster}
                 isOnlyMessageInCluster={isOnlyMessageInCluster}
@@ -562,10 +577,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div 
-        className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50"
-      >
-        <div className="absolute z-10 w-full h-full" onContextMenu={handleContextMenu}/>
+      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
+        <div
+          className="absolute z-10 h-full w-full"
+          onContextMenu={handleContextMenu}
+        />
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2"
           onBottomReached={() => {
@@ -613,7 +629,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               <TypingIndicator typingUsers={typingUsers} />
 
               {/* Messages "live" reçus via socket avant refresh (filtrés) */}
-              {clusteredNewMessages.map((group, i) => renderCluster(group, i, clusteredNewMessages))}
+              {clusteredNewMessages.map((group, i) => {
+                if (!group.length) return null;
+                return renderCluster(group, i, clusteredNewMessages);
+              })}
 
               {/* Messages en cours d'envoi (échecs ou loading) - Géré par SentMessage */}
               {/* Note: On ne clusterise pas les messages "sending" pour l'instant car ils ont un statut spécial */}
@@ -627,7 +646,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               ))}
 
               {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
-              {clusteredMessages.map((group, i) => renderCluster(group, i, clusteredMessages))}
+              {clusteredMessages.map((group, i) => {
+                if (!group.length) return null;
+                return renderCluster(group, i, clusteredMessages);
+              })}
             </>
           )}
         </InfiniteScrollContainer>
@@ -746,11 +768,18 @@ interface ChatContextMenuProps {
   onCloseChat: () => void;
 }
 
-function ChatContextMenu({ position, onClose, onCloseChat }: ChatContextMenuProps) {
+function ChatContextMenu({
+  position,
+  onClose,
+  onCloseChat,
+}: ChatContextMenuProps) {
   // On utilise un Portal pour être sûr d'être au-dessus de tout (z-50)
   // On réutilise les classes de ReactionOverlay (backdrop-blur, animate-in, etc.)
   return createPortal(
-    <div className="fixed inset-0 isolate z-50 flex flex-col font-sans" onContextMenu={(e) => e.preventDefault()}>
+    <div
+      className="fixed inset-0 isolate z-50 flex flex-col font-sans"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       {/* Backdrop invisible mais qui ferme le menu au clic */}
       <div
         className="absolute inset-0 bg-background/10 backdrop-blur-[2px] transition-opacity duration-200"
@@ -777,7 +806,7 @@ function ChatContextMenu({ position, onClose, onCloseChat }: ChatContextMenuProp
         </button>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 
@@ -796,7 +825,7 @@ export function MessageForm({
   onTypingStart,
   onTypingStop,
 }: MessageFormProps) {
-  const { typeMessage } = t(['typeMessage']);
+  const { typeMessage } = t(["typeMessage"]);
   const [input, setInput] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -846,7 +875,7 @@ export function MessageForm({
   return (
     <div
       className={cn(
-        "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2 z-20",
+        "relative z-20 flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
         expanded ? "" : "aspect-square w-fit rounded-full p-0",
       )}
     >

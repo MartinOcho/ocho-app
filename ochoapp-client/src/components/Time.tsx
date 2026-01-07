@@ -17,8 +17,8 @@ interface TimeProps {
 
 export default function Time({
   time,
-  relative,
-  full,
+  relative = false,
+  full = false,
   clock = false,
   long = false,
   lowerCase = false,
