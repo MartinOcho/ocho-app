@@ -93,7 +93,7 @@ export default function ReactionOverlay({
       />
 
       <div
-        className="absolute transition-transform duration-300 ease-out will-change-transform"
+        className="absolute transition-transform duration-300 ease-out will-change-transform pointer-events-none"
         style={{
           top: originalRect.top,
           left: originalRect.left,
@@ -127,7 +127,7 @@ export default function ReactionOverlay({
             {!showFullPicker ? (
               <div
                 className={cn(
-                  "flex items-center gap-1 rounded-full border border-border bg-popover p-1.5 shadow-2xl",
+                  "pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-popover p-1.5 shadow-2xl",
                   isOwner ? "origin-top-right" : "origin-top-left",
                 )}
               >
@@ -138,7 +138,7 @@ export default function ReactionOverlay({
                     key={emoji}
                     onClick={() => handleReact(emoji)}
                     className={cn(
-                        "font-emoji flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
+                        "font-emoji flex size-10 max-sm:size-8 max-sm:text-xl cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
                         isActive ? "bg-primary/20 ring-2 ring-primary" : "hover:bg-muted"
                     )}
                   >
@@ -148,7 +148,7 @@ export default function ReactionOverlay({
                 <div className="mx-1 h-6 w-[1px] bg-border"></div>
                 <button
                   onClick={() => setShowFullPicker(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+                  className="flex size-10 max-sm:size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
                 >
                   <Plus size={20} />
                 </button>
@@ -156,7 +156,7 @@ export default function ReactionOverlay({
             ) : (
               <div
                 className={cn(
-                  "flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl duration-200 animate-in zoom-in-95",
+                  "pointer-events-auto flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl duration-200 animate-in zoom-in-95",
                   isOwner ? "origin-top-right" : "origin-top-left",
                 )}
               >
@@ -164,7 +164,7 @@ export default function ReactionOverlay({
                   <Search size={16} className="text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Rechercher..."
+                    placeholder={(t('search') + "...")}
                     autoFocus
                     className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
@@ -236,12 +236,12 @@ export default function ReactionOverlay({
           {!showFullPicker && (
             <div
               className={cn(
-                "w-48 overflow-hidden rounded-xl border border-border bg-popover/90 py-1 shadow-2xl backdrop-blur-xl transition-all duration-300 animate-in fade-in slide-in-from-top-2",
+                "pointer-events-auto w-48 overflow-hidden rounded-xl border border-border bg-popover/90 py-1 shadow-2xl backdrop-blur-xl transition-all duration-300 animate-in fade-in slide-in-from-top-2",
                 isOwner ? "origin-top-right" : "origin-top-left",
               )}
             >
               <button className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted">
-                <Reply size={14} /> Répondre
+                <Reply size={14} /> {t("toReply")}
               </button>
               <button
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
@@ -250,10 +250,10 @@ export default function ReactionOverlay({
                   onClose();
                 }}
               >
-                <Copy size={14} /> Copier
+                <Copy size={14} /> {t("copy")}
               </button>
               <button className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted">
-                <Forward size={14} /> Transférer
+                <Forward size={14} /> {t("forward")}
               </button>
               {isOwner && (
                 <>
@@ -265,7 +265,7 @@ export default function ReactionOverlay({
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
                   >
-                    <Trash2 size={14} /> Supprimer
+                    <Trash2 size={14} /> {t("delete")}
                   </button>
                 </>
               )}

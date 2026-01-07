@@ -198,6 +198,7 @@ export const english = {
   addReaction: "Add a reaction",
   more: "More",
   copy: "Copy",
+  forward: "Forward",
   // Chat content
   messageCopied: "Message copied to clipboard!",
   unableToCopyMessage: "Error while copying to clipboard!",
@@ -591,6 +592,7 @@ export const french: Vocabulary = {
   addReaction: "Ajouter une réaction",
   more: "Plus",
   copy: "Copier",
+  forward: "Transférer",
   // Chat content
   messageCopied: "Message copié dans le presse-papiers !",
   unableToCopyMessage: "Erreur lors de la copie dans le presse-papiers !",
