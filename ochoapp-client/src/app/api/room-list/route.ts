@@ -7,7 +7,6 @@ import {
   getMessageDataInclude,
   MessageData,
 } from "@/lib/types";
-import { createRoomSchema } from "@/lib/validation";
 import { NextRequest } from "next/server";
 import { getUserDataSelect } from "@/lib/types";
 
