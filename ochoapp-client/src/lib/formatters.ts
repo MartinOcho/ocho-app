@@ -4,7 +4,8 @@ export interface TimeOptions {
   full?: boolean;
   relative?: boolean;
   withTime?: boolean;
-  calendar?: boolean; // Ajout de l'option calendar
+  calendar?: boolean; 
+  clock?: boolean;
 }
 
 export class TimeFormatter {
@@ -16,11 +17,19 @@ export class TimeFormatter {
   private relative: boolean;
   private calendar: boolean; // Nouvelle propriété
   private currentDate: Date;
+  private clock?: boolean = false;
 
   // Le constructeur accepte maintenant soit un nombre, soit une instance de Date
   constructor(
     time: number | Date,
-    { lang = "en-US", long = true, full = true, relative = false, withTime = false, calendar = false }: TimeOptions,
+    {
+      lang = "en-US",
+      long = true,
+      full = true,
+      relative = false,
+      withTime = false,
+      calendar = false,
+    }: TimeOptions,
   ) {
     this.full = full;
     this.long = long;
@@ -52,6 +61,9 @@ export class TimeFormatter {
 
   format(): string {
     // Priorité au mode calendrier si activé
+     if (this.clock) {
+      return this.formatClock();
+    }
     if (this.calendar) {
       return this.formatCalendar();
     }
@@ -154,37 +166,116 @@ export class TimeFormatter {
     return formattedTime;
   }
 
-  /**
-   * Mode Calendrier : "Aujourd'hui", "Hier" ou "07/01/2026".
-   */
   private formatCalendar(): string {
     const now = new Date();
     const target = new Date(this.time);
-    
-    // On réinitialise les heures pour comparer uniquement les jours calendaires
+
     const cleanNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const cleanTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+    const cleanTarget = new Date(
+      target.getFullYear(),
+      target.getMonth(),
+      target.getDate(),
+    );
 
-    const diffTime = cleanNow.getTime() - cleanTarget.getTime(); // Positif si dans le passé
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(
+      (cleanNow.getTime() - cleanTarget.getTime()) / 86400000,
+    );
 
-    // Si on est Aujourd'hui (0) ou Hier (1)
+    // Aujourd'hui
     if (diffDays === 0) {
-      return "Aujourd'hui"; // Ou traduire via une clé si nécessaire, mais ici hardcodé pour l'exemple FR
-    }
-    
-    if (diffDays === 1) {
-      return "Hier";
+      if (this.withTime) {
+        return new Intl.RelativeTimeFormat(this.lang, { numeric: "auto" }).format(
+        0,
+        "day",
+      ) + `, ${this.formatClock()}`;
+      }
+      return new Intl.RelativeTimeFormat(this.lang, { numeric: "auto" }).format(
+        0,
+        "day",
+      );
     }
 
-    // Sinon, on retourne la date formatée courte (ex: 07/01/2026)
+    // Hier
+    if (diffDays === 1) {
+      if (this.withTime) {
+        return new Intl.RelativeTimeFormat(this.lang, { numeric: "auto" }).format(
+        -1,
+        "day",
+      ) + `, ${this.formatClock()}`;
+      }
+      return new Intl.RelativeTimeFormat(this.lang, { numeric: "auto" }).format(
+        -1,
+        "day",
+      );
+    }
+
+    const startOfWeek = (d: Date) => {
+      const day = d.getDay() || 7;
+      const res = new Date(d);
+      res.setDate(d.getDate() - day + 1);
+      return res;
+    };
+
+    if (
+      startOfWeek(cleanNow).getTime() === startOfWeek(cleanTarget).getTime()
+    ) {
+      if (this.withTime) {
+        return new Intl.DateTimeFormat(this.lang, {
+          weekday: "long",
+        }).format(target) + `, ${this.formatClock()}`;
+      }
+      return new Intl.DateTimeFormat(this.lang, {
+        weekday: "long",
+      }).format(target);
+    }
+
+    // Même année
+    if (now.getFullYear() === target.getFullYear()) {
+      if (this.withTime) {
+        return new Intl.DateTimeFormat(this.lang, {
+          day: "2-digit", 
+          month: "long",
+        }).format(target) + `, ${this.formatClock()}`;
+      }
+      return new Intl.DateTimeFormat(this.lang, {
+        day: "2-digit",
+        month: "long",
+      }).format(target);
+    }
+
+    // Année différente
+    if (this.withTime) {
+      return new Intl.DateTimeFormat(this.lang, {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(target) + `, ${this.formatClock()}`;
+    }
     return new Intl.DateTimeFormat(this.lang, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      ...(this.withTime ? { hour: '2-digit', minute: '2-digit' } : {})
-    }).format(this.time);
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(target);
   }
+  private formatClock(): string {
+  const now = new Date();
+  const target = new Date(this.time);
+
+  const diffSeconds = Math.floor((now.getTime() - target.getTime()) / 1000);
+
+  // Moins d'une minute → "maintenant"
+  if (diffSeconds < 60) {
+    return new Intl.RelativeTimeFormat(this.lang, { numeric: "auto" })
+      .format(0, "second");
+  }
+
+  // Heure localisée
+  return new Intl.DateTimeFormat(this.lang, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(target);
+}
+
 
   formatRelativePeriod(
     maxUnit: keyof typeof TimeFormatter.timeUnits = "year",

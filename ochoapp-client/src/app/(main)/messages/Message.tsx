@@ -21,7 +21,6 @@ import ReactionOverlay, {
 type MessageProps = {
   message: MessageData;
   room: RoomData;
-  showTime?: boolean;
   highlight?: string;
   isLastInCluster?: boolean; 
   isFirstInCluster?: boolean;
@@ -172,13 +171,14 @@ export const MessageBubbleContent = ({
   isOwner,
   unavailableMessage,
   onContextMenu,
+  createdAt,
   isClone = false,
   toggleCheck,
-  highlight, 
+  highlight,
   isLastInCluster,
   isFirstInCluster,
   isMiddleInCluster,
-  isOnlyMessageInCluster
+  isOnlyMessageInCluster,
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -191,52 +191,71 @@ export const MessageBubbleContent = ({
   isFirstInCluster?: boolean;
   isMiddleInCluster?: boolean;
   isOnlyMessageInCluster?: boolean;
+  createdAt?: Date;
 }) => {
   const borderRadiusClass = isOnlyMessageInCluster
     ? "rounded-3xl"
     : isFirstInCluster
-    ? (isOwner ? "rounded-br" : "rounded-bl")
+    ? isOwner
+      ? "rounded-br"
+      : "rounded-bl"
     : isMiddleInCluster
-    ? (isOwner ? "rounded-r" : "rounded-l")
+    ? isOwner
+      ? "rounded-r"
+      : "rounded-l"
     : isLastInCluster
-    ? (isOwner ? "rounded-tr" : "rounded-tl")
+    ? isOwner
+      ? "rounded-tr"
+      : "rounded-tl"
     : "rounded-3xl";
+
   return (
     <div className={cn("relative w-fit", isClone && "h-full")}>
-      <Linkify
-        className={cn(
-          isOwner && "font-semiboldtext-[#001645]",
-        )}
-      >
+      <Linkify className={cn(isOwner && "font-semibold text-[#001645]")}>
         <div
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
           className={cn(
-            "w-fit rounded-3xl select-none px-4 py-2 transition-all duration-200 *:font-bold",
+            "relative w-fit rounded-3xl select-none px-4 py-2 transition-all duration-200",
             isOwner
-              ? "bg-primary text-primary-foreground bg-[#007AFF] text-white"
+              ? "bg-[#007AFF] text-white"
               : "bg-primary/10",
             !message.content &&
               "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
             isClone && "cursor-default shadow-lg ring-2 ring-background/50",
-            borderRadiusClass,
+            borderRadiusClass
           )}
         >
           {message.content ? (
-            <HighlightText text={message.content} highlight={highlight} isOwner={isOwner} />
+            <HighlightText
+              text={message.content}
+              highlight={highlight}
+              isOwner={isOwner}
+            />
           ) : (
             <span className="italic">{unavailableMessage}</span>
+          )}
+
+          {createdAt && (
+            <time
+              className={cn(
+                "mt-1 block text-[11px] opacity-70 text-right",
+                isOwner ? "text-white/70" : "text-muted-foreground"
+              )}
+            >
+              <Time time={createdAt} clock />
+            </time>
           )}
         </div>
       </Linkify>
     </div>
   );
 };
+
 // --- COMPOSANT PRINCIPAL ---
 export default function Message({
   message,
   room,
-  showTime = false,
   highlight, 
   isLastInCluster = true, 
   isFirstInCluster = true,
@@ -247,7 +266,7 @@ export default function Message({
   const { socket } = useSocket();
   const messageId = message.id;
   const roomId = room.id;
-  const [isChecked, setIsChecked] = useState(showTime);
+  const [isChecked, setIsChecked] = useState(false);
 
   const [activeOverlayRect, setActiveOverlayRect] = useState<DOMRect | null>(
     null,
@@ -450,7 +469,7 @@ export default function Message({
     queryKey,
   ]);
 
-  const showDetail = isChecked || showTime;
+  const showDetail = isChecked;
 
   function toggleCheck() {
     setIsChecked(!isChecked);
@@ -572,7 +591,7 @@ export default function Message({
         <div
           className={cn(
             "flex w-full select-none justify-center overflow-hidden rounded-sm text-center text-sm transition-all",
-            !showTime ? "h-0 opacity-0" : "h-6 opacity-100",
+            !showDetail ? "h-0 opacity-0" : "h-6 opacity-100",
           )}
         >
           <div className="rounded-sm bg-primary/30 p-0.5 px-2">
@@ -635,18 +654,18 @@ export default function Message({
               className={cn(
                 "flex w-full select-none justify-center overflow-hidden text-center text-sm transition-all",
                 !showDetail ? "h-0 opacity-0" : "h-5 opacity-100",
-                showTime && "h-6",
+                showDetail && "h-6",
               )}
             >
               <div
                 className={cn(
-                  showTime && "rounded-sm bg-primary/30 p-0.5 px-2",
+                  showDetail && "rounded-sm bg-primary/30 p-0.5 px-2",
                 )}
               >
                 <Time
                   time={message.createdAt}
                   full
-                  relative={showTime && timeDifferenceInDays < 2}
+                  relative={showDetail && timeDifferenceInDays < 2}
                 />
               </div>
             </div>
@@ -713,6 +732,7 @@ export default function Message({
                           isFirstInCluster={isFirstInCluster}
                           isMiddleInCluster={isMiddleInCluster}
                           isOnlyMessageInCluster={isLastInCluster && isFirstInCluster}
+                          createdAt={message.createdAt}
                         />
                       </div>
                     </div>

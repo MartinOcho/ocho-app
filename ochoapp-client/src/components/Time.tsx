@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 interface TimeProps {
   time: Date;
+  clock?: boolean;
   relative?: boolean;
   full?: boolean;
   long?: boolean;
@@ -18,6 +19,7 @@ export default function Time({
   time,
   relative,
   full,
+  clock = false,
   long = false,
   lowerCase = false,
   upperCase = false,

@@ -512,16 +512,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             const isFirstInCluster = msgIndex === group.length - 1; // Le premier envoyé (haut)
             const isMiddleInCluster = msgIndex > 0 && msgIndex < group.length - 1;
             const isOnlyMessageInCluster = group.length === 1;
-            const showTime =
-              (groupIndex === clusteredMessages.length - 1 && msgIndex === group.length - 1) ||
-              (groupIndex % 5 === 0 && msgIndex === 0 && groupIndex !== 0);
 
             return (
               <Message
                 key={msg.id || msgIndex}
                 message={msg}
                 room={room}
-                showTime={showTime}
                 highlight={searchQuery}
                 isLastInCluster={isVisuallyLast} 
                 isFirstInCluster={isFirstInCluster}
