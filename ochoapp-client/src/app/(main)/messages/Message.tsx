@@ -194,7 +194,7 @@ export const MessageBubbleContent = ({
   createdAt?: Date;
 }) => {
   const borderRadiusClass = isOnlyMessageInCluster
-    ? "rounded-2xl"
+    ? "rounded-3xl"
     : isFirstInCluster
     ? isOwner
       ? "rounded-br"
@@ -207,7 +207,7 @@ export const MessageBubbleContent = ({
     ? isOwner
       ? "rounded-tr"
       : "rounded-tl"
-    : "rounded-2xl";
+    : "rounded-3xl";
 
   return (
     <div className={cn("relative w-fit", isClone && "h-full")}>
@@ -216,7 +216,7 @@ export const MessageBubbleContent = ({
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
           className={cn(
-            "relative w-fit rounded-2xl select-none px-4 py-2 pr-6 transition-all duration-200",
+            "relative w-fit rounded-3xl select-none px-4 py-2 pr-6 pb-6 transition-all duration-200",
             isOwner
               ? "bg-[#007AFF] text-white"
               : "bg-primary/10",
