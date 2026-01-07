@@ -221,7 +221,7 @@ model LastMessage {
   messageId String?
   message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
   roomId    String
-  room      Room     @relation(fields: [roomId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([userId, roomId])
