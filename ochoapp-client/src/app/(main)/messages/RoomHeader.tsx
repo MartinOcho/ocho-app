@@ -5,6 +5,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  ChevronLeft,
   Settings2,
   UserCircle2,
   UserRoundPlus,
@@ -263,7 +264,7 @@ export default function RoomHeader({
           className="cursor-pointer sm:pointer-events-none sm:opacity-0"
           onClick={() => setActive(false)}
         >
-          <ArrowLeft size={35} />
+          <ChevronLeft size={35} />
         </div>
         <div
           className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"

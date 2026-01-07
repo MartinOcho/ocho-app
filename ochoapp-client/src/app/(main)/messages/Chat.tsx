@@ -13,6 +13,7 @@ import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import {
   AlertCircle,
   ArrowLeft,
+  ChevronLeft,
   Frown,
   Loader2,
   RefreshCw,
@@ -107,7 +108,7 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 // --- NOUVEAU COMPOSANT : HEADER DE DATE ---
 function DateHeader({ date }: { date: Date | string }) {
   return (
-    <div className="flex w-full justify-center py-4">
+    <div className="pointer-events-none select-none flex w-full justify-center py-4">
       <div className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
         <Time time={new Date(date)} calendar />
       </div>
@@ -564,7 +565,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           onClick={onClose}
           title="Fermer la discussion"
         >
-          <ArrowLeft size={35} className="sm:hidden" />
+          <ChevronLeft size={35} className="sm:hidden" />
         </div>
         <RoomHeader
           initialRoom={room}
@@ -587,7 +588,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           onContextMenu={handleContextMenu}
       >
         <InfiniteScrollContainer
-          className="flex w-full flex-col-reverse gap-4 p-4 px-2"
+          className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7"
           onBottomReached={() => {
             // On désactive le scroll infini si on est en train de chercher pour éviter des comportements étranges
             if (!searchQuery) {
