@@ -182,6 +182,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     }) => {
       if (data.roomId === roomId) {
         // 1. Mettre à jour le cache React Query directement
+        if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
           (oldData) => {
@@ -347,7 +348,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       enabled: !!roomId,
     });
 
-  const allMessages = data?.pages.flatMap((page) => page?.messages) || [];
+  const allMessages = (data?.pages.flatMap((page) => page?.messages) || []).filter(msg=>msg.type !== "REACTION");
 
   // --- FILTRAGE LOCAL DES MESSAGES ---
   // On filtre si une recherche est active
@@ -483,6 +484,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- GESTION DU CLIC DROIT (CONTEXT MENU) ---
   const handleContextMenu = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // if the target has no classname  messages-container, do nothing
+    if (!target.className || !(target.className as string).includes("messages-container")) {
+      return;
+    }
     e.preventDefault();
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
@@ -576,11 +582,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
-        <div
-          className="absolute z-10 h-full w-full"
+      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50 messages-container"
+          // context menu only if a child is not context menu pour les options de la discussion
           onContextMenu={handleContextMenu}
-        />
+      >
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2"
           onBottomReached={() => {
@@ -590,6 +595,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             }
           }}
           reversed
+
         >
           {status === "pending" && <MessagesSkeleton />}
 
@@ -660,7 +666,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* BARRE DE SAISIE */}
-      <div className="absolute bottom-0 w-full bg-gradient-to-t from-card/80 to-transparent">
+      <div className="absolute z-20 bottom-0 w-full bg-gradient-to-t from-card/80 to-transparent">
         <div className={cn("flex p-2", !messageInputExpanded && "gap-2")}>
           <div
             className={cn(
