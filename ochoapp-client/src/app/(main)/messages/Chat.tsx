@@ -434,11 +434,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     handleTypingStop();
 
     const tempId = Math.random().toString(36).slice(2);
-
-    // NOUVELLE LOGIQUE :
-    // Au lieu de mettre à jour le cache React Query "optimistiquement" et de risquer des états incohérents,
-    // on délègue la gestion de l'affichage temporaire à "sentMessages".
-
     setSentMessages((prev) => [
       ...prev,
       {
@@ -584,13 +579,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
       <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50 messages-container"
-          // context menu only if a child is not context menu pour les options de la discussion
-          onContextMenu={handleContextMenu}
+        
       >
+        <div className="sticky w-full h-full bottom-0 z-10"  onContextMenu={handleContextMenu}/>
         <InfiniteScrollContainer
-          className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7"
+          className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7 max-sm:pb-12"
           onBottomReached={() => {
-            // On désactive le scroll infini si on est en train de chercher pour éviter des comportements étranges
             if (!searchQuery) {
               hasNextPage && !isFetchingNextPage && fetchNextPage();
             }
