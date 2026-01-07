@@ -30,12 +30,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Skeleton } from "@/components/ui/skeleton";
 import LoadingButton from "@/components/LoadingButton";
-import { useAddAdminMutation, useRestoreMemberMutation } from "@/components/messages/mutations";
 import { useToast } from "@/components/ui/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import BanDialog from "@/components/messages/BanDialog";
 import MessageButton from "@/components/messages/MessageButton";
 import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
+import { useSocket } from "@/components/providers/SocketProvider";
 
 interface ChatHeaderProps {
   roomId: string | null;
@@ -685,14 +685,14 @@ export function AdminButton({
   room,
 }: AdminButtonProps) {
   const [currentType, setCurrentType] = useState<string>(type);
+  const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const { socket } = useSocket();
 
   const { user: loggedInUser } = useSession();
   const { makeGroupAdmin, dismissAsAdmin } = t();
 
   const roomId = room.id;
-
-  const mutation = useAddAdminMutation();
 
   const members = room.members;
 
@@ -707,33 +707,30 @@ export function AdminButton({
     (loggedMember?.type === "ADMIN" || loggedMember?.type === "OWNER");
 
   function handleSubmit() {
+    if(!socket) return;
     const initialType = currentType;
-    mutation.mutate(
-      {
-        roomId,
-        member,
-      },
-      {
-        onSuccess: ({ newRoomMember }) => {
-          if (newRoomMember.type !== initialType) {
-            setCurrentType(newRoomMember.type);
+    setLoading(true);
 
-            const queryKey = ["chat", roomId];
-
-            queryClient.invalidateQueries({ queryKey });
-          }
-        },
-        onError(error) {
-          setCurrentType(initialType);
-          console.error(error);
-        },
-      },
-    );
+    socket.emit("group_add_admin", { roomId, member }, (res: any) => {
+        setLoading(false);
+        if(res.success) {
+            // Le serveur renvoie le nouveau membre mis à jour
+             const newType = res.data.newRoomMember.type;
+             if(newType !== initialType) {
+                 setCurrentType(newType);
+                 const queryKey = ["chat", roomId];
+                 queryClient.invalidateQueries({ queryKey });
+             }
+        } else {
+            setCurrentType(initialType);
+            console.error(res.error);
+        }
+    });
   }
   return (
     isLoggedAuthorized && (
       <LoadingButton
-        loading={mutation.isPending}
+        loading={loading}
         variant={isAdmin ? "outline" : "default"}
         className={cn(
           "flex w-full justify-center gap-3",
@@ -769,40 +766,36 @@ export function RestoreMemberButton({
 }: RestoreMemberButtonProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { groupRestoreSuccess } = t()
+  const { groupRestoreSuccess } = t();
+  const { socket } = useSocket();
+  const [loading, setLoading] = useState(false);
 
-  const mutation = useRestoreMemberMutation();
   const roomId = room.id;
-
   const member = room.members.find((member) => member.userId === memberId);
 
   function handleSubmit() {
-    mutation.mutate(
-      {
-        roomId,
-        memberId,
-      },
-      {
-        onSuccess: () => {
-          const queryKey = ["chat", roomId];
+    if(!socket) return;
+    setLoading(true);
+    
+    socket.emit("group_restore_member", { roomId, memberId }, (res: any) => {
+        setLoading(false);
+        if(res.success) {
+            const queryKey = ["chat", roomId];
+            queryClient.invalidateQueries({ queryKey });
 
-          queryClient.invalidateQueries({ queryKey });
-
-          toast({
-            description: groupRestoreSuccess
-            .replace("[name]", member?.user?.displayName || "un utilisateur")
-            .replace("[group]", room.name || "ce groupe"),
-          });
-        },
-        onError(error) {
-          console.error(error);
-        },
-      },
-    );
+            toast({
+              description: groupRestoreSuccess
+              .replace("[name]", member?.user?.displayName || "un utilisateur")
+              .replace("[group]", room.name || "ce groupe"),
+            });
+        } else {
+            console.error(res.error);
+        }
+    });
   }
   return (
     <LoadingButton
-      loading={mutation.isPending}
+      loading={loading}
       className="flex w-full justify-center gap-3"
       onClick={handleSubmit}
     >
