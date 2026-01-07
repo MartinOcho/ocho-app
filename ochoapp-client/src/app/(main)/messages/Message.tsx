@@ -22,7 +22,11 @@ type MessageProps = {
   message: MessageData;
   room: RoomData;
   showTime?: boolean;
-  highlight?: string; // Nouvelle prop
+  highlight?: string;
+  isLastInCluster?: boolean; 
+  isFirstInCluster?: boolean;
+  isMiddleInCluster?: boolean;
+  isOnlyMessageInCluster?: boolean;
 };
 
 // --- SOUS-COMPOSANT DE SURBRILLANCE ---
@@ -170,7 +174,11 @@ export const MessageBubbleContent = ({
   onContextMenu,
   isClone = false,
   toggleCheck,
-  highlight, // Nouvelle prop
+  highlight, 
+  isLastInCluster,
+  isFirstInCluster,
+  isMiddleInCluster,
+  isOnlyMessageInCluster
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -179,7 +187,20 @@ export const MessageBubbleContent = ({
   isClone?: boolean;
   toggleCheck?: () => void;
   highlight?: string;
+  isLastInCluster?: boolean;
+  isFirstInCluster?: boolean;
+  isMiddleInCluster?: boolean;
+  isOnlyMessageInCluster?: boolean;
 }) => {
+  const borderRadiusClass = isOnlyMessageInCluster
+    ? "rounded-3xl"
+    : isFirstInCluster
+    ? (isOwner ? "rounded-br" : "rounded-bl")
+    : isMiddleInCluster
+    ? (isOwner ? "rounded-r" : "rounded-l")
+    : isLastInCluster
+    ? (isOwner ? "rounded-tr" : "rounded-tl")
+    : "rounded-3xl";
   return (
     <div className={cn("relative w-fit", isClone && "h-full")}>
       <Linkify
@@ -191,13 +212,14 @@ export const MessageBubbleContent = ({
           onClick={!isClone ? toggleCheck : undefined}
           onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
           className={cn(
-            "w-fit select-none rounded-3xl px-4 py-2 transition-all duration-200 *:font-bold",
+            "w-fit rounded-3xl select-none px-4 py-2 transition-all duration-200 *:font-bold",
             isOwner
               ? "bg-primary text-primary-foreground bg-[#007AFF] text-white"
               : "bg-primary/10",
             !message.content &&
               "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
             isClone && "cursor-default shadow-lg ring-2 ring-background/50",
+            borderRadiusClass,
           )}
         >
           {message.content ? (
@@ -215,7 +237,10 @@ export default function Message({
   message,
   room,
   showTime = false,
-  highlight, // Nouvelle prop
+  highlight, 
+  isLastInCluster = true, 
+  isFirstInCluster = true,
+  isMiddleInCluster = false,
 }: MessageProps) {
   const { user: loggedUser } = useSession();
   const queryClient = useQueryClient();
@@ -634,12 +659,17 @@ export default function Message({
             >
               {message.senderId !== loggedUser.id && (
                 <span className="py-2 z-10">
-                  <UserAvatar
-                    userId={message.senderId}
-                    avatarUrl={message.sender?.avatarUrl}
-                    size={24}
-                    className="flex-none"
-                  />
+                  {/* MODIFICATION ICI : On affiche l'avatar seulement si isLastInCluster est vrai */}
+                  {isLastInCluster ? (
+                    <UserAvatar
+                      userId={message.senderId}
+                      avatarUrl={message.sender?.avatarUrl}
+                      size={24}
+                      className="flex-none"
+                    />
+                  ) : (
+                    <div className="size-6 flex-none" />
+                  )}
                 </span>
               )}
               <div
@@ -647,7 +677,8 @@ export default function Message({
                   "group/message relative w-fit max-w-[75%] select-none"
                 }
               >
-                {message.senderId !== loggedUser.id && (
+                {/* MODIFICATION ICI : On masque le nom pour les messages groupés (non-derniers) */}
+                {message.senderId !== loggedUser.id && isFirstInCluster && (
                   <div className="ps-2 text-xs font-semibold text-muted-foreground py-0.5 z-20">
                     {message.sender?.displayName || "Utilisateur OchoApp"}
                   </div>
@@ -678,6 +709,10 @@ export default function Message({
                           unavailableMessage={unavailableMessage}
                           toggleCheck={toggleCheck}
                           highlight={highlight}
+                          isLastInCluster={isLastInCluster}
+                          isFirstInCluster={isFirstInCluster}
+                          isMiddleInCluster={isMiddleInCluster}
+                          isOnlyMessageInCluster={isLastInCluster && isFirstInCluster}
                         />
                       </div>
                     </div>
@@ -702,7 +737,7 @@ export default function Message({
             <div
               className={cn(
                 "flex w-full select-none overflow-hidden px-4 py-2 pt-3 text-justify text-xs transition-all",
-                !showDetail ? "h-0 opacity-0" : "opacity-100",
+                !showDetail ? "hidden h-0 opacity-0" : "relative opacity-100",
                 message.senderId === loggedUser.id
                   ? "flex-row-reverse"
                   : "ps-10",

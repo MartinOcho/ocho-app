@@ -56,6 +56,46 @@ interface SentMessageState {
   status: "sending" | "error";
 }
 
+// --- FONCTION UTILITAIRE DE CLUSTERING ---
+// Cette fonction regroupe les messages par expéditeur, avec une limite de 5 messages par groupe.
+// Note : Les messages arrivent généralement du plus récent au plus ancien dans ce type de liste inversée.
+function groupMessages(messages: MessageData[], limit: number = 5) {
+  const groups: MessageData[][] = [];
+  let currentGroup: MessageData[] = [];
+
+  messages.forEach((msg, index) => {
+    // Si c'est le tout premier message de la boucle
+    if (currentGroup.length === 0) {
+      currentGroup.push(msg);
+      return;
+    }
+
+    const prevMsg = currentGroup[currentGroup.length - 1];
+    
+    // Vérification : Même expéditeur ? Type CONTENT ? Pas plus de 5 messages ?
+    // On vérifie aussi que ce n'est pas un message système (NEWMEMBER, etc.) pour éviter de les grouper bizarrement
+    const isSameSender = prevMsg.senderId === msg.senderId;
+    const isContent = msg.type === "CONTENT" && prevMsg.type === "CONTENT";
+    const isNotFull = currentGroup.length < limit;
+
+    if (isSameSender && isContent && isNotFull) {
+      currentGroup.push(msg);
+    } else {
+      // On ferme le groupe actuel et on en commence un nouveau
+      groups.push(currentGroup);
+      currentGroup = [msg];
+    }
+  });
+
+  // Ne pas oublier d'ajouter le dernier groupe en cours
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
+  return groups;
+}
+
+
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
   const { socket, isConnected, retryConnection } = useSocket();
@@ -307,6 +347,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     );
   }, [newMessages, searchQuery]);
 
+  // --- CLUSTERING MEMOISÉ ---
+  const clusteredMessages = useMemo(() => groupMessages(filteredMessages), [filteredMessages]);
+  const clusteredNewMessages = useMemo(() => groupMessages(filteredNewMessages), [filteredNewMessages]);
+
   if (!roomId) return null;
   if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
 
@@ -414,6 +458,41 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
+  // --- RENDER HELPER POUR LES GROUPES ---
+  const renderCluster = (group: MessageData[], groupIndex: number) => {
+    return (
+      <div key={groupIndex} className="flex flex-col-reverse gap-0.5 w-full">
+        {group.map((msg, msgIndex) => {
+          // Dans une liste flex-col-reverse (inversée visuellement) :
+          // L'index 0 est l'élément le plus BAS (le plus récent du groupe).
+          // C'est donc LUI qui doit avoir l'avatar ("dernier message" visuellement).
+          const isVisuallyLast = msgIndex === 0;
+          const isFirstInCluster = msgIndex === group.length - 1;
+          const isMiddleInCluster = msgIndex > 0 && msgIndex < group.length - 1;
+          const isOnlyMessageInCluster = group.length === 1;
+
+          const showTime =
+            groupIndex === clusteredMessages.length - 1 && msgIndex === group.length - 1 ||
+            (groupIndex % 5 === 0 && msgIndex === 0 && groupIndex !== 0);
+
+          return (
+            <Message
+              key={msg.id || msgIndex}
+              message={msg}
+              room={room}
+              showTime={showTime}
+              highlight={searchQuery}
+              isLastInCluster={isVisuallyLast} 
+              isFirstInCluster={isFirstInCluster}
+              isMiddleInCluster={isMiddleInCluster}
+              isOnlyMessageInCluster={isOnlyMessageInCluster}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     // RETRAIT de onContextMenu ici
     <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
@@ -493,23 +572,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               <TypingIndicator typingUsers={typingUsers} />
 
               {/* Messages "live" reçus via socket avant refresh (filtrés) */}
-              {filteredNewMessages.map((msg, i) => {
-                const showTime =
-                  i === filteredNewMessages.length - 1 ||
-                  (i % 20 === 0 && i !== 0);
-
-                return (
-                  <Message
-                    key={msg.id || i}
-                    message={msg}
-                    room={room}
-                    showTime={showTime}
-                    highlight={searchQuery} // Propager la recherche
-                  />
-                );
-              })}
+              {clusteredNewMessages.map(renderCluster)}
 
               {/* Messages en cours d'envoi (échecs ou loading) - Géré par SentMessage */}
+              {/* Note: On ne clusterise pas les messages "sending" pour l'instant car ils ont un statut spécial */}
               {sentMessages.map((msg) => (
                 <SendingMessage
                   key={msg.tempId}
@@ -520,21 +586,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               ))}
 
               {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
-              {filteredMessages.map((message, index) => {
-                const showTime =
-                  index === filteredMessages.length - 1 ||
-                  (index % 20 === 0 && index !== 0);
-
-                return (
-                  <Message
-                    key={message.id || index}
-                    message={message}
-                    room={room}
-                    showTime={showTime}
-                    highlight={searchQuery} // Propager la recherche
-                  />
-                );
-              })}
+              {clusteredMessages.map(renderCluster)}
             </>
           )}
         </InfiniteScrollContainer>
