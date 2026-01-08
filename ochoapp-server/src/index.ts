@@ -6,7 +6,11 @@ import dotenv from "dotenv";
 import { MessageType, PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
-import { getChatRoomDataInclude, getMessageDataInclude, getUserDataSelect } from "./types";
+import {
+  getChatRoomDataInclude,
+  getMessageDataInclude,
+  getUserDataSelect,
+} from "./types";
 import {
   addAdminSchema,
   addMemberSchema,
@@ -77,10 +81,10 @@ io.on("connection", async (socket) => {
     "start_chat",
     async ({ targetUserId, isGroup, name, membersIds }) => {
       try {
-        let rawMembers = isGroup 
-          ? [...(membersIds || []), userId] 
+        let rawMembers = isGroup
+          ? [...(membersIds || []), userId]
           : [userId, targetUserId];
-        
+
         // Supprime les doublons et les valeurs falsy (null, undefined, chaine vide)
         const uniqueMemberIds = [...new Set(rawMembers)].filter((id) => id);
 
@@ -121,7 +125,7 @@ io.on("connection", async (socket) => {
                 create: uniqueMemberIds.map((id) => ({
                   userId: id,
                   // Si c'est le créateur du groupe, on le met OWNER, sinon MEMBER
-                  type: (isGroup && id === userId) ? "OWNER" : "MEMBER",
+                  type: isGroup && id === userId ? "OWNER" : "MEMBER",
                 })),
               },
             },
@@ -136,7 +140,7 @@ io.on("connection", async (socket) => {
               senderId: userId, // Important: le créateur est l'expéditeur du message système
               type: "CREATE",
             },
-            include: getMessageDataInclude(userId) // On inclut les infos sender pour l'affichage
+            include: getMessageDataInclude(userId), // On inclut les infos sender pour l'affichage
           });
 
           // 4. Mise à jour de LastMessage pour tous les membres
@@ -157,26 +161,25 @@ io.on("connection", async (socket) => {
           // Retourne la room complète avec le premier message
           return { ...room, messages: [message] };
         });
-        
+
         // 5. Gestion des Sockets et Diffusion
         socket.join(newRoom.id);
-        
+
         // On notifie tous les membres (sauf soi-même car on utilise room_ready)
         uniqueMemberIds.forEach((memberId) => {
           if (memberId !== userId) {
             // Mise à jour en temps réel pour les autres membres
             io.to(memberId).emit("new_room_created", newRoom);
-            
+
             // Notification optionnelle "unread"
             io.to(memberId).emit("unread_count_increment", {
-                roomId: newRoom.id,
+              roomId: newRoom.id,
             });
           }
         });
 
         // Réponse au créateur
         socket.emit("room_ready", newRoom);
-
       } catch (error) {
         console.error("Erreur start_chat:", error);
         socket.emit("error_message", "Impossible de créer la discussion.");
@@ -313,7 +316,7 @@ io.on("connection", async (socket) => {
             userId: userId,
             messageId,
           },
-          update: {}, 
+          update: {},
         });
 
         const updatedReads = await getMessageReads(messageId);
@@ -405,15 +408,15 @@ io.on("connection", async (socket) => {
               recipientId: originalMessage.senderId,
               type: "REACTION",
               content: content,
-              roomId: originalMessage.roomId,
+              roomId,
               reactionId: reaction.id,
             },
           });
-          
-          if (reactionMessage.id && originalMessage.roomId) {
+
+          if (reactionMessage.id && roomId) {
             await prisma.lastMessage.deleteMany({
               where: {
-                roomId: originalMessage.roomId,
+                roomId,
                 userId: { in: [userId, originalMessage.senderId] },
               },
             });
@@ -421,13 +424,13 @@ io.on("connection", async (socket) => {
             await prisma.lastMessage.createMany({
               data: [
                 {
-                  userId: userId,
-                  roomId: originalMessage.roomId,
+                  userId,
+                  roomId,
                   messageId: reactionMessage.id,
                 },
                 {
                   userId: originalMessage.senderId,
-                  roomId: originalMessage.roomId,
+                  roomId,
                   messageId: reactionMessage.id,
                 },
               ],
@@ -453,6 +456,7 @@ io.on("connection", async (socket) => {
         }
 
         const reactionsData = await getMessageReactions(messageId, userId);
+
         io.to(roomId).emit("message_reaction_update", {
           messageId,
           reactions: reactionsData,
@@ -517,19 +521,19 @@ io.on("connection", async (socket) => {
                 where: {
                   userId_roomId: {
                     userId: targetId,
-                    roomId: message.roomId as string,
+                    roomId,
                   },
                 },
                 create: {
                   userId: targetId,
-                  roomId: message.roomId as string,
+                  roomId,
                   messageId: lastValidMessage.id,
                 },
                 update: { messageId: lastValidMessage.id },
               });
             } else {
               await prisma.lastMessage.deleteMany({
-                where: { userId: targetId, roomId: message.roomId as string },
+                where: { userId: targetId, roomId },
               });
             }
           };
@@ -604,7 +608,7 @@ io.on("connection", async (socket) => {
             },
             orderBy: { createdAt: "desc" },
           });
-          
+
           if (nextLatestMessage) {
             await tx.lastMessage.updateMany({
               where: {
@@ -629,12 +633,11 @@ io.on("connection", async (socket) => {
 
         io.to(roomId).emit("message_deleted", { messageId, roomId });
 
-        
         const activeMembers = await prisma.roomMember.findMany({
           where: { roomId, leftAt: null, type: { not: "BANNED" } },
           include: { user: true },
         });
-        
+
         await Promise.all(
           activeMembers.map(async (member) => {
             if (member.userId && member.user) {
@@ -688,7 +691,7 @@ io.on("connection", async (socket) => {
             },
             include: getMessageDataInclude(userId),
           });
-          
+
           let emissionType = "CONTENT";
           if (content === "create-" + userId) {
             emissionType = "SAVED";
@@ -698,11 +701,10 @@ io.on("connection", async (socket) => {
           socket.join(roomId);
           // AJOUT : Renvoyer tempId au client
           io.to(roomId).emit("receive_message", { newMessage, roomId, tempId });
-          
+
           const updatedRooms = await getFormattedRooms(userId, username);
           io.to(userId).emit("room_list_updated", updatedRooms);
         } else {
-          
           const membership = await prisma.roomMember.findUnique({
             where: { roomId_userId: { roomId, userId } },
           });
@@ -714,7 +716,7 @@ io.on("connection", async (socket) => {
           ) {
             return socket.emit("error", { message: "Action non autorisée" });
           }
-          
+
           const [createdMessage, roomData] = await prisma.$transaction([
             prisma.message.create({
               data: {
@@ -759,9 +761,9 @@ io.on("connection", async (socket) => {
             newMessage,
             roomId,
             newRoom: roomData,
-            tempId // Important pour le mapping côté client
+            tempId, // Important pour le mapping côté client
           });
-          
+
           await Promise.all(
             activeMembers.map(async (member) => {
               if (member.userId && member.user) {
