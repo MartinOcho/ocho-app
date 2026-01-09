@@ -17,6 +17,7 @@ import {
   getFormattedRooms,
   getMessageReactions,
   getMessageReads,
+  getUnreadRoomsCount, // <--- Import de la nouvelle fonction
   groupManagment,
   memberActionSchema,
   socketHandler,
@@ -172,9 +173,9 @@ io.on("connection", async (socket) => {
             io.to(memberId).emit("new_room_created", newRoom);
 
             // Notification optionnelle "unread"
-            io.to(memberId).emit("unread_count_increment", {
-              roomId: newRoom.id,
-            });
+            // Note: CREATE ne compte généralement pas comme unread, mais si vous le souhaitez :
+            // const unread = await getUnreadRoomsCount(memberId);
+            // io.to(memberId).emit("rooms_unreads_update", { unreadCount: unread });
           }
         });
 
@@ -326,7 +327,14 @@ io.on("connection", async (socket) => {
           reads: updatedReads,
         });
 
-        io.to(userId).emit("unread_count_cleared", { roomId });
+        // --- MISE À JOUR DU COMPTEUR POUR L'UTILISATEUR ---
+        // On recalcule le nombre réel de SALONS non lus pour cet user
+        const newUnreadCount = await getUnreadRoomsCount(userId);
+        io.to(userId).emit("rooms_unreads_update", { 
+          unreadCount: newUnreadCount 
+        });
+        // --------------------------------------------------
+        
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
       }
@@ -647,6 +655,13 @@ io.on("connection", async (socket) => {
                   member.user.username
                 );
                 io.to(member.userId).emit("room_list_updated", updatedRooms);
+                
+                // Recalcul des non lus (le message supprimé peut changer le statut lu du salon)
+                const newUnreadCount = await getUnreadRoomsCount(member.userId);
+                io.to(member.userId).emit("rooms_unreads_update", { 
+                    unreadCount: newUnreadCount 
+                });
+
               } catch (e) {
                 console.error(
                   `Erreur refresh sidebar pour ${member.userId}:`,
@@ -774,11 +789,16 @@ io.on("connection", async (socket) => {
                   );
                   io.to(member.userId).emit("room_list_updated", updatedRooms);
 
+                  // --- MODIFICATION ICI : Calcul exact ---
+                  // On ne fait plus un simple increment. On recalcule le VRAI nombre.
                   if (member.userId !== userId) {
-                    io.to(member.userId).emit("unread_count_increment", {
-                      roomId,
+                    const unreadCount = await getUnreadRoomsCount(member.userId);
+                    io.to(member.userId).emit("rooms_unreads_update", {
+                        unreadCount // Envoi du nombre exact (ex: 3 salons non lus)
                     });
                   }
+                  // ----------------------------------------
+
                 } catch (e) {
                   console.error("Erreur refresh member:", member.userId);
                 }

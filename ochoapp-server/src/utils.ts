@@ -19,8 +19,36 @@ const JWT_SECRET =
   process.env.JWT_SECRET || "super_secret_key_change_me_in_prod";
 const INTERNAL_SECRET = process.env.INTERNAL_SERVER_SECRET || "default_secret";
 
-
-
+export async function getUnreadRoomsCount(userId: string): Promise<number> {
+  const unreadCount = await prisma.room.count({
+    where: {
+      members: {
+        some: {
+          AND: [
+            { userId: userId },
+            {
+              joinedAt: {
+                lte: new Date(),
+              },
+            },
+            { OR: [{ leftAt: { lt: new Date() } }, { leftAt: null }] },
+          ],
+        },
+      },
+      messages: {
+        some: {
+          type: { not: "CREATE" },
+          reads: {
+            none: {
+              userId: userId,
+            },
+          },
+        },
+      },
+    },
+  });
+  return unreadCount;
+}
 export async function validateUserInDb(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -487,10 +515,6 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
              throw new Error("Membre déjà parti ou invalide");
         }
 
-        await prisma.roomMember.update({
-            where: { roomId_userId: { roomId, userId: targetId } },
-            data: { type: "OLD", leftAt: new Date() }
-        });
 
         const removeMsg = await prisma.message.create({
             data: {
@@ -512,6 +536,10 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
                 update: { messageId: removeMsg.id, createdAt: new Date() }
             })
         ));
+        await prisma.roomMember.update({
+            where: { roomId_userId: { roomId, userId: targetId } },
+            data: { type: "OLD", leftAt: new Date() }
+        });
 
         io.to(roomId).emit("member_removed", { roomId, userId: targetId });
         io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
@@ -618,14 +646,13 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
             const userRooms = await getFormattedRooms(userId, username);
             io.to(userId).emit("room_list_updated", userRooms);
         } else {
-            await prisma.roomMember.update({
-                where: { roomId_userId: { roomId, userId } },
-                data: { type: "OLD", leftAt: new Date() }
-            });
-
             const leaveMsg = await prisma.message.create({
                 data: { content: "leave", roomId, type: "LEAVE", recipientId: userId },
                 include: getMessageDataInclude(userId)
+            });
+            await prisma.roomMember.update({
+                where: { roomId_userId: { roomId, userId } },
+                data: { type: "OLD", leftAt: new Date() }
             });
 
             // Pour un départ volontaire, on met à jour pour TOUS les membres actifs restants + celui qui part
