@@ -43,6 +43,7 @@ export async function getUnreadRoomsCount(userId: string): Promise<number> {
               userId: userId,
             },
           },
+          senderId: { not: userId  },
         },
       },
     },

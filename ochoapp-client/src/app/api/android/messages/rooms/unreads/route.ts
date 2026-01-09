@@ -38,6 +38,7 @@ export async function GET() {
                 userId: user.id,
               },
             },
+            senderId: { not: user.id },
           },
         },
       },
