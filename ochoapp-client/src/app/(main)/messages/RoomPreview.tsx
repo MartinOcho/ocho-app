@@ -87,9 +87,9 @@ export default function RoomPreview({
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
           (old) => {
-             const currentCount = old?.unreadCount || 0;
-             return { unreadCount: currentCount + 1 };
-          }
+            const currentCount = old?.unreadCount || 0;
+            return { unreadCount: currentCount + 1 };
+          },
         );
       }
     };
@@ -172,22 +172,50 @@ export default function RoomPreview({
     savedMessages,
     isTyping,
     userTyping,
-    andOthersTyping,
+    twoUsersTyping,
+    threeUsersTyping,
     multipleTyping,
   } = t();
 
   const typingText = !!typing.typingUsers.length
-    ? !room.isGroup ? isTyping : typing.typingUsers.length === 1
-      ? userTyping
-      : typing.typingUsers.length === 2
-        ? andOthersTyping.replace("[count]", "1")
-        : multipleTyping
-            .replace(
-              "[names]",
-              typing.typingUsers[0].displayName.split(" ")[0] || appUser,
-            )
-            .replace("[name]", typing.typingUsers[1].displayName.split(" ")[0])
-            .replace("[count]", (typing.typingUsers.length - 2).toString())
+    ? !room.isGroup
+      ? isTyping
+      : typing.typingUsers.length === 1
+        ? userTyping
+        : typing.typingUsers.length === 2
+          ? twoUsersTyping
+              .replace(
+                "[name]",
+                typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+              )
+              .replace(
+                "[name]",
+                typing.typingUsers[1].displayName.split(" ")[0] || appUser,
+              )
+          : typing.typingUsers.length === 3
+            ? threeUsersTyping
+                .replace(
+                  "[name]",
+                  typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  typing.typingUsers[1].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  typing.typingUsers[2].displayName.split(" ")[0] || appUser,
+                )
+            : multipleTyping
+                .replace(
+                  "[names]",
+                  typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  typing.typingUsers[1].displayName.split(" ")[0],
+                )
+                .replace("[count]", (typing.typingUsers.length - 2).toString())
     : "";
   const { startNavigation: navigate } = useProgress();
 
@@ -200,7 +228,7 @@ export default function RoomPreview({
         .get(`/api/rooms/${room.id}/unread-count`)
         .json<NotificationCountInfo>(),
     initialData: { unreadCount: 0 },
-    staleTime: Infinity, 
+    staleTime: Infinity,
   });
 
   const { unreadCount } = data;
