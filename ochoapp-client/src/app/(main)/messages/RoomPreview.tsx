@@ -170,45 +170,14 @@ export default function RoomPreview({
     noMessage,
     deletedChat,
     savedMessages,
+    isTyping,
     userTyping,
     andOthersTyping,
     multipleTyping,
-  } = t([
-    "appUser",
-    "groupChat",
-    "you",
-    "newMember",
-    "youAddedMember",
-    "addedYou",
-    "addedMember",
-    "memberLeft",
-    "youRemovedMember",
-    "removedYou",
-    "removedMember",
-    "memberBanned",
-    "youBannedMember",
-    "bannedYou",
-    "bannedMember",
-    "youCreatedGroup",
-    "createdGroup",
-    "canChatWithYou",
-    "youReactedToYourMessage",
-    "youReactedToMessage",
-    "reactedToMessage",
-    "reactedMemberMessage",
-    "messageYourself",
-    "noPreview",
-    "canNoLongerInteract",
-    "noMessage",
-    "deletedChat",
-    "savedMessages",
-    "userTyping",
-    "andOthersTyping",
-    "multipleTyping",
-  ]);
+  } = t();
 
   const typingText = !!typing.typingUsers.length
-    ? typing.typingUsers.length === 1
+    ? !room.isGroup ? isTyping : typing.typingUsers.length === 1
       ? userTyping
       : typing.typingUsers.length === 2
         ? andOthersTyping.replace("[count]", "1")

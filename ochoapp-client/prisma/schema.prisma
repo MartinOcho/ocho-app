@@ -56,6 +56,15 @@ model User {
   @@map("users")
   userPrivacies UserPrivacy[]
 }
+model VerifiedUsers {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerifiedType @default(STANDARD)
+  expiresAt DateTime?
+
+  @@map("verified_users")
+}
 
 model OldUserData {
   id        String   @id @default(cuid())
@@ -111,15 +120,6 @@ model AuthCode {
   @@map("auth_code")
 }
 
-model VerifiedUsers {
-  id        String       @id @default(cuid())
-  userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      VerifiedType @default(STANDARD)
-  expiresAt DateTime?
-
-  @@map("verified_users")
-}
 
 enum VerifiedType {
   STANDARD

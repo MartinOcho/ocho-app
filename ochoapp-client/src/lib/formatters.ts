@@ -167,7 +167,7 @@ export class TimeFormatter {
     return formattedTime;
   }
 
-  private formatCalendar(): string {
+  formatCalendar(): string {
     const now = new Date();
     const target = new Date(this.time);
 
@@ -258,7 +258,7 @@ export class TimeFormatter {
       year: "numeric",
     }).format(target);
   }
-  private formatClock(): string {
+  formatClock(): string {
   const now = new Date();
   const target = new Date(this.time);
 
