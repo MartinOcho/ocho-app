@@ -168,6 +168,7 @@ model RoomMember {
   isUploadingFile Boolean    @default(false)
   joinedAt        DateTime   @default(now())
   leftAt          DateTime?
+  kickedAt       DateTime?
 
   @@unique([roomId, userId])
   @@map("chat_members")

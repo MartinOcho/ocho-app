@@ -814,7 +814,7 @@ io.on("connection", async (socket) => {
     }
   );
 
-  socket.on("check_user_status", async ({ userId }) => {
+  socket.on("check_user_status", async ({ userId }: { userId: string }) => {
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { isOnline: true, lastSeen: true, id: true },

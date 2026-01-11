@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
               type: "OWNER",
               joinedAt: user.createdAt,
               leftAt: null,
+              kickedAt: null,
             },
           ],
           messages: [selfMessage as MessageData],

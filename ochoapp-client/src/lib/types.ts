@@ -227,6 +227,7 @@ export function getChatRoomDataInclude(
         type: true,
         joinedAt: true,
         leftAt: true,
+        kickedAt: true,
       },
     },
     messages: {

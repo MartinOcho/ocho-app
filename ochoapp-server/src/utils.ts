@@ -296,6 +296,7 @@ export async function getFormattedRooms(
             type: "OWNER",
             joinedAt: user.createdAt,
             leftAt: null,
+            kickedAt: null,
           },
         ],
         messages: [selfMessage as MessageData],

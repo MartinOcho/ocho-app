@@ -69,6 +69,7 @@ export async function GET(
             type: "OWNER",
             joinedAt: user.createdAt,
             leftAt: null,
+            kickedAt: null,
           },
           ],
           maxMembers: 300,
@@ -101,6 +102,7 @@ export async function GET(
             type: "OWNER",
             joinedAt: user.createdAt,
             leftAt: null,
+            kickedAt: null,
           },
         ],
         maxMembers: 300,
@@ -147,6 +149,7 @@ export async function GET(
             type: member.type,
             joinedAt: member.joinedAt,
             leftAt: member.leftAt,
+            kickedAt: member.kickedAt,
           };
         }),
       );
