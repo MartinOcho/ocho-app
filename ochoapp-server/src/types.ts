@@ -1,5 +1,18 @@
 import { Prisma } from "@prisma/client";
 
+export type PrivacyType =
+  | "PROFILE_VISIBILITY"
+  | "POST_VISIBILITY"
+  | "MESSAGE_PRIVACY"
+  | "ONLINE_STATUS_VISIBILITY";
+
+export type PrivacyValue =
+  | "PUBLIC"
+  | "FOLLOWERS"
+  | "PRIVATE"
+  | "EVERYONE"
+  | "NO_ONE";
+
 export type MenuBarContextType = {
   isVisible: boolean;
   setIsVisible: (isVisible: boolean) => void;
@@ -35,9 +48,9 @@ export function getUserDataSelect(
     displayName: true,
     avatarUrl: true,
     bio: true,
-    createdAt: true,
-    lastSeen: true,
-    verified: {
+            createdAt: true,
+            lastSeen: true,
+            verified: {
       where: {
         user: {
           username,

@@ -567,11 +567,11 @@ export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, De
         ));
         await prisma.roomMember.update({
             where: { roomId_userId: { roomId, userId: targetId } },
-            data: { type: "OLD", leftAt: new Date() }
+            data: { type: "OLD", leftAt: new Date(), kickedAt: new Date() }
         });
 
-        io.to(roomId).emit("member_removed", { roomId, userId: targetId });
         io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
+        io.to(roomId).emit("member_removed", { roomId, userId: targetId });
         
         // Rafraichir seulement pour les concernés
         for(const uid of relevantUsers) {
