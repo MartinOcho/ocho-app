@@ -12,7 +12,6 @@ import Message from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import {
   AlertCircle,
-  ArrowLeft,
   ChevronLeft,
   Frown,
   Loader2,
@@ -40,7 +39,7 @@ import { MessageType } from "@prisma/client";
 import Linkify from "@/components/Linkify";
 import UserAvatar from "@/components/UserAvatar";
 import { createPortal } from "react-dom";
-import Time from "@/components/Time"; // Import du composant Time modifié
+import Time from "@/components/Time"; 
 
 interface ChatProps {
   roomId: string | null;
@@ -48,7 +47,6 @@ interface ChatProps {
   onClose: () => void;
 }
 
-// Interface pour nos messages locaux temporaires
 interface SentMessageState {
   tempId: string;
   roomId: string;
