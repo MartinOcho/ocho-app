@@ -10,16 +10,7 @@ import kyInstance from "@/lib/ky";
 import { RoomData, MessagesSection, MessageData } from "@/lib/types";
 import Message from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import {
-  AlertCircle,
-  ChevronLeft,
-  Frown,
-  Loader2,
-  RefreshCw,
-  Search,
-  Send,
-  X,
-} from "lucide-react";
+import { AlertCircle, ChevronLeft, Frown, Loader2, RefreshCw, Search, Send, X, } from "lucide-react";
 import { useSession } from "../SessionProvider";
 import MessagesSkeleton from "./skeletons/MessagesSkeleton";
 import { toast } from "@/components/ui/use-toast";
