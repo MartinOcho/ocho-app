@@ -3,6 +3,7 @@ import { getUserDataSelect } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "../../../auth/utils";
 import { ApiResponse } from "../../../utils/dTypes";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   req: NextRequest,
@@ -17,10 +18,9 @@ export async function GET(
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
     const searchQuery = req.nextUrl.searchParams.get("q") || undefined;
-    const pageSize = 10; // Définissez la taille de la page
+    const pageSize = 10;
 
-    // Valider la requête et obtenir l'utilisateur connecté
-
+    // 1. Authentification
     const { user: loggedInUser, message } = await getCurrentUser();
     if (!loggedInUser) {
       return NextResponse.json({
@@ -31,181 +31,113 @@ export async function GET(
     }
 
     const user = await prisma.user.findFirst({
-      where: {
-        id: loggedInUser.id,
-      },
+      where: { id: loggedInUser.id },
       select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
     });
 
     if (!user) {
       return NextResponse.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur introuvable.",
         name: "unauthorized",
       } as ApiResponse<null>);
     }
-    const userId = user.id;
+
+    // 2. Préparation de la condition de recherche (Search Query)
+    // Cette condition sera injectée dans chaque filtre si une recherche existe
+    let searchCondition: Prisma.UserWhereInput | undefined = undefined;
 
     if (searchQuery) {
       const sanitizedQuery = searchQuery.replace(/[%_]/g, "\\$&");
-      const users = await prisma.user.findMany({
-        where: {
-          OR: [
-            {
-              displayName: {
-                contains: sanitizedQuery,
-                mode: "insensitive",
-              },
+      searchCondition = {
+        OR: [
+          {
+            displayName: {
+              contains: sanitizedQuery,
+              mode: "insensitive",
             },
-            {
-              username: {
-                contains: sanitizedQuery,
-                mode: "insensitive",
-              },
+          },
+          {
+            username: {
+              contains: sanitizedQuery,
+              mode: "insensitive",
             },
-          ],
-        },
-        take: pageSize + 1, // Prendre un élément supplémentaire pour vérifier s'il y a une page suivante
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: { id: "asc" },
-        select: getUserDataSelect(user.id),
-      });
-
-      const nextCursor = users.length > pageSize ? users[pageSize].id : null;
-      const usersPage =
-        users.length > pageSize ? users.slice(0, pageSize) : users;
-
-      return NextResponse.json<
-        ApiResponse<{ users: typeof usersPage; nextCursor: string | null }>
-      >({
-        success: true,
-        data: { users: usersPage, nextCursor },
-      });
+          },
+        ],
+      };
     }
+
+    // 3. Construction de la clause WHERE en fonction du filtre
+    let whereClause: Prisma.UserWhereInput = {};
 
     switch (filter) {
-      case "friends": {
-        // Récupérer les amis paginés
-        const friends = await prisma.user.findMany({
-          where: {
-            AND: [
-              { followers: { some: { followerId: user.id } } },
-              { following: { some: { followingId: user.id } } },
-            ],
-          },
-          take: pageSize + 1, // Prendre un élément supplémentaire pour vérifier s'il y a une page suivante
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { id: "asc" },
-          select: getUserDataSelect(user.id),
-        });
+      case "friends":
+        whereClause = {
+          AND: [
+            { followers: { some: { followerId: user.id } } }, // Ils me suivent
+            { following: { some: { followingId: user.id } } }, // Je les suis
+            // Si une recherche existe, on l'ajoute ici
+            ...(searchCondition ? [searchCondition] : []),
+          ],
+        };
+        break;
 
-        const nextCursor =
-          friends.length > pageSize ? friends[pageSize].id : null;
-        const friendsPage =
-          friends.length > pageSize ? friends.slice(0, pageSize) : friends;
-        return NextResponse.json<
-          ApiResponse<{ users: typeof friendsPage; nextCursor: string | null }>
-        >({
-          success: true,
-          data: { users: friendsPage, nextCursor },
-        });
-      }
-      case "followers": {
-        const followers = await prisma.user.findMany({
-          where: {
-            AND: [
-              { followers: { some: { followerId: user.id } } },
-              { NOT: { following: { some: { followingId: user.id } } } },
-            ],
-          },
-          take: pageSize + 1,
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { id: "asc" },
-          select: getUserDataSelect(user.id),
-        });
+      case "followers":
+        whereClause = {
+          AND: [
+            { followers: { some: { followerId: user.id } } }, // Ils me suivent
+            { NOT: { following: { some: { followingId: user.id } } } }, // Je ne les suis PAS (pour éviter les doublons avec amis)
+            ...(searchCondition ? [searchCondition] : []),
+          ],
+        };
+        break;
 
-        const nextCursor =
-          followers.length > pageSize ? followers[pageSize].id : null;
-        const followersPage =
-          followers.length > pageSize
-            ? followers.slice(0, pageSize)
-            : followers;
-        return NextResponse.json<
-          ApiResponse<{
-            users: typeof followersPage;
-            nextCursor: string | null;
-          }>
-        >({
-          success: true,
-          data: { users: followersPage, nextCursor },
-        });
-      }
-      case "following": {
-        // Récupérer les suivis
-        const following = await prisma.user.findMany({
-          where: {
-            AND: [
-              { following: { some: { followingId: user.id } } },
-              { NOT: { followers: { some: { followerId: user.id } } } },
-            ],
-          },
-          take: pageSize + 1,
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { id: "asc" },
-          select: getUserDataSelect(user.id),
-        });
+      case "following":
+        whereClause = {
+          AND: [
+            { following: { some: { followingId: user.id } } }, // Je les suis
+            { NOT: { followers: { some: { followerId: user.id } } } }, // Ils ne me suivent PAS
+            ...(searchCondition ? [searchCondition] : []),
+          ],
+        };
+        break;
 
-        const nextCursor =
-          following.length > pageSize ? following[pageSize].id : null;
-        const followingPage =
-          following.length > pageSize
-            ? following.slice(0, pageSize)
-            : following;
-        return NextResponse.json<
-          ApiResponse<{
-            users: typeof followingPage;
-            nextCursor: string | null;
-          }>
-        >({
-          success: true,
-          data: { users: followingPage, nextCursor },
-        });
-      }
-      default: {
-        // Récupérer des suggestions (utilisateurs non suivis et ne suivant pas l'utilisateur)
-        const suggestions = await prisma.user.findMany({
-          where: {
-            AND: [
-              { followers: { none: { followerId: user.id } } },
-              { following: { none: { followingId: user.id } } },
-              { id: { not: user.id } },
-            ],
-          },
-          take: pageSize + 1,
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { id: "asc" },
-          select: getUserDataSelect(user.id),
-        });
-
-        const nextCursor =
-          suggestions.length > pageSize ? suggestions[pageSize].id : null;
-        const suggestionsPage =
-          suggestions.length > pageSize
-            ? suggestions.slice(0, pageSize)
-            : suggestions;
-        return NextResponse.json<
-          ApiResponse<{
-            users: typeof suggestionsPage;
-            nextCursor: string | null;
-          }>
-        >({
-          success: true,
-          data: { users: suggestionsPage, nextCursor },
-        });
-      }
+      default:
+        // Suggestions (Ni amis, ni suivis, ni moi-même)
+        whereClause = {
+          AND: [
+            { followers: { none: { followerId: user.id } } },
+            { following: { none: { followingId: user.id } } },
+            { id: { not: user.id } },
+            ...(searchCondition ? [searchCondition] : []),
+          ],
+        };
+        break;
     }
-  }  catch (error) {
-    console.error("Erreur lors de la récupération des lectures du message :", error);
+
+    // 4. Exécution unique de la requête
+    // On utilise la clause `where` construite dynamiquement ci-dessus
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { id: "asc" }, // Ou par défaut par username si vous préférez
+      select: getUserDataSelect(user.id),
+    });
+
+    // 5. Pagination
+    const nextCursor = users.length > pageSize ? users[pageSize].id : null;
+    const usersPage = users.length > pageSize ? users.slice(0, pageSize) : users;
+
+    return NextResponse.json<
+      ApiResponse<{ users: typeof usersPage; nextCursor: string | null }>
+    >({
+      success: true,
+      data: { users: usersPage, nextCursor },
+    });
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des utilisateurs :", error);
     return NextResponse.json({
       success: false,
       message: "Erreur interne du serveur",
