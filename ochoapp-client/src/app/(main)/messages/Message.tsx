@@ -157,29 +157,29 @@ export const MessageBubbleContent = ({
   if (isOwner) {
     // --- MESSAGES DE L'UTILISATEUR (Droite) ---
     if (isOnlyMessageInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tr-sm";
+      borderRadiusClass = "rounded-3xl";
     } else if (isFirstInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tr-sm rounded-br-[4px]";
+      borderRadiusClass = "rounded-3xl rounded-br-[4px]";
     } else if (isMiddleInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tr-[4px] rounded-br-[4px]";
+      borderRadiusClass = "rounded-3xl rounded-tr-[4px] rounded-br-[4px]";
     } else if (isLastInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tr-[4px] rounded-br-2xl";
+      borderRadiusClass = "rounded-3xl rounded-tr-[4px] rounded-br-2xl";
     } else {
-      borderRadiusClass = "rounded-2xl";
+      borderRadiusClass = "rounded-3xl";
     }
 
   } else {
     // --- MESSAGES DES AUTRES (Gauche) ---
     if (isOnlyMessageInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tl-sm";
+      borderRadiusClass = "rounded-3xl";
     } else if (isFirstInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tl-sm rounded-bl-[4px]";
+      borderRadiusClass = "rounded-3xl rounded-bl-[4px]";
     } else if (isMiddleInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tl-[4px] rounded-bl-[4px]";
+      borderRadiusClass = "rounded-3xl rounded-tl-[4px] rounded-bl-[4px]";
     } else if (isLastInCluster) {
-      borderRadiusClass = "rounded-2xl rounded-tl-[4px] rounded-bl-2xl";
+      borderRadiusClass = "rounded-3xl rounded-tl-[4px]";
     } else {
-      borderRadiusClass = "rounded-2xl";
+      borderRadiusClass = "rounded-3xl";
     }
   }
 
@@ -196,14 +196,14 @@ export const MessageBubbleContent = ({
         onClick={!isClone ? toggleCheck : undefined}
         onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
         className={cn(
-          "relative w-fit px-5 py-3 text-sm md:text-base leading-relaxed transition-all duration-200 border",
+          "relative w-fit px-5 py-2 text-sm md:text-base leading-relaxed transition-all duration-200 border",
           bubbleDesign,
           !message.content && "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
           borderRadiusClass
         )}
       >
-        <div className="pr-12 pb-1">
+        <div className="pr-16 pb-1">
             {message.content ? (
                 <HighlightText
                 text={message.content}
@@ -218,7 +218,7 @@ export const MessageBubbleContent = ({
         {/* Heure et Status DANS la bulle */}
         {createdAt && (
           <div className={cn(
-              "absolute bottom-1.5 right-2.5 flex items-center gap-1 text-[10px]",
+              "absolute bottom-0 right-2.5 flex items-center gap-1 text-[10px]",
               // Couleurs adaptées au nouveau contraste
               isOwner ? "text-blue-100 dark:text-neutral-400" : "text-muted-foreground"
           )}>
