@@ -860,7 +860,6 @@ export function MessageForm({
       onTypingStop?.();
     }, 3000);
   };
-
   return (
     <div
       className={cn(
@@ -951,8 +950,6 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
               </Linkify>
             </div>
           </div>
-
-          {/* Status Text */}
           <div className="mt-1 flex justify-end px-1">
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
               {status === "sending" && (
@@ -972,7 +969,6 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
     </div>
   );
 }
-
 type TypingIndicatorProps = {
   typingUsers: {
     id: string;
@@ -1026,7 +1022,6 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
             )}
           </div>
         )}
-
         <div className="group/message relative w-fit max-w-[75%] select-none">
           <div className="mb-1 ps-2 text-xs font-medium text-slate-500 transition-opacity dark:text-slate-400">
             {typingUsers.length === 1
@@ -1035,7 +1030,6 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
                 ? `${typingUsers[0].displayName.split(" ")[0]} et ${typingUsers[1].displayName.split(" ")[0]} écrivent...`
                 : `${typingUsers[0].displayName.split(" ")[0]}, ${typingUsers[1].displayName.split(" ")[0]} et ${typingUsers.length - 2 == 1 ? typingUsers[2].displayName.split(" ")[0] : `${typingUsers.length - 2} autres`} écrivent...`}
           </div>
-
           <div className="relative h-fit w-fit">
             <div
               className={cn(
