@@ -598,7 +598,7 @@ export default function Message({
     if (systemContent) {
         return (
             <div className={SystemWrapperClass}>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border dark:border-muted/50 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
                     {systemIcon}
                     <span className="font-medium">{systemContent}</span>
                     <span className="text-[10px] opacity-60 pl-1 border-l border-foreground/10 ml-1">
