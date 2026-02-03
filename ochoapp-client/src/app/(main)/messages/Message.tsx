@@ -219,7 +219,7 @@ export const MessageBubbleContent = ({
             "relative w-fit rounded-3xl select-none px-4 py-2 pr-8 pb-2.5 transition-all duration-200",
             isOwner
               ? "bg-[#007AFF] text-white"
-              : "bg-primary/10",
+              : "bg-background before:absolute before:inset-0 before:bg-primary/10 before:rounded-[inherit] before:pointer-events-none",
             !message.content &&
               "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
             isClone && "cursor-default shadow-lg ring-2 ring-background/50",
