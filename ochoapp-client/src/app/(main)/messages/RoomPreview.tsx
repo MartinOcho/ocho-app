@@ -462,7 +462,7 @@ export default function RoomPreview({
             {!typing.isTyping && (
               <>
                 <span className="flex-shrink-0">•</span>
-                <span className="line-clamp-1 min-w-fit flex-shrink-0">
+                <span className="line-clamp-1 min-w-fit flex-shrink-0 text-sm">
                   <Time time={messagePreview.createdAt} full={false} />
                 </span>
               </>
