@@ -557,7 +557,7 @@ export default function Message({
         if (room.isGroup) {
             return (
                 <div className="w-full flex justify-center py-6 select-none">
-                    <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl bg-gradient-to-b from-muted/50 to-muted/20 border border-muted/50 shadow-sm max-w-[280px]">
+                    <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl border border-border bg-muted/50 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80 max-w-[280px]">
                         <div className="relative">
                             <GroupAvatar avatarUrl={room.groupAvatarUrl} size={80} className="shadow-md border-2 border-background" />
                             <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1 rounded-full border-2 border-background">
