@@ -293,10 +293,6 @@ export default function Message({
     youCreatedGroup,
     createdGroup,
     canChatWithYou,
-    youReactedToYourMessage,
-    youReactedToMessage,
-    reactedToMessage,
-    reactedMemberMessage,
     messageYourself,
     unavailableMessage,
     deletedChat,
@@ -553,7 +549,7 @@ export default function Message({
     if (messageType === "CREATE") {
         const text = room.isGroup
             ? isSender
-                ? youCreatedGroup.replace("[name]", senderFirstName)
+                ? youCreatedGroup
                 : createdGroup.replace("[name]", senderFirstName)
             : canChatWithYou.replace("[name]", otherUserFirstName || appUser);
             
@@ -563,7 +559,7 @@ export default function Message({
                 <div className="w-full flex justify-center py-6 select-none">
                     <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl bg-gradient-to-b from-muted/50 to-muted/20 border border-muted/50 shadow-sm max-w-[280px]">
                         <div className="relative">
-                            <GroupAvatar avatarUrl={room.groupAvatarUrl} size={60} className="shadow-md border-2 border-background" />
+                            <GroupAvatar avatarUrl={room.groupAvatarUrl} size={80} className="shadow-md border-2 border-background" />
                             <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1 rounded-full border-2 border-background">
                                 <Sparkles size={12} fill="currentColor" />
                             </div>
