@@ -31,7 +31,6 @@ type MessageProps = {
 // --- SOUS-COMPOSANT DE SURBRILLANCE ---
 function HighlightText({ text, highlight, isOwner }: { text: string; highlight?: string, isOwner: boolean }) {
   if (!highlight || !highlight.trim()) {
-    // Note: suppression du style gras/bleu ici car géré par le conteneur parent dégradé
     return <Linkify className={cn("text-inherit")}>{text}</Linkify>;
   }
 
@@ -135,7 +134,7 @@ export const MessageBubbleContent = ({
   isFirstInCluster,
   isMiddleInCluster,
   isOnlyMessageInCluster,
-  readStatus // Nouveau prop pour passer le status lu/distribué
+  readStatus
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -151,27 +150,49 @@ export const MessageBubbleContent = ({
   createdAt?: Date;
   readStatus?: 'read' | 'delivered';
 }) => {
-  // Logique des coins arrondis (Design asymétrique)
-  const borderRadiusClass = isOnlyMessageInCluster
-    ? "rounded-2xl rounded-tr-sm" // Coin pointu en haut à droite pour l'owner (défaut)
-    : isFirstInCluster
-    ? isOwner
-      ? "rounded-2xl rounded-tr-sm rounded-br-md" 
-      : "rounded-2xl rounded-tl-sm rounded-bl-md"
-    : isMiddleInCluster
-    ? isOwner
-      ? "rounded-l-2xl rounded-r-md"
-      : "rounded-r-2xl rounded-l-md"
-    : isLastInCluster
-    ? isOwner
-      ? "rounded-l-2xl rounded-br-2xl rounded-tr-md"
-      : "rounded-r-2xl rounded-bl-2xl rounded-tl-md"
-    : "rounded-2xl";
+  
+  // --- NOUVELLE LOGIQUE BORDER RADIUS ---
+  // Objectif : Créer un effet d'empilement (stacking) propre.
+  // "rounded-2xl" est la base. "rounded-[4px]" (ou sm/md) est le coin "connecté".
+  
+  let borderRadiusClass = "";
 
-    // Override pour le destinataire (coin pointu à gauche)
-    const finalBorderRadius = !isOwner && isOnlyMessageInCluster 
-        ? "rounded-2xl rounded-tl-sm" 
-        : borderRadiusClass;
+  if (isOwner) {
+    // --- MESSAGES DE L'UTILISATEUR (Droite) ---
+    // La "pointe" du design par défaut est en haut à droite (rounded-tr-sm).
+    
+    if (isOnlyMessageInCluster) {
+      // Cas Unique : Gros arrondi partout, sauf la pointe (Top-Right)
+      borderRadiusClass = "rounded-2xl rounded-tr-sm";
+    } else if (isFirstInCluster) {
+      // Premier du groupe : Pointe en haut, plat en bas (pour coller au suivant)
+      borderRadiusClass = "rounded-2xl rounded-tr-sm rounded-br-[4px]";
+    } else if (isMiddleInCluster) {
+      // Milieu : Plat en haut (colle au précédent) et plat en bas (colle au suivant)
+      borderRadiusClass = "rounded-2xl rounded-tr-[4px] rounded-br-[4px]";
+    } else if (isLastInCluster) {
+      // Dernier : Plat en haut (colle au précédent), gros arrondi en bas
+      borderRadiusClass = "rounded-2xl rounded-tr-[4px] rounded-br-2xl";
+    } else {
+      borderRadiusClass = "rounded-2xl"; // Fallback
+    }
+
+  } else {
+    // --- MESSAGES DES AUTRES (Gauche) ---
+    // La "pointe" du design par défaut est en haut à gauche (rounded-tl-sm).
+
+    if (isOnlyMessageInCluster) {
+      borderRadiusClass = "rounded-2xl rounded-tl-sm";
+    } else if (isFirstInCluster) {
+      borderRadiusClass = "rounded-2xl rounded-tl-sm rounded-bl-[4px]";
+    } else if (isMiddleInCluster) {
+      borderRadiusClass = "rounded-2xl rounded-tl-[4px] rounded-bl-[4px]";
+    } else if (isLastInCluster) {
+      borderRadiusClass = "rounded-2xl rounded-tl-[4px] rounded-bl-2xl";
+    } else {
+      borderRadiusClass = "rounded-2xl";
+    }
+  }
 
   return (
     <div className={cn("relative w-fit group/bubble", isClone && "h-full")}>
@@ -186,7 +207,7 @@ export const MessageBubbleContent = ({
             : "bg-background text-foreground border-border", // DESIGN AUTRE: Blanc/Bordure
           !message.content && "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
-          finalBorderRadius
+          borderRadiusClass
         )}
       >
         <div className="pr-12 pb-1"> {/* Padding pour éviter que le texte touche l'heure */}
@@ -267,11 +288,12 @@ export default function Message({
     staleTime: Infinity,
   });
 
-  // --- SOCKET REACTIONS ---
+  // --- SOCKET REACTIONS (Listening for updates) ---
   useEffect(() => {
     if (!socket) return;
     const handleReactionUpdate = (data: { messageId: string; reactions: ReactionData[]; }) => {
       if (data.messageId === messageId) {
+        // Le serveur confirme l'état réel (Source of truth)
         queryClient.setQueryData(reactionsQueryKey, data.reactions);
       }
     };
@@ -279,20 +301,119 @@ export default function Message({
     return () => { socket.off("message_reaction_update", handleReactionUpdate); };
   }, [socket, messageId, queryClient, reactionsQueryKey]);
 
-  // Actions
+  // --- GESTION OPTIMISTE DES REACTIONS ---
   const handleSendReaction = (emoji: string) => {
-    if (!socket) return;
-    const existingReaction = reactions.find((r) => r.content === emoji && r.hasReacted);
-    if (existingReaction) {
-      socket.emit("remove_reaction", { messageId, roomId });
-    } else {
-      socket.emit("add_reaction", { messageId, roomId, content: emoji });
+    if (!socket || !loggedUser) return;
+
+    // 1. Snapshot des données actuelles pour rollback si besoin
+    const previousReactions = queryClient.getQueryData<ReactionData[]>(reactionsQueryKey);
+
+    // 2. Mise à jour Optimiste (UI Update immédiat)
+    queryClient.setQueryData<ReactionData[]>(reactionsQueryKey, (old) => {
+      const current = old ? [...old] : [];
+      
+      // On vérifie si c'est un ajout ou un toggle (certaines UI retirent si on clique sur le même)
+      // Dans votre logique précédente, vous aviez une séparation add/remove, ici on gère l'ajout.
+      // Si l'utilisateur a déjà réagi avec cet émoji, la logique de "ReactionOverlay" appelle onReact.
+      // Si votre UX permet le toggle (cliquer 2 fois pour enlever), il faut le gérer.
+      // Supposons ici que ReactionOverlay gère ça et n'appelle handleSendReaction que pour AJOUTER.
+      // Ou alors, nous devons vérifier si ça existe déjà.
+      
+      const existingReactionIndex = current.findIndex(r => r.content === emoji);
+      const alreadyReactedWithEmoji = existingReactionIndex !== -1 && current[existingReactionIndex].hasReacted;
+
+      if (alreadyReactedWithEmoji) {
+         // Cas : L'utilisateur clique sur un emoji qu'il a déjà mis -> Suppression optimiste
+         // C'est géré par handleRemoveMyReaction normalement, mais si ReactionOverlay appelle onReact pour tout :
+         // On va supposer ici que c'est un AJOUT pur (le composant parent décide).
+         // Mais pour être sûr, vérifions l'état :
+         return current;
+      }
+
+      // Simulation Ajout
+      if (existingReactionIndex !== -1) {
+          // L'emoji existe déjà (d'autres l'ont mis), on s'ajoute à la liste
+          const updatedReaction = { ...current[existingReactionIndex] };
+          updatedReaction.count += 1;
+          updatedReaction.hasReacted = true;
+          updatedReaction.users = [
+              { 
+                id: loggedUser.id, 
+                displayName: loggedUser.displayName, 
+                username: loggedUser.username, 
+                avatarUrl: loggedUser.avatarUrl,
+                reactedAt: new Date() // Date fictive immédiate
+              }, 
+              ...updatedReaction.users
+          ];
+          current[existingReactionIndex] = updatedReaction;
+          return current;
+      } else {
+          // Nouvel emoji
+          return [
+              ...current,
+              {
+                  content: emoji,
+                  count: 1,
+                  hasReacted: true,
+                  users: [{
+                      id: loggedUser.id,
+                      displayName: loggedUser.displayName,
+                      username: loggedUser.username,
+                      avatarUrl: loggedUser.avatarUrl,
+                      reactedAt: new Date()
+                  }],
+                  createdAt: new Date() // Pour le tri
+              }
+          ];
+      }
+    });
+
+    // 3. Envoi serveur
+    // Si une erreur survient, on rollback
+    try {
+        const existingReaction = reactions.find((r) => r.content === emoji && r.hasReacted);
+        if (existingReaction) {
+            socket.emit("remove_reaction", { messageId, roomId });
+        } else {
+            socket.emit("add_reaction", { messageId, roomId, content: emoji });
+        }
+    } catch (error) {
+        // En cas d'erreur synchrone (rare avec socket.emit mais bon pour la forme)
+        queryClient.setQueryData(reactionsQueryKey, previousReactions);
     }
   };
 
   const handleRemoveMyReaction = () => {
-    if (!socket) return;
-    socket.emit("remove_reaction", { messageId, roomId });
+    if (!socket || !loggedUser) return;
+
+    // 1. Snapshot
+    const previousReactions = queryClient.getQueryData<ReactionData[]>(reactionsQueryKey);
+
+    // 2. Mise à jour Optimiste (Suppression immédiate)
+    queryClient.setQueryData<ReactionData[]>(reactionsQueryKey, (old) => {
+        if (!old) return [];
+        return old.map(reaction => {
+            if (reaction.hasReacted) {
+                // C'est la réaction de l'utilisateur
+                const newUsers = reaction.users.filter(u => u.id !== loggedUser.id);
+                return {
+                    ...reaction,
+                    hasReacted: false,
+                    count: Math.max(0, reaction.count - 1),
+                    users: newUsers
+                };
+            }
+            return reaction;
+        }).filter(reaction => reaction.count > 0); // Nettoyage des réactions vides
+    });
+
+    // 3. Envoi serveur
+    try {
+        socket.emit("remove_reaction", { messageId, roomId });
+    } catch (error) {
+        queryClient.setQueryData(reactionsQueryKey, previousReactions);
+    }
   };
 
   const handleShowDetails = (event: React.MouseEvent, reactionContent?: string) => {
@@ -337,8 +458,6 @@ export default function Message({
   const reads = data?.reads ?? [];
   const isSender = message.senderId === loggedUser?.id;
 
-  // Calcul du status global (lu si quelqu'un d'autre que l'expéditeur a lu)
-  // Dans un groupe, 'read' signifie qu'au moins une personne a lu (simplification, ou check si tout le monde a lu)
   const hasBeenRead = reads.filter(r => r.id !== message.senderId).length > 0;
   const readStatus = hasBeenRead ? 'read' : 'delivered';
 
@@ -371,18 +490,12 @@ export default function Message({
   const readers = reads.filter((read) => read.id !== loggedUser.id && read.id !== message.senderId);
 
   const messageType: MessageType = message.type;
-  // ... (Logique des messages système conservée telle quelle pour ne pas surcharger le code, mais masquée ici pour la lisibilité)
   const isOwner = message.senderId === loggedUser.id;
 
-  // Si message système, rendu différent (inchangé)
   if (messageType !== "CONTENT" && messageType !== "REACTION") {
-      // ... (Rendu des messages système simple)
-      return null; // Placeholder pour abréger
+      return null; 
   }
   if (messageType !== "CONTENT") return null;
-
-  // Check si on a des réactions
-  const hasReactions = reactions.length > 0;
 
   return (
     <>
@@ -421,13 +534,11 @@ export default function Message({
 
           <div
             className={cn(
-              "relative flex w-full flex-col gap-1 mb-2", // Gap réduit
+              "relative flex w-full flex-col gap-1 mb-2",
               activeOverlayRect ? "z-0" : "",
             )}
             ref={messageRef}
           >
-            {/* Heure au dessus si cluster (optionnel, ici désactivé par défaut selon design demandé qui met l'heure DANS la bulle) */}
-            
             <div
               className={cn(
                 "flex w-full gap-2 items-end",
@@ -441,7 +552,7 @@ export default function Message({
                     <UserAvatar
                       userId={message.senderId}
                       avatarUrl={message.sender?.avatarUrl}
-                      size={28} // Taille ajustée
+                      size={28}
                       className="flex-none shadow-sm border border-background"
                     />
                   ) : (
@@ -495,9 +606,9 @@ export default function Message({
                     </div>
                 </div>
 
-                {/* PILE "LU PAR" (Interactive) - Seulement pour moi */}
-                {isOwner && readers.length > 0 && isLastInCluster && (
-                  <div className="relative mt-2 mr-1 flex justify-end w-full">
+                {/* PILE "LU PAR" (Interactive) */}
+                {readers.length > 0 && isLastInCluster && (
+                  <div className={cn("relative mt-2 mr-1 flex w-full", isOwner ? "justify-end" : "justify-start")}>
                      <button
                         ref={detailsButtonRef}
                         onClick={() => setShowReadDetails(!showReadDetails)}
@@ -507,11 +618,10 @@ export default function Message({
                            <div key={user.id} className="relative z-[1]">
                                <UserAvatar 
                                   userId={user.id} 
-                                  avatarUrl={null} // Idéalement passer l'URL ici si dispo dans ReadUser
+                                  avatarUrl={user.avatarUrl} 
                                   size={16} 
                                   className="border border-background ring-1 ring-muted/20" 
                                />
-                               {/* Fallback si pas d'avatarUrl dans le type ReadUser, UserAvatar gère le placeholder */}
                            </div>
                         ))}
                         {readers.length > 3 && (
@@ -525,13 +635,13 @@ export default function Message({
                      {showReadDetails && (
                          <div className="absolute bottom-6 right-0 min-w-[160px] bg-popover/95 backdrop-blur rounded-xl shadow-xl border border-border p-2 z-30 animate-in fade-in slide-in-from-bottom-2">
                              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 border-b border-border pb-1">
-                                 {t("seenBy") || "Lu par"}
+                                 {t("readBy") || "Lu par"}
                              </h4>
                              <div className="flex flex-col gap-2 max-h-32 overflow-y-auto scrollbar-thin">
                                  {readers.map(user => (
                                      <div key={user.id} className="flex items-center justify-between text-xs">
                                          <div className="flex items-center gap-2">
-                                             <UserAvatar userId={user.id} avatarUrl={null} size={20} />
+                                             <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={20} />
                                              <span className="text-foreground font-medium truncate max-w-[90px]">{user.displayName}</span>
                                          </div>
                                      </div>
