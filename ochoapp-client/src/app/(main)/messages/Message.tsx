@@ -203,7 +203,7 @@ export const MessageBubbleContent = ({
           borderRadiusClass
         )}
       >
-        <div className="pr-16 pb-1">
+        <div className="pr-6 pb-1">
             {message.content ? (
                 <HighlightText
                 text={message.content}
