@@ -493,7 +493,7 @@ export default function Message({
   // Construction des messages système
   let systemContent: React.ReactNode = null;
   let systemIcon: React.ReactNode = null;
-  let SystemWrapperClass = "flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground/80 w-full";
+  let SystemWrapperClass = "flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground/80 w-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80";
 
   // --- LOGIQUE CONTENU SYSTEME ---
   if (messageType !== "CONTENT" && messageType !== "REACTION") {
