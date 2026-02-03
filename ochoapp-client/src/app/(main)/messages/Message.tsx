@@ -228,7 +228,7 @@ export const MessageBubbleContent = ({
              {isOwner && !isClone && readStatus && (
                 <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
                     {readStatus === 'read' 
-                        ? <CheckCheck size={14} className="text-blue-200 dark:text-blue-400" /> 
+                        ? <CheckCheck size={14} className="text-[#f99100] dark:text-blue-400" /> 
                         : <Check size={14} className="opacity-70" />
                     }
                 </span>
