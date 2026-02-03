@@ -36,43 +36,43 @@ export async function getUnreadRoomsCount(userId: string): Promise<number> {
         },
       },
       messages: {
-          some: {
-            AND: [
-              { type: { not: "CREATE" } },
-              {
-                reads: {
-                  none: {
-                    userId,
-                  },
+        some: {
+          AND: [
+            { type: { not: "CREATE" } },
+            {
+              reads: {
+                none: {
+                  userId,
                 },
               },
-              {
-                OR: [
-                  {
-                    AND: [
-                      { senderId: { not: userId } },
-                      {
-                        type: {
-                          not: "REACTION",
-                        },
+            },
+            {
+              OR: [
+                {
+                  AND: [
+                    { senderId: { not: userId } },
+                    {
+                      type: {
+                        not: "REACTION",
                       },
-                    ],
-                  },
-                  {
-                    AND: [
-                      {
-                        type: "REACTION",
-                      },
-                      {
-                        OR: [{ recipientId: userId }, { senderId: userId }],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
+                    },
+                  ],
+                },
+                {
+                  AND: [
+                    {
+                      type: "REACTION",
+                    },
+                    {
+                      OR: [{ recipientId: userId }, { senderId: userId }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
         },
+      },
     },
   });
   return unreadCount;
@@ -84,28 +84,34 @@ export async function validateUserInDb(userId: string) {
   });
   return !!user;
 }
-export async function validateSession(req: Request<{ userId: string }>, res: Response) {
+export async function validateSession(
+  req: Request<{ userId: string }>,
+  res: Response,
+) {
   try {
-      const { userId } = req.body;
-      const internalSecret = req.headers["x-internal-secret"];
-  
-      if (internalSecret !== INTERNAL_SECRET) {
-        return res.status(401).json({ error: "Accès refusé" });
-      }
-  
-      const userExists = await validateUserInDb(userId);
-      if (!userExists)
-        return res.status(404).json({ error: "Utilisateur introuvable" });
-  
-      const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
-      res.json({ token });
-    } catch (error) {
-      console.error("Validate Session Error:", error);
-      res.status(500).json({ error: "Impossible de valider la session" });
+    const { userId } = req.body;
+    const internalSecret = req.headers["x-internal-secret"];
+
+    if (internalSecret !== INTERNAL_SECRET) {
+      return res.status(401).json({ error: "Accès refusé" });
     }
+
+    const userExists = await validateUserInDb(userId);
+    if (!userExists)
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token });
+  } catch (error) {
+    console.error("Validate Session Error:", error);
+    res.status(500).json({ error: "Impossible de valider la session" });
+  }
 }
 
-export async function socketHandler(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>, next: ((err?: ExtendedError | undefined) => void)) {
+export async function socketHandler(
+  socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
+  next: (err?: ExtendedError | undefined) => void,
+) {
   try {
     const { token } = socket.handshake.auth;
     const session = await prisma.session.findUnique({
@@ -140,13 +146,15 @@ export async function socketHandler(socket: Socket<DefaultEventsMap, DefaultEven
 }
 export async function getMessageReactions(
   messageId: string,
-  currentUserId: string
+  currentUserId: string,
 ) {
+  
   const allReactions = await prisma.reaction.findMany({
     where: { messageId },
     select: {
       content: true,
       userId: true,
+      createdAt: true, 
       user: {
         select: {
           id: true,
@@ -156,23 +164,21 @@ export async function getMessageReactions(
         },
       },
     },
+    orderBy: { createdAt: "desc" },
   });
 
+  // 2. Définition du Map avec la nouvelle structure d'utilisateur
   const groupedMap = new Map<
     string,
     {
       content: string;
       count: number;
       hasReacted: boolean;
-      users: {
-        id: string;
-        displayName: string;
-        avatarUrl: string | null;
-        username: string;
-      }[];
+      users: ((typeof allReactions)[0]["user"] & { reactedAt: Date })[];
     }
   >();
 
+  // 3. Logique de regroupement
   allReactions.forEach((r) => {
     if (!groupedMap.has(r.content)) {
       groupedMap.set(r.content, {
@@ -182,10 +188,17 @@ export async function getMessageReactions(
         users: [],
       });
     }
+
     const entry = groupedMap.get(r.content)!;
     entry.count++;
-    entry.users.push(r.user);
-    if (r.user.id === currentUserId) {
+
+    // Insertion de l'utilisateur avec sa date de réaction spécifique
+    entry.users.push({
+      ...r.user,
+      reactedAt: r.createdAt,
+    });
+
+    if (r.userId === currentUserId) {
       entry.hasReacted = true;
     }
   });
@@ -214,7 +227,7 @@ export async function getMessageReads(messageId: string) {
   });
 
   if (!message) return [];
-  
+
   // On retourne la liste des utilisateurs qui ont lu, format identique à votre API
   return message.reads.map((read) => read.user);
 }
@@ -223,7 +236,7 @@ export async function getMessageReads(messageId: string) {
 export async function getFormattedRooms(
   userId: string,
   username: string,
-  cursor?: string | null
+  cursor?: string | null,
 ): Promise<RoomsSection> {
   const pageSize = 10;
 
@@ -315,9 +328,11 @@ export async function getFormattedRooms(
   return { rooms, nextCursor };
 }
 
-
 const requiredString = z.string().trim().min(1, "Champ obligatoire");
-const requiredThreeChars = requiredString.min(3, "Ce champ doit contenir au moins trois caractères")
+const requiredThreeChars = requiredString.min(
+  3,
+  "Ce champ doit contenir au moins trois caractères",
+);
 export const singleEmojiSchema = z
   .string()
   .trim()
@@ -356,13 +371,11 @@ export const sessionSchema = z.object({
 
 export type SessionValues = z.infer<typeof sessionSchema>;
 
-
 export const MessageSchema = z.object({
   content: z.string(),
   roomId: z.string(),
   senderId: z.string(),
 });
-
 
 export const addMemberSchema = z.object({
   roomId: z.string(),
@@ -391,7 +404,10 @@ export const createPostSchema = z.object({
 
 export const updateUserProfileSchema = z.object({
   displayName: requiredString.optional(),
-  bio: z.string().max(1000, "La bio ne peut pas depasser 1000 caractères.").optional(),
+  bio: z
+    .string()
+    .max(1000, "La bio ne peut pas depasser 1000 caractères.")
+    .optional(),
   birthday: z.date().optional(),
 });
 
@@ -400,365 +416,426 @@ export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;
 export const updateGroupChatProfileSchema = z.object({
   id: requiredString,
   name: z.string().trim(),
-  description: z.string().trim().max(2000, "La description ne peut pas depasser 2000 caractères."),
+  description: z
+    .string()
+    .trim()
+    .max(2000, "La description ne peut pas depasser 2000 caractères."),
 });
 
-export type UpdateGroupChatProfileValues = z.infer<typeof updateGroupChatProfileSchema>;
+export type UpdateGroupChatProfileValues = z.infer<
+  typeof updateGroupChatProfileSchema
+>;
 
 export const createCommentSchema = z.object({
-  content: requiredString.trim().max(3000, "Le commentaire ne peut pas depasser 3000 caractères."),
+  content: requiredString
+    .trim()
+    .max(3000, "Le commentaire ne peut pas depasser 3000 caractères."),
 });
 
-export function groupManagment(io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,{ userId, username, displayName, avatarUrl }: { userId: string; username: string; displayName: string; avatarUrl: string | null; }) {
+export function groupManagment(
+  io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
+  socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
+  {
+    userId,
+    username,
+    displayName,
+    avatarUrl,
+  }: {
+    userId: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  },
+) {
   // --- GESTION DE GROUPE VIA SOCKET ---
 
   // 1. Ajouter des membres
-  socket.on("group_add_members", async (input: { roomId: string; members: string[] }, callback: (data: any)=>void) => {
-    try {
-      const { roomId, members } = addMemberSchema.parse(input);
+  socket.on(
+    "group_add_members",
+    async (
+      input: { roomId: string; members: string[] },
+      callback: (data: any) => void,
+    ) => {
+      try {
+        const { roomId, members } = addMemberSchema.parse(input);
 
-      if (!members?.length) throw new Error("Selectionnez au moins un utilisateur");
+        if (!members?.length)
+          throw new Error("Selectionnez au moins un utilisateur");
 
-      const room = await prisma.room.findFirst({ where: { id: roomId }, include: { members: true } });
-      if (!room || !room.isGroup) throw new Error("Groupe invalide");
-
-      const existingMembers = room.members;
-      if (existingMembers.length >= room.maxMembers) throw new Error("Groupe plein");
-
-      const newMembers = members.filter(
-        (memberId) => !existingMembers.some((em) => em.userId === memberId)
-      );
-
-      const newMembersCreated = await prisma.roomMember.createMany({
-        data: newMembers.map((mid) => ({ userId: mid, roomId })),
-      });
-
-      if (!newMembersCreated) throw new Error("Erreur ajout membres");
-
-      // Création des messages système et notifications
-      const sentInfoMessages = await Promise.all(
-        newMembers.map(async (memberId) => {
-          const message = await prisma.message.create({
-            data: {
-              content: "add-" + memberId,
-              senderId: userId,
-              recipientId: memberId,
-              type: "NEWMEMBER",
-              roomId,
-            },
-            include: getMessageDataInclude(userId),
-          });
-          
-          // Mise à jour pour TOUS les membres actifs du groupe (Add est public)
-          const activeMemberIds = room.members
-            .filter(m => !["OLD", "BANNED"].includes(m.type))
-            .map(m => {
-              if (!m.userId) return
-              return m.userId
-            })
-            .filter(uid => ( uid !== memberId))
-            .filter((uid): uid is string => uid !== null)
-            .concat(newMembers);
-
-          await Promise.all(activeMemberIds.map(mid => 
-            prisma.lastMessage.upsert({
-               where: { userId_roomId: { userId: mid, roomId } },
-               create: { userId: mid, messageId: message.id, roomId },
-               update: { messageId: message.id, createdAt: new Date() }
-            })
-          ));
-          
-          return message;
-        })
-      );
-
-      const updatedRoom = await prisma.room.findUnique({
+        const room = await prisma.room.findFirst({
           where: { id: roomId },
-          include: getChatRoomDataInclude()
-      });
-      
-      io.to(roomId).emit("room_updated", updatedRoom);
-      sentInfoMessages.forEach(msg => {
+          include: { members: true },
+        });
+        if (!room || !room.isGroup) throw new Error("Groupe invalide");
+
+        const existingMembers = room.members;
+        if (existingMembers.length >= room.maxMembers)
+          throw new Error("Groupe plein");
+
+        const newMembers = members.filter(
+          (memberId) => !existingMembers.some((em) => em.userId === memberId),
+        );
+
+        const newMembersCreated = await prisma.roomMember.createMany({
+          data: newMembers.map((mid) => ({ userId: mid, roomId })),
+        });
+
+        if (!newMembersCreated) throw new Error("Erreur ajout membres");
+
+        // Création des messages système et notifications
+        const sentInfoMessages = await Promise.all(
+          newMembers.map(async (memberId) => {
+            const message = await prisma.message.create({
+              data: {
+                content: "add-" + memberId,
+                senderId: userId,
+                recipientId: memberId,
+                type: "NEWMEMBER",
+                roomId,
+              },
+              include: getMessageDataInclude(userId),
+            });
+
+            // Mise à jour pour TOUS les membres actifs du groupe (Add est public)
+            const activeMemberIds = room.members
+              .filter((m) => !["OLD", "BANNED"].includes(m.type))
+              .map((m) => {
+                if (!m.userId) return;
+                return m.userId;
+              })
+              .filter((uid) => uid !== memberId)
+              .filter((uid): uid is string => uid !== null)
+              .concat(newMembers);
+
+            await Promise.all(
+              activeMemberIds.map((mid) =>
+                prisma.lastMessage.upsert({
+                  where: { userId_roomId: { userId: mid, roomId } },
+                  create: { userId: mid, messageId: message.id, roomId },
+                  update: { messageId: message.id, createdAt: new Date() },
+                }),
+              ),
+            );
+
+            return message;
+          }),
+        );
+
+        const updatedRoom = await prisma.room.findUnique({
+          where: { id: roomId },
+          include: getChatRoomDataInclude(),
+        });
+
+        io.to(roomId).emit("room_updated", updatedRoom);
+        sentInfoMessages.forEach((msg) => {
           io.to(roomId).emit("receive_message", { newMessage: msg, roomId });
-      });
+        });
 
-      const allMembersToUpdate = (updatedRoom?.members.filter(m => !["OLD", "BANNED"].includes(m.type)).map(m => m.userId) || []).filter((uid) => uid !== undefined) as string[];
-      allMembersToUpdate.forEach(async (mid) => {
-         const userRooms = await getFormattedRooms(mid, "");
-         io.to(mid).emit("room_list_updated", userRooms);
-         if (newMembers.includes(mid)) {
-             io.to(mid).emit("added_to_group", updatedRoom);
-         }
-      });
+        const allMembersToUpdate = (
+          updatedRoom?.members
+            .filter((m) => !["OLD", "BANNED"].includes(m.type))
+            .map((m) => m.userId) || []
+        ).filter((uid) => uid !== undefined) as string[];
+        allMembersToUpdate.forEach(async (mid) => {
+          const userRooms = await getFormattedRooms(mid, "");
+          io.to(mid).emit("room_list_updated", userRooms);
+          if (newMembers.includes(mid)) {
+            io.to(mid).emit("added_to_group", updatedRoom);
+          }
+        });
 
-      callback({ success: true, data: { roomId } });
-
-    } catch (error: any) {
-      console.error("Erreur group_add_members:", error);
-      callback({ success: false, error: error.message || "Erreur serveur" });
-    }
-  });
+        callback({ success: true, data: { roomId } });
+      } catch (error: any) {
+        console.error("Erreur group_add_members:", error);
+        callback({ success: false, error: error.message || "Erreur serveur" });
+      }
+    },
+  );
 
   // 2. Ajouter/Retirer Admin
   socket.on("group_add_admin", async (input, callback) => {
     try {
-        const { roomId, member: targetId } = addAdminSchema.parse(input);
-        
-        const roomMember = await prisma.roomMember.findUnique({
-            where: { roomId_userId: { roomId, userId: targetId } }
-        });
+      const { roomId, member: targetId } = addAdminSchema.parse(input);
 
-        if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
-            throw new Error("Membre invalide");
-        }
+      const roomMember = await prisma.roomMember.findUnique({
+        where: { roomId_userId: { roomId, userId: targetId } },
+      });
 
-        const newType = roomMember.type === "ADMIN" ? "MEMBER" : "ADMIN";
-        const newRoomMember = await prisma.roomMember.update({
-            where: { roomId_userId: { roomId, userId: targetId } },
-            data: { type: newType }
-        });
+      if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
+        throw new Error("Membre invalide");
+      }
 
-        io.to(roomId).emit("member_role_updated", { 
-            roomId, 
-            userId: targetId, 
-            newType 
-        });
+      const newType = roomMember.type === "ADMIN" ? "MEMBER" : "ADMIN";
+      const newRoomMember = await prisma.roomMember.update({
+        where: { roomId_userId: { roomId, userId: targetId } },
+        data: { type: newType },
+      });
 
-        callback({ success: true, data: { newRoomMember } });
+      io.to(roomId).emit("member_role_updated", {
+        roomId,
+        userId: targetId,
+        newType,
+      });
 
-    } catch(error: any) {
-        callback({ success: false, error: error.message });
+      callback({ success: true, data: { newRoomMember } });
+    } catch (error: any) {
+      callback({ success: false, error: error.message });
     }
   });
 
   // 3. Retirer un membre (Kick)
   socket.on("group_remove_member", async (input, callback) => {
     try {
-        const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-        if (!targetId) throw new Error("Membre invalide");
+      const { roomId, memberId: targetId } = memberActionSchema.parse(input);
+      if (!targetId) throw new Error("Membre invalide");
 
-        const roomMember = await prisma.roomMember.findUnique({
-            where: { roomId_userId: { roomId, userId: targetId } }
-        });
-        if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
-             throw new Error("Membre déjà parti ou invalide");
-        }
+      const roomMember = await prisma.roomMember.findUnique({
+        where: { roomId_userId: { roomId, userId: targetId } },
+      });
+      if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
+        throw new Error("Membre déjà parti ou invalide");
+      }
 
+      const removeMsg = await prisma.message.create({
+        data: {
+          content: "leave",
+          roomId,
+          type: "LEAVE",
+          senderId: userId,
+          recipientId: targetId,
+        },
+        include: getMessageDataInclude(userId),
+      });
 
-        const removeMsg = await prisma.message.create({
-            data: {
-                content: "leave",
-                roomId,
-                type: "LEAVE",
-                senderId: userId, 
-                recipientId: targetId
-            },
-            include: getMessageDataInclude(userId)
-        });
+      // Mise à jour UNIQUE pour le banni et l'admin qui a fait l'action (consigne : pas les autres)
+      const relevantUsers = [userId, targetId];
+      await Promise.all(
+        relevantUsers.map((uid) =>
+          prisma.lastMessage.upsert({
+            where: { userId_roomId: { userId: uid, roomId } },
+            create: { userId: uid, roomId, messageId: removeMsg.id },
+            update: { messageId: removeMsg.id, createdAt: new Date() },
+          }),
+        ),
+      );
+      await prisma.roomMember.update({
+        where: { roomId_userId: { roomId, userId: targetId } },
+        data: { type: "OLD", leftAt: new Date(), kickedAt: new Date() },
+      });
 
-        // Mise à jour UNIQUE pour le banni et l'admin qui a fait l'action (consigne : pas les autres)
-        const relevantUsers = [userId, targetId];
-        await Promise.all(relevantUsers.map(uid => 
-            prisma.lastMessage.upsert({
-                where: { userId_roomId: { userId: uid, roomId } },
-                create: { userId: uid, roomId, messageId: removeMsg.id },
-                update: { messageId: removeMsg.id, createdAt: new Date() }
-            })
-        ));
-        await prisma.roomMember.update({
-            where: { roomId_userId: { roomId, userId: targetId } },
-            data: { type: "OLD", leftAt: new Date(), kickedAt: new Date() }
-        });
+      io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
+      io.to(roomId).emit("member_removed", { roomId, userId: targetId });
 
-        io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
-        io.to(roomId).emit("member_removed", { roomId, userId: targetId });
-        
-        // Rafraichir seulement pour les concernés
-        for(const uid of relevantUsers) {
-            const userRooms = await getFormattedRooms(uid, "");
-            io.to(uid).emit("room_list_updated", userRooms);
-        }
+      // Rafraichir seulement pour les concernés
+      for (const uid of relevantUsers) {
+        const userRooms = await getFormattedRooms(uid, "");
+        io.to(uid).emit("room_list_updated", userRooms);
+      }
 
-        callback({ success: true });
-
-    } catch(error: any) {
-        callback({ success: false, error: error.message });
+      callback({ success: true });
+    } catch (error: any) {
+      callback({ success: false, error: error.message });
     }
   });
 
   // 4. Bannir un membre
   socket.on("group_ban_member", async (input, callback) => {
     try {
-        const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-        if (!targetId) throw new Error("Membre invalide");
+      const { roomId, memberId: targetId } = memberActionSchema.parse(input);
+      if (!targetId) throw new Error("Membre invalide");
 
-        await prisma.roomMember.update({
-            where: { roomId_userId: { roomId, userId: targetId } },
-            data: { type: "BANNED", leftAt: new Date() }
-        });
+      await prisma.roomMember.update({
+        where: { roomId_userId: { roomId, userId: targetId } },
+        data: { type: "BANNED", leftAt: new Date() },
+      });
 
-        const banMsg = await prisma.message.create({
-            data: {
-                content: "ban",
-                roomId,
-                type: "BAN",
-                senderId: userId,
-                recipientId: targetId
-            },
-            include: getMessageDataInclude(userId)
-        });
+      const banMsg = await prisma.message.create({
+        data: {
+          content: "ban",
+          roomId,
+          type: "BAN",
+          senderId: userId,
+          recipientId: targetId,
+        },
+        include: getMessageDataInclude(userId),
+      });
 
-        // Mise à jour UNIQUE pour le banni et l'admin
-        const relevantUsers = [userId, targetId];
-        await Promise.all(relevantUsers.map(uid => 
-            prisma.lastMessage.upsert({
-                where: { userId_roomId: { userId: uid, roomId } },
-                create: { userId: uid, roomId, messageId: banMsg.id },
-                update: { messageId: banMsg.id, createdAt: new Date() }
-            })
-        ));
+      // Mise à jour UNIQUE pour le banni et l'admin
+      const relevantUsers = [userId, targetId];
+      await Promise.all(
+        relevantUsers.map((uid) =>
+          prisma.lastMessage.upsert({
+            where: { userId_roomId: { userId: uid, roomId } },
+            create: { userId: uid, roomId, messageId: banMsg.id },
+            update: { messageId: banMsg.id, createdAt: new Date() },
+          }),
+        ),
+      );
 
-        io.to(roomId).emit("member_banned", { roomId, userId: targetId });
-        io.to(roomId).emit("receive_message", { newMessage: banMsg, roomId });
+      io.to(roomId).emit("member_banned", { roomId, userId: targetId });
+      io.to(roomId).emit("receive_message", { newMessage: banMsg, roomId });
 
-        for(const uid of relevantUsers) {
-            const userRooms = await getFormattedRooms(uid, "");
-            io.to(uid).emit("room_list_updated", userRooms);
-        }
+      for (const uid of relevantUsers) {
+        const userRooms = await getFormattedRooms(uid, "");
+        io.to(uid).emit("room_list_updated", userRooms);
+      }
 
-        callback({ success: true });
-    } catch(error: any) {
-        callback({ success: false, error: error.message });
+      callback({ success: true });
+    } catch (error: any) {
+      callback({ success: false, error: error.message });
     }
   });
 
   // 5. Quitter le groupe (Volontaire)
   socket.on("group_leave", async (input, callback) => {
-      try {
-        const { roomId, deleteGroup } = memberActionSchema.parse(input);
-        
-        const room = await prisma.room.findUnique({
-            where: { id: roomId },
-            include: { members: true }
-        });
-        
-        if (!room) throw new Error("Groupe introuvable");
+    try {
+      const { roomId, deleteGroup } = memberActionSchema.parse(input);
 
-        const roomMember = room.members.find(m => m.userId === userId);
-        if (!roomMember) throw new Error("Non membre");
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { members: true },
+      });
 
-        let groupDeleted = false;
+      if (!room) throw new Error("Groupe introuvable");
 
-        if (roomMember.type === "OWNER") {
-            const activeMembers = room.members.filter(m => !["OLD", "BANNED"].includes(m.type));
-            
-            if (activeMembers.length === 1 || deleteGroup) {
-                await prisma.room.delete({ where: { id: roomId } });
-                groupDeleted = true;
-            } else {
-                 const nextOwner = activeMembers
-                    .filter(m => m.userId !== userId)
-                    .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
-                 
-                 if (nextOwner) {
-                     await prisma.roomMember.update({
-                         where: { roomId_userId: { roomId, userId: nextOwner.userId || "" } },
-                         data: { type: "OWNER" }
-                     });
-                     io.to(roomId).emit("member_role_updated", { roomId, userId: nextOwner.userId, newType: "OWNER" });
-                 }
-            }
-        }
+      const roomMember = room.members.find((m) => m.userId === userId);
+      if (!roomMember) throw new Error("Non membre");
 
-        if (groupDeleted) {
-            io.to(roomId).emit("room_deleted", { roomId });
-            const userRooms = await getFormattedRooms(userId, username);
-            io.to(userId).emit("room_list_updated", userRooms);
+      let groupDeleted = false;
+
+      if (roomMember.type === "OWNER") {
+        const activeMembers = room.members.filter(
+          (m) => !["OLD", "BANNED"].includes(m.type),
+        );
+
+        if (activeMembers.length === 1 || deleteGroup) {
+          await prisma.room.delete({ where: { id: roomId } });
+          groupDeleted = true;
         } else {
-            const leaveMsg = await prisma.message.create({
-                data: { content: "leave", roomId, type: "LEAVE", recipientId: userId },
-                include: getMessageDataInclude(userId)
-            });
+          const nextOwner = activeMembers
+            .filter((m) => m.userId !== userId)
+            .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime())[0];
+
+          if (nextOwner) {
             await prisma.roomMember.update({
-                where: { roomId_userId: { roomId, userId } },
-                data: { type: "OLD", leftAt: new Date() }
+              where: {
+                roomId_userId: { roomId, userId: nextOwner.userId || "" },
+              },
+              data: { type: "OWNER" },
             });
-
-            // Pour un départ volontaire, on met à jour pour TOUS les membres actifs restants + celui qui part
-            const activeMemberIds = room.members
-                .filter(m => !["OLD", "BANNED"].includes(m.type))
-                .map(m => m.userId)
-                .filter((uid): uid is string => uid !== null);
-
-            await Promise.all(activeMemberIds.map(uid => 
-                prisma.lastMessage.upsert({
-                    where: { userId_roomId: { userId: uid, roomId } },
-                    create: { userId: uid, roomId, messageId: leaveMsg.id },
-                    update: { messageId: leaveMsg.id, createdAt: new Date() }
-                })
-            ));
-
-            io.to(roomId).emit("member_left", { roomId, userId });
-            io.to(roomId).emit("receive_message", { newMessage: leaveMsg, roomId });
-
-            activeMemberIds.forEach(async (uid) => {
-                const userRooms = await getFormattedRooms(uid, "");
-                io.to(uid).emit("room_list_updated", userRooms);
+            io.to(roomId).emit("member_role_updated", {
+              roomId,
+              userId: nextOwner.userId,
+              newType: "OWNER",
             });
+          }
         }
-        
-        callback({ success: true });
-
-      } catch (error: any) {
-          callback({ success: false, error: error.message });
       }
+
+      if (groupDeleted) {
+        io.to(roomId).emit("room_deleted", { roomId });
+        const userRooms = await getFormattedRooms(userId, username);
+        io.to(userId).emit("room_list_updated", userRooms);
+      } else {
+        const leaveMsg = await prisma.message.create({
+          data: {
+            content: "leave",
+            roomId,
+            type: "LEAVE",
+            recipientId: userId,
+          },
+          include: getMessageDataInclude(userId),
+        });
+        await prisma.roomMember.update({
+          where: { roomId_userId: { roomId, userId } },
+          data: { type: "OLD", leftAt: new Date() },
+        });
+
+        // Pour un départ volontaire, on met à jour pour TOUS les membres actifs restants + celui qui part
+        const activeMemberIds = room.members
+          .filter((m) => !["OLD", "BANNED"].includes(m.type))
+          .map((m) => m.userId)
+          .filter((uid): uid is string => uid !== null);
+
+        await Promise.all(
+          activeMemberIds.map((uid) =>
+            prisma.lastMessage.upsert({
+              where: { userId_roomId: { userId: uid, roomId } },
+              create: { userId: uid, roomId, messageId: leaveMsg.id },
+              update: { messageId: leaveMsg.id, createdAt: new Date() },
+            }),
+          ),
+        );
+
+        io.to(roomId).emit("member_left", { roomId, userId });
+        io.to(roomId).emit("receive_message", { newMessage: leaveMsg, roomId });
+
+        activeMemberIds.forEach(async (uid) => {
+          const userRooms = await getFormattedRooms(uid, "");
+          io.to(uid).emit("room_list_updated", userRooms);
+        });
+      }
+
+      callback({ success: true });
+    } catch (error: any) {
+      callback({ success: false, error: error.message });
+    }
   });
 
   // 6. Restaurer un membre
   socket.on("group_restore_member", async (input, callback) => {
-      try {
-          const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-          if (!targetId) throw new Error("Membre invalide");
-          
-          await prisma.roomMember.update({
-              where: { roomId_userId: { roomId, userId: targetId } },
-              data: { type: "MEMBER", leftAt: null }
-          });
+    try {
+      const { roomId, memberId: targetId } = memberActionSchema.parse(input);
+      if (!targetId) throw new Error("Membre invalide");
 
-          const msg = await prisma.message.create({
-              data: {
-                  content: "add-" + targetId,
-                  senderId: userId,
-                  recipientId: targetId,
-                  type: "NEWMEMBER",
-                  roomId
-              },
-              include: getMessageDataInclude(userId)
-          });
+      await prisma.roomMember.update({
+        where: { roomId_userId: { roomId, userId: targetId } },
+        data: { type: "MEMBER", leftAt: null },
+      });
 
-          // Mise à jour pour TOUS les membres actifs (restauration publique)
-          const room = await prisma.room.findUnique({ where: { id: roomId }, include: { members: true } });
-          const activeMemberIds = (room?.members.filter(m => !["OLD", "BANNED"].includes(m.type)).map(m => m.userId) || []).filter((uid): uid is string => uid !== null);
+      const msg = await prisma.message.create({
+        data: {
+          content: "add-" + targetId,
+          senderId: userId,
+          recipientId: targetId,
+          type: "NEWMEMBER",
+          roomId,
+        },
+        include: getMessageDataInclude(userId),
+      });
 
-          await Promise.all(activeMemberIds.map(uid => 
-            prisma.lastMessage.upsert({
-                where: { userId_roomId: { userId: uid, roomId } },
-                create: { userId: uid, roomId, messageId: msg.id },
-                update: { messageId: msg.id, createdAt: new Date() }
-            })
-          ));
+      // Mise à jour pour TOUS les membres actifs (restauration publique)
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { members: true },
+      });
+      const activeMemberIds = (
+        room?.members
+          .filter((m) => !["OLD", "BANNED"].includes(m.type))
+          .map((m) => m.userId) || []
+      ).filter((uid): uid is string => uid !== null);
 
-          io.to(roomId).emit("member_restored", { roomId, userId: targetId });
-          io.to(roomId).emit("receive_message", { newMessage: msg, roomId });
+      await Promise.all(
+        activeMemberIds.map((uid) =>
+          prisma.lastMessage.upsert({
+            where: { userId_roomId: { userId: uid, roomId } },
+            create: { userId: uid, roomId, messageId: msg.id },
+            update: { messageId: msg.id, createdAt: new Date() },
+          }),
+        ),
+      );
 
-          activeMemberIds.forEach(async (uid) => {
-            const userRooms = await getFormattedRooms(uid, "");
-            io.to(uid).emit("room_list_updated", userRooms);
-          });
-          
-          callback({ success: true });
-      } catch (error: any) {
-          callback({ success: false, error: error.message });
-      }
+      io.to(roomId).emit("member_restored", { roomId, userId: targetId });
+      io.to(roomId).emit("receive_message", { newMessage: msg, roomId });
+
+      activeMemberIds.forEach(async (uid) => {
+        const userRooms = await getFormattedRooms(uid, "");
+        io.to(uid).emit("room_list_updated", userRooms);
+      });
+
+      callback({ success: true });
+    } catch (error: any) {
+      callback({ success: false, error: error.message });
+    }
   });
 }

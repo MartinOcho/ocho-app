@@ -394,7 +394,7 @@ io.on("connection", async (socket) => {
           },
           update: {
             content,
-            readAt: new Date(),
+            createdAt: new Date(),
           },
           select: { id: true },
         });

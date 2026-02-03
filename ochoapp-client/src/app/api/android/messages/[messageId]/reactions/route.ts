@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { ReactionData } from "@/lib/types";
+import { GroupedUser, ReactionData } from "@/lib/types";
 import { getCurrentUser } from "../../../auth/utils";
 import { NextResponse } from "next/server";
 import { ApiResponse } from "../../../utils/dTypes";
@@ -33,7 +33,9 @@ export async function GET(
               },
             },
             content: true,
+            createdAt: true,
           },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -50,12 +52,7 @@ export async function GET(
         content: string;
         count: number;
         hasReacted: boolean;
-        users: {
-          id: string;
-          displayName: string;
-          avatarUrl: string | null;
-          username: string;
-        }[];
+        users: GroupedUser[]; 
       }
     >();
 
@@ -68,14 +65,22 @@ export async function GET(
           users: [],
         });
       }
+      
       const entry = groupedMap.get(r.content)!;
       entry.count++;
-      entry.users.push(r.user);
+
+      entry.users.push({
+        ...r.user,
+        reactedAt: r.createdAt,
+      });
+
       if (r.user.id === loggedInUser.id) {
         entry.hasReacted = true;
       }
     });
-    const groupedReactions = Array.from(groupedMap.values());
+
+    const groupedReactions = Array.from(groupedMap.values())
+    
     return NextResponse.json<ApiResponse<typeof groupedReactions>>({
       success: true,
       data: groupedReactions,

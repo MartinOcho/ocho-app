@@ -251,7 +251,7 @@ model Reaction {
   reactionMessage Message[] @relation("Sender")
   content         String
 
-  readAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([userId, messageId])
   @@map("reactions")

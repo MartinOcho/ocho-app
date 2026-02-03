@@ -436,6 +436,14 @@ export interface ReactionData {
     avatarUrl: string | null;
   };
   content: string;
+  createdAt: Date;
+}
+export interface GroupedUser {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  reactedAt: Date; 
 }
 export interface ReactionInfo {
   reactions: number;
