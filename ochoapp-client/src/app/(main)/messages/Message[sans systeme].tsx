@@ -10,22 +10,12 @@ import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
 import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
-import { 
-  Undo2, 
-  Check, 
-  CheckCheck, 
-  UserPlus, 
-  LogOut, 
-  ShieldAlert, 
-  Info,
-  Sparkles
-} from "lucide-react";
+import { Undo2, Check, CheckCheck } from "lucide-react";
 import ReactionOverlay, {
   ReactionData,
   ReactionDetailsPopover,
   ReactionList,
 } from "./reaction/ReactionOverlay";
-import GroupAvatar from "@/components/GroupAvatar";
 
 // --- TYPES ---
 type MessageProps = {
@@ -277,29 +267,7 @@ export default function Message({
   const detailsButtonRef = useRef<HTMLButtonElement>(null);
 
   const {
-    appUser,
-    newMember,
-    youAddedMember,
-    addedYou,
-    addedMember,
-    memberLeft,
-    youRemovedMember,
-    removedYou,
-    removedMember,
-    memberBanned,
-    youBannedMember,
-    bannedYou,
-    bannedMember,
-    youCreatedGroup,
-    createdGroup,
-    canChatWithYou,
-    youReactedToYourMessage,
-    youReactedToMessage,
-    reactedToMessage,
-    reactedMemberMessage,
-    messageYourself,
-    unavailableMessage,
-    deletedChat,
+    unavailableMessage
   } = t();
 
   // --- REQUETES REACTIONS ---
@@ -451,7 +419,6 @@ export default function Message({
 
   const reads = data?.reads ?? [];
   const isSender = message.senderId === loggedUser?.id;
-  const isRecipient = message.recipient?.id === loggedUser?.id;
 
   const hasBeenRead = reads.filter(r => r.id !== message.senderId).length > 0;
   const readStatus = hasBeenRead ? 'read' : 'delivered';
@@ -479,143 +446,12 @@ export default function Message({
   };
 
   if (!loggedUser) return null;
-
-  // --- LOGIQUE NOMS ET TYPES SYSTEME ---
-  const messageType: MessageType = message.type;
-  const otherUser = room.id === `saved-${loggedUser.id}`
-      ? { user: loggedUser, userId: loggedUser.id }
-      : room?.members?.filter((member) => member.userId !== loggedUser.id)[0];
-  
-  const otherUserFirstName = otherUser?.user?.displayName.split(" ")[0] || appUser;
-  const senderFirstName = message.sender?.displayName.split(" ")[0] || appUser;
-  const recipientFirstName = message.recipient?.displayName.split(" ")[0] || appUser;
-
-  // Construction des messages système
-  let systemContent: React.ReactNode = null;
-  let systemIcon: React.ReactNode = null;
-  let SystemWrapperClass = "flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground/80 w-full";
-
-  // --- LOGIQUE CONTENU SYSTEME ---
-  if (messageType !== "CONTENT" && messageType !== "REACTION") {
-    
-    // 1. NEWMEMBER / LEAVE / BAN
-    if (message.recipient && room.isGroup) {
-      const memberName = recipientFirstName;
-      
-      // -- NEWMEMBER --
-      if (messageType === "NEWMEMBER") {
-        systemIcon = <UserPlus size={14} className="text-green-500" />;
-        let text = newMember.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (text = youAddedMember.replace("[name]", memberName))
-            : (text = isRecipient
-                ? addedYou.replace("[name]", senderFirstName)
-                : addedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
-        systemContent = text;
-      }
-      // -- LEAVE --
-      if (messageType === "LEAVE") {
-        systemIcon = <LogOut size={14} className="text-orange-400" />;
-        let text = memberLeft.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (text = youRemovedMember.replace("[name]", memberName))
-            : (text = isRecipient
-                ? removedYou.replace("[name]", senderFirstName)
-                : removedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
-        systemContent = text;
-      }
-      // -- BAN --
-      if (messageType === "BAN") {
-        systemIcon = <ShieldAlert size={14} className="text-destructive" />;
-        let text = memberBanned.replace("[name]", memberName);
-        if (message.sender) {
-          isSender
-            ? (text = youBannedMember.replace("[name]", memberName))
-            : (text = isRecipient
-                ? bannedYou.replace("[name]", senderFirstName)
-                : bannedMember
-                    .replace("[name]", senderFirstName)
-                    .replace("[member]", memberName));
-        }
-        systemContent = text;
-      }
-    }
-
-    // 2. CREATE
-    if (messageType === "CREATE") {
-        const text = room.isGroup
-            ? isSender
-                ? youCreatedGroup.replace("[name]", senderFirstName)
-                : createdGroup.replace("[name]", senderFirstName)
-            : canChatWithYou.replace("[name]", otherUserFirstName || appUser);
-            
-        // Design Spécial pour CREATE (Room Details)
-        if (room.isGroup) {
-            return (
-                <div className="w-full flex justify-center py-6">
-                    <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl bg-gradient-to-b from-muted/50 to-muted/20 border border-muted/50 shadow-sm max-w-[280px]">
-                        <div className="relative">
-                            <GroupAvatar avatarUrl={room.groupAvatarUrl} size={60} className="shadow-md border-2 border-background" />
-                            <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-background">
-                                <Sparkles size={12} fill="currentColor" />
-                            </div>
-                        </div>
-                        <div className="text-center space-y-1">
-                            <h3 className="font-bold text-foreground line-clamp-1 text-sm">{room.name || t("group")}</h3>
-                            <p className="text-xs text-muted-foreground">{text}</p>
-                            <div className="text-[10px] text-muted-foreground/60 pt-2 border-t border-muted/50 mt-2">
-                                <Time time={message.createdAt} full />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        } else {
-            systemContent = text;
-            systemIcon = <Info size={14} />;
-        }
-    }
-
-    // 3. SAVED
-    if (messageType === "SAVED") {
-        systemContent = messageYourself;
-        systemIcon = <Check size={14} />;
-    }
-
-    // 4. CLEAR / DELETE
-    if (messageType === "CLEAR") systemContent = t("noMessage");
-    if (messageType === "DELETE") systemContent = deletedChat;
-
-    // Rendu des messages système génériques
-    if (systemContent) {
-        return (
-            <div className={SystemWrapperClass}>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/40 border border-transparent hover:border-border transition-colors">
-                    {systemIcon}
-                    <span className="font-medium">{systemContent}</span>
-                    <span className="text-[10px] opacity-60 pl-1 border-l border-foreground/10 ml-1">
-                        <Time time={message.createdAt} />
-                    </span>
-                </div>
-            </div>
-        );
-    }
-  }
-
-  // Si c'est un message REACTION simple sans contenu, on ne l'affiche pas (géré par overlay)
-  if (messageType === "REACTION" || (messageType !== "CONTENT" && !systemContent)) return null; 
-
-  // --- RENDU MESSAGES CHAT (CONTENT) ---
   const readers = reads.filter((read) => read.id !== loggedUser.id && read.id !== message.senderId);
+  const messageType: MessageType = message.type;
   const isOwner = message.senderId === loggedUser.id;
+
+  if (messageType !== "CONTENT" && messageType !== "REACTION") return null; 
+  if (messageType !== "CONTENT") return null;
 
   return (
     <>
