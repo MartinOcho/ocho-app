@@ -575,8 +575,25 @@ export default function Message({
                 </div>
             );
         } else {
-            systemContent = text;
-            systemIcon = <Info size={14} />;
+            return (
+                <div className="w-full flex justify-center py-6 select-none">
+                    <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl border border-border bg-muted/50 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80 max-w-[280px]">
+                        <div className="relative">
+                            <UserAvatar userId={otherUser?.user?.id || ''} avatarUrl={otherUser?.user?.avatarUrl} size={80} className="shadow-md border-2 border-background" />
+                            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1 rounded-full border-2 border-background">
+                                <Sparkles size={12} fill="currentColor" />
+                            </div>
+                        </div>
+                        <div className="text-center space-y-1">
+                            <h3 className="font-bold text-foreground line-clamp-1 text-sm">{otherUser?.user?.displayName || t("appUser")}</h3>
+                            <p className="text-xs text-muted-foreground">{text}</p>
+                            <div className="text-[10px] text-muted-foreground/60 pt-2 border-t border-muted/50 mt-2">
+                                <Time time={message.createdAt} full />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         }
     }
 
