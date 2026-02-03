@@ -238,7 +238,7 @@ export const MessageBubbleContent = ({
              {isOwner && !isClone && readStatus && (
                 <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
                     {readStatus === 'read' 
-                        ? <CheckCheck size={14} className="text-[#ffb44b] dark:text-blue-400" /> 
+                        ? <CheckCheck size={14} className="text-cyan-200 dark:text-blue-400" /> 
                         : <Check size={14} className="opacity-70" />
                     }
                 </span>
@@ -560,11 +560,11 @@ export default function Message({
         // Design Spécial pour CREATE (Room Details)
         if (room.isGroup) {
             return (
-                <div className="w-full flex justify-center py-6">
+                <div className="w-full flex justify-center py-6 select-none">
                     <div className="flex flex-col items-center justify-center gap-3 p-4 px-8 rounded-2xl bg-gradient-to-b from-muted/50 to-muted/20 border border-muted/50 shadow-sm max-w-[280px]">
                         <div className="relative">
                             <GroupAvatar avatarUrl={room.groupAvatarUrl} size={60} className="shadow-md border-2 border-background" />
-                            <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full border-2 border-background">
+                            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1 rounded-full border-2 border-background">
                                 <Sparkles size={12} fill="currentColor" />
                             </div>
                         </div>
@@ -598,7 +598,7 @@ export default function Message({
     if (systemContent) {
         return (
             <div className={SystemWrapperClass}>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/40 border border-transparent hover:border-border transition-colors">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/40 border border-transparent hover:border-border transition-colors select-none">
                     {systemIcon}
                     <span className="font-medium">{systemContent}</span>
                     <span className="text-[10px] opacity-60 pl-1 border-l border-foreground/10 ml-1">
