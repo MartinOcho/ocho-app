@@ -6,7 +6,7 @@ import { useMenuBar } from "@/context/MenuBarContext";
 import { cn } from "@/lib/utils";
 
 export default function BottomMenuBar() {
-  const { isVisible: isContextVisible } = useMenuBar();
+ const { isVisible: isContextVisible } = useMenuBar();
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const lastScrollY = useRef(new Map());
 
@@ -64,14 +64,19 @@ export default function BottomMenuBar() {
 
   const showBar = isContextVisible && !isScrollingDown;
 
+
   return (
     <div
       className={cn(
-        "fixed bottom-0 z-50 w-full p-3 transition-transform duration-300 ease-in-out sm:hidden",
+        "fixed bottom-0 z-50 inline-flex min-h-fit w-full max-w-full justify-around gap-0 overflow-x-hidden p-3 transition-transform duration-300 ease-in-out sm:hidden",
         !showBar ? "translate-y-full" : "translate-y-0"
       )}
     >
-      <MenuBar className="bg-card/50 backdrop-blur-md p-1 rounded-[1.65rem] border shadow-lg" />
+      <MenuBar
+        className={cn(
+          "inline-flex min-h-fit w-full max-w-full justify-around gap-0 overflow-x-hidden bg-card/50 backdrop-blur-md p-1 rounded-[1.65rem] border shadow-lg"
+        )}
+      />
     </div>
   );
 }
