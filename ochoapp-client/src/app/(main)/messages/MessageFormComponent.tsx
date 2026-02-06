@@ -294,7 +294,7 @@ export function MessageFormComponent({
         onClick={handleFileClick}
         title="Joindre un fichier"
         className={cn(
-          "ml-2 mr-1 rounded-full p-2 transition-colors",
+          "rounded-full transition-colors",
           !canAttach && "opacity-50 cursor-not-allowed",
           attachments.some((a) => a.isUploading)
             ? "text-amber-500 hover:text-amber-600"
