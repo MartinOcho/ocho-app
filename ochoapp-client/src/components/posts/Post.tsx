@@ -212,6 +212,7 @@ export default function Post({ post }: PostProps) {
         <div className="flex items-center gap-5">
           <LikeButton
             postId={post.id}
+            recipientId={post.user.id}
             initialState={{
               likes: post._count.likes,
               isLikedByUser: post.likes.some((like) => like.userId === user.id),

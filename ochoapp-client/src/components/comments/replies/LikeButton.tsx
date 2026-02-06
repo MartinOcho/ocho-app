@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
+import { useSocket } from "@/components/providers/SocketProvider";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
@@ -26,6 +27,7 @@ export default function LikeButton({
 }: LikeButtonProps) {
   const { toast } = useToast();
   const { like: likeText, likes: likesText, unLike, somethingWentWrong } = t();
+  const { socket } = useSocket();
   const commentId = comment.id;
 
   const queryClient = useQueryClient();
@@ -59,6 +61,16 @@ export default function LikeButton({
       }));
 
       return { previousState };
+    },
+    onSuccess() {
+      if (socket?.connected) {
+        socket.emit("create_notification", {
+          type: "COMMENT_LIKE",
+          recipientId: comment.userId,
+          commentId: comment.id,
+          postId: comment.postId,
+        });
+      }
     },
     onError(error, variable, context) {
       queryClient.setQueryData(queryKey, context?.previousState);

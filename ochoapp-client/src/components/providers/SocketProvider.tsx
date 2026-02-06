@@ -24,6 +24,7 @@ interface SocketContextType {
   onlineStatus: Record<string, { isOnline: boolean; lastSeen?: Date }>;
   checkUserStatus: (userId: string) => void;
   retryConnection: () => void;
+  notificationsUnread?: number | null;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -33,6 +34,7 @@ const SocketContext = createContext<SocketContextType>({
   onlineStatus: {},
   checkUserStatus: () => {},
   retryConnection: () => {},
+  notificationsUnread: null,
 });
 
 // Hook personnalisé pour utiliser le socket
@@ -76,6 +78,7 @@ export default function SocketProvider({
   >({});
   const [isServerTriggered, setIsServerTriggered] = useState(false);
   const [forceReconnect, setForceReconnect] = useState(0);
+  const [notificationsUnread, setNotificationsUnread] = useState<number | null>(null);
 
   // Fonction stable pour émettre des événements
   const checkUserStatus = useCallback((targetUserId: string) => {
@@ -148,6 +151,17 @@ export default function SocketProvider({
       setIsConnected(true);
       setIsConnecting(false);
 
+      // Charger l'état initial des notifications non lues
+      kyInstance
+        .get("/api/notifications/unread-count")
+        .json()
+        .then((d: any) => {
+          if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
+            setNotificationsUnread(d.unreadCount);
+          }
+        })
+        .catch(() => {});
+
       // On masque le toast de statut après un délai
       setTimeout(() => {
         if (!isComponentUnmounted) setShowStatus(false);
@@ -203,6 +217,16 @@ export default function SocketProvider({
       toast({ description: t().youAreAddedToANewRoom });
     };
 
+    const onNotificationsUnreadUpdate = (data: { unreadCount: number }) => {
+      if (isComponentUnmounted) return;
+      setNotificationsUnread(typeof data?.unreadCount === "number" ? data.unreadCount : null);
+    };
+
+    const onNotificationReceived = (notification: any) => {
+      if (isComponentUnmounted) return;
+      console.log("Notification received:", notification);
+    };
+
     // Événements Système (Reconnexion)
     const onReconnectAttempt = () => {
       if (isComponentUnmounted) return;
@@ -221,12 +245,14 @@ export default function SocketProvider({
       }, 3000);
     };
 
-    // Attachement des écouteurs
+    // Attachement des ecouteurs
     socketInstance.on("connect", onConnect);
     socketInstance.on("disconnect", onDisconnect);
     socketInstance.on("connect_error", onConnectError);
     socketInstance.on("user_status_change", onUserStatusChange);
     socketInstance.on("new_room_created", onNewRoomCreated);
+    socketInstance.on("notifications_unread_update", onNotificationsUnreadUpdate);
+    socketInstance.on("notification_received", onNotificationReceived);
 
     // Écouteurs sur le manager (io)
     socketInstance.io.on("reconnect_attempt", onReconnectAttempt);
@@ -243,10 +269,12 @@ export default function SocketProvider({
       // 1. On lève le drapeau pour bloquer toute logique dans les écouteurs ci-dessus
       isComponentUnmounted = true;
 
-      // 2. Suppression de TOUS les écouteurs pour éviter les fuites et les appels fantômes
+      // 2. Suppression de TOUS les ecouteurs pour eviter les fuites et les appels fantomes
       socketInstance.removeAllListeners();
       socketInstance.io.off("reconnect_attempt", onReconnectAttempt);
       socketInstance.io.off("reconnect", onReconnect);
+      socketInstance.off("notifications_unread_update", onNotificationsUnreadUpdate);
+      socketInstance.off("notification_received", onNotificationReceived);
 
       // 3. Déconnexion explicite
       socketInstance.disconnect();

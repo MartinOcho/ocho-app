@@ -6,6 +6,7 @@ import { useToast } from "./ui/use-toast";
 import { QueryKey, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import kyInstance from "@/lib/ky";
+import { useSocket } from "@/components/providers/SocketProvider";
 import { VocabularyKey } from "@/lib/vocabulary";
 import { t } from "@/context/LanguageContext";
 
@@ -19,6 +20,7 @@ export default function FollowButton({
   initialState,
 }: FollowButtonProps) {
   const { toast } = useToast();
+  const { socket } = useSocket();
   const {
     somethingWentWrong,
     friend,
@@ -61,6 +63,14 @@ export default function FollowButton({
       }));
 
       return { previousState };
+    },
+    onSuccess() {
+      if (socket?.connected) {
+        socket.emit("create_notification", {
+          type: "FOLLOW",
+          recipientId: userId,
+        });
+      }
     },
     onError(error, variable, context) {
       queryClient.setQueryData(queryKey, context?.previousState);

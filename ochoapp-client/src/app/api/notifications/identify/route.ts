@@ -37,6 +37,24 @@ export async function POST(req: Request) {
       },
     });
 
+    // Informer le serveur de sockets pour qu'il émette la mise à jour en temps réel
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/notify-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
+          },
+          body: JSON.stringify({ recipientId }),
+        },
+      );
+    } catch (e) {
+      // Ne pas échouer la requête principale si l'appel de notification échoue
+      console.warn("Impossible de notifier le serveur de sockets:", e);
+    }
+
     return new Response();
   } catch (error) {
     console.error(error);

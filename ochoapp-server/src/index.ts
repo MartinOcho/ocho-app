@@ -47,6 +47,67 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello from the server" });
 });
 
+// Endpoint interne pour creer une notification et l'emettre via Socket.IO
+app.post("/internal/create-notification", async (req, res) => {
+  try {
+    const internalSecret = req.headers["x-internal-secret"];
+    if (internalSecret !== process.env.INTERNAL_SERVER_SECRET) {
+      return res.status(401).json({ error: "Access denied" });
+    }
+
+    const { type, recipientId, issuerId, postId, commentId } = req.body;
+    if (!recipientId || !type || !issuerId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    if (issuerId === recipientId) {
+      return res.json({ ok: true });
+    }
+
+    const notification = await prisma.notification.create({
+      data: {
+        type,
+        recipientId,
+        issuerId,
+        postId,
+        commentId,
+      },
+      include: {
+        issuer: {
+          select: {
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+        post: {
+          select: {
+            content: true,
+          },
+        },
+        comment: {
+          select: {
+            id: true,
+            content: true,
+          },
+        },
+      },
+    });
+
+    io.to(recipientId).emit("notification_received", notification);
+
+    const unreadCount = await prisma.notification.count({
+      where: { recipientId, read: false },
+    });
+    io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+
+    return res.json({ ok: true, notification });
+  } catch (error) {
+    console.error("Erreur internal create-notification:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/auth/session", validateSession);
 
 interface TypingUser {
@@ -810,6 +871,65 @@ io.on("connection", async (socket) => {
         console.error("Erreur send_message:", error);
         // On pourrait ajouter le tempId ici aussi si on voulait gérer l'erreur spécifiquement
         socket.emit("error", { message: "Erreur lors de l'envoi" });
+      }
+    }
+  );
+
+  // Créer une notification via socket : le socket reçoit les données, crée la notification
+  // en base, puis émet l'objet complet au destinataire + met à jour le compteur
+  socket.on(
+    "create_notification",
+    async (data: {
+      type: any;
+      recipientId?: string;
+      postId?: string;
+      commentId?: string;
+    }) => {
+      try {
+        const { type, recipientId, postId, commentId } = data;
+        if (!recipientId || !type) return;
+        if (userId === recipientId) return; // Don't notify yourself
+
+        const notification = await prisma.notification.create({
+          data: {
+            type,
+            recipientId,
+            issuerId: userId,
+            postId,
+            commentId,
+          },
+          include: {
+            issuer: {
+              select: {
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+            post: {
+              select: {
+                content: true,
+              },
+            },
+            comment: {
+              select: {
+                id: true,
+                content: true,
+              },
+            },
+          },
+        });
+
+        // Émettre l'objet notification complet à la socket du destinataire
+        io.to(recipientId).emit("notification_received", notification);
+
+        // Recalculer et émettre le compteur non-lu
+        const unreadCount = await prisma.notification.count({
+          where: { recipientId, read: false },
+        });
+        io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+      } catch (e) {
+        console.error("Erreur create_notification socket:", e);
       }
     }
   );

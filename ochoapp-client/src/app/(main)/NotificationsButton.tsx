@@ -7,6 +7,7 @@ import { NotificationCountInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { VocabularyKey } from "@/lib/vocabulary";
 import { useQuery } from "@tanstack/react-query";
+import { useSocket } from "@/components/providers/SocketProvider";
 import { Bell } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { usePathname } from "next/navigation";
@@ -25,16 +26,8 @@ export default function NotificationsButton({
   const pathname = usePathname();
   const isMessagesPage = pathname.startsWith("/messages");
 
-  const { data } = useQuery({
-    queryKey: ["notification", "count"],
-    queryFn: () =>
-      kyInstance
-        .get("/api/notifications/unread-count")
-        .json<NotificationCountInfo>(),
-    initialData: initialState,
-    refetchInterval: 5000,
-    refetchOnMount: true,
-  });
+  const { notificationsUnread } = useSocket();
+  const unread = typeof notificationsUnread === "number" ? notificationsUnread : initialState.unreadCount;
 
   return (
     <Button
@@ -55,9 +48,9 @@ export default function NotificationsButton({
       >
         <div className="relative">
           <Bell />
-          {!!data.unreadCount && (
+          {!!unread && (
             <span className="absolute -right-1 -top-1 rounded-full bg-[#dc143c] border-background border-[1px] px-1 text-xs font-medium tabular-nums text-white">
-              {data.unreadCount}
+              {unread}
             </span>
           )}
         </div>

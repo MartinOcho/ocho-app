@@ -40,6 +40,31 @@ export async function submitComment({
       },
     }));
 
+  // Notifier le serveur de sockets pour que le destinataire recoive la notification
+  if (user.id !== post.userId) {
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/create-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
+          },
+          body: JSON.stringify({
+            type: "COMMENT",
+            recipientId: post.userId,
+            issuerId: user.id,
+            postId: post.id,
+            commentId: newComment.id,
+          }),
+        },
+      );
+    } catch (e) {
+      console.warn("Impossible de notifier le serveur de sockets:", e);
+    }
+  }
+
   return newComment;
 }
 export interface SubmitReply {
@@ -83,6 +108,31 @@ export async function submitReply({
         type: "COMMENT_REPLY",
       },
     }));
+
+  // Notifier le serveur de sockets pour que le destinataire recoive la notification
+  if (user.id !== comment.userId) {
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/create-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
+          },
+          body: JSON.stringify({
+            type: "COMMENT_REPLY",
+            recipientId: comment.userId,
+            issuerId: user.id,
+            postId: firstLevelComment.postId,
+            commentId: newComment.id,
+          }),
+        },
+      );
+    } catch (e) {
+      console.warn("Impossible de notifier le serveur de sockets:", e);
+    }
+  }
 
   return newComment;
 }
