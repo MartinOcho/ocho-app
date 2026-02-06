@@ -27,7 +27,19 @@ export default function useMediaUpload() {
 
         setAttachment(prev => [
             ...prev,
-            ...files.map(file => ({ file, isUploading: true }))
+            ...files.map(file => ({
+                // satisfy MessageAttachment required fields
+                id: undefined,
+                type: (file.type && file.type.startsWith("image/")) ? "IMAGE" as AttachmentType : (file.type && file.type.startsWith("video/")) ? "VIDEO" as AttachmentType : "DOCUMENT" as AttachmentType,
+                url: "",
+                publicId: undefined,
+                width: null,
+                height: null,
+                format: null,
+                resourceType: null,
+                file,
+                isUploading: true
+            }))
         ]);
 
         try {
