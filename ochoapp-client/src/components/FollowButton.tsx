@@ -75,13 +75,26 @@ export default function FollowButton({
   });
 
   const handleFollow = () => {
-    // Émettre le socket immédiatement sans attendre la mutation
-    if (!data.isFollowedByUser && socket?.connected) {
-      socket.emit("create_notification", {
-        type: "FOLLOW",
-        recipientId: userId,
-      });
+    const isCurrentlyFollowed = data.isFollowedByUser;
+    
+    // Émettre les événements socket immédiatement
+    if (socket?.connected) {
+      if (!isCurrentlyFollowed) {
+        // Créer la notification
+        socket.emit("create_notification", {
+          type: "FOLLOW",
+          recipientId: userId,
+        });
+      } else {
+        // Supprimer la notification
+        socket.emit("delete_notification", {
+          type: "FOLLOW",
+          recipientId: userId,
+        });
+      }
     }
+    
+    // Faire la mutation en arrière-plan
     mutate();
   };
 

@@ -1,8 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 
-
-
 export async function PATCH() {
     try {
 
@@ -21,6 +19,25 @@ export async function PATCH() {
                 read: true
             }
         });
+
+        // Notifier le serveur de sockets en temps réel
+        try {
+            await fetch(
+                `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/mark-all-notifications-as-read`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
+                    },
+                    body: JSON.stringify({
+                        recipientId: user.id,
+                    }),
+                }
+            );
+        } catch (e) {
+            console.warn("Impossible de notifier le serveur de sockets:", e);
+        }
 
         return new Response();
         

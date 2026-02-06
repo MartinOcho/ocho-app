@@ -159,5 +159,28 @@ export async function deleteComment(id: string) {
     include: getCommentDataIncludes(user.id),
   });
 
+  // Notifier le serveur de sockets pour supprimer les notifications liées à ce commentaire
+  try {
+    // Supprimer les notifications COMMENT et COMMENT_LIKE associées au commentaire
+    await Promise.all([
+      fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/delete-notifications-for-comment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
+          },
+          body: JSON.stringify({
+            commentId: id,
+            postId: comment.postId,
+          }),
+        }
+      ),
+    ]);
+  } catch (e) {
+    console.warn("Impossible de notifier le serveur de sockets:", e);
+  }
+
   return deletedComment;
 }

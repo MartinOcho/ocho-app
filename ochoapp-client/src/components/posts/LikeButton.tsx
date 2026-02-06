@@ -65,14 +65,28 @@ export default function LikeButton({ postId, initialState, recipientId }: LikeBu
   });
 
   const handleLike = () => {
-    // Émettre le socket immédiatement sans attendre la mutation
-    if (!data.isLikedByUser && recipientId && socket?.connected) {
-      socket.emit("create_notification", {
-        type: "LIKE",
-        recipientId,
-        postId,
-      });
+    const isCurrentlyLiked = data.isLikedByUser;
+    
+    // Émettre les événements socket immédiatement
+    if (recipientId && socket?.connected) {
+      if (!isCurrentlyLiked) {
+        // Créer la notification
+        socket.emit("create_notification", {
+          type: "LIKE",
+          recipientId,
+          postId,
+        });
+      } else {
+        // Supprimer la notification
+        socket.emit("delete_notification", {
+          type: "LIKE",
+          recipientId,
+          postId,
+        });
+      }
     }
+    
+    // Faire la mutation en arrière-plan
     mutate();
   };
 

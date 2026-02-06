@@ -240,6 +240,19 @@ export default function SocketProvider({
       toast({ description: message });
     };
 
+    const onNotificationDeleted = (data: any) => {
+      if (isComponentUnmounted) return;
+      console.log("🗑️ Notification supprimée:", data);
+      // Invalider les notifications pour les mettre à jour
+      // L'invalidation sera gérée par les listeners qui mettent à jour l'unreadCount
+    };
+
+    const onAllNotificationsMarkedAsRead = () => {
+      if (isComponentUnmounted) return;
+      console.log("✅ Toutes les notifications marquées comme lues");
+      setNotificationsUnread(0);
+    };
+
     // Événements Système (Reconnexion)
     const onReconnectAttempt = () => {
       if (isComponentUnmounted) return;
@@ -266,6 +279,8 @@ export default function SocketProvider({
     socketInstance.on("new_room_created", onNewRoomCreated);
     socketInstance.on("notifications_unread_update", onNotificationsUnreadUpdate);
     socketInstance.on("notification_received", onNotificationReceived);
+    socketInstance.on("notification_deleted", onNotificationDeleted);
+    socketInstance.on("all_notifications_marked_as_read", onAllNotificationsMarkedAsRead);
 
     // Écouteurs sur le manager (io)
     socketInstance.io.on("reconnect_attempt", onReconnectAttempt);
@@ -288,6 +303,8 @@ export default function SocketProvider({
       socketInstance.io.off("reconnect", onReconnect);
       socketInstance.off("notifications_unread_update", onNotificationsUnreadUpdate);
       socketInstance.off("notification_received", onNotificationReceived);
+      socketInstance.off("notification_deleted", onNotificationDeleted);
+      socketInstance.off("all_notifications_marked_as_read", onAllNotificationsMarkedAsRead);
 
       // 3. Déconnexion explicite
       socketInstance.disconnect();

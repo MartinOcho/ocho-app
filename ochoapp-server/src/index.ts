@@ -108,6 +108,153 @@ app.post("/internal/create-notification", async (req, res) => {
   }
 });
 
+// Endpoint interne pour supprimer une notification et émettre via Socket.IO
+app.post("/internal/delete-notification", async (req, res) => {
+  try {
+    const internalSecret = req.headers["x-internal-secret"];
+    if (internalSecret !== process.env.INTERNAL_SERVER_SECRET) {
+      return res.status(401).json({ error: "Access denied" });
+    }
+
+    const { notificationId, recipientId } = req.body;
+    if (!notificationId || !recipientId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    await prisma.notification.delete({
+      where: { id: notificationId },
+    });
+
+    io.to(recipientId).emit("notification_deleted", { notificationId });
+
+    const unreadCount = await prisma.notification.count({
+      where: { recipientId, read: false },
+    });
+    io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erreur internal delete-notification:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Endpoint interne pour marquer une notification comme lue et émettre via Socket.IO
+app.post("/internal/mark-notification-as-read", async (req, res) => {
+  try {
+    const internalSecret = req.headers["x-internal-secret"];
+    if (internalSecret !== process.env.INTERNAL_SERVER_SECRET) {
+      return res.status(401).json({ error: "Access denied" });
+    }
+
+    const { notificationId, recipientId } = req.body;
+    if (!notificationId || !recipientId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { read: true },
+    });
+
+    io.to(recipientId).emit("notification_marked_as_read", { notificationId });
+
+    const unreadCount = await prisma.notification.count({
+      where: { recipientId, read: false },
+    });
+    io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erreur internal mark-notification-as-read:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Endpoint interne pour supprimer les notifications associées à un commentaire
+app.post("/internal/delete-notifications-for-comment", async (req, res) => {
+  try {
+    const internalSecret = req.headers["x-internal-secret"];
+    if (internalSecret !== process.env.INTERNAL_SERVER_SECRET) {
+      return res.status(401).json({ error: "Access denied" });
+    }
+
+    const { commentId, postId } = req.body;
+    if (!commentId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    // Trouver tous les destinataires des notifications liées à ce commentaire
+    const notifications = await prisma.notification.findMany({
+      where: {
+        OR: [
+          { commentId }, // Notifications COMMENT et COMMENT_REPLY
+          { commentId, type: "COMMENT_LIKE" }, // Likes sur le commentaire
+        ],
+      },
+      select: { recipientId: true },
+    });
+
+    const recipientIds = [...new Set(notifications.map(n => n.recipientId))];
+
+    // Supprimer toutes les notifications liées au commentaire
+    await prisma.notification.deleteMany({
+      where: {
+        OR: [
+          { commentId },
+          { commentId, type: "COMMENT_LIKE" },
+        ],
+      },
+    });
+
+    // Émettre les mises à jour pour chaque destinataire
+    for (const recipientId of recipientIds) {
+      const unreadCount = await prisma.notification.count({
+        where: { recipientId, read: false },
+      });
+      io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+      io.to(recipientId).emit("notification_deleted", { commentId, postId });
+    }
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erreur internal delete-notifications-for-comment:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Endpoint interne pour marquer toutes les notifications comme lues et émettre via Socket.IO
+app.post("/internal/mark-all-notifications-as-read", async (req, res) => {
+  try {
+    const internalSecret = req.headers["x-internal-secret"];
+    if (internalSecret !== process.env.INTERNAL_SERVER_SECRET) {
+      return res.status(401).json({ error: "Access denied" });
+    }
+
+    const { recipientId } = req.body;
+    if (!recipientId) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    await prisma.notification.updateMany({
+      where: { recipientId, read: false },
+      data: { read: true },
+    });
+
+    io.to(recipientId).emit("all_notifications_marked_as_read");
+
+    const unreadCount = await prisma.notification.count({
+      where: { recipientId, read: false },
+    });
+    io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("Erreur internal mark-all-notifications-as-read:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/auth/session", validateSession);
 
 interface TypingUser {
@@ -930,6 +1077,46 @@ io.on("connection", async (socket) => {
         io.to(recipientId).emit("notifications_unread_update", { unreadCount });
       } catch (e) {
         console.error("Erreur create_notification socket:", e);
+      }
+    }
+  );
+
+  // Supprimer une notification via socket
+  socket.on(
+    "delete_notification",
+    async (data: {
+      type: any;
+      recipientId?: string;
+      postId?: string;
+      commentId?: string;
+    }) => {
+      try {
+        const { type, recipientId, postId, commentId } = data;
+        if (!recipientId || !type) return;
+
+        // Supprimer la notification correspondante
+        const deleteResult = await prisma.notification.deleteMany({
+          where: {
+            type,
+            recipientId,
+            issuerId: userId,
+            postId: postId || undefined,
+            commentId: commentId || undefined,
+          },
+        });
+
+        if (deleteResult.count > 0) {
+          // Émettre l'événement de suppression
+          io.to(recipientId).emit("notification_deleted", { type, postId, commentId });
+
+          // Recalculer et émettre le compteur non-lu
+          const unreadCount = await prisma.notification.count({
+            where: { recipientId, read: false },
+          });
+          io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+        }
+      } catch (e) {
+        console.error("Erreur delete_notification socket:", e);
       }
     }
   );
