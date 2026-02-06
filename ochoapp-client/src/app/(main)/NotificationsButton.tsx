@@ -61,7 +61,7 @@ export default function NotificationsButton({
             </span>
           )}
         </div>
-        <span className="text-xs sm:hidden">{activity}</span>
+        <span className="text-[10px] max-sm:font-thin sm:hidden">{activity}</span>
         <span className={cn("max-lg:hidden", isMessagesPage && "hidden")}>{notifications}</span>
       </OchoLink>
     </Button>

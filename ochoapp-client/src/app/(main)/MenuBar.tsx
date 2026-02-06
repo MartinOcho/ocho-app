@@ -49,7 +49,7 @@ export default function MenuBar({ className }: MenuBarProps) {
           )}
         >
           <Home />
-          <span className="text-xs sm:hidden">{home}</span>
+          <span className="text-[10px] max-sm:font-thin sm:hidden">{home}</span>
           <span className={cn("max-lg:hidden", isMessagesPage && "hidden")}>{home}</span>
         </OchoLink>
       </Button>
@@ -72,7 +72,7 @@ export default function MenuBar({ className }: MenuBarProps) {
           )}
         >
           <Compass />
-          <span className="text-xs">{explore}</span>
+          <span className="text-[10px] max-sm:font-thin">{explore}</span>
         </OchoLink>
       </Button>
       <Button
@@ -130,7 +130,7 @@ export default function MenuBar({ className }: MenuBarProps) {
           )}
         >
           <Settings2Icon />
-          <span className="text-xs">{menu}</span>
+          <span className="text-[10px] max-sm:font-thin">{menu}</span>
         </OchoLink>
       </Button>
       <Button

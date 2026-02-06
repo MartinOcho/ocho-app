@@ -18,7 +18,8 @@ import {
   LogOut, 
   ShieldAlert, 
   Info,
-  Sparkles
+  Sparkles,
+  UserRoundPlus
 } from "lucide-react";
 import ReactionOverlay, {
   ReactionData,
@@ -500,7 +501,7 @@ export default function Message({
       
       // -- NEWMEMBER --
       if (messageType === "NEWMEMBER") {
-        systemIcon = <UserPlus size={14} className="text-green-500" />;
+        systemIcon = <UserRoundPlus size={14} className="text-green-500" />;
         let text = newMember.replace("[name]", memberName);
         if (message.sender) {
           isSender

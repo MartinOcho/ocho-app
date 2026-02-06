@@ -4,6 +4,7 @@ const nextConfig = {
         staleTimes: {
             dynamic: 30
         },
+        optimizePackageImports: ['package-name'],
     },
     serverExternalPackages: ["@node-rs/argon2"],
     images: {
