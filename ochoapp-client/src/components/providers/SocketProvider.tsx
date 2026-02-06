@@ -90,6 +90,7 @@ export default function SocketProvider({
   const [isServerTriggered, setIsServerTriggered] = useState(false);
   const [forceReconnect, setForceReconnect] = useState(0);
   const [notificationsUnread, setNotificationsUnread] = useState<number | null>(null);
+  const [messagesUnread, setMessagesUnread] = useState<number | null>(null);
   // État pour stocker les messages en attente par room
   // Structure: { roomId: [{ newMessage, roomId, tempId?, timestamp }], ... }
   const [pendingMessages, setPendingMessages] = useState<Record<string, PendingMessage[]>>({});
