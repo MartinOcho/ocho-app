@@ -53,7 +53,21 @@ export function MessageFormComponent({
     if (!expanded) {
       onExpanded(true);
     } else if (input.trim() || (attachments.length > 0 && attachments.some((a) => !a.isUploading))) {
-      onSubmit(input, attachments.filter((a) => !a.isUploading && a.url));
+      // Filter attachments to only include uploaded ones with URLs and clean the data
+      const cleanedAttachments = attachments
+        .filter((a) => !a.isUploading && a.url)
+        .map((a) => ({
+          id: a.id,
+          type: a.type,
+          url: a.url,
+          publicId: a.publicId,
+          width: a.width,
+          height: a.height,
+          format: a.format,
+          resourceType: a.resourceType,
+        }));
+
+      onSubmit(input, cleanedAttachments);
       setInput("");
       setAttachments([]);
       onTypingStop?.();
@@ -98,7 +112,7 @@ export function MessageFormComponent({
       onProgress?.(100);
 
       if (!res || !res.success || !res.result) {
-        throw new Error(res?.error || "Upload serveur échoué");
+        throw new Error(res?.error || "Erreur serveur lors de l'upload");
       }
 
       const r = res.result;
@@ -116,7 +130,8 @@ export function MessageFormComponent({
       return attachment;
     } catch (error) {
       clearInterval(progressInterval);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue lors de l'upload";
+      throw new Error(`Erreur d'upload pour ${file.name}: ${errorMessage}`);
     }
   };
 
@@ -134,8 +149,38 @@ export function MessageFormComponent({
       return;
     }
 
-    const newAttachments = Array.from(files).slice(0, maxNewFiles).map((file) => {
-      const type: AttachmentType = file.type.startsWith("image/") ? "IMAGE" : file.type.startsWith("video/") ? "VIDEO" : "DOCUMENT";
+    // Valider les fichiers
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    const ALLOWED_TYPES = /^(image|video)\//;
+
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < maxNewFiles; i++) {
+      const file = files[i];
+
+      if (!ALLOWED_TYPES.test(file.type)) {
+        errors.push(`${file.name}: Type de fichier non autorisé (images et vidéos seulement)`);
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        errors.push(`${file.name}: Fichier trop volumineux (${sizeMB}MB > 100MB)`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+    }
+
+    if (validFiles.length === 0) return;
+
+    const newAttachments = validFiles.map((file) => {
+      const type: AttachmentType = file.type.startsWith("image/") ? "IMAGE" : "VIDEO";
       return {
         id: undefined,
         type,
@@ -154,8 +199,8 @@ export function MessageFormComponent({
     setAttachments((prev) => [...prev, ...newAttachments]);
 
     // start uploads in background
-    for (let i = 0; i < maxNewFiles; i++) {
-      const file = files[i];
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
       const fileName = file.name;
 
       try {
@@ -179,9 +224,11 @@ export function MessageFormComponent({
           return copy;
         });
       } catch (err) {
-        console.error(err);
+        console.error(`Erreur upload ${fileName}:`, err);
         setAttachments((prev) => prev.filter((a) => !(a.fileName === fileName && a.isUploading)));
-        alert("Erreur lors de l'envoi du fichier");
+        
+        const errorMsg = err instanceof Error ? err.message : "Erreur lors de l'envoi du fichier";
+        alert(errorMsg);
       } finally {
         setUploadProgress((prev) => {
           const copy = { ...prev };

@@ -500,12 +500,19 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       ]);
     }
 
+    // Log for debugging
+    console.log("Sending message with attachments:", {
+      content: content.trim(),
+      attachmentCount: attachments?.length || 0,
+      attachments: attachments,
+    });
+
     socket.emit("send_message", {
       content: content.trim(),
       roomId,
       type: "CONTENT",
       tempId,
-      attachments: attachments || [],
+      attachments: attachments && attachments.length > 0 ? attachments : [],
     });
   };
 
@@ -768,15 +775,15 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   "bg-primary text-primary-foreground",
               )}
             >
-              {getStateIcon()}
+              {!messageInputExpanded ? <X /> : <Search className="size-5" />}
             </Button>
             {
               <div
                 className={cn(
                   "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2",
                   messageInputExpanded
-                    ? "invisible w-0 overflow-hidden"
-                    : "w-full",
+                    ? "visible w-full"
+                    : "invisible w-0 overflow-hidden",
                 )}
               >
                 <Input
@@ -787,6 +794,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {messageInputExpanded && (
+                  <div className="mr-2 flex-shrink-0 text-muted-foreground">
+                    {getStateIcon()}
+                  </div>
+                )}
               </div>
             }
           </div>
