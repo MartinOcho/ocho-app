@@ -59,7 +59,7 @@ export default function RoomFooter({
       case RoomFooterStateType.Normal:
         return (
           <MessageFormComponent
-            expanded={false}
+            expanded={messageInputExpanded}
             onExpanded={onExpandedChange}
             onSubmit={onMessageSend}
             onTypingStart={onTypingStart}
