@@ -44,7 +44,7 @@ export default function RoomFooter({
   onFollowUser,
   onViewGroupDetails,
 }: RoomFooterProps) {
-  const compact = messageInputExpanded;
+  const compact = !messageInputExpanded;
 
   switch (state.type) {
     case RoomFooterStateType.Loading:
