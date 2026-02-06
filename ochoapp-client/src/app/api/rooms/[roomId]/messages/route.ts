@@ -57,6 +57,15 @@ export async function GET(
         cursor: cursor ? { id: cursor } : undefined,
         skip: cursor ? 1 : 0,
       });
+      // Convertir les anciens messages SAVED en CONTENT pour l'affichage
+      if (messages && messages.length > 0) {
+        messages = messages.map((m) => {
+          if (m.content !== `create-${user.id}`) {
+            m.type = "CONTENT" as any;
+          }
+          return m;
+        });
+      }
     } else {
       // Récupérer les messages d'une room spécifique
       messages = await prisma.message.findMany({

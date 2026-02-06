@@ -215,74 +215,15 @@ export const MessageBubbleContent = ({
         )}
       >
         <div className="pr-4 pb-1">
-          {message.content ? (
-            (() => {
-              try {
-                  // Prefer explicit attachments from the message object (DB) if available
-                  if (message.attachments && message.attachments.length) {
-                    const parsedMedia = message.attachments as any[];
-                    return (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          {parsedMedia.map((m: any, i: number) => {
-                            const url = m.url;
-                            const isVideo = (m.resourceType || m.resource_type || "").startsWith("video") || /\.(mp4|webm|ogg)$/i.test(url);
-                            return (
-                              <div key={i} className="max-h-48 max-w-xs overflow-hidden rounded-md bg-muted">
-                                {isVideo ? (
-                                  <video src={url} controls className="h-40 w-full object-cover" />
-                                ) : (
-                                  <img src={url} alt={`media-${i}`} className="h-40 w-full object-cover" />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {message.content ? (
-                          <div className="pt-1">
-                            <HighlightText text={message.content} highlight={highlight} isOwner={isOwner} />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  }
-
-                  const parsed = JSON.parse(message.content);
-                  if (parsed && parsed.media && Array.isArray(parsed.media)) {
-                  return (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        {parsed.media.map((m: any, i: number) => {
-                          const url = m.url || m.secure_url || m.path;
-                          const isVideo = (m.resource_type || "").startsWith("video") || /\.(mp4|webm|ogg)$/i.test(url);
-                          return (
-                            <div key={i} className="max-h-48 max-w-xs overflow-hidden rounded-md bg-muted">
-                              {isVideo ? (
-                                <video src={url} controls className="h-40 w-full object-cover" />
-                              ) : (
-                                <img src={url} alt={`media-${i}`} className="h-40 w-full object-cover" />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {parsed.text ? (
-                        <div className="pt-1">
-                          <HighlightText text={parsed.text} highlight={highlight} isOwner={isOwner} />
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                }
-              } catch (e) {
-                // not JSON -> fallthrough
-              }
-
-              return <HighlightText text={message.content} highlight={highlight} isOwner={isOwner} />;
-            })()
-          ) : (
-            <span className="italic">{unavailableMessage}</span>
-          )}
+            {message.content ? (
+                <HighlightText
+                text={message.content}
+                highlight={highlight}
+                isOwner={isOwner}
+                />
+            ) : (
+                <span className="italic">{unavailableMessage}</span>
+            )}
         </div>
 
         {/* Heure et Status DANS la bulle */}

@@ -438,8 +438,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const isMember = !(
     loggedMember?.type === "OLD" || loggedMember?.type === "BANNED"
   );
-  let message = "Envoi de messages non autorisés";
-
   const otherUser = !room.isGroup
     ? room.members.find((user) => user?.userId !== loggedMember?.userId)
         ?.user || null

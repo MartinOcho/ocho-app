@@ -76,6 +76,13 @@ export async function GET(
           orderBy: { createdAt: "asc" },
         });
     
+        // Convertir le message SAVED en CONTENT pour affichage si ce n'est pas
+        // le marqueur technique create-<userId>
+        const displayedMsg: MessageData = { ...existingSavedMsg };
+        if (displayedMsg.content !== `create-${userId}`) {
+          displayedMsg.type = "CONTENT" as any;
+        }
+
         const newRoom: RoomData = {
           id: `saved-${userId}`,
           name: null,
@@ -93,7 +100,7 @@ export async function GET(
             },
           ],
           maxMembers: 300,
-          messages: [existingSavedMsg],
+          messages: [displayedMsg],
           isGroup: false,
           createdAt: createInfo?.createdAt || new Date(),
         };
@@ -112,6 +119,11 @@ export async function GET(
         include: getMessageDataInclude(user.id),
       });
       const existingSavedMsg: MessageData = existingSavedMsgs[0];
+      const displayedMsgAfterCreate: MessageData = { ...existingSavedMsg };
+      if (displayedMsgAfterCreate.content !== `create-${userId}`) {
+        displayedMsgAfterCreate.type = "CONTENT" as any;
+      }
+
       const newRoom: RoomData = {
         id: `saved-${userId}`,
         name: null,
@@ -129,7 +141,7 @@ export async function GET(
           },
         ],
         maxMembers: 300,
-        messages: [existingSavedMsg],
+        messages: [displayedMsgAfterCreate],
         isGroup: false,
         createdAt: createInfo?.createdAt || new Date(),
       };
