@@ -20,7 +20,7 @@ export function UnavailableFooter({
   icon,
 }: UnavailableFooterProps) {
   return (
-    <div className="relative max-sm:flex-col flex w-full select-none items-center justify-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 px-5">
+    <div className="relative max-sm:flex-col flex w-full select-none items-center justify-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 sm:px-5">
       <div className="flex items-center gap-2">
         {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
         <p className="text-center font-semibold text-destructive">{stateText}</p>
@@ -29,7 +29,7 @@ export function UnavailableFooter({
         <Button
           size="sm"
           onClick={onButtonClick}
-          className={cn("ml-auto flex-shrink-0", buttonColor && `bg-[${buttonColor}]`)}
+          className={cn("flex-shrink-0", buttonColor && `bg-[${buttonColor}]`)}
         >
           {buttonLabel}
         </Button>
