@@ -289,27 +289,29 @@ export function MessageFormComponent({
         className="hidden"
         onChange={handleFiles}
       />
-      <button
-        type="button"
+      <Button
+       type="button"
+        size="icon"
         onClick={handleFileClick}
-        title="Joindre un fichier"
         className={cn(
-          "rounded-full transition-colors",
+          "p-2 h-12 w-12 rounded-full border-none outline-none",
           !canAttach && "opacity-50 cursor-not-allowed",
           attachments.some((a) => a.isUploading)
             ? "text-amber-500 hover:text-amber-600"
             : "text-muted-foreground hover:text-foreground",
             !expanded && "hidden",
         )}
+        variant="outline"
         disabled={!canAttach || attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
+        title="Joindre un fichier"
       >
         {attachments.some((a) => a.isUploading) ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
           <Paperclip className="h-5 w-5" />
         )}
-      </button>
-      <div className={cn("flex w-full flex-col gap-2", !expanded && "hidden")}>
+      </Button>
+      <div className={cn("flex w-full flex-col gap-2 border-l border-border", !expanded && "hidden")}>
         {attachments.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {attachments.map((a, i) => (
