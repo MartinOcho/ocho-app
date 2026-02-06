@@ -822,7 +822,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
           {/* Affichage du RoomFooter selon l'état */}
           {!!roomId &&
-            (messageInputExpanded ? (
+            (!messageInputExpanded ? (
               <div className="mr-2 flex-shrink-0 text-muted-foreground">
                 {getStateIcon()}
               </div>
