@@ -25,6 +25,7 @@ interface SocketContextType {
   checkUserStatus: (userId: string) => void;
   retryConnection: () => void;
   notificationsUnread?: number | null;
+  messagesUnread?: number | null;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -35,6 +36,7 @@ const SocketContext = createContext<SocketContextType>({
   checkUserStatus: () => {},
   retryConnection: () => {},
   notificationsUnread: null,
+  messagesUnread: null,
 });
 
 // Hook personnalisé pour utiliser le socket
@@ -79,6 +81,7 @@ export default function SocketProvider({
   const [isServerTriggered, setIsServerTriggered] = useState(false);
   const [forceReconnect, setForceReconnect] = useState(0);
   const [notificationsUnread, setNotificationsUnread] = useState<number | null>(null);
+  const [messagesUnread, setMessagesUnread] = useState<number | null>(null);
 
   // Fonction stable pour émettre des événements
   const checkUserStatus = useCallback((targetUserId: string) => {
@@ -151,16 +154,27 @@ export default function SocketProvider({
       setIsConnected(true);
       setIsConnecting(false);
 
-      // Charger l'état initial des notifications non lues
-      kyInstance
-        .get("/api/notifications/unread-count")
-        .json()
-        .then((d: any) => {
-          if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
-            setNotificationsUnread(d.unreadCount);
-          }
-        })
-        .catch(() => {});
+      // Charger l'état initial des notifications et messages non lus
+      Promise.all([
+        kyInstance
+          .get("/api/notifications/unread-count")
+          .json()
+          .then((d: any) => {
+            if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
+              setNotificationsUnread(d.unreadCount);
+            }
+          })
+          .catch(() => {}),
+        kyInstance
+          .get("/api/rooms/unread-count")
+          .json()
+          .then((d: any) => {
+            if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
+              setMessagesUnread(d.unreadCount);
+            }
+          })
+          .catch(() => {}),
+      ]);
 
       // On masque le toast de statut après un délai
       setTimeout(() => {
@@ -222,6 +236,11 @@ export default function SocketProvider({
       setNotificationsUnread(typeof data?.unreadCount === "number" ? data.unreadCount : null);
     };
 
+    const onRoomsUnreadsUpdate = (data: { unreadCount: number }) => {
+      if (isComponentUnmounted) return;
+      setMessagesUnread(typeof data?.unreadCount === "number" ? data.unreadCount : null);
+    };
+
     const onNotificationReceived = (notification: any) => {
       if (isComponentUnmounted) return;
       console.log("🔔 Notification reçue:", notification);
@@ -281,6 +300,7 @@ export default function SocketProvider({
     socketInstance.on("notification_received", onNotificationReceived);
     socketInstance.on("notification_deleted", onNotificationDeleted);
     socketInstance.on("all_notifications_marked_as_read", onAllNotificationsMarkedAsRead);
+    socketInstance.on("rooms_unreads_update", onRoomsUnreadsUpdate);
 
     // Écouteurs sur le manager (io)
     socketInstance.io.on("reconnect_attempt", onReconnectAttempt);
@@ -305,6 +325,7 @@ export default function SocketProvider({
       socketInstance.off("notification_received", onNotificationReceived);
       socketInstance.off("notification_deleted", onNotificationDeleted);
       socketInstance.off("all_notifications_marked_as_read", onAllNotificationsMarkedAsRead);
+      socketInstance.off("rooms_unreads_update", onRoomsUnreadsUpdate);
 
       // 3. Déconnexion explicite
       socketInstance.disconnect();
@@ -326,6 +347,7 @@ export default function SocketProvider({
         checkUserStatus,
         retryConnection,
         notificationsUnread,
+        messagesUnread,
       }}
     >
       <div

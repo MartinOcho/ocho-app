@@ -107,7 +107,6 @@ export default function MenuBar({ className }: MenuBarProps) {
         )}
       />
       <MessagesButton
-        initialState={{ unreadCount: 0 }}
         className={cn(
           currentNavigation === "messages" &&
             "bg-accent text-primary hover:text-primary",
