@@ -7,10 +7,24 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
-import { RoomData, MessagesSection, MessageData, MessageAttachment } from "@/lib/types";
+import {
+  RoomData,
+  MessagesSection,
+  MessageData,
+  MessageAttachment,
+} from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import { AlertCircle, ChevronLeft, Frown, Loader2, RefreshCw, Search, Send, X } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  Frown,
+  Loader2,
+  RefreshCw,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
 import { useSession } from "../SessionProvider";
 import MessagesSkeleton from "./skeletons/MessagesSkeleton";
 import { toast } from "@/components/ui/use-toast";
@@ -109,7 +123,7 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 // --- NOUVEAU COMPOSANT : HEADER DE DATE ---
 function DateHeader({ date }: { date: Date | string }) {
   return (
-    <div className="pointer-events-none select-none flex w-full justify-center pt-4">
+    <div className="pointer-events-none flex w-full select-none justify-center pt-4">
       <div className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
         <Time time={new Date(date)} calendar />
       </div>
@@ -119,7 +133,8 @@ function DateHeader({ date }: { date: Date | string }) {
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
-  const { socket, isConnected, retryConnection, getPendingMessages } = useSocket();
+  const { socket, isConnected, retryConnection, getPendingMessages } =
+    useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const pathname = usePathname();
   const router = useRouter();
@@ -164,15 +179,17 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
     // Récupérer les messages qui ont été reçus via socket avant que le composant soit monté
     const pendingMsgs = getPendingMessages(roomId);
-    
+
     if (pendingMsgs.length === 0) return;
 
-    console.log(`📥 Traitement de ${pendingMsgs.length} messages en attente pour la room ${roomId}`);
+    console.log(
+      `📥 Traitement de ${pendingMsgs.length} messages en attente pour la room ${roomId}`,
+    );
 
     // Traiter chaque message en attente de la même manière que handleReceiveMessage
     pendingMsgs.forEach((data) => {
       if (data.newMessage.type === "REACTION") return; // On ignore les réactions
-      
+
       // Mettre à jour le cache React Query
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
         ["room", "messages", roomId],
@@ -392,7 +409,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       enabled: !!roomId,
     });
 
-  const allMessages = (data?.pages.flatMap((page) => page?.messages) || []).filter(msg=>msg.type !== "REACTION");
+  const allMessages = (
+    data?.pages.flatMap((page) => page?.messages) || []
+  ).filter((msg) => msg.type !== "REACTION");
 
   // --- FILTRAGE LOCAL DES MESSAGES ---
   // On filtre si une recherche est active
@@ -474,7 +493,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   };
 
   // --- FONCTION D'ENVOI DE MESSAGE ---
-  const handleSendMessage = async (content: string, attachments?: MessageAttachment[]) => {
+  const handleSendMessage = async (
+    content: string,
+    attachments?: MessageAttachment[],
+  ) => {
     if (!socket || !roomId) return;
 
     if (!isConnected) {
@@ -485,7 +507,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     handleTypingStop();
 
     const tempId = Math.random().toString(36).slice(2);
-    
+
     // Only add to sentMessages if there's content (attachments-only messages go directly via socket)
     if (content.trim()) {
       setSentMessages((prev) => [
@@ -545,7 +567,10 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const handleContextMenu = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     // if the target has no classname  messages-container, do nothing
-    if (!target.className || !(target.className as string).includes("messages-container")) {
+    if (
+      !target.className ||
+      !(target.className as string).includes("messages-container")
+    ) {
       return;
     }
     e.preventDefault();
@@ -555,7 +580,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // Get icon for state button
   const getStateIcon = () => {
     if (messageInputExpanded) return <Search className="size-5" />;
-    
+
     switch (footerState.type) {
       case RoomFooterStateType.UserLeft:
         return UserLeftIcon;
@@ -665,10 +690,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className="relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50 messages-container"
-        
-      >
-        <div className="sticky w-full h-full bottom-0 z-10"  onContextMenu={handleContextMenu}/>
+      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
+        <div
+          className="sticky bottom-0 z-10 h-full w-full"
+          onContextMenu={handleContextMenu}
+        />
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7 max-sm:pb-12"
           onBottomReached={() => {
@@ -677,7 +703,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             }
           }}
           reversed
-
         >
           {status === "pending" && <MessagesSkeleton />}
 
@@ -748,7 +773,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* BARRE DE SAISIE */}
-      <div className="absolute z-20 bottom-0 w-full bg-gradient-to-t from-card/80 to-transparent">
+      <div className="absolute bottom-0 z-20 w-full bg-gradient-to-t from-card/80 to-transparent">
         <div className={cn("flex p-2", !messageInputExpanded && "gap-2")}>
           <div
             className={cn(
@@ -760,10 +785,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               variant="outline"
               onClick={() => {
                 setMessageInputExpanded(!messageInputExpanded);
-                if (messageInputExpanded) {
-                  // Si on passe en mode recherche (input visible), on focus
-                } else {
-                  // Si on ferme, on vide la recherche
+                if (!messageInputExpanded) {
                   setSearchQuery("");
                 }
               }}
@@ -781,7 +803,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
               <div
                 className={cn(
                   "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2",
-                  messageInputExpanded
+                  !messageInputExpanded
                     ? "visible w-full"
                     : "invisible w-0 overflow-hidden",
                 )}
@@ -794,10 +816,25 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                {messageInputExpanded && (
-                  <div className="mr-2 flex-shrink-0 text-muted-foreground">
+                {!messageInputExpanded && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMessageInputExpanded(!messageInputExpanded);
+                      if (!messageInputExpanded) {
+                        setSearchQuery("");
+                      }
+                    }}
+                    title={search}
+                    className={cn(
+                      "aspect-square size-12 cursor-pointer p-2 outline-input",
+                      !messageInputExpanded &&
+                        searchQuery &&
+                        "bg-primary text-primary-foreground",
+                    )}
+                  >
                     {getStateIcon()}
-                  </div>
+                  </Button>
                 )}
               </div>
             }
@@ -1051,4 +1088,3 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
     </div>
   );
 }
-

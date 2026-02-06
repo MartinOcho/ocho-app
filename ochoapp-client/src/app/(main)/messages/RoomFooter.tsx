@@ -52,7 +52,7 @@ export default function RoomFooter({
   onViewGroupDetails,
 }: RoomFooterProps) {
   // Mode compact: afficher seulement les icônes
-  if (messageInputExpanded) {
+  if (!messageInputExpanded) {
     switch (state.type) {
       case RoomFooterStateType.Loading:
         return <div className="size-12 rounded-full p-2 text-muted-foreground animate-pulse" />;
