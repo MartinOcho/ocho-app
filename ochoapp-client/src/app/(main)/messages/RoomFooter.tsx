@@ -56,6 +56,7 @@ export default function RoomFooter({
           onSubmit={onMessageSend}
           onTypingStart={onTypingStart}
           onTypingStop={onTypingStop}
+          canAttach={true}
         />
       );
 

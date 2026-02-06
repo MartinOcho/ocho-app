@@ -10,7 +10,7 @@ import kyInstance from "@/lib/ky";
 import { RoomData, MessagesSection, MessageData, MessageAttachment } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import { AlertCircle, ChevronLeft, Frown, Loader2, RefreshCw, Search, Send, X, } from "lucide-react";
+import { AlertCircle, ChevronLeft, Frown, Loader2, RefreshCw, Search, Send, X } from "lucide-react";
 import { useSession } from "../SessionProvider";
 import MessagesSkeleton from "./skeletons/MessagesSkeleton";
 import { toast } from "@/components/ui/use-toast";
@@ -32,7 +32,17 @@ import UserAvatar from "@/components/UserAvatar";
 import { createPortal } from "react-dom";
 import Time from "@/components/Time";
 import RoomFooter from "./RoomFooter";
-import { useRoomFooterState } from "./useRoomFooterState"; 
+import { useRoomFooterState } from "./useRoomFooterState";
+import { RoomFooterStateType } from "@/lib/types";
+import {
+  UserLeftIcon,
+  UserKickedIcon,
+  UserDeletedIcon,
+  UserBannedIcon,
+  PrivateProfileIcon,
+  GroupFullIcon,
+  UnspecifiedIcon,
+} from "./FooterStates";
 
 interface ChatProps {
   roomId: string | null;
@@ -535,6 +545,30 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   };
 
+  // Get icon for state button
+  const getStateIcon = () => {
+    if (messageInputExpanded) return <Search className="size-5" />;
+    
+    switch (footerState.type) {
+      case RoomFooterStateType.UserLeft:
+        return UserLeftIcon;
+      case RoomFooterStateType.UserKicked:
+        return UserKickedIcon;
+      case RoomFooterStateType.UserDeleted:
+        return UserDeletedIcon;
+      case RoomFooterStateType.UserBanned:
+        return UserBannedIcon;
+      case RoomFooterStateType.PrivateProfile:
+        return PrivateProfileIcon;
+      case RoomFooterStateType.GroupFull:
+        return GroupFullIcon;
+      case RoomFooterStateType.Unspecified:
+        return UnspecifiedIcon;
+      default:
+        return <X />;
+    }
+  };
+
   // --- RENDER HELPER POUR LES GROUPES ---
   const renderCluster = (
     group: MessageData[],
@@ -734,7 +768,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   "bg-primary text-primary-foreground",
               )}
             >
-              {!messageInputExpanded ? <X /> : <Search className="size-5" />}
+              {getStateIcon()}
             </Button>
             {
               <div

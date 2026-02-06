@@ -16,6 +16,7 @@ interface MessageFormComponentProps {
   onSubmit: (content: string, attachments?: MessageAttachment[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
+  canAttach?: boolean;
 }
 
 export function MessageFormComponent({
@@ -24,6 +25,7 @@ export function MessageFormComponent({
   onSubmit,
   onTypingStart,
   onTypingStop,
+  canAttach = true,
 }: MessageFormComponentProps) {
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
@@ -59,6 +61,7 @@ export function MessageFormComponent({
   };
 
   const handleFileClick = () => {
+    if (!canAttach) return;
     const currentCount = attachments.filter((a) => !a.isUploading).length;
     if (currentCount >= 5) {
       alert("Limite de 5 médias par message atteinte");
@@ -245,11 +248,12 @@ export function MessageFormComponent({
         title="Joindre un fichier"
         className={cn(
           "ml-2 mr-1 rounded-full p-2 transition-colors",
+          !canAttach && "opacity-50 cursor-not-allowed",
           attachments.some((a) => a.isUploading)
             ? "text-amber-500 hover:text-amber-600"
             : "text-muted-foreground hover:text-foreground"
         )}
-        disabled={attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
+        disabled={!canAttach || attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
       >
         {attachments.some((a) => a.isUploading) ? (
           <Loader2 className="h-5 w-5 animate-spin" />

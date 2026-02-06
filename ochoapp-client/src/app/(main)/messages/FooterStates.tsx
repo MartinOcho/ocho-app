@@ -1,5 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, Ban, LogOut, Trash2, Heart } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Ban,
+  LogOut,
+  Trash2,
+  Heart,
+  Ghost,
+  Lock,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UnavailableFooterProps {
@@ -66,6 +76,8 @@ export function UserLeftFooter({ onContactAdmin }: UserLeftFooterProps) {
   );
 }
 
+export const UserLeftIcon = <LogOut className="h-5 w-5 text-orange-500" />;
+
 interface UserKickedFooterProps {
   onContactAdmin?: () => void;
 }
@@ -81,6 +93,8 @@ export function UserKickedFooter({ onContactAdmin }: UserKickedFooterProps) {
   );
 }
 
+export const UserKickedIcon = <AlertTriangle className="h-5 w-5 text-orange-500" />;
+
 interface UserDeletedFooterProps {
   onDeleteConversation?: () => void;
 }
@@ -91,10 +105,12 @@ export function UserDeletedFooter({ onDeleteConversation }: UserDeletedFooterPro
       stateText="Compte supprimé"
       buttonLabel="Supprimer la discussion"
       onButtonClick={onDeleteConversation}
-      icon={<Trash2 className="h-5 w-5 text-red-500" />}
+      icon={<Ghost className="h-5 w-5 text-red-500" />}
     />
   );
 }
+
+export const UserDeletedIcon = <Ghost className="h-5 w-5 text-red-500" />;
 
 interface UserBannedFooterProps {
   onContactSupport?: () => void;
@@ -111,6 +127,8 @@ export function UserBannedFooter({ onContactSupport }: UserBannedFooterProps) {
   );
 }
 
+export const UserBannedIcon = <Ban className="h-5 w-5 text-destructive" />;
+
 interface PrivateProfileFooterProps {
   onFollowUser?: () => void;
 }
@@ -121,10 +139,12 @@ export function PrivateProfileFooter({ onFollowUser }: PrivateProfileFooterProps
       stateText="Profil privé"
       buttonLabel="Suivre pour discuter"
       onButtonClick={onFollowUser}
-      icon={<Heart className="h-5 w-5 text-pink-500" />}
+      icon={<Lock className="h-5 w-5 text-pink-500" />}
     />
   );
 }
+
+export const PrivateProfileIcon = <Lock className="h-5 w-5 text-pink-500" />;
 
 interface GroupFullFooterProps {
   onViewDetails?: () => void;
@@ -136,10 +156,12 @@ export function GroupFullFooter({ onViewDetails }: GroupFullFooterProps) {
       stateText="Groupe plein"
       buttonLabel="Voir les détails"
       onButtonClick={onViewDetails}
-      icon={<AlertCircle className="h-5 w-5 text-yellow-500" />}
+      icon={<Users className="h-5 w-5 text-yellow-500" />}
     />
   );
 }
+
+export const GroupFullIcon = <Users className="h-5 w-5 text-yellow-500" />;
 
 interface UnspecifiedFooterProps {
   onContactSupport?: () => void;
@@ -155,3 +177,5 @@ export function UnspecifiedFooter({ onContactSupport }: UnspecifiedFooterProps) 
     />
   );
 }
+
+export const UnspecifiedIcon = <AlertCircle className="h-5 w-5 text-muted-foreground" />;
