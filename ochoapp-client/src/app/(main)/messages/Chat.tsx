@@ -821,13 +821,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           </div>
 
           {/* Affichage du RoomFooter selon l'état */}
-          {!!roomId &&
-            (!messageInputExpanded ? (
-              <div className="mr-2 flex-shrink-0 text-muted-foreground">
-                {getStateIcon()}
-              </div>
-            ) : (
-              <RoomFooter
+          {!!roomId && <RoomFooter
                 state={footerState}
                 roomId={roomId}
                 onMessageSend={handleSendMessage}
@@ -836,7 +830,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
               />
-            ))}
+            }
         </div>
       </div>
 
