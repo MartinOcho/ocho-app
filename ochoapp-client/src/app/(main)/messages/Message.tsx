@@ -1,5 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import { RoomData, MessageData, ReadInfo } from "@/lib/types";
+import { RoomData, MessageData, ReadInfo, MessageAttachment } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import Linkify from "@/components/Linkify";
 import { MessageType } from "@prisma/client";
@@ -27,6 +27,7 @@ import ReactionOverlay, {
   ReactionList,
 } from "./reaction/ReactionOverlay";
 import GroupAvatar from "@/components/GroupAvatar";
+import MediaStrip from "@/components/messages/MediaStrip";
 
 // --- TYPES ---
 type MessageProps = {
@@ -225,6 +226,17 @@ export const MessageBubbleContent = ({
                 <span className="italic">{unavailableMessage}</span>
             )}
         </div>
+
+        {/* Attachments (Images/Videos) */}
+        {message.attachments && message.attachments.length > 0 && (
+          <MediaStrip 
+            attachments={message.attachments as MessageAttachment[]}
+            className={cn(
+              "!mt-2 !mb-6",
+              message.content ? "mt-2" : "mt-0"
+            )}
+          />
+        )}
 
         {/* Heure et Status DANS la bulle */}
         {createdAt && (

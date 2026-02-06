@@ -301,14 +301,14 @@ export function getMessageDataInclude(loggedInUserId: string) {
 export type AttachmentType = "IMAGE" | "VIDEO" | "DOCUMENT";
 
 export interface MessageAttachment {
-  id?: string;
+  id: string;
   type: AttachmentType;
   url: string;
-  publicId?: string;
-  width?: number | null;
-  height?: number | null;
-  format?: string | null;
-  resourceType?: string | null;
+  publicId: string | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  resourceType: string | null;
 }
 
 
