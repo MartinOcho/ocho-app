@@ -29,10 +29,10 @@ export default function useMediaUpload() {
             ...prev,
             ...files.map(file => ({
                 // satisfy MessageAttachment required fields
-                id: undefined,
+                id: "",
                 type: (file.type && file.type.startsWith("image/")) ? "IMAGE" as AttachmentType : (file.type && file.type.startsWith("video/")) ? "VIDEO" as AttachmentType : "DOCUMENT" as AttachmentType,
                 url: "",
-                publicId: undefined,
+                publicId: null,
                 width: null,
                 height: null,
                 format: null,
