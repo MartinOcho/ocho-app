@@ -267,7 +267,7 @@ export function MessageFormComponent({
     const hasUploadedAttachments = attachments.some((a) => !a.isUploading && a.url);
     
     if (hasUploading) return false;
-    return hasContent || hasUploadedAttachments;
+    return ((hasContent || hasUploadedAttachments) && !hasUploading && !expanded) || hasUploading;
   };
 
   const handleSend = () => {
