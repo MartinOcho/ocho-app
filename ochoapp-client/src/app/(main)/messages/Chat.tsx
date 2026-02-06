@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
-import { RoomData, MessagesSection, MessageData } from "@/lib/types";
+import { RoomData, MessagesSection, MessageData, MessageAttachment } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import { AlertCircle, ChevronLeft, Frown, Loader2, RefreshCw, Search, Send, X, } from "lucide-react";
@@ -464,7 +464,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   };
 
   // --- FONCTION D'ENVOI DE MESSAGE ---
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, attachments?: MessageAttachment[]) => {
     if (!socket || !roomId) return;
 
     if (!isConnected) {
@@ -475,22 +475,27 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     handleTypingStop();
 
     const tempId = Math.random().toString(36).slice(2);
-    setSentMessages((prev) => [
-      ...prev,
-      {
-        tempId,
-        content: content.trim(),
-        roomId,
-        type: "CONTENT",
-        status: "sending",
-      },
-    ]);
+    
+    // Only add to sentMessages if there's content (attachments-only messages go directly via socket)
+    if (content.trim()) {
+      setSentMessages((prev) => [
+        ...prev,
+        {
+          tempId,
+          content: content.trim(),
+          roomId,
+          type: "CONTENT",
+          status: "sending",
+        },
+      ]);
+    }
 
     socket.emit("send_message", {
       content: content.trim(),
       roomId,
       type: "CONTENT",
-      tempId, // On envoie l'ID temporaire pour faire le lien au retour
+      tempId,
+      attachments: attachments || [],
     });
   };
 

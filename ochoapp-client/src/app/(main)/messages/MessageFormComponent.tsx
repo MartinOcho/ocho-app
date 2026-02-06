@@ -1,6 +1,6 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { Send, X, Image, Video, File as FileIcon, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
 import kyInstance from "@/lib/ky";
 import { MessageAttachment, AttachmentType } from "@/lib/types";
@@ -8,11 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
+import { CircleProgress } from "@/components/ui/CircleProgress";
 
 interface MessageFormComponentProps {
   expanded: boolean;
   onExpanded: (expanded: boolean) => void;
-  onSubmit: (content: string) => void;
+  onSubmit: (content: string, attachments?: MessageAttachment[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
 }
@@ -25,7 +26,7 @@ export function MessageFormComponent({
   onTypingStop,
 }: MessageFormComponentProps) {
   const [input, setInput] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<(
     MessageAttachment & { isUploading: boolean; fileName?: string; previewUrl?: string }
   )[]>([]);
@@ -49,14 +50,20 @@ export function MessageFormComponent({
   const handleBtnClick = () => {
     if (!expanded) {
       onExpanded(true);
-    } else if (input.trim()) {
-      onSubmit(input);
+    } else if (input.trim() || (attachments.length > 0 && attachments.some((a) => !a.isUploading))) {
+      onSubmit(input, attachments.filter((a) => !a.isUploading && a.url));
       setInput("");
+      setAttachments([]);
       onTypingStop?.();
     }
   };
 
   const handleFileClick = () => {
+    const currentCount = attachments.filter((a) => !a.isUploading).length;
+    if (currentCount >= 5) {
+      alert("Limite de 5 médias par message atteinte");
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -68,39 +75,63 @@ export function MessageFormComponent({
       reader.readAsDataURL(file);
     });
 
-  const uploadToCloudinary = async (file: File) => {
+  const uploadToCloudinary = async (file: File, onProgress?: (progress: number) => void) => {
     // Read file as data URL (base64) and send to our server which uses cloudinary SDK
     const dataUrl = await readFileAsDataURL(file);
-    const res = await kyInstance
-      .post("/api/cloudinary/upload", { json: { file: dataUrl } })
-      .json<{ success: boolean; result?: any; error?: string }>();
+    
+    // Simulate progress tracking (in a real scenario, you'd track actual upload)
+    let simulatedProgress = 0;
+    const progressInterval = setInterval(() => {
+      simulatedProgress = Math.min(simulatedProgress + Math.random() * 30, 90);
+      onProgress?.(simulatedProgress);
+    }, 100);
 
-    if (!res || !res.success || !res.result) {
-      throw new Error(res?.error || "Upload serveur échoué");
+    try {
+      const res = await kyInstance
+        .post("/api/cloudinary/upload", { json: { file: dataUrl } })
+        .json<{ success: boolean; result?: any; error?: string }>();
+
+      clearInterval(progressInterval);
+      onProgress?.(100);
+
+      if (!res || !res.success || !res.result) {
+        throw new Error(res?.error || "Upload serveur échoué");
+      }
+
+      const r = res.result;
+      const attachment: MessageAttachment = {
+        id: undefined,
+        type: (r.resource_type && String(r.resource_type).startsWith("video")) ? "VIDEO" : ((r.resource_type === "image" || (r.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(r.secure_url))) ? "IMAGE" : "DOCUMENT") as AttachmentType,
+        url: r.secure_url || r.url || r.path,
+        publicId: r.public_id,
+        width: r.width || null,
+        height: r.height || null,
+        format: r.format || null,
+        resourceType: r.resource_type || null,
+      };
+
+      return attachment;
+    } catch (error) {
+      clearInterval(progressInterval);
+      throw error;
     }
-
-    const r = res.result;
-    const attachment: MessageAttachment = {
-      id: undefined,
-      type: (r.resource_type && String(r.resource_type).startsWith("video")) ? "VIDEO" : ((r.resource_type === "image" || (r.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(r.secure_url))) ? "IMAGE" : "DOCUMENT") as AttachmentType,
-      url: r.secure_url || r.url || r.path,
-      publicId: r.public_id,
-      width: r.width || null,
-      height: r.height || null,
-      format: r.format || null,
-      resourceType: r.resource_type || null,
-    };
-
-    return attachment;
   };
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const max = Math.min(files.length, 5);
+    // Limite à 5 medias au total
+    const maxTotal = 5;
+    const currentCount = attachments.filter((a) => !a.isUploading).length;
+    const maxNewFiles = Math.min(files.length, maxTotal - currentCount);
 
-    const newLocal = Array.from(files).slice(0, max).map((file) => {
+    if (maxNewFiles <= 0) {
+      alert("Limite de 5 médias par message atteinte");
+      return;
+    }
+
+    const newAttachments = Array.from(files).slice(0, maxNewFiles).map((file) => {
       const type: AttachmentType = file.type.startsWith("image/") ? "IMAGE" : file.type.startsWith("video/") ? "VIDEO" : "DOCUMENT";
       return {
         id: undefined,
@@ -117,18 +148,20 @@ export function MessageFormComponent({
       } as MessageAttachment & { isUploading: boolean; fileName?: string; previewUrl?: string };
     });
 
-    setAttachments((prev) => [...prev, ...newLocal]);
+    setAttachments((prev) => [...prev, ...newAttachments]);
 
     // start uploads in background
-    for (let i = 0; i < max; i++) {
+    for (let i = 0; i < maxNewFiles; i++) {
       const file = files[i];
-      const idx = i;
+      const fileName = file.name;
 
       try {
-        const uploaded = await uploadToCloudinary(file);
+        const uploaded = await uploadToCloudinary(file, (progress) => {
+          setUploadProgress((prev) => ({ ...prev, [fileName]: progress }));
+        });
         setAttachments((prev) => {
           const copy = [...prev];
-          const target = copy.find((a) => a.fileName === file.name && a.isUploading) || copy[copy.length - max + idx];
+          const target = copy.find((a) => a.fileName === fileName && a.isUploading);
           if (target) {
             target.url = uploaded.url;
             // @ts-expect-error - publicId is optional
@@ -144,12 +177,29 @@ export function MessageFormComponent({
         });
       } catch (err) {
         console.error(err);
-        setAttachments((prev) => prev.filter((a) => !(a.fileName === file.name && a.isUploading)));
+        setAttachments((prev) => prev.filter((a) => !(a.fileName === fileName && a.isUploading)));
         alert("Erreur lors de l'envoi du fichier");
+      } finally {
+        setUploadProgress((prev) => {
+          const copy = { ...prev };
+          delete copy[fileName];
+          return copy;
+        });
       }
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (fileName: string | undefined) => {
+    setAttachments((prev) => prev.filter((a) => a.fileName !== fileName));
+    if (fileName) {
+      setUploadProgress((prev) => {
+        const copy = { ...prev };
+        delete copy[fileName];
+        return copy;
+      });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -162,9 +212,12 @@ export function MessageFormComponent({
   };
 
   const canSend = () => {
-    if (isUploading) return false;
-    if (input.trim().length > 0) return true;
-    return attachments.length > 0 && attachments.some((a) => !a.isUploading && (a.url || a.previewUrl));
+    const hasUploading = attachments.some((a) => a.isUploading);
+    const hasContent = input.trim().length > 0;
+    const hasUploadedAttachments = attachments.some((a) => !a.isUploading && a.url);
+    
+    if (hasUploading) return false;
+    return hasContent || hasUploadedAttachments;
   };
 
   const handleSend = () => {
@@ -190,51 +243,103 @@ export function MessageFormComponent({
         type="button"
         onClick={handleFileClick}
         title="Joindre un fichier"
-        className="ml-2 mr-1 rounded-full p-2 text-muted-foreground hover:text-foreground"
-        disabled={isUploading}
+        className={cn(
+          "ml-2 mr-1 rounded-full p-2 transition-colors",
+          attachments.some((a) => a.isUploading)
+            ? "text-amber-500 hover:text-amber-600"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        disabled={attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
       >
-        {isUploading ? "..." : "+"}
+        {attachments.some((a) => a.isUploading) ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Image className="h-5 w-5" />
+        )}
       </button>
       <div className="flex w-full flex-col gap-2">
         {attachments.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {attachments.map((a, i) => (
-              <div key={i} className="relative w-24 h-24 rounded-md overflow-hidden border bg-muted">
-                {a.previewUrl ? (
-                  a.type === "VIDEO" ? (
-                    <video src={a.previewUrl} className="w-full h-full object-cover" />
-                  ) : a.type === "IMAGE" ? (
-                    <img src={a.previewUrl} alt={a.publicId || "preview"} className="w-full h-full object-cover" />
+              <div
+                key={i}
+                className="group relative flex-shrink-0 overflow-hidden rounded-lg border border-border bg-muted transition-all hover:border-primary"
+              >
+                {/* Prévisualisation avec dimensions fixes */}
+                <div className="relative w-24 h-24 flex items-center justify-center overflow-hidden bg-muted/80">
+                  {a.previewUrl ? (
+                    a.type === "VIDEO" ? (
+                      <>
+                        <video src={a.previewUrl} className="w-full h-full object-cover" />
+                        <Video className="absolute h-4 w-4 text-white drop-shadow-lg opacity-70" />
+                      </>
+                    ) : a.type === "IMAGE" ? (
+                      <img src={a.previewUrl} alt={a.fileName || "preview"} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-xs text-muted-foreground">
+                        <FileIcon className="h-4 w-4" />
+                        <span className="text-center truncate">{a.fileName?.slice(0, 8)}</span>
+                      </div>
+                    )
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center p-2 text-xs">{a.fileName}</div>
-                  )
-                ) : (
-                  a.type === "VIDEO" ? (
-                    <video src={a.url} className="w-full h-full object-cover" />
-                  ) : a.type === "IMAGE" ? (
-                    <img src={a.url} alt={a.publicId || "media"} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center p-2 text-xs">{a.fileName}</div>
-                  )
-                )}
+                    a.type === "VIDEO" ? (
+                      <>
+                        <video src={a.url} className="w-full h-full object-cover" />
+                        <Video className="absolute h-4 w-4 text-white drop-shadow-lg opacity-70" />
+                      </>
+                    ) : a.type === "IMAGE" ? (
+                      <img src={a.url} alt={a.fileName || "media"} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-xs text-muted-foreground">
+                        <FileIcon className="h-4 w-4" />
+                        <span className="text-center truncate">{a.fileName?.slice(0, 8)}</span>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {/* Overlay de progression */}
                 {a.isUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">...</div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 backdrop-blur-sm">
+                    <CircleProgress
+                      progress={uploadProgress[a.fileName || ""] ?? 0}
+                      size={32}
+                      strokeWidth={2}
+                      className="text-white"
+                    />
+                  </div>
                 )}
+
+                {/* Bouton de supression */}
+                {!a.isUploading && (
+                  <button
+                    onClick={() => removeAttachment(a.fileName)}
+                    className="absolute top-0.5 right-0.5 rounded-full bg-destructive/80 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    type="button"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+
+                {/* Badge du type */}
+                <div className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
+                  {a.type === "IMAGE" ? "IMG" : a.type === "VIDEO" ? "VID" : "DOC"}
+                </div>
               </div>
             ))}
           </div>
         )}
         <Textarea
-        placeholder={typeMessage}
-        className={cn(
-          "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
-          expanded ? "relative w-full" : "invisible absolute w-0",
-        )}
-        rows={1}
-        value={input}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-      />
+          placeholder={typeMessage}
+          className={cn(
+            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
+            expanded ? "relative w-full" : "invisible absolute w-0",
+          )}
+          rows={1}
+          value={input}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+        />
       </div>
       <Button
         size={!expanded ? "icon" : "default"}

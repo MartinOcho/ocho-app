@@ -1,6 +1,6 @@
 "use client";
 
-import { RoomFooterState, RoomFooterStateType } from "@/lib/types";
+import { RoomFooterState, RoomFooterStateType, MessageAttachment } from "@/lib/types";
 import {
   LoadingFooter,
   UnavailableFooter,
@@ -17,7 +17,7 @@ import { MessageFormComponent } from "./MessageFormComponent";
 interface RoomFooterProps {
   state: RoomFooterState;
   roomId: string;
-  onMessageSend: (content: string) => void;
+  onMessageSend: (content: string, attachments?: MessageAttachment[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   messageInputExpanded: boolean;
