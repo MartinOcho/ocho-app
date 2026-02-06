@@ -224,7 +224,20 @@ export default function SocketProvider({
 
     const onNotificationReceived = (notification: any) => {
       if (isComponentUnmounted) return;
-      console.log("Notification received:", notification);
+      console.log("🔔 Notification reçue:", notification);
+      
+      // Afficher un toast selon le type de notification
+      const typeMessages: Record<string, string> = {
+        LIKE: `${notification.issuer?.displayName || "Quelqu'un"} a aimé votre contenu`,
+        COMMENT: `${notification.issuer?.displayName || "Quelqu'un"} a commenté votre contenu`,
+        COMMENT_LIKE: `${notification.issuer?.displayName || "Quelqu'un"} a aimé votre commentaire`,
+        COMMENT_REPLY: `${notification.issuer?.displayName || "Quelqu'un"} a répondu à votre commentaire`,
+        FOLLOW: `${notification.issuer?.displayName || "Quelqu'un"} vous suit`,
+        IDENTIFY: `${notification.issuer?.displayName || "Quelqu'un"} vous a identifié`,
+      };
+      
+      const message = typeMessages[notification.type] || "Nouvelle notification";
+      toast({ description: message });
     };
 
     // Événements Système (Reconnexion)
@@ -295,6 +308,7 @@ export default function SocketProvider({
         onlineStatus,
         checkUserStatus,
         retryConnection,
+        notificationsUnread,
       }}
     >
       <div

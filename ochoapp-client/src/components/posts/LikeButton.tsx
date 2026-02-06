@@ -54,15 +54,6 @@ export default function LikeButton({ postId, initialState, recipientId }: LikeBu
 
       return { previousState };
     },
-    onSuccess() {
-      if (recipientId && socket?.connected) {
-        socket.emit("create_notification", {
-          type: "LIKE",
-          recipientId,
-          postId,
-        });
-      }
-    },
     onError(error, variable, context) {
       queryClient.setQueryData(queryKey, context?.previousState);
       console.error(error);
@@ -73,10 +64,22 @@ export default function LikeButton({ postId, initialState, recipientId }: LikeBu
     },
   });
 
+  const handleLike = () => {
+    // Émettre le socket immédiatement sans attendre la mutation
+    if (!data.isLikedByUser && recipientId && socket?.connected) {
+      socket.emit("create_notification", {
+        type: "LIKE",
+        recipientId,
+        postId,
+      });
+    }
+    mutate();
+  };
+
   return (
     <button
       title={data.isLikedByUser ? unLike : likeText}
-      onClick={() => mutate()}
+      onClick={handleLike}
       className="flex items-center gap-1"
     >
       <Heart

@@ -62,16 +62,6 @@ export default function LikeButton({
 
       return { previousState };
     },
-    onSuccess() {
-      if (socket?.connected) {
-        socket.emit("create_notification", {
-          type: "COMMENT_LIKE",
-          recipientId: comment.userId,
-          commentId: comment.id,
-          postId: comment.postId,
-        });
-      }
-    },
     onError(error, variable, context) {
       queryClient.setQueryData(queryKey, context?.previousState);
       console.error(error);
@@ -86,10 +76,23 @@ export default function LikeButton({
     onAuthorLikeChange(data?.isLikedByAuthor || false);
   }, [data.isLikedByAuthor, onAuthorLikeChange])
 
+  const handleLike = () => {
+    // Émettre le socket immédiatement sans attendre la mutation
+    if (!data.isLikedByUser && socket?.connected) {
+      socket.emit("create_notification", {
+        type: "COMMENT_LIKE",
+        recipientId: comment.userId,
+        commentId: comment.id,
+        postId: comment.postId,
+      });
+    }
+    mutate();
+  };
+
   return (
     <button
       title={data.isLikedByUser ? unLike : likeText}
-      onClick={() => mutate()}
+      onClick={handleLike}
       className="flex items-center gap-1"
     >
       <Heart

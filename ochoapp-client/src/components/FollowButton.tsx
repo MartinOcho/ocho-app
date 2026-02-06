@@ -64,14 +64,6 @@ export default function FollowButton({
 
       return { previousState };
     },
-    onSuccess() {
-      if (socket?.connected) {
-        socket.emit("create_notification", {
-          type: "FOLLOW",
-          recipientId: userId,
-        });
-      }
-    },
     onError(error, variable, context) {
       queryClient.setQueryData(queryKey, context?.previousState);
       console.error(error);
@@ -82,6 +74,17 @@ export default function FollowButton({
     },
   });
 
+  const handleFollow = () => {
+    // Émettre le socket immédiatement sans attendre la mutation
+    if (!data.isFollowedByUser && socket?.connected) {
+      socket.emit("create_notification", {
+        type: "FOLLOW",
+        recipientId: userId,
+      });
+    }
+    mutate();
+  };
+
   const { isFriend, isFolowing } = data;
 
   const followingText = isFriend ? friend : following;
@@ -91,7 +94,7 @@ export default function FollowButton({
     <Button
       variant={data.isFollowedByUser ? "secondary" : "default"}
       title={data.isFollowedByUser ? unFollow : follow}
-      onClick={() => mutate()}
+      onClick={handleFollow}
     >
       {data.isFollowedByUser ? followingText : notFollowingText}
     </Button>
