@@ -20,7 +20,7 @@ export function UnavailableFooter({
   icon,
 }: UnavailableFooterProps) {
   return (
-    <div className="relative flex w-full select-none items-center justify-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 px-5">
+    <div className="relative flex-col flex w-full select-none items-center justify-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 px-5">
       <div className="flex items-center gap-2">
         {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
         <p className="text-center font-semibold text-destructive">{stateText}</p>
