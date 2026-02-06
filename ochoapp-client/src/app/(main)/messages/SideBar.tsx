@@ -370,7 +370,7 @@ export default function SideBar({
         </ul>
       )}
       <InfiniteScrollContainer
-        className="relative flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
+        className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
         onBottomReached={() => {
           // On ne fetch plus que si on n'est pas en train de rechercher
           if (hasMore && !isFetchingMore && !showSkeleton && !searchQuery) {
@@ -465,7 +465,7 @@ export default function SideBar({
         )}
       </InfiniteScrollContainer>
 
-      <div className={cn("fixed bottom-20 right-5 flex gap-2 sm:absolute", activeRoomId && "max-sm:-translate-x-[100vw]")}>
+      <div className={cn("fixed bottom-24 right-5 flex gap-2 sm:absolute", activeRoomId && "max-sm:-translate-x-[100vw]")}>
         <div
           className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:bg-muted dark:text-muted-foreground sm:hidden"
           onClick={() => setIsSearchOpen(true)}

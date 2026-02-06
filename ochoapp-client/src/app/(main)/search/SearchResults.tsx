@@ -112,7 +112,7 @@ export default function SearchResults({
       <TabsContent value="posts" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {
@@ -129,7 +129,7 @@ export default function SearchResults({
       <TabsContent value="users" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {
@@ -155,7 +155,7 @@ export default function SearchResults({
       <TabsContent value="verified-users" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {
@@ -181,7 +181,7 @@ export default function SearchResults({
       <TabsContent value="friend" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {
@@ -207,7 +207,7 @@ export default function SearchResults({
       <TabsContent value="followers" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {
@@ -233,7 +233,7 @@ export default function SearchResults({
       <TabsContent value="following" className="pb-2">
         {jsxState()}
         <InfiniteScrollContainer
-          className="space-y-2 pb-5 sm:space-y-5"
+          className="max-sm:pb-24 space-y-2 pb-5 sm:space-y-5"
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {posts.map((post) => {

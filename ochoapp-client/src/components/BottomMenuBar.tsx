@@ -54,7 +54,7 @@ export default function BottomMenuBar() {
     >
       <MenuBar
         className={cn(
-          "inline-flex min-h-fit w-full max-w-full justify-around gap-0 overflow-x-hidden bg-card/50 backdrop-blur-md p-1 rounded-3xl border shadow-lg"
+          "inline-flex min-h-fit w-full max-w-full justify-around gap-0 overflow-x-hidden bg-card/50 backdrop-blur-md p-1 rounded-[1.65rem] border shadow-lg"
         )}
       />
     </div>

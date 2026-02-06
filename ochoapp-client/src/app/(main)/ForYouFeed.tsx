@@ -67,7 +67,7 @@ export default function ForYouFeed() {
 
   return (
     <InfiniteScrollContainer
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-2 max-sm:pb-24"
       onBottomReached={() => {
         hasNextPage && !isFetchingNextPage && !isFetching && fetchNextPage();
       }}

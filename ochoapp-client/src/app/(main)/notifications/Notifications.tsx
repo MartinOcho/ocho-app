@@ -60,30 +60,30 @@ export default function Notifications() {
 
   if (status === "success" && !notifications.length && !hasNextPage) {
     return (
-      <div className="my-8 flex w-full flex-col items-center gap-2 text-center text-muted-foreground">
+      <div className="max-sm:pb-24 my-8 flex w-full flex-col items-center gap-2 text-center text-muted-foreground">
         <Bell size={150} />
-        <h2 className="text-xl">Vos activités s&apos;afficheront ici.</h2>
+        <h2 className="max-sm:pb-24 text-xl">Vos activités s&apos;afficheront ici.</h2>
       </div>
     );
   }
   if (status === "error") {
     return (
-      <div className="my-8 flex w-full flex-col items-center gap-2 text-center text-muted-foreground">
+      <div className="max-sm:pb-24 my-8 flex w-full flex-col items-center gap-2 text-center text-muted-foreground">
         <Frown size={150} />
-        <h2 className="text-xl">Quelque chose s&apos;est mal passé.</h2>
+        <h2 className="max-sm:pb-24 text-xl">Quelque chose s&apos;est mal passé.</h2>
       </div>
     );
   }
 
   return (
     <InfiniteScrollContainer
-      className="space-y-2 sm:space-y-5 max-sm:py-1"
+      className="max-sm:pb-24 space-y-2 sm:space-y-5 max-sm:py-1"
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
       {notifications.map((notification) => (
         <Notification key={notification.id} notification={notification} />
       ))}
-      {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
+      {isFetchingNextPage && <Loader2 className="max-sm:pb-24 mx-auto my-3 animate-spin" />}
     </InfiniteScrollContainer>
   );
 }

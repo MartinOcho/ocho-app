@@ -65,7 +65,7 @@ export default function FollowingFeed() {
 
   return (
     <InfiniteScrollContainer
-      className="space-y-2 sm:space-y-5"
+      className="space-y-2 sm:space-y-5 max-sm:pb-24"
       onBottomReached={() =>
         hasNextPage && !isFetchingNextPage && !isFetching && fetchNextPage()
       }
