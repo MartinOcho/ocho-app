@@ -30,7 +30,9 @@ import { MessageType } from "@prisma/client";
 import Linkify from "@/components/Linkify";
 import UserAvatar from "@/components/UserAvatar";
 import { createPortal } from "react-dom";
-import Time from "@/components/Time"; 
+import Time from "@/components/Time";
+import RoomFooter from "./RoomFooter";
+import { useRoomFooterState } from "./useRoomFooterState"; 
 
 interface ChatProps {
   roomId: string | null;
@@ -128,12 +130,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const [sentMessages, setSentMessages] = useState<SentMessageState[]>([]);
   const [newMessages, setNewMessages] = useState<MessageData[]>([]);
 
-  const { unableToLoadChat, noMessage, dataError, search } = t([
-    "unableToLoadChat",
-    "noMessage",
-    "dataError",
-    "search",
-  ]);
+  const { unableToLoadChat, noMessage, dataError, search } = t();
   const queryClient = useQueryClient();
   const { user: loggedUser } = useSession();
 
@@ -448,6 +445,16 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         ?.user || null
     : null;
 
+  // Déterminer l'état du footer
+  const footerState = useRoomFooterState({
+    room,
+    loggedUserId: loggedUser?.id,
+    isMember,
+    isSaved,
+    otherUser,
+    isLoading,
+  });
+
   const handleTypingStart = () => {
     if (!socket || !roomId) return;
     socket.emit("typing_start", roomId);
@@ -747,38 +754,17 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             }
           </div>
 
-          {/* Logique d'affichage du formulaire selon les droits */}
-          {!isSaved
-            ? !room.isGroup &&
-              !otherUser?.id && (
-                <div className="relative flex w-full select-none items-center justify-center gap-1 rounded-3xl border border-input bg-background p-1 px-5 py-1.5 text-center font-semibold ring-primary ring-offset-background transition-[width] duration-75">
-                  <p>{message}</p>
-                </div>
-              )
-            : !!roomId && (
-                <MessageForm
-                  expanded={messageInputExpanded}
-                  onExpanded={() => setMessageInputExpanded(true)}
-                  onSubmit={handleSendMessage}
-                  onTypingStart={handleTypingStart}
-                  onTypingStop={handleTypingStop}
-                />
-              )}
-          {!isMember ? (
-            <div className="relative flex w-full select-none items-center justify-center gap-1 rounded-3xl border border-input bg-background p-1 px-5 py-1.5 text-center font-semibold ring-primary ring-offset-background transition-[width] duration-75">
-              <p>{message}</p>
-            </div>
-          ) : (
-            !!roomId &&
-            ((!room.isGroup && otherUser?.id) || room.isGroup) && (
-              <MessageForm
-                expanded={messageInputExpanded}
-                onExpanded={() => setMessageInputExpanded(true)}
-                onSubmit={handleSendMessage}
-                onTypingStart={handleTypingStart}
-                onTypingStop={handleTypingStop}
-              />
-            )
+          {/* Affichage du RoomFooter selon l'état */}
+          {!!roomId && (
+            <RoomFooter
+              state={footerState}
+              roomId={roomId}
+              onMessageSend={handleSendMessage}
+              onTypingStart={handleTypingStart}
+              onTypingStop={handleTypingStop}
+              messageInputExpanded={messageInputExpanded}
+              onExpandedChange={setMessageInputExpanded}
+            />
           )}
         </div>
       </div>

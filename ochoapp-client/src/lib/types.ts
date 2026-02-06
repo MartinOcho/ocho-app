@@ -485,3 +485,27 @@ export type LocalUpload = {
     mediaId?: string;
   };
 };
+
+// Room Footer States
+export enum RoomFooterStateType {
+  Loading = "LOADING",
+  Normal = "NORMAL",
+  Unspecified = "UNSPECIFIED",
+  UserLeft = "USER_LEFT",
+  UserKicked = "USER_KICKED",
+  UserDeleted = "USER_DELETED",
+  UserBanned = "USER_BANNED",
+  PrivateProfile = "PRIVATE_PROFILE",
+  GroupFull = "GROUP_FULL",
+}
+
+export type RoomFooterState =
+  | { type: RoomFooterStateType.Loading }
+  | { type: RoomFooterStateType.Normal }
+  | { type: RoomFooterStateType.Unspecified }
+  | { type: RoomFooterStateType.UserLeft }
+  | { type: RoomFooterStateType.UserKicked }
+  | { type: RoomFooterStateType.UserDeleted }
+  | { type: RoomFooterStateType.UserBanned }
+  | { type: RoomFooterStateType.PrivateProfile }
+  | { type: RoomFooterStateType.GroupFull };
