@@ -54,7 +54,7 @@ export function CircleProgress({
         y={size / 2}
         textAnchor="middle"
         dy="0.3em"
-        className="text-xs font-semibold fill-current"
+        className="text-xs font-semibold fill-current transform rotate-90"
         fontSize={size * 0.3}
       >
         {Math.round(progress)}%

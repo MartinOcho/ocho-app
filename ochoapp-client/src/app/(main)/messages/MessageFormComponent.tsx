@@ -298,7 +298,8 @@ export function MessageFormComponent({
           !canAttach && "opacity-50 cursor-not-allowed",
           attachments.some((a) => a.isUploading)
             ? "text-amber-500 hover:text-amber-600"
-            : "text-muted-foreground hover:text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+            !expanded && "hidden",
         )}
         disabled={!canAttach || attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
       >
@@ -308,7 +309,7 @@ export function MessageFormComponent({
           <Image className="h-5 w-5" />
         )}
       </button>
-      <div className="flex w-full flex-col gap-2">
+      <div className={cn("flex w-full flex-col gap-2", !expanded && "hidden")}>
         {attachments.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {attachments.map((a, i) => (
