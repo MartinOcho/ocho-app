@@ -267,11 +267,11 @@ export default function RoomHeader({
 
   return (
     <div
-      className={cn("z-30", active ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative flex-1")}
+      className={cn("z-50", active ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative flex-1")}
     >
       <div
         className={
-          "sticky inset-0 z-10 flex justify-between p-4 " +
+          "sticky inset-0 z-40 flex justify-between p-4 " +
           (!active ? "hidden" : "")
         }
       >
@@ -310,197 +310,81 @@ export default function RoomHeader({
             />
           )}
           <div className="">
-            {room.isGroup &&
-            active &&
-            (loggedinMember?.type === "ADMIN" ||
-              loggedinMember?.type === "OWNER") ? (
-              <div
-                className={cn(
-                  "cursor-pointer text-ellipsis text-xl font-bold sm:hover:text-primary sm:hover:underline",
-                  isVerified && "flex items-center gap-1",
-                )}
-                title="Modifier le nom du groupe"
-                onClick={() => {
-                  setDialogFocus("name");
-                  setShowDialog(true);
-                }}
-              >
-                <span className="flex-1">{chatName}</span>
-                {verifiedCheck}
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "text-xl font-bold",
-                  isVerified &&
-                    "flex max-w-full items-center gap-1 *:line-clamp-1 *:text-ellipsis",
-                )}
-              >
-                <span className="flex-1">{chatName}</span>
-
-                {verifiedCheck}
-              </div>
-            )}
-            <div
-              className={"text-muted-foreground " + (active ? "hidden" : "")}
-            >
-              {room.isGroup ? (
-                <div>
-                  <span className="max-sm:hidden sm:group-hover/head:hidden">{`${allMembers.length} ${allMembers.length > 1 ? membersText.toLowerCase() : member.toLowerCase()}`}</span>
-                  <span className="text-ellipsis max-sm:line-clamp-1 sm:hidden sm:group-hover/head:inline">
-                    {room.members.length === 1
-                      ? room.members[0].user?.displayName.split(" ")[0]
-                      : room.members.length > 2
-                        ? room.members.length > 6
-                          ? namesAndOthers
-                              .replace(
-                                "[names]",
-                                room.members
-                                  .filter(
-                                    (member) => member.userId !== loggedUser.id,
-                                  )
-                                  .slice(0, 5)
-                                  .map(
-                                    (member) =>
-                                      member.user?.displayName.split(" ")[0],
-                                  )
-                                  .join(", "),
-                              )
-                              .replace("[len]", `${room.members.length - 6}`)
-                          : namesAndName
-                              .replace(
-                                "[names]",
-                                room.members
-                                  .filter(
-                                    (member) => member.userId !== loggedUser.id,
-                                  )
-                                  .slice(0, room.members.length - 2)
-                                  .map(
-                                    (member) =>
-                                      member.user?.displayName.split(" ")[0],
-                                  )
-                                  .join(", "),
-                              )
-                              .replace(
-                                "[name]",
-                                room.members[
-                                  room.members.length - 1
-                                ].user?.displayName.split(" ")[0] || appUser,
-                              )
-                        : room.members[
-                            room.members.length - 1
-                          ].user?.displayName.split(" ")[0] || appUser}
-                  </span>
-                </div>
-              ) : (
-                <span className="">
-                  {isUserOnline || otherUser?.id === loggedUser.id ? (
-                    online
-                  ) : lastSeenTimeStamp && lastSeenTimeStamp < now ? (
-                    <>
-                      {activeText}{" "}
-                      <Time
-                        time={new Date(lastSeenTimeStamp + 10_000)}
-                        relative
-                        long={false}
-                      />
-                    </>
-                  ) : (
-                    `@${otherUser?.username || "ochoapp-user"}`
-                  )}
-                </span>
-              )}
-            </div>
           </div>
-          {active && (
-            <div className="text-muted-foreground">
-              {room.isGroup ? (
-                <span className="">{`${group} • ${allMembers.length} ${allMembers.length > 1 ? membersText.toLowerCase() : member}`}</span>
-              ) : (
-                <span>
-                  <div>@{otherUser?.username || "ochoapp-user"}</div>
-                  <div className="text-center">
-                    {isUserOnline || otherUser?.id === loggedUser.id
-                      ? online
-                      : lastSeenTimeStamp &&
-                        lastSeenTimeStamp < now && (
-                          <>
-                            {activeText}{" "}
-                            <Time
-                              time={new Date(lastSeenTimeStamp + 10_000)}
-                              relative
-                              long={false}
-                            />
-                          </>
-                        )}
-                  </div>
-                </span>
-              )}
-            </div>
-          )}
-          {active && (
-            <div className="flex w-full flex-col items-center gap-3">
-              <div className="flex w-full justify-center">
-                {room.isGroup ? (
-                  <div className="flex w-full justify-center gap-2">
-                    {loggedinMember?.type !== "OLD" && (
-                      <AddMemberDialog room={room} className="max-w-44 flex-1">
-                        <Button
-                          variant="outline"
-                          className="flex h-fit w-full flex-col gap-2"
-                        >
-                          <UserRoundPlus size={35} />
-                          <span>
-                            {addAM}{" "}
-                            <span className="max-sm:hidden">{aMember}</span>
-                          </span>
-                        </Button>
-                      </AddMemberDialog>
-                    )}
-                    {(loggedinMember?.type === "ADMIN" ||
-                      loggedinMember?.type === "OWNER") && (
-                      <GroupChatSettingsDialog
-                        room={room}
-                        open={showDialog}
-                        onOpenChange={(open) => {
-                          setShowDialog(open);
-                          open === false && setDialogFocus(null);
-                        }}
-                        className="max-w-44 flex-1"
-                        focus={dialogFocus}
-                      >
-                        <Button
-                          variant="outline"
-                          className="flex h-fit w-full flex-col gap-2"
-                        >
-                          <Settings2 size={35} />
-                          <span>{settings}</span>
-                        </Button>
-                      </GroupChatSettingsDialog>
-                    )}
-                  </div>
-                ) : (
-                  <OchoLink
-                    href={`/users/${otherUser?.username || "-"}`}
-                    className="text-inherit"
-                  >
-                    <Button variant="outline" className="flex gap-1">
-                      <UserCircle2 /> {viewProfile}
-                    </Button>
-                  </OchoLink>
-                )}
-              </div>
-              <hr className="w-full" />
-              <div>
-                <Linkify>
+        </div>
+        {active && (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex w-full flex-col gap-3 flex-1">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="info" className="flex items-center gap-2">
+                <Info size={16} />
+                <span>Infos</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Images size={16} />
+                <span>Médias</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="info" className="flex flex-col gap-3 flex-1 overflow-y-auto">
+            <div className="flex w-full flex-1 flex-col gap-3">
+              {active && (
+                <div className="flex w-full justify-center">
                   {room.isGroup ? (
-                    <>
-                      {room.description ? (
-                        <p className="whitespace-pre-line break-words py-2 text-center">
-                          {room.description}
-                        </p>
-                      ) : loggedinMember?.type === "ADMIN" ||
-                        loggedinMember?.type === "OWNER" ? (
+                    <div className="flex w-full justify-center gap-2">
+                      {loggedinMember?.type !== "OLD" && (
+                        <AddMemberDialog room={room} className="max-w-44 flex-1">
+                          <Button
+                            variant="outline"
+                            className="flex h-fit w-full flex-col gap-2"
+                          >
+                            <UserRoundPlus size={35} />
+                            <span>
+                              {addAM} <span className="max-sm:hidden">{aMember}</span>
+                            </span>
+                          </Button>
+                        </AddMemberDialog>
+                      )}
+                      {(loggedinMember?.type === "ADMIN" ||
+                        loggedinMember?.type === "OWNER") && (
+                        <GroupChatSettingsDialog
+                          room={room}
+                          open={showDialog}
+                          onOpenChange={(open) => {
+                            setShowDialog(open);
+                            open === false && setDialogFocus(null);
+                          }}
+                          className="max-w-44 flex-1"
+                          focus={dialogFocus}
+                        >
+                          <Button
+                            variant="outline"
+                            className="flex h-fit w-full flex-col gap-2"
+                          >
+                            <Settings2 size={35} />
+                            <span>{settings}</span>
+                          </Button>
+                        </GroupChatSettingsDialog>
+                      )}
+                    </div>
+                  ) : (
+                    <OchoLink href={`/users/${otherUser?.username || "-"}`} className="text-inherit">
+                      <Button variant="outline" className="flex gap-1">
+                        <UserCircle2 /> {viewProfile}
+                      </Button>
+                    </OchoLink>
+                  )}
+                </div>
+              )}
+              <Linkify>
+                {room.isGroup ? (
+                  <>
+                    {room.description ? (
+                      <p className="whitespace-pre-line break-words py-2 px-4 text-center">
+                        {room.description}
+                      </p>
+                    ) : loggedinMember?.type === "ADMIN" ||
+                      loggedinMember?.type === "OWNER" ? (
+                      <div className="px-4 text-center">
                         <Button
                           variant="link"
                           className="py-0"
@@ -512,25 +396,22 @@ export default function RoomHeader({
                         >
                           {addDescription}
                         </Button>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          {noDescription}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    !!otherUser?.bio && (
-                      <p className="whitespace-pre-line break-words py-2 text-center">
-                        {otherUser.bio}
+                      </div>
+                    ) : (
+                      <p className="px-4 text-center text-muted-foreground">
+                        {noDescription}
                       </p>
-                    )
-                  )}
-                </Linkify>
-              </div>
-              {(!!otherUser?.bio?.trim() || room.isGroup) && (
-                <hr className="w-full" />
-              )}
-              <span className="text-muted-foreground">
+                    )}
+                  </>
+                ) : (
+                  !!otherUser?.bio && (
+                    <p className="whitespace-pre-line break-words py-2 px-4 text-center">
+                      {otherUser.bio}
+                    </p>
+                  )
+                )}
+              </Linkify>
+              <div className="px-4 text-center text-sm text-muted-foreground">
                 {room.isGroup ? (
                   <span>
                     {created}{" "}
@@ -550,26 +431,7 @@ export default function RoomHeader({
                     )}
                   </span>
                 )}
-              </span>
-              {room.isGroup && <hr className="w-full" />}
-            </div>
-          )}
-        </div>
-        {active && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex w-full flex-col gap-3 flex-1">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="info" className="flex items-center gap-2">
-                <Info size={16} />
-                <span>Infos</span>
-              </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center gap-2">
-                <Images size={16} />
-                <span>Médias</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="info" className="flex flex-col gap-3 flex-1 overflow-y-auto">
-            <div className="flex w-full flex-1 flex-col gap-3">
+              </div>
               {room.isGroup && loggedinMember?.type !== "BANNED" && (
                 <ul className="flex w-full flex-col py-3">
                   <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers.length} ${membersText.toLowerCase()}`}</li>
@@ -900,7 +762,7 @@ export function GroupUserPopover({
           </li>
         )}
       </PopoverTrigger>
-      <PopoverContent>
+      <PopoverContent className="z-50">
         <div className="flex flex-col gap-3">
           <div className="divide-y-2">
             <div
@@ -1009,6 +871,12 @@ export function MediaGalleryContainer({ roomId }: { roomId: string }) {
       <div className="flex items-center justify-center p-4">
         <Loader2 className="animate-spin" />
       </div>
+    );
+  }
+
+  if (!messages || messages.length === 0) {
+    return (
+      <div className="p-4 text-center text-muted-foreground">Aucun média</div>
     );
   }
 

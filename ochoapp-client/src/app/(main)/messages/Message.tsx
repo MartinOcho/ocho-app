@@ -736,9 +736,9 @@ export default function Message({
                     </div>
 
                     <div className={cn(
-                        "absolute -bottom-3 z-20", 
+                        "absolute -bottom-3", 
                         isOwner ? "left-0 -translate-x-3" : "right-0 translate-x-3",
-                        activeOverlayRect ? "opacity-0" : "opacity-100"
+                        !activeOverlayRect && !activeDetailsRect ? "z-20 pointer-events-auto" : "z-0 pointer-events-none opacity-0",
                     )}>
                         <ReactionList
                             reactions={reactions}
