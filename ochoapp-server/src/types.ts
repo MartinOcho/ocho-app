@@ -276,6 +276,18 @@ export function getMessageDataInclude(loggedInUserId: string) {
         userId: loggedInUserId,
       },
     },
+    attachments: {
+      select: {
+        id: true,
+        type: true,
+        url: true,
+        publicId: true,
+        width: true,
+        height: true,
+        format: true,
+        resourceType: true,
+      },
+    },
   } satisfies Prisma.MessageInclude;
 }
 

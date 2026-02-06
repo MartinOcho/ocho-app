@@ -1,9 +1,10 @@
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { uploadFile } from "@/lib/fileUtils";
+import { MessageAttachment, AttachmentType } from "@/lib/types";
 import { t } from "@/context/LanguageContext";
 
-export interface Attachment {
+export interface Attachment extends MessageAttachment {
     file: File;
     mediaId?: string;
     isUploading: boolean;

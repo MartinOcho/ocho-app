@@ -283,7 +283,32 @@ export function getMessageDataInclude(loggedInUserId: string) {
         userId: loggedInUserId,
       },
     },
+    attachments: {
+      select: {
+        id: true,
+        type: true,
+        url: true,
+        publicId: true,
+        width: true,
+        height: true,
+        format: true,
+        resourceType: true,
+      },
+    },
   } satisfies Prisma.MessageInclude;
+}
+
+export type AttachmentType = "IMAGE" | "VIDEO" | "DOCUMENT";
+
+export interface MessageAttachment {
+  id?: string;
+  type: AttachmentType;
+  url: string;
+  publicId?: string;
+  width?: number | null;
+  height?: number | null;
+  format?: string | null;
+  resourceType?: string | null;
 }
 
 

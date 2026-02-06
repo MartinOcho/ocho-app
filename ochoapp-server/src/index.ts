@@ -775,22 +775,64 @@ io.on("connection", async (socket) => {
             return socket.emit("error", { message: "Action non autorisée" });
           }
 
-          const [createdMessage, roomData] = await prisma.$transaction([
-            prisma.message.create({
-              data: {
-                content,
-                roomId,
-                senderId: userId,
-                type,
-                recipientId,
-              },
-              include: getMessageDataInclude(userId),
-            }),
-            prisma.room.findUnique({
+          // Support attachments: if content is JSON with media[], create attachments
+          let createdMessage: any = null;
+          let roomData: any = null;
+
+          await prisma.$transaction(async (tx) => {
+            let parsed: any = null;
+            try {
+              parsed = JSON.parse(content || "");
+            } catch (e) {
+              parsed = null;
+            }
+
+            if (parsed && Array.isArray(parsed.media) && parsed.media.length > 0) {
+              // create message with text if present
+              createdMessage = await tx.message.create({
+                data: {
+                  content: parsed.text || "",
+                  roomId,
+                  senderId: userId,
+                  type,
+                  recipientId,
+                },
+                include: getMessageDataInclude(userId),
+              });
+
+              // create attachments
+              for (const m of parsed.media) {
+                await tx.messageAttachment.create({
+                  data: {
+                    messageId: createdMessage.id,
+                    type: m.resource_type && String(m.resource_type).startsWith("video") ? "VIDEO" : (m.resource_type === "image" || (m.url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(m.url)) ? "IMAGE" : "DOCUMENT"),
+                    url: m.secure_url || m.url || m.path || "",
+                    publicId: m.public_id || null,
+                    width: m.width || null,
+                    height: m.height || null,
+                    format: m.format || null,
+                    resourceType: m.resource_type || null,
+                  },
+                });
+              }
+            } else {
+              createdMessage = await tx.message.create({
+                data: {
+                  content,
+                  roomId,
+                  senderId: userId,
+                  type,
+                  recipientId,
+                },
+                include: getMessageDataInclude(userId),
+              });
+            }
+
+            roomData = await tx.room.findUnique({
               where: { id: roomId },
               include: getChatRoomDataInclude(),
-            }),
-          ]);
+            });
+          });
 
           newMessage = createdMessage;
 
