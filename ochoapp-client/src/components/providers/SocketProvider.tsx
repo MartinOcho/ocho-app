@@ -15,8 +15,15 @@ import { Loader2, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
+import { MessageData } from "@/lib/types";
 
 // Définition des types pour le contexte
+interface PendingMessage {
+  newMessage: MessageData;
+  roomId: string;
+  tempId?: string;
+}
+
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -26,6 +33,7 @@ interface SocketContextType {
   retryConnection: () => void;
   notificationsUnread?: number | null;
   messagesUnread?: number | null;
+  getPendingMessages: (roomId: string) => PendingMessage[];
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -37,6 +45,7 @@ const SocketContext = createContext<SocketContextType>({
   retryConnection: () => {},
   notificationsUnread: null,
   messagesUnread: null,
+  getPendingMessages: () => [],
 });
 
 // Hook personnalisé pour utiliser le socket
@@ -82,6 +91,7 @@ export default function SocketProvider({
   const [forceReconnect, setForceReconnect] = useState(0);
   const [notificationsUnread, setNotificationsUnread] = useState<number | null>(null);
   const [messagesUnread, setMessagesUnread] = useState<number | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<Record<string, PendingMessage[]>>({});
 
   // Fonction stable pour émettre des événements
   const checkUserStatus = useCallback((targetUserId: string) => {
@@ -89,6 +99,18 @@ export default function SocketProvider({
       socketRef.current.emit("check_user_status", { userId: targetUserId });
     }
   }, []);
+
+  // Fonction pour récupérer les messages en attente pour une room
+  const getPendingMessages = useCallback((roomId: string): PendingMessage[] => {
+    const messages = pendingMessages[roomId] || [];
+    // Nettoyer les messages en attente après les avoir récupérés
+    setPendingMessages((prev) => {
+      const updated = { ...prev };
+      delete updated[roomId];
+      return updated;
+    });
+    return messages;
+  }, [pendingMessages]);
 
   // Fonction pour forcer une reconnexion manuelle
   const retryConnection = useCallback(() => {
@@ -209,6 +231,21 @@ export default function SocketProvider({
     };
 
     // Événements Métiers
+    
+    // Listener global pour les messages (stocke en attente si le composant Chat n'est pas encore monté)
+    const onReceiveMessage = (data: {
+      newMessage: MessageData;
+      roomId: string;
+      tempId?: string;
+    }) => {
+      if (isComponentUnmounted) return;
+      console.log("📨 Message reçu (stocké en attente) pour room:", data.roomId);
+      setPendingMessages((prev) => ({
+        ...prev,
+        [data.roomId]: [...(prev[data.roomId] || []), data],
+      }));
+    };
+
     const onUserStatusChange = (data: {
       userId: string;
       isOnline: boolean;
@@ -294,6 +331,7 @@ export default function SocketProvider({
     socketInstance.on("connect", onConnect);
     socketInstance.on("disconnect", onDisconnect);
     socketInstance.on("connect_error", onConnectError);
+    socketInstance.on("receive_message", onReceiveMessage);
     socketInstance.on("user_status_change", onUserStatusChange);
     socketInstance.on("new_room_created", onNewRoomCreated);
     socketInstance.on("notifications_unread_update", onNotificationsUnreadUpdate);
@@ -348,6 +386,7 @@ export default function SocketProvider({
         retryConnection,
         notificationsUnread,
         messagesUnread,
+        getPendingMessages,
       }}
     >
       <div

@@ -107,7 +107,7 @@ function DateHeader({ date }: { date: Date | string }) {
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
-  const { socket, isConnected, retryConnection } = useSocket();
+  const { socket, isConnected, retryConnection, getPendingMessages } = useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const pathname = usePathname();
   const router = useRouter();
@@ -151,31 +151,24 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     setContextMenuPos(null); // Reset menu contextuel
   }, [roomId]);
 
-  // --- GESTION DU SOCKET : JOIN / LEAVE / EVENTS ---
+  // --- NOUVELLE : TRAITEMENT DES MESSAGES EN ATTENTE ---
   useEffect(() => {
-    if (!socket || !roomId) return;
+    if (!roomId || !getPendingMessages) return;
 
-    // Si on est connecté, on rejoint la room
-    if (isConnected) {
-      socket.emit("join_room", roomId);
-    }
+    // Récupérer les messages qui ont été reçus via socket avant que le composant soit monté
+    const pendingMsgs = getPendingMessages(roomId);
+    
+    if (pendingMsgs.length === 0) return;
 
-    const handleJoinError = (error: string) => {
-      toast({ variant: "destructive", description: error });
-    };
+    console.log(`📥 Traitement de ${pendingMsgs.length} messages en attente pour la room ${roomId}`);
 
-    // 2. Écouter la confirmation de réception (Broadcast du serveur)
-    const handleReceiveMessage = (data: {
-      newMessage: MessageData;
-      roomId: string;
-      tempId?: string; // On reçoit l'ID temporaire pour le nettoyage
-    }) => {
-      // Ignorer les réactions
-      if (data.newMessage.type === "REACTION") return;
-
-      // Toujours mettre à jour le cache pour la room du message, même si ce n'est pas la room active
+    // Traiter chaque message en attente de la même manière que handleReceiveMessage
+    pendingMsgs.forEach((data) => {
+      if (data.newMessage.type === "REACTION") return; // On ignore les réactions
+      
+      // Mettre à jour le cache React Query
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
-        ["room", "messages", data.roomId],
+        ["room", "messages", roomId],
         (oldData) => {
           if (!oldData) return oldData;
 
@@ -196,20 +189,60 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         },
       );
 
-      // Si c'est le chat actuellement ouvert, aussi:
-      // 1. Ajouter à newMessages pour un affichage immédiat
-      // 2. Supprimer le message temporaire
-      if (data.roomId === roomId) {
-        // Ajouter à newMessages pour un affichage immédiat (optionnel, car setQueryData suffit)
-        setNewMessages((prev) => {
-          // Éviter les doublons
-          if (prev.some((msg) => msg.id === data.newMessage.id)) {
-            return prev;
-          }
-          return [data.newMessage, ...prev];
-        });
+      // Supprimer le message temporaire correspondant s'il existe
+      if (data.tempId) {
+        setSentMessages((prev) =>
+          prev.filter((msg) => msg.tempId !== data.tempId),
+        );
+      }
+    });
+  }, [roomId, getPendingMessages, queryClient]);
 
-        // SUPPRIMER le message temporaire correspondant dans sentMessages
+  // --- GESTION DU SOCKET : JOIN / LEAVE / EVENTS ---
+  useEffect(() => {
+    if (!socket || !roomId) return;
+
+    // Si on est connecté, on rejoint la room
+    if (isConnected) {
+      socket.emit("join_room", roomId);
+    }
+
+    const handleJoinError = (error: string) => {
+      toast({ variant: "destructive", description: error });
+    };
+
+    // 2. Écouter la confirmation de réception (Broadcast du serveur)
+    const handleReceiveMessage = (data: {
+      newMessage: MessageData;
+      roomId: string;
+      tempId?: string; // On reçoit l'ID temporaire pour le nettoyage
+    }) => {
+      if (data.roomId === roomId) {
+        // 1. Mettre à jour le cache React Query directement
+        if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
+        queryClient.setQueryData<InfiniteData<MessagesSection>>(
+          ["room", "messages", roomId],
+          (oldData) => {
+            if (!oldData) return oldData;
+
+            const newPages = oldData.pages.map((page, index) => {
+              if (index === 0) {
+                return {
+                  ...page,
+                  messages: [data.newMessage, ...page.messages],
+                };
+              }
+              return page;
+            });
+
+            return {
+              ...oldData,
+              pages: newPages,
+            };
+          },
+        );
+
+        // 2. SUPPRIMER le message temporaire correspondant dans sentMessages
         if (data.tempId) {
           setSentMessages((prev) =>
             prev.filter((msg) => msg.tempId !== data.tempId),
@@ -347,7 +380,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       initialPageParam: null as string | null,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: Infinity,
-      refetchOnMount: false,
+      refetchOnMount: true,
       throwOnError: false,
       enabled: !!roomId,
     });
