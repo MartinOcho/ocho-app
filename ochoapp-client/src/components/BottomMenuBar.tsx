@@ -8,41 +8,44 @@ import { cn } from "@/lib/utils";
 export default function BottomMenuBar() {
   const { isVisible: isContextVisible } = useMenuBar();
   const [isScrollingDown, setIsScrollingDown] = useState(false);
-  const lastScrollY = useRef(0);
+  const lastScrollY = useRef(new Map()); // On stocke le dernier scroll par élément
 
   useEffect(() => {
-    // On cible l'élément qui a l'overflow (ton <main> dans le layout)
-    const mainElement = document.querySelector("main");
-    if (!mainElement) return;
+    const handleScroll = (event: Event) => {
+      // On récupère l'élément qui est en train de scroller
+      const target = event.target as HTMLElement;
+      if (!target || target === (document as unknown as HTMLElement)) return;
 
-    const handleScroll = () => {
-      const currentScrollY = mainElement.scrollTop;
+      // On vérifie si l'élément touche le bas de la viewport
+      const rect = target.getBoundingClientRect();
+      const touchesBottom = rect.bottom >= window.innerHeight - 10;
 
-      // 1. Détecte la direction du scroll
-      // On ajoute une marge de 10px pour éviter les micro-sauts
-      if (currentScrollY > lastScrollY.current + 10) {
-        setIsScrollingDown(true); // On descend -> On cache
-      } else if (currentScrollY < lastScrollY.current - 10) {
-        setIsScrollingDown(false); // On monte -> On montre
+      if (!touchesBottom) return;
+
+      const currentScrollY = target.scrollTop;
+      const previousScrollY = lastScrollY.current.get(target) || 0;
+
+      // 1. Détection de la direction
+      if (currentScrollY > previousScrollY + 10) {
+        setIsScrollingDown(true);
+      } else if (currentScrollY < previousScrollY - 10) {
+        setIsScrollingDown(false);
       }
 
-      // 2. Cas spécifique : Fin de page
-      // Si on arrive tout en bas, on peut décider de la cacher complètement
-      const isAtBottom = 
-        mainElement.scrollHeight - mainElement.scrollTop <= mainElement.clientHeight + 50;
-      
+      // 2. Cas spécifique : Fin de scroll de l'élément
+      const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
       if (isAtBottom) {
         setIsScrollingDown(true);
       }
 
-      lastScrollY.current = currentScrollY;
+      lastScrollY.current.set(target, currentScrollY);
     };
 
-    mainElement.addEventListener("scroll", handleScroll);
-    return () => mainElement.removeEventListener("scroll", handleScroll);
+    // 'true' active la phase de capture : on écoute tous les scrolls du DOM
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
   }, []);
 
-  // La barre est visible SI le contexte dit OK ET qu'on n'est pas en train de descendre
   const showBar = isContextVisible && !isScrollingDown;
 
   return (
