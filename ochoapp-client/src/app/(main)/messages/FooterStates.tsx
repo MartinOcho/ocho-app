@@ -19,6 +19,7 @@ interface UnavailableFooterProps {
   buttonColor?: string;
   textColor?: string;
   icon?: React.ReactNode;
+  compact?: boolean;
 }
 
 export function UnavailableFooter({
@@ -28,7 +29,25 @@ export function UnavailableFooter({
   buttonColor,
   textColor,
   icon,
+  compact = false,
 }: UnavailableFooterProps) {
+  if (compact) {
+    return (
+      <div className={cn(
+        "relative z-20 flex w-fit items-end gap-1 rounded-full border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[button:focus-visible]:outline-none has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring has-[button:focus-visible]:ring-offset-2",
+        "aspect-square rounded-full"
+      )}>
+        <button
+          type="button"
+          onClick={onButtonClick}
+          className="flex h-10 w-10 items-center justify-center rounded-full p-0 transition-colors text-muted-foreground hover:text-foreground"
+        >
+          {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="relative max-sm:flex-col flex w-full select-none items-center justify-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 sm:px-5">
       <div className="flex items-center gap-2">
@@ -50,9 +69,23 @@ export function UnavailableFooter({
 
 interface LoadingFooterProps {
   onClose?: () => void;
+  compact?: boolean;
 }
 
-export function LoadingFooter({ onClose }: LoadingFooterProps) {
+export function LoadingFooter({ onClose, compact = false }: LoadingFooterProps) {
+  if (compact) {
+    return (
+      <div className={cn(
+        "relative z-20 flex w-fit items-end gap-1 rounded-full border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75",
+        "aspect-square rounded-full animate-pulse"
+      )}>
+        <div className="h-10 w-10 rounded-full flex items-center justify-center">
+          <div className="h-4 w-4 rounded-full bg-muted-foreground/50"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex w-full select-none items-center justify-center gap-2 rounded-3xl border border-input bg-background/50 p-3 px-5 animate-pulse">
       <div className="h-4 w-4 rounded-full bg-muted-foreground/50"></div>
@@ -63,15 +96,17 @@ export function LoadingFooter({ onClose }: LoadingFooterProps) {
 
 interface UserLeftFooterProps {
   onContactAdmin?: () => void;
+  compact?: boolean;
 }
 
-export function UserLeftFooter({ onContactAdmin }: UserLeftFooterProps) {
+export function UserLeftFooter({ onContactAdmin, compact = false }: UserLeftFooterProps) {
   return (
     <UnavailableFooter
       stateText="Vous avez quitté le groupe"
       buttonLabel="Contacter un administrateur"
       onButtonClick={onContactAdmin}
       icon={<LogOut className="h-5 w-5 text-orange-500" />}
+      compact={compact}
     />
   );
 }
@@ -80,15 +115,17 @@ export const UserLeftIcon = <LogOut className="h-5 w-5 text-orange-500" />;
 
 interface UserKickedFooterProps {
   onContactAdmin?: () => void;
+  compact?: boolean;
 }
 
-export function UserKickedFooter({ onContactAdmin }: UserKickedFooterProps) {
+export function UserKickedFooter({ onContactAdmin, compact = false }: UserKickedFooterProps) {
   return (
     <UnavailableFooter
       stateText="Un administrateur vous a retiré du groupe"
       buttonLabel="Contacter un administrateur"
       onButtonClick={onContactAdmin}
       icon={<AlertTriangle className="h-5 w-5 text-orange-500" />}
+      compact={compact}
     />
   );
 }
@@ -97,15 +134,17 @@ export const UserKickedIcon = <AlertTriangle className="h-5 w-5 text-orange-500"
 
 interface UserDeletedFooterProps {
   onDeleteConversation?: () => void;
+  compact?: boolean;
 }
 
-export function UserDeletedFooter({ onDeleteConversation }: UserDeletedFooterProps) {
+export function UserDeletedFooter({ onDeleteConversation, compact = false }: UserDeletedFooterProps) {
   return (
     <UnavailableFooter
       stateText="Compte supprimé"
       buttonLabel="Supprimer la discussion"
       onButtonClick={onDeleteConversation}
       icon={<Ghost className="h-5 w-5 text-red-500" />}
+      compact={compact}
     />
   );
 }
@@ -114,15 +153,17 @@ export const UserDeletedIcon = <Ghost className="h-5 w-5 text-red-500" />;
 
 interface UserBannedFooterProps {
   onContactSupport?: () => void;
+  compact?: boolean;
 }
 
-export function UserBannedFooter({ onContactSupport }: UserBannedFooterProps) {
+export function UserBannedFooter({ onContactSupport, compact = false }: UserBannedFooterProps) {
   return (
     <UnavailableFooter
       stateText="Vous avez été banni"
       buttonLabel="Contacter le support"
       onButtonClick={onContactSupport}
       icon={<Ban className="h-5 w-5 text-destructive" />}
+      compact={compact}
     />
   );
 }
@@ -131,15 +172,17 @@ export const UserBannedIcon = <Ban className="h-5 w-5 text-destructive" />;
 
 interface PrivateProfileFooterProps {
   onFollowUser?: () => void;
+  compact?: boolean;
 }
 
-export function PrivateProfileFooter({ onFollowUser }: PrivateProfileFooterProps) {
+export function PrivateProfileFooter({ onFollowUser, compact = false }: PrivateProfileFooterProps) {
   return (
     <UnavailableFooter
       stateText="Profil privé"
       buttonLabel="Suivre pour discuter"
       onButtonClick={onFollowUser}
       icon={<Lock className="h-5 w-5 text-pink-500" />}
+      compact={compact}
     />
   );
 }
@@ -148,15 +191,17 @@ export const PrivateProfileIcon = <Lock className="h-5 w-5 text-pink-500" />;
 
 interface GroupFullFooterProps {
   onViewDetails?: () => void;
+  compact?: boolean;
 }
 
-export function GroupFullFooter({ onViewDetails }: GroupFullFooterProps) {
+export function GroupFullFooter({ onViewDetails, compact = false }: GroupFullFooterProps) {
   return (
     <UnavailableFooter
       stateText="Groupe plein"
       buttonLabel="Voir les détails"
       onButtonClick={onViewDetails}
       icon={<Users className="h-5 w-5 text-yellow-500" />}
+      compact={compact}
     />
   );
 }
@@ -165,15 +210,17 @@ export const GroupFullIcon = <Users className="h-5 w-5 text-yellow-500" />;
 
 interface UnspecifiedFooterProps {
   onContactSupport?: () => void;
+  compact?: boolean;
 }
 
-export function UnspecifiedFooter({ onContactSupport }: UnspecifiedFooterProps) {
+export function UnspecifiedFooter({ onContactSupport, compact = false }: UnspecifiedFooterProps) {
   return (
     <UnavailableFooter
       stateText="L'envoi de message n'est pas disponible"
       buttonLabel="Contacter le support"
       onButtonClick={onContactSupport}
       icon={<AlertCircle className="h-5 w-5 text-muted-foreground" />}
+      compact={compact}
     />
   );
 }
