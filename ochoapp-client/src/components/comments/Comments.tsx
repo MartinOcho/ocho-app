@@ -123,7 +123,7 @@ export default function Comments({ post, onClose }: CommentsProps) {
       draggable={isDraggable}
       direction="down"
       className="group/comments bottom-0 left-0 z-20 w-full max-sm:fixed max-sm:rounded-e-sm"
-      contentClassName="max-sm:bg-background max-sm:pt-2 sm:space-y-3 max-sm:rounded-s-sm max-sm:flex max-sm:flex-col-reverse"
+      contentClassName="max-sm:bg-background max-sm:pt-2 sm:space-y-3 max-sm:rounded-s-sm max-sm:flex max-sm:flex-col-reverse max-sm:pb-24"
       onDrag={(number) => {
         if (number > 200) {
           onClose();
