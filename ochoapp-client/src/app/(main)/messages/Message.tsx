@@ -215,17 +215,6 @@ export const MessageBubbleContent = ({
           borderRadiusClass
         )}
       >
-        <div className="pr-4 pb-1">
-            {message.content ? (
-                <HighlightText
-                text={message.content}
-                highlight={highlight}
-                isOwner={isOwner}
-                />
-            ) : (
-                <span className="italic">{unavailableMessage}</span>
-            )}
-        </div>
 
         {/* Attachments (Images/Videos) */}
         {message.attachments && !isClone && message.attachments.length > 0 && (
@@ -237,6 +226,17 @@ export const MessageBubbleContent = ({
             )}
           />
         )}
+        <div className="pr-4 pb-1">
+            {message.content ? (
+                <HighlightText
+                text={message.content}
+                highlight={highlight}
+                isOwner={isOwner}
+                />
+            ) : (
+                <span className="italic">{unavailableMessage}</span>
+            )}
+        </div>
 
         {/* Heure et Status DANS la bulle */}
         {createdAt && (
