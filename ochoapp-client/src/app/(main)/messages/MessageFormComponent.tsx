@@ -384,7 +384,7 @@ export function MessageFormComponent({
         <Textarea
           placeholder={typeMessage}
           className={cn(
-            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
+            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
             expanded ? "relative w-full" : "invisible absolute w-0",
           )}
           rows={1}
