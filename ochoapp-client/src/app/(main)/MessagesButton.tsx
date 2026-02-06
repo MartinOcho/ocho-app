@@ -111,7 +111,7 @@ export default function MessagesButton({
             </span>
           )}
         </div>
-        <span className="text-[10px] max-sm:font-thin sm:hidden">{messages}</span>
+        <span className="text-[0.65rem] max-sm:font-thin sm:hidden">{messages}</span>
         <span className={cn("max-lg:hidden", isMessagesPage && "hidden")}>{messages}</span>
       </OchoLink>
     </Button>
