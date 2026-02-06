@@ -303,7 +303,7 @@ enum MediaType {
 model MessageAttachment {
   id           String         @id @default(cuid())
   messageId    String?
-  message      Message?       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message      Message?       @relation(fields: [messageId], references: [id], onDelete: SetNull)
   type         AttachmentType
   url          String
   publicId     String?
