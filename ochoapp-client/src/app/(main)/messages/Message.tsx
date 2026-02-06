@@ -228,7 +228,7 @@ export const MessageBubbleContent = ({
         </div>
 
         {/* Attachments (Images/Videos) */}
-        {message.attachments && message.attachments.length > 0 && (
+        {message.attachments && !isClone && message.attachments.length > 0 && (
           <MediaStrip 
             attachments={message.attachments as MessageAttachment[]}
             className={cn(

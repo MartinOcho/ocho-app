@@ -834,13 +834,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         </div>
       </div>
 
-      {/* MEDIA GALLERY */}
-      {allMessages && allMessages.length > 0 && (
-        <MediaGallery
-          messages={allMessages}
-          className="border-t"
-        />
-      )}
+  
 
       {/* MENU CONTEXTUEL (Click Droit) */}
       {contextMenuPos && (
