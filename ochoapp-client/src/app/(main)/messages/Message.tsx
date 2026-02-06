@@ -451,7 +451,7 @@ export default function Message({
   const isRecipient = message.recipient?.id === loggedUser?.id;
 
   const hasBeenRead = reads.filter(r => r.id !== message.senderId).length > 0;
-  const readStatus = hasBeenRead ? 'read' : 'delivered';
+  const readStatus = (hasBeenRead || roomId.startsWith('saved-')) ? 'read' : 'delivered';
 
   useEffect(() => {
     if (!socket || !loggedUser || !room) return;
@@ -736,7 +736,7 @@ export default function Message({
                     </div>
                 </div>
 
-                {readers.length > 0 && isLastInCluster && (
+                {room.isGroup && readers.length > 0 && isLastInCluster && (
                   <div className={cn("relative mt-2 mr-1 flex w-full", isOwner ? "justify-end" : "justify-start")}>
                      <button
                         ref={detailsButtonRef}
@@ -754,7 +754,7 @@ export default function Message({
                            </div>
                         ))}
                         {readers.length > 3 && (
-                            <div className="h-4 w-4 rounded-full bg-muted text-[8px] flex items-center justify-center border border-background text-muted-foreground font-bold z-10">
+                            <div className="h-[16px] w-[16px] rounded-full bg-muted text-[8px] flex items-center justify-center border border-background text-muted-foreground font-bold z-10">
                                 +{readers.length - 3}
                             </div>
                         )}
