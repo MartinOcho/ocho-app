@@ -90,7 +90,8 @@ export default function SocketProvider({
   const [isServerTriggered, setIsServerTriggered] = useState(false);
   const [forceReconnect, setForceReconnect] = useState(0);
   const [notificationsUnread, setNotificationsUnread] = useState<number | null>(null);
-  const [messagesUnread, setMessagesUnread] = useState<number | null>(null);
+  // État pour stocker les messages en attente par room
+  // Structure: { roomId: [{ newMessage, roomId, tempId?, timestamp }], ... }
   const [pendingMessages, setPendingMessages] = useState<Record<string, PendingMessage[]>>({});
 
   // Fonction stable pour émettre des événements
@@ -102,15 +103,16 @@ export default function SocketProvider({
 
   // Fonction pour récupérer les messages en attente pour une room
   const getPendingMessages = useCallback((roomId: string): PendingMessage[] => {
-    const messages = pendingMessages[roomId] || [];
-    // Nettoyer les messages en attente après les avoir récupérés
+    // Note: On utilise setPendingMessages en version fonctionnelle pour éviter de dépendre de pendingMessages
+    let messages: PendingMessage[] = [];
     setPendingMessages((prev) => {
+      messages = prev[roomId] || [];
       const updated = { ...prev };
       delete updated[roomId];
       return updated;
     });
     return messages;
-  }, [pendingMessages]);
+  }, []);
 
   // Nettoyage automatique des messages en attente après 30 secondes
   useEffect(() => {

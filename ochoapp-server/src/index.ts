@@ -33,13 +33,38 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
-app.use(
-  cors({
-    origin: CLIENT_URL,
-    methods: ["GET", "POST"],
-    credentials: true,
-  })
-);
+// Normaliser et accepter les variantes d'URL (avec/sans slash, http/https)
+const allowedOrigins = [
+  CLIENT_URL,
+  CLIENT_URL.replace(/\/$/, ""), // Sans slash
+  CLIENT_URL.endsWith("/") ? CLIENT_URL : CLIENT_URL + "/", // Avec slash
+];
+
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: Function) {
+    // Permettre les requêtes sans origin (comme mobile apps ou requests simple)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Normaliser origin pour comparaison
+    const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
+    const normalizedAllowed = allowedOrigins.map(url => 
+      url.toLowerCase().replace(/\/$/, "")
+    );
+    
+    if (normalizedAllowed.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      console.warn(`❌ CORS rejeté pour origin: ${origin}`);
+      callback(new Error("CORS policy violation"));
+    }
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -56,7 +81,26 @@ interface TypingUser {
 const typingUsersByRoom = new Map<string, Map<string, TypingUser>>();
 
 const io = new Server(server, {
-  cors: { origin: CLIENT_URL, methods: ["GET", "POST"], credentials: true },
+  cors: {
+    origin: function (origin: string | undefined, callback: Function) {
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
+      const normalizedAllowed = allowedOrigins.map(url => 
+        url.toLowerCase().replace(/\/$/, "")
+      );
+      
+      if (normalizedAllowed.includes(normalizedOrigin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy violation"));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
 });
 
 io.use(socketHandler);
