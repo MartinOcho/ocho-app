@@ -294,7 +294,7 @@ export function MessageFormComponent({
         size="icon"
         onClick={handleFileClick}
         className={cn(
-          "p-2 size-10 max-w-10 max-h-10 rounded-full border-none outline-none",
+          "p-2 size-10 max-w-10 max-h-10 min-h-10 min-w-10 rounded-full border-none outline-none",
           !canAttach && "opacity-50 cursor-not-allowed",
           attachments.some((a) => a.isUploading)
             ? "text-amber-500 hover:text-amber-600"
@@ -311,7 +311,7 @@ export function MessageFormComponent({
           <Paperclip className="h-5 w-5" />
         )}
       </Button>
-      <div className={cn("flex w-full flex-col gap-2", !expanded && "hidden")}>
+      <div className={cn("flex w-full flex-col gap-2 border-r border-border", !expanded && "hidden")}>
         {attachments.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {attachments.map((a, i) => (
@@ -386,7 +386,7 @@ export function MessageFormComponent({
         <Textarea
           placeholder={typeMessage}
           className={cn(
-            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent  border-l border-border",
+            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
             expanded ? "relative w-full" : "invisible absolute w-0",
           )}
           rows={1}
