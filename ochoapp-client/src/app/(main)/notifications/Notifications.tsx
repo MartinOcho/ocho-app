@@ -62,6 +62,14 @@ export default function Notifications() {
       queryClient.setQueryData(["notifications"], (oldData: any) => {
         if (!oldData) return oldData;
 
+        // Vérifier si la notification existe déjà pour éviter les doublons
+        const allExistingNotifications = oldData.pages.flatMap((page: any) => page.notifications);
+        const alreadyExists = allExistingNotifications.some((n: any) => n.id === notification.id);
+
+        if (alreadyExists) {
+          return oldData; // Ignorer le doublon
+        }
+
         return {
           ...oldData,
           pages: [

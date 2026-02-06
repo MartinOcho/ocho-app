@@ -170,32 +170,46 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       roomId: string;
       tempId?: string; // On reçoit l'ID temporaire pour le nettoyage
     }) => {
+      // Ignorer les réactions
+      if (data.newMessage.type === "REACTION") return;
+
+      // Toujours mettre à jour le cache pour la room du message, même si ce n'est pas la room active
+      queryClient.setQueryData<InfiniteData<MessagesSection>>(
+        ["room", "messages", data.roomId],
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          const newPages = oldData.pages.map((page, index) => {
+            if (index === 0) {
+              return {
+                ...page,
+                messages: [data.newMessage, ...page.messages],
+              };
+            }
+            return page;
+          });
+
+          return {
+            ...oldData,
+            pages: newPages,
+          };
+        },
+      );
+
+      // Si c'est le chat actuellement ouvert, aussi:
+      // 1. Ajouter à newMessages pour un affichage immédiat
+      // 2. Supprimer le message temporaire
       if (data.roomId === roomId) {
-        // 1. Mettre à jour le cache React Query directement
-        if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
-        queryClient.setQueryData<InfiniteData<MessagesSection>>(
-          ["room", "messages", roomId],
-          (oldData) => {
-            if (!oldData) return oldData;
+        // Ajouter à newMessages pour un affichage immédiat (optionnel, car setQueryData suffit)
+        setNewMessages((prev) => {
+          // Éviter les doublons
+          if (prev.some((msg) => msg.id === data.newMessage.id)) {
+            return prev;
+          }
+          return [data.newMessage, ...prev];
+        });
 
-            const newPages = oldData.pages.map((page, index) => {
-              if (index === 0) {
-                return {
-                  ...page,
-                  messages: [data.newMessage, ...page.messages],
-                };
-              }
-              return page;
-            });
-
-            return {
-              ...oldData,
-              pages: newPages,
-            };
-          },
-        );
-
-        // 2. SUPPRIMER le message temporaire correspondant dans sentMessages
+        // SUPPRIMER le message temporaire correspondant dans sentMessages
         if (data.tempId) {
           setSentMessages((prev) =>
             prev.filter((msg) => msg.tempId !== data.tempId),
@@ -333,7 +347,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       initialPageParam: null as string | null,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: Infinity,
-      refetchOnMount: true,
+      refetchOnMount: false,
       throwOnError: false,
       enabled: !!roomId,
     });
