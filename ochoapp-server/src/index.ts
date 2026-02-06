@@ -728,13 +728,15 @@ io.on("connection", async (socket) => {
       roomId: string;
       type: MessageType;
       recipientId: string | undefined;
-      tempId?: string; // AJOUT : ID temporaire envoyé par le client
+      tempId?: string;
+      attachmentIds?: string[];
     }) => {
       const userId = socket.data.user.id;
       const username = socket.data.user.username;
-      const { content, roomId, type, recipientId, tempId } = data;
+      const { content, roomId, type, recipientId, tempId, attachmentIds = [] } = data;
 
       console.log(chalk.blue("Envoi du message:", content));
+      console.log(chalk.blue("Attachments:", attachmentIds));
 
       try {
         const isSavedMessage = roomId === `saved-${userId}`;
@@ -775,56 +777,47 @@ io.on("connection", async (socket) => {
             return socket.emit("error", { message: "Action non autorisée" });
           }
 
-          // Support attachments: if content is JSON with media[], create attachments
+          // Support attachments: use attachmentIds from client
           let createdMessage: any = null;
           let roomData: any = null;
 
           await prisma.$transaction(async (tx) => {
-            let parsed: any = null;
-            try {
-              parsed = JSON.parse(content || "");
-            } catch (e) {
-              parsed = null;
-            }
+            // Create message
+            createdMessage = await tx.message.create({
+              data: {
+                content,
+                roomId,
+                senderId: userId,
+                type,
+                recipientId,
+              },
+              include: getMessageDataInclude(userId),
+            });
 
-            if (parsed && Array.isArray(parsed.media) && parsed.media.length > 0) {
-              // create message with text if present
-              createdMessage = await tx.message.create({
-                data: {
-                  content: parsed.text || "",
-                  roomId,
-                  senderId: userId,
-                  type,
-                  recipientId,
+            // If attachmentIds provided, verify they exist and associate them with the message
+            if (attachmentIds && attachmentIds.length > 0) {
+              // Verify all attachments exist
+              const existingAttachments = await tx.messageAttachment.findMany({
+                where: {
+                  id: { in: attachmentIds },
                 },
-                include: getMessageDataInclude(userId),
               });
 
-              // create attachments
-              for (const m of parsed.media) {
-                await tx.messageAttachment.create({
-                  data: {
-                    messageId: createdMessage.id,
-                    type: m.resource_type && String(m.resource_type).startsWith("video") ? "VIDEO" : (m.resource_type === "image" || (m.url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(m.url)) ? "IMAGE" : "DOCUMENT"),
-                    url: m.secure_url || m.url || m.path || "",
-                    publicId: m.public_id || null,
-                    width: m.width || null,
-                    height: m.height || null,
-                    format: m.format || null,
-                    resourceType: m.resource_type || null,
-                  },
+              if (existingAttachments.length !== attachmentIds.length) {
+                console.warn("Some attachment IDs do not exist:", {
+                  requested: attachmentIds,
+                  found: existingAttachments.map(a => a.id),
                 });
               }
-            } else {
-              createdMessage = await tx.message.create({
-                data: {
-                  content,
-                  roomId,
-                  senderId: userId,
-                  type,
-                  recipientId,
+
+              // Update attachments to associate with this message
+              await tx.messageAttachment.updateMany({
+                where: {
+                  id: { in: attachmentIds },
                 },
-                include: getMessageDataInclude(userId),
+                data: {
+                  messageId: createdMessage.id,
+                },
               });
             }
 

@@ -1,19 +1,29 @@
 "use client";
 
-import { Send, X, Image, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
+import { Send, X, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
 import { useState, useRef } from "react";
 import kyInstance from "@/lib/ky";
-import { MessageAttachment, AttachmentType } from "@/lib/types";
+import { AttachmentType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
 import { CircleProgress } from "@/components/ui/CircleProgress";
 
+interface LocalAttachment {
+  id: string; 
+  attachmentId?: string; 
+  fileName?: string;
+  type: AttachmentType;
+  previewUrl?: string;
+  url?: string;
+  isUploading: boolean;
+}
+
 interface MessageFormComponentProps {
   expanded: boolean;
   onExpanded: (expanded: boolean) => void;
-  onSubmit: (content: string, attachments?: MessageAttachment[]) => void;
+  onSubmit: (content: string, attachmentIds?: string[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   canAttach?: boolean;
@@ -29,9 +39,7 @@ export function MessageFormComponent({
 }: MessageFormComponentProps) {
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [attachments, setAttachments] = useState<(
-    MessageAttachment & { isUploading: boolean; fileName?: string; previewUrl?: string }
-  )[]>([]);
+  const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { typeMessage } = t();
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -52,22 +60,13 @@ export function MessageFormComponent({
   const handleBtnClick = () => {
     if (!expanded) {
       onExpanded(true);
-    } else if (input.trim() || (attachments.length > 0 && attachments.some((a) => !a.isUploading))) {
-      // Filter attachments to only include uploaded ones with URLs and clean the data
-      const cleanedAttachments = attachments
-        .filter((a) => !a.isUploading && a.url)
-        .map((a) => ({
-          id: a.id,
-          type: a.type,
-          url: a.url,
-          publicId: a.publicId,
-          width: a.width,
-          height: a.height,
-          format: a.format,
-          resourceType: a.resourceType,
-        }));
+    } else if (canSend()) {
+      // Filter to only include uploaded attachments with IDs
+      const uploadedAttachmentIds = attachments
+        .filter((a) => !a.isUploading && a.attachmentId)
+        .map((a) => a.attachmentId!);
 
-      onSubmit(input, cleanedAttachments);
+      onSubmit(input, uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined);
       setInput("");
       setAttachments([]);
       onTypingStop?.();
@@ -106,28 +105,16 @@ export function MessageFormComponent({
     try {
       const res = await kyInstance
         .post("/api/cloudinary/upload", { json: { file: dataUrl } })
-        .json<{ success: boolean; result?: any; error?: string }>();
+        .json<{ success: boolean; attachmentId?: string; error?: string }>();
 
       clearInterval(progressInterval);
       onProgress?.(100);
 
-      if (!res || !res.success || !res.result) {
+      if (!res || !res.success || !res.attachmentId) {
         throw new Error(res?.error || "Erreur serveur lors de l'upload");
       }
 
-      const r = res.result;
-      const attachment: MessageAttachment = {
-        id: undefined,
-        type: (r.resource_type && String(r.resource_type).startsWith("video")) ? "VIDEO" : ((r.resource_type === "image" || (r.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(r.secure_url))) ? "IMAGE" : "DOCUMENT") as AttachmentType,
-        url: r.secure_url || r.url || r.path,
-        publicId: r.public_id,
-        width: r.width || null,
-        height: r.height || null,
-        format: r.format || null,
-        resourceType: r.resource_type || null,
-      };
-
-      return attachment;
+      return res.attachmentId;
     } catch (error) {
       clearInterval(progressInterval);
       const errorMessage = error instanceof Error ? error.message : "Erreur inconnue lors de l'upload";
@@ -182,18 +169,12 @@ export function MessageFormComponent({
     const newAttachments = validFiles.map((file) => {
       const type: AttachmentType = file.type.startsWith("image/") ? "IMAGE" : "VIDEO";
       return {
-        id: undefined,
+        id: `temp-${Date.now()}-${Math.random()}`,
         type,
-        url: "",
-        publicId: undefined,
-        width: null,
-        height: null,
-        format: null,
-        resourceType: undefined,
-        isUploading: true,
         fileName: file.name,
         previewUrl: URL.createObjectURL(file),
-      } as MessageAttachment & { isUploading: boolean; fileName?: string; previewUrl?: string };
+        isUploading: true,
+      } as LocalAttachment;
     });
 
     setAttachments((prev) => [...prev, ...newAttachments]);
@@ -202,30 +183,25 @@ export function MessageFormComponent({
     for (let i = 0; i < validFiles.length; i++) {
       const file = validFiles[i];
       const fileName = file.name;
+      const localId = newAttachments[i].id;
 
       try {
-        const uploaded = await uploadToCloudinary(file, (progress) => {
+        const attachmentId = await uploadToCloudinary(file, (progress) => {
           setUploadProgress((prev) => ({ ...prev, [fileName]: progress }));
         });
+
         setAttachments((prev) => {
           const copy = [...prev];
-          const target = copy.find((a) => a.fileName === fileName && a.isUploading);
+          const target = copy.find((a) => a.id === localId);
           if (target) {
-            target.url = uploaded.url;
-            // @ts-expect-error - publicId is optional
-            target.publicId = uploaded.publicId || uploaded.public_id || undefined;
-            target.width = uploaded.width || null;
-            target.height = uploaded.height || null;
-            target.format = uploaded.format || null;
-            // @ts-expect-error - resourceType is optional
-            target.resourceType = uploaded.resourceType || uploaded.resource_type || null;
+            target.attachmentId = attachmentId;
             target.isUploading = false;
           }
           return copy;
         });
       } catch (err) {
         console.error(`Erreur upload ${fileName}:`, err);
-        setAttachments((prev) => prev.filter((a) => !(a.fileName === fileName && a.isUploading)));
+        setAttachments((prev) => prev.filter((a) => a.id !== localId));
         
         const errorMsg = err instanceof Error ? err.message : "Erreur lors de l'envoi du fichier";
         alert(errorMsg);
@@ -241,15 +217,16 @@ export function MessageFormComponent({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeAttachment = (fileName: string | undefined) => {
-    setAttachments((prev) => prev.filter((a) => a.fileName !== fileName));
-    if (fileName) {
-      setUploadProgress((prev) => {
-        const copy = { ...prev };
-        delete copy[fileName];
-        return copy;
-      });
-    }
+  const removeAttachment = (localId: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== localId));
+    setUploadProgress((prev) => {
+      const copy = { ...prev };
+      const attachment = attachments.find((a) => a.id === localId);
+      if (attachment?.fileName) {
+        delete copy[attachment.fileName];
+      }
+      return copy;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -264,10 +241,9 @@ export function MessageFormComponent({
   const canSend = () => {
     const hasUploading = attachments.some((a) => a.isUploading);
     const hasContent = input.trim().length > 0;
-    const hasUploadedAttachments = attachments.some((a) => !a.isUploading && a.url);
+    const hasUploadedAttachments = attachments.some((a) => !a.isUploading && a.attachmentId);
     
-    if (hasUploading) return false;
-    return ((hasContent || hasUploadedAttachments) && !hasUploading && !expanded) || hasUploading;
+    return !hasUploading && (hasContent || hasUploadedAttachments);
   };
 
   const handleSend = () => {
@@ -365,15 +341,14 @@ export function MessageFormComponent({
                 )}
 
                 {/* Bouton de supression */}
-                {!a.isUploading && (
-                  <button
-                    onClick={() => removeAttachment(a.fileName)}
-                    className="absolute top-0.5 right-0.5 rounded-full bg-destructive/80 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                    type="button"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
+                <button
+                  onClick={() => removeAttachment(a.id)}
+                  className="absolute top-0.5 right-0.5 rounded-full bg-destructive/80 p-1 text-white transition-opacity hover:opacity-100"
+                  type="button"
+                  title="Supprimer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
 
                 {/* Badge du type */}
                 <div className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">

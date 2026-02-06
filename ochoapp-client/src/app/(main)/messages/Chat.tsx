@@ -11,7 +11,6 @@ import {
   RoomData,
   MessagesSection,
   MessageData,
-  MessageAttachment,
 } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
@@ -495,7 +494,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // --- FONCTION D'ENVOI DE MESSAGE ---
   const handleSendMessage = async (
     content: string,
-    attachments?: MessageAttachment[],
+    attachmentIds?: string[],
   ) => {
     if (!socket || !roomId) return;
 
@@ -525,8 +524,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     // Log for debugging
     console.log("Sending message with attachments:", {
       content: content.trim(),
-      attachmentCount: attachments?.length || 0,
-      attachments: attachments,
+      attachmentCount: attachmentIds?.length || 0,
+      attachmentIds: attachmentIds,
     });
 
     socket.emit("send_message", {
@@ -534,7 +533,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       roomId,
       type: "CONTENT",
       tempId,
-      attachments: attachments && attachments.length > 0 ? attachments : [],
+      attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : [],
     });
   };
 
