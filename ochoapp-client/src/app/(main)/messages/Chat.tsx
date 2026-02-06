@@ -816,42 +816,27 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                {!messageInputExpanded && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setMessageInputExpanded(!messageInputExpanded);
-                      if (!messageInputExpanded) {
-                        setSearchQuery("");
-                      }
-                    }}
-                    title={search}
-                    className={cn(
-                      "aspect-square size-12 cursor-pointer p-2 outline-input",
-                      !messageInputExpanded &&
-                        searchQuery &&
-                        "bg-primary text-primary-foreground",
-                    )}
-                  >
-                    {getStateIcon()}
-                  </Button>
-                )}
               </div>
             }
           </div>
 
           {/* Affichage du RoomFooter selon l'état */}
-          {!!roomId && (
-            <RoomFooter
-              state={footerState}
-              roomId={roomId}
-              onMessageSend={handleSendMessage}
-              onTypingStart={handleTypingStart}
-              onTypingStop={handleTypingStop}
-              messageInputExpanded={messageInputExpanded}
-              onExpandedChange={setMessageInputExpanded}
-            />
-          )}
+          {!!roomId &&
+            (messageInputExpanded ? (
+              <div className="mr-2 flex-shrink-0 text-muted-foreground">
+                {getStateIcon()}
+              </div>
+            ) : (
+              <RoomFooter
+                state={footerState}
+                roomId={roomId}
+                onMessageSend={handleSendMessage}
+                onTypingStart={handleTypingStart}
+                onTypingStop={handleTypingStop}
+                messageInputExpanded={messageInputExpanded}
+                onExpandedChange={setMessageInputExpanded}
+              />
+            ))}
         </div>
       </div>
 
