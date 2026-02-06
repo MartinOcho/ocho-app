@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, X, Image, Video, File as FileIcon, Loader2 } from "lucide-react";
+import { Send, X, Image, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
 import { useState, useRef } from "react";
 import kyInstance from "@/lib/ky";
 import { MessageAttachment, AttachmentType } from "@/lib/types";
@@ -306,7 +306,7 @@ export function MessageFormComponent({
         {attachments.some((a) => a.isUploading) ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
-          <Image className="h-5 w-5" />
+          <Paperclip className="h-5 w-5" />
         )}
       </button>
       <div className={cn("flex w-full flex-col gap-2", !expanded && "hidden")}>
