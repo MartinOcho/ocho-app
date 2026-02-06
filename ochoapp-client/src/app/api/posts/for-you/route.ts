@@ -13,19 +13,10 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
-    // Récupérer les trois derniers posts triés par date
-    const latestPosts = await prisma.post.findMany({
-      include: getPostDataIncludes(user.id),
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: !cursor ? 3 : 0,
-    });
+    const pageSize = 10;
 
-    const pageSize = 5
-
-    // Récupérer les posts suivants triés par pertinence
-    const relevantPosts = await prisma.post.findMany({
+    // Requête unique et optimisée pour la pagination
+    const posts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
       orderBy: [
         {
@@ -37,18 +28,15 @@ export async function GET(req: NextRequest) {
       ],
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
-      where: {
-        id: {
-          notIn: latestPosts.map(post => post.id), // Exclure les posts déjà récupérés
-        },
-      },
+      skip: cursor ? 1 : 0, // Skip the cursor for the next page
     });
 
-    const allPosts = [...latestPosts, ...relevantPosts];
-    const nextCursor = allPosts.length > pageSize + latestPosts.length ? allPosts[pageSize + latestPosts.length].id : null;
+    const hasMore = posts.length > pageSize;
+    const postsToReturn = hasMore ? posts.slice(0, pageSize) : posts;
+    const nextCursor = hasMore ? postsToReturn[pageSize - 1].id : null;
 
     const data: PostsPage = {
-      posts: allPosts.slice(0, pageSize), // Limiter le nombre de posts retournés
+      posts: postsToReturn,
       nextCursor,
     };
 

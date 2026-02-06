@@ -26,6 +26,7 @@ export async function GET(req:NextRequest) {
             include: notificationsInclude,
             orderBy: {createdAt: "desc"},
             take: pageSize + 1,
+            skip: cursor ? 1 : 0,
             cursor: cursor ? { id: cursor } : undefined
         });
 

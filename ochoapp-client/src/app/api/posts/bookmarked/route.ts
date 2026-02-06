@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
     });
 
 

@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
                 ],
             },
             take: pageSize + 1, // Prendre un élément supplémentaire pour vérifier s'il y a une page suivante
+            skip: cursor ? 1 : 0,
             cursor: cursor ? { id: cursor } : undefined,
             orderBy: { id: 'asc' },
             select: getUserDataSelect(user.id),

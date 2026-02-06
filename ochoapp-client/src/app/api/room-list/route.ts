@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
+      skip: cursor ? 1 : 0,
       cursor: cursor
         ? { userId_roomId: { userId, roomId: cursor } }
         : undefined,

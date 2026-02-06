@@ -13,13 +13,19 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
-    // Récupérer les trois derniers posts triés par date
-    const latestPosts = await prisma.post.findMany({
+    const pageSize = 10;
+
+    // Requête unique et optimisée pour la pagination des posts des utilisateurs suivis
+    const posts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: !cursor ? 3 : 0,
+      orderBy: [
+        {
+          createdAt: "desc",
+        },
+      ],
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
       where: {
         user: {
           followers: {
@@ -31,52 +37,21 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const pageSize = 5 + latestPosts.length;
-
-    // Récupérer les posts suivants triés par pertinence
-    const relevantPosts = await prisma.post.findMany({
-      include: getPostDataIncludes(user.id),
-      orderBy: [
-        {
-          relevanceScore: "desc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
-      take: pageSize + 1,
-      cursor: cursor ? { id: cursor } : undefined,
-      where: {
-        AND: [
-          {
-            user: {
-              followers: {
-                some: {
-                  followerId: user.id,
-                },
-              },
-              NOT: {
-                id: user.id,
-              },
-            },
-          },
-          {
-            id: {
-              notIn: latestPosts.map((post) => post.id), // Exclure les posts déjà récupérés
-            },
-          },
-        ],
-      },
-    });
-
-    const allPosts = [...latestPosts, ...relevantPosts];
-    const nextCursor =
-      allPosts.length > pageSize + latestPosts.length ? allPosts[pageSize + latestPosts.length].id : null;
+    const hasMore = posts.length > pageSize;
+    const postsToReturn = hasMore ? posts.slice(0, pageSize) : posts;
+    const nextCursor = hasMore ? postsToReturn[pageSize - 1].id : null;
 
     const data: PostsPage = {
-      posts: allPosts.slice(0, pageSize), // Limiter le nombre de posts retournés
+      posts: postsToReturn,
       nextCursor,
     };
+
+    return Response.json(data);
+  } catch (error) {
+    console.error(error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
     return Response.json(data);
   } catch (error) {

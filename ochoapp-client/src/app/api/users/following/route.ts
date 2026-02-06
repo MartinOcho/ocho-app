@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
         ],
       },
       take: pageSize + 1,
+      skip: cursor ? 1 : 0,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { id: "asc" },
       select: getUserDataSelect(user.id),

@@ -26,11 +26,26 @@ export async function GET(
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
+    // Vérifier si on récupère des messages sauvegardés ou une room
+    const isSavedMessages = roomId === `saved-${user.id}`;
+    
+    let roomData;
+    if (!isSavedMessages) {
+      roomData = await prisma.room.findUnique({
+        where: { id: roomId },
+      });
+      if (!roomData) {
+        return Response.json(
+          { error: "Le canal n'existe pas" },
+          { status: 400 },
+        );
+      }
+    }
+
     let messages: MessageData[];
 
-    // Vérifier si on récupère des messages d'un canal ou des messages sauvegardés
-    if (roomId === `saved-${user.id}`) {
-      // Récupérer les messages sauvegardés (envoyés à soi-même)
+    if (isSavedMessages) {
+      // Récupérer les messages sauvegardés
       messages = await prisma.message.findMany({
         where: {
           senderId: user.id,
@@ -40,44 +55,22 @@ export async function GET(
         orderBy: { createdAt: "desc" },
         take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
-      if (messages[0]) {
-        // modifier les types des messages qui n'ont pas "created" comme contenu et qui ne sont pas en premier message en "CONTENT"
-        messages = messages.map((message) => {
-          if (message.content !== `create-${user.id}`) {
-            message.type = "CONTENT";
-          }
-          return message;
-        });
-      }
     } else {
-      // Récupérer les messages d'un canal spécifique
-      const room = await prisma.room.findFirst({
-        where: {
-          id: roomId,
-        },
-      });
-      if (!room) {
-        return Response.json(
-          { error: "Le canal n'existe pas" },
-          { status: 400 },
-        );
-      }
-
+      // Récupérer les messages d'une room spécifique
       messages = await prisma.message.findMany({
         where: { roomId },
         include: getMessageDataInclude(user.id),
         orderBy: { createdAt: "desc" },
-        take: pageSize + 1, // Récupère une page supplémentaire pour vérifier s'il y a une page suivante
+        take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
     }
 
     const nextCursor =
       messages.length > pageSize ? messages[pageSize].id : null;
-    const roomData = await prisma.room.findUnique({
-      where: { id: roomId },
-    });
 
     const isGroup = roomData?.isGroup;
 
@@ -105,16 +98,10 @@ export async function GET(
 
       const leftDate = member.leftAt;
       if (leftDate) {
-        // Filters messages dates older than leftdate
+        // Filter out messages sent after the user left the group
         messages = messages.filter((message) => message.createdAt < leftDate);
       }
     }
-    messages =  messages.map(message=>{
-      const formattedMsg: MessageData = {
-        ...message
-      } 
-      return formattedMsg
-    })
 
     const data: MessagesSection = {
       messages: messages.slice(0, pageSize),

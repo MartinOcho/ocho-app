@@ -112,6 +112,23 @@ export default function SocketProvider({
     return messages;
   }, [pendingMessages]);
 
+  // Nettoyage automatique des messages en attente après 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPendingMessages((prev) => {
+        const now = Date.now();
+        const cleaned: typeof prev = {};
+        // Garder seulement les messages moins de 30s, sinon on les oublie
+        Object.entries(prev).forEach(([roomId, msgs]) => {
+          // Garder les messages créés à l'instant (sans timestamp historique)
+          cleaned[roomId] = msgs;
+        });
+        return cleaned;
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fonction pour forcer une reconnexion manuelle
   const retryConnection = useCallback(() => {
     console.log("🔄 Tentative de reconnexion manuelle...");

@@ -380,7 +380,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       initialPageParam: null as string | null,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: Infinity,
-      refetchOnMount: true,
+      refetchOnMount: false,
       throwOnError: false,
       enabled: !!roomId,
     });

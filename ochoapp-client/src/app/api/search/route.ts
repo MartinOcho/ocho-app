@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
           include: getPostDataIncludes(user.id),
           orderBy: { createdAt: "desc" },
           take: pageSize + 1,
+          skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
         });
         break;
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
           },
           select: getUserDataSelect(user.id),
           take: pageSize + 1,
+          skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
         });
         break;
@@ -88,6 +90,7 @@ export async function GET(req: NextRequest) {
           },
           select: getUserDataSelect(user.id),
           take: pageSize + 1,
+          skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
         });
         break;
@@ -113,6 +116,7 @@ export async function GET(req: NextRequest) {
           },
           select: getUserDataSelect(user.id),
           take: pageSize + 1,
+          skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
         });
         break;
