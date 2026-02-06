@@ -1,4 +1,4 @@
-import { RoomData, UserData } from "@/lib/types";
+import { RoomData, UserData, MessageData } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
 import UserAvatar from "@/components/UserAvatar";
@@ -13,9 +13,13 @@ import {
   UserCircle2,
   UserRoundPlus,
   X,
+  Images,
+  Info,
+  Loader2,
 } from "lucide-react";
 import Linkify from "@/components/Linkify";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Time from "@/components/Time";
 import OchoLink from "@/components/ui/OchoLink";
 import AddMemberDialog from "@/components/messages/AddMemberDialog";
@@ -36,6 +40,7 @@ import BanDialog from "@/components/messages/BanDialog";
 import MessageButton from "@/components/messages/MessageButton";
 import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
 import { useSocket } from "@/components/providers/SocketProvider";
+import MediaGallery from "@/components/messages/MediaGallery";
 
 interface ChatHeaderProps {
   roomId: string | null;
@@ -57,6 +62,7 @@ export default function RoomHeader({
   const [dialogFocus, setDialogFocus] = useState<"name" | "description" | null>(
     null,
   );
+  const [activeTab, setActiveTab] = useState<"info" | "media">("info");
 
   const {
     group,
@@ -550,60 +556,58 @@ export default function RoomHeader({
           )}
         </div>
         {active && (
-          <div className="flex w-full flex-1 flex-col gap-3">
-            {room.isGroup && loggedinMember?.type !== "BANNED" && (
-              <ul className="flex w-full flex-col py-3">
-                <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers.length} ${membersText.toLowerCase()}`}</li>
-                {loggedinMember?.type !== "OLD" && (
-                  <AddMemberDialog room={room}>
-                    <li className="cursor-pointer p-4 active:bg-muted/30">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`relative flex aspect-square h-fit min-h-[35px] w-fit min-w-fit items-center justify-center overflow-hidden rounded-full bg-primary`}
-                        >
-                          <UserRoundPlus
-                            className="absolute flex items-center justify-center text-primary-foreground"
-                            size={35 - 16}
-                          />
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex w-full flex-col gap-3 flex-1">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="info" className="flex items-center gap-2">
+                <Info size={16} />
+                <span>Infos</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Images size={16} />
+                <span>Médias</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="info" className="flex flex-col gap-3 flex-1 overflow-y-auto">
+            <div className="flex w-full flex-1 flex-col gap-3">
+              {room.isGroup && loggedinMember?.type !== "BANNED" && (
+                <ul className="flex w-full flex-col py-3">
+                  <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers.length} ${membersText.toLowerCase()}`}</li>
+                  {loggedinMember?.type !== "OLD" && (
+                    <AddMemberDialog room={room}>
+                      <li className="cursor-pointer p-4 active:bg-muted/30">
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className={`relative flex aspect-square h-fit min-h-[35px] w-fit min-w-fit items-center justify-center overflow-hidden rounded-full bg-primary`}
+                          >
+                            <UserRoundPlus
+                              className="absolute flex items-center justify-center text-primary-foreground"
+                              size={35 - 16}
+                            />
+                          </div>
+                          <p>{addMembers}</p>
                         </div>
-                        <p>{addMembers}</p>
-                      </div>
-                    </li>
-                  </AddMemberDialog>
-                )}
+                      </li>
+                    </AddMemberDialog>
+                  )}
 
-                {firstPage.map((member, key) => {
-                  if (!member?.user) return null;
-                  const user: UserData = member.user;
-                  return (
-                    <GroupUserPopover
-                      key={key}
-                      user={user}
-                      type={member.type}
-                      room={room}
-                    />
-                  );
-                })}
+                  {firstPage.map((member, key) => {
+                    if (!member?.user) return null;
+                    const user: UserData = member.user;
+                    return (
+                      <GroupUserPopover
+                        key={key}
+                        user={user}
+                        type={member.type}
+                        room={room}
+                      />
+                    );
+                  })}
 
-                <>
-                  {!!lastPage.length &&
-                    expandMembers &&
-                    lastPage.map((member, key) => {
-                      if (!member?.user) return null;
-                      const user: UserData = member.user;
-                      return (
-                        <GroupUserPopover
-                          key={key}
-                          user={user}
-                          type={member.type}
-                          room={room}
-                        />
-                      );
-                    })}
-                  {loggedinMember?.type !== "OLD" && !!oldMembers.length && (
-                    <>
-                      <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`Anciens membres (${oldMembers.length})`}</li>
-                      {oldMembers.map((member, key) => {
+                  <>
+                    {!!lastPage.length &&
+                      expandMembers &&
+                      lastPage.map((member, key) => {
                         if (!member?.user) return null;
                         const user: UserData = member.user;
                         return (
@@ -615,14 +619,10 @@ export default function RoomHeader({
                           />
                         );
                       })}
-                    </>
-                  )}
-                  {(loggedinMember?.type === "ADMIN" ||
-                    loggedinMember?.type === "OWNER") &&
-                    !!bannedMembers.length && (
+                    {loggedinMember?.type !== "OLD" && !!oldMembers.length && (
                       <>
-                        <li className="select-none px-4 text-xs font-bold text-destructive">{`Membres suspendus (${bannedMembers.length})`}</li>
-                        {bannedMembers.map((member, key) => {
+                        <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`Anciens membres (${oldMembers.length})`}</li>
+                        {oldMembers.map((member, key) => {
                           if (!member?.user) return null;
                           const user: UserData = member.user;
                           return (
@@ -636,37 +636,62 @@ export default function RoomHeader({
                         })}
                       </>
                     )}
-                </>
+                    {(loggedinMember?.type === "ADMIN" ||
+                      loggedinMember?.type === "OWNER") &&
+                      !!bannedMembers.length && (
+                        <>
+                          <li className="select-none px-4 text-xs font-bold text-destructive">{`Membres suspendus (${bannedMembers.length})`}</li>
+                          {bannedMembers.map((member, key) => {
+                            if (!member?.user) return null;
+                            const user: UserData = member.user;
+                            return (
+                              <GroupUserPopover
+                                key={key}
+                                user={user}
+                                type={member.type}
+                                room={room}
+                              />
+                            );
+                          })}
+                        </>
+                      )}
+                  </>
 
-                {!!lastPage.length && !expandMembers && (
-                  <li
-                    className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
-                    onClick={() => setExpandMembers(true)}
-                  >
-                    {seeAllMore.replace("[len]", `${lastPage.length}`)}
-                  </li>
-                )}
+                  {!!lastPage.length && !expandMembers && (
+                    <li
+                      className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
+                      onClick={() => setExpandMembers(true)}
+                    >
+                      {seeAllMore.replace("[len]", `${lastPage.length}`)}
+                    </li>
+                  )}
 
-                {expandMembers && (
-                  <li
-                    className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
-                    onClick={() => setExpandMembers(false)}
-                  >
-                    {hide}
-                  </li>
-                )}
-              </ul>
-            )}
-            {room.isGroup &&
-              loggedinMember?.type !== "OLD" &&
-              loggedinMember?.type !== "BANNED" && (
-                <ul className="flex w-full select-none flex-col py-3">
-                  <li className="cursor-pointer p-4 text-red-500 active:bg-muted/30">
-                    <LeaveGroupDialog room={room} onDelete={onDelete} />
-                  </li>
+                  {expandMembers && (
+                    <li
+                      className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
+                      onClick={() => setExpandMembers(false)}
+                    >
+                      {hide}
+                    </li>
+                  )}
                 </ul>
               )}
-          </div>
+              {room.isGroup &&
+                loggedinMember?.type !== "OLD" &&
+                loggedinMember?.type !== "BANNED" && (
+                  <ul className="flex w-full select-none flex-col py-3">
+                    <li className="cursor-pointer p-4 text-red-500 active:bg-muted/30">
+                      <LeaveGroupDialog room={room} onDelete={onDelete} />
+                    </li>
+                  </ul>
+                )}
+            </div>
+            </TabsContent>
+
+            <TabsContent value="media" className="flex flex-col gap-3 flex-1 overflow-y-auto">
+              {roomId && <MediaGalleryContainer roomId={roomId} />}
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>
@@ -962,4 +987,30 @@ export function GroupUserPopover({
       </PopoverContent>
     </Popover>
   );
+}
+
+// Composant helper pour charger les messages et afficher la galerie de médias
+export function MediaGalleryContainer({ roomId }: { roomId: string }) {
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["room", "messages", roomId],
+    queryFn: async () => {
+      const response = await kyInstance
+        .get(`/api/rooms/${roomId}/messages`, {
+          searchParams: { limit: "100" },
+        })
+        .json<{ messages: MessageData[] }>();
+      return response.messages || [];
+    },
+    enabled: !!roomId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
+
+  return <MediaGallery messages={messages} />;
 }

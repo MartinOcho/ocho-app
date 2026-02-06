@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useSession } from "../SessionProvider";
 import UserAvatar from "@/components/UserAvatar";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { UserData, UsersPage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ export default function NewChat({
 }: NewChatProps) {
   const { toast } = useToast();
   const { user: loggedinUser } = useSession();
+  const queryClient = useQueryClient();
   const [isGroup, setIsgroup] = useState(false);
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
@@ -128,6 +129,27 @@ export default function NewChat({
     // Définir les callbacks pour la réponse du serveur
     // On utilise .once pour n'écouter qu'une seule fois la réponse
     const handleRoomReady = (room: any) => {
+      // Mettre en cache les données de la room et de l'utilisateur
+      // si c'est un chat 1v1, on cache l'utilisateur destinataire
+      if (!isGroup && user) {
+        // Cache l'ID de l'utilisateur pour utilisation future
+        queryClient.setQueryData(
+          ["user", user.id],
+          user
+        );
+        
+        // Stocke également l'ID en sessionStorage pour accès rapide
+        sessionStorage.setItem(
+          `chat_user_cache_${room.id}`,
+          JSON.stringify({
+            userId: user.id,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            timestamp: Date.now(),
+          })
+        );
+      }
+
       setIsPending(false);
       onChatStart(room.id);
       setName("");
@@ -170,7 +192,14 @@ export default function NewChat({
         isGroup: false,
       });
     } else if (isGroup && selectedUsers.length) {
-      // Cas 2 : Groupe
+      // Cas 2 : Groupe - cache tous les utilisateurs sélectionnés
+      selectedUsers.forEach((selectedUser) => {
+        queryClient.setQueryData(
+          ["user", selectedUser.id],
+          selectedUser
+        );
+      });
+      
       socket.emit("start_chat", {
         name,
         isGroup: true,
