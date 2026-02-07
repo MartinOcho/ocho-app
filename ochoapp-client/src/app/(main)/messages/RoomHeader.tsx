@@ -73,6 +73,9 @@ export default function RoomHeader({
   const [dialogFocus, setDialogFocus] = useState<"name" | "description" | null>(
     null,
   );
+
+  const { isMediaFullscreen } = useActiveRoom();
+
   const [activeTab, setActiveTab] = useState<"info" | "media">("info");
 
   const {
@@ -81,7 +84,6 @@ export default function RoomHeader({
     appUser,
     you,
     online,
-    activeText,
     viewProfile,
     created,
     member,
@@ -101,6 +103,7 @@ export default function RoomHeader({
     messageYourself,
   } = t();
   const queryClient = useQueryClient();
+  const {checkUserStatus, onlineStatus} = useSocket();
   const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({
     queryKey,
@@ -192,6 +195,10 @@ export default function RoomHeader({
           ?.user || emptyUser
       : room?.members?.filter((member) => member.userId !== loggedUser.id)?.[0]
           ?.user || emptyUser;
+
+  const userId = otherUser?.id;
+    const activeStatus = onlineStatus[userId || ""];
+    !activeStatus && checkUserStatus(userId || "");
 
   const expiresAt = isSaved
     ? otherUser?.verified?.[0]?.expiresAt
@@ -312,8 +319,8 @@ export default function RoomHeader({
     if (isSaved) return messageYourself;
     if (!otherUser?.id) return thisAccountDeleted;
     if (onlineUsers.includes(otherUser.id)) return online;
-    if (lastSeenTimeStamp && lastSeenTimeStamp < now) {
-      return `${activeText}`;
+    if (activeStatus.isOnline) {
+      return online;
     }
     return `@${otherUser?.username || "ochoapp-user"}`;
   };
@@ -350,7 +357,7 @@ export default function RoomHeader({
         className={`flex w-full flex-1 flex-col transition-all ${active ? "absolute inset-0 h-fit min-h-full bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative"}`}
       >
         <div
-          className={`group/head flex flex-1 items-center gap-2 transition-all ${active ? "cursor-default flex-col p-3" : "cursor-pointer"}`}
+          className={cn(`group/head flex flex-1 items-center gap-2 transition-all`, active ? "cursor-default flex-col p-3" : "cursor-pointer", isMediaFullscreen && "hidden")}
           onClick={() => !active && setActive(true)}
         >
           {room.isGroup ? (
@@ -376,7 +383,7 @@ export default function RoomHeader({
             ) : (
               <div>
                 <div className="text-xl font-bold">{chatName}</div>
-                <div className="text-sm text-muted-foreground">
+                <div className={cn("text-sm text-muted-foreground", (activeStatus || isSaved)  && "text-primary")}>
                   {getStatusDisplay()}
                 </div>
               </div>
@@ -952,7 +959,7 @@ export function GroupUserPopover({
 // Composant helper pour charger les messages et afficher la galerie de médias
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["room", "medias", roomId],
+    queryKey: ["room", "gallery", roomId],
     queryFn: async () => {
       try {
         const response = await kyInstance
