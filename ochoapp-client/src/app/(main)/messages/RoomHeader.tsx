@@ -763,6 +763,9 @@ export function GroupUserPopover({
     <Verified type={verifiedType} prompt={false} />
   ) : null;
 
+  console.log("verifiedCheck:", verifiedCheck);
+  
+
   //  get the loggedin user values in members
   const loggedMember = members.find(
     (member) => member.userId === loggedInUser.id,
