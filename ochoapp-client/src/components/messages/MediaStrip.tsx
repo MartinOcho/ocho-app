@@ -41,7 +41,7 @@ export default function MediaStrip({
                   src={attachment.url}
                   className={cn(
                     "rounded-lg object-cover cursor-pointer",
-                    attachments.length === 1 ? "max-w-xs max-h-96" : "w-32 h-32"
+                    attachments.length === 1 ? "max-w-xs max-h-96" : "size-32 max-sm:size-24"
                   )}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
@@ -57,7 +57,7 @@ export default function MediaStrip({
                 alt={`Attachment ${index + 1}`}
                 className={cn(
                   "rounded-lg object-cover cursor-pointer",
-                  attachments.length === 1 ? "max-w-xs max-h-96" : "w-32 h-32"
+                  attachments.length === 1 ? "max-w-xs max-h-96" : "size-32 max-sm:size-24"
                 )}
               />
             )}

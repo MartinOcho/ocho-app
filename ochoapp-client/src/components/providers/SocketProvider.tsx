@@ -162,7 +162,7 @@ export default function SocketProvider({
     !isServerTriggered &&
       kyInstance
         .post(
-          (process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000") + "/health",
+          (process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"),
         )
         .json<{ message: string }>()
         .then((res) => console.log(res.message))
