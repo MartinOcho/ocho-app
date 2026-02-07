@@ -786,7 +786,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* BARRE DE SAISIE */}
-      <div className="absolute bottom-0 z-20 w-full bg-gradient-to-t from-card/80 to-transparent">
+      <div className={cn("absolute bottom-0 z-20 w-full bg-gradient-to-t from-card/80 to-transparent", isMediaFullscreen && "hidden")}>
         <div className={cn("flex p-2", !messageInputExpanded && "gap-2")}>
           <div
             className={cn(
