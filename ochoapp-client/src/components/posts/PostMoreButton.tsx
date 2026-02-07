@@ -9,8 +9,8 @@ import {
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { MoreHorizontal, Trash2 } from "lucide-react";
-import { t } from "@/context/LanguageContext";
 import { VocabularyKey } from "@/lib/vocabulary";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface PostMoreButtonProps {
   post: PostData;
@@ -22,6 +22,7 @@ export default function PostMoreButton({
   className,
 }: PostMoreButtonProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { t } = useTranslation();
 
   const { delete: deleteText  } = t();
 

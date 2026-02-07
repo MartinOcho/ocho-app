@@ -3,7 +3,7 @@
 import useFollowerInfo from "@/hooks/useFollowerInfo";
 import { FollowerInfo } from "@/lib/types";
 import FormattedInt from "./FormattedInt";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface FollowerCountProps {
   userId: string;
@@ -14,6 +14,7 @@ export default function FollowerCount({
   userId,
   initialState,
 }: FollowerCountProps) {
+  const { t } = useTranslation();
   const { data } = useFollowerInfo(userId, initialState);
   const {follower, followers} = t()
 

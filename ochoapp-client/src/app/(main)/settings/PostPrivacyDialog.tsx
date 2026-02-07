@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSession } from "../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { PrivacyValue, PrivacyType } from "@/lib/types";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function PostPrivacyDialog() {
+  const { t } = useTranslation();
   const { user } = useSession();
   const [selectedValue, setSelectedValue] = useState<PrivacyValue>("PUBLIC");
   const [isLoading, setIsLoading] = useState(false);

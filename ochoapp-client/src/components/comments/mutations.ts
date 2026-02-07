@@ -8,11 +8,12 @@ import { useToast } from "../ui/use-toast";
 import { deleteComment, submitComment, submitReply } from "./action";
 import { CommentsPage, RepliesPage } from "@/lib/types";
 import { redirect, usePathname, useRouter } from "next/navigation";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export function useSubmitCommentMutation(postId: string) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { commentSent, unaBleToSendComment } = t();
 
   const queryClient = useQueryClient();
@@ -68,6 +69,7 @@ export function useSubmitCommentMutation(postId: string) {
 }
 
 export function useSubmitReplyMutation(commentId: string, firstLevelCommentId: string) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { commentSent, unaBleToSendComment } = t();
 
@@ -124,6 +126,7 @@ export function useSubmitReplyMutation(commentId: string, firstLevelCommentId: s
 }
 
 export function useDeleteCommentMutation() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { commentDeleted, unableToDeleteComment } = t();
   const pathname = usePathname();
@@ -171,6 +174,7 @@ export function useDeleteCommentMutation() {
 }
 export function useDeleteReplyMutation() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { commentDeleted, unableToDeleteComment } = t();
   const pathname = usePathname();
   const { startNavigation: navigate } = useProgress();

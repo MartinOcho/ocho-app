@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSession } from "../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { PrivacyValue, PrivacyType } from "@/lib/types";
 import LoadingButton from "@/components/LoadingButton";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function OnlineStatusVisibilityDialog() {
+  const { t } = useTranslation();
   const { user } = useSession();
   const [selectedValue, setSelectedValue] = useState<PrivacyValue>("EVERYONE");
   const [isLoading, setIsLoading] = useState(false);

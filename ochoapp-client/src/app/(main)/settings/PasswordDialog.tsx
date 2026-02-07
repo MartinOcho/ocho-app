@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { t } from "@/context/LanguageContext";
 import { VocabularyKey } from "@/lib/vocabulary";
 import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useSession } from "../SessionProvider";
 import { updatePassword, hasPassword } from "@/components/users/action";
 import { useToast } from "@/components/ui/use-toast";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function PasswordDialog() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -20,6 +20,8 @@ export default function PasswordDialog() {
   const [success, setSuccess] = useState(false);
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const {user} = useSession()
+
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchHasPassword = async () => {

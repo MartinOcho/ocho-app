@@ -6,11 +6,11 @@ import { useActiveRoom } from "@/context/ChatContext";
 import { useRouter } from "next/navigation"; // Importation de useRouter
 import { ButtonProps } from "../ui/button";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
 import { UserData } from "@/lib/types";
 import { useState } from "react";
 import { useSocket } from "../providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface MessageButtonProps extends ButtonProps {
   userId: string;
@@ -24,6 +24,9 @@ export default function MessageButton({
   const { user: loggedinUser } = useSession();
   const { setActiveRoomId } = useActiveRoom();
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { message } = t();
   const [isPending, setIsPending] = useState(false);
   const { socket } = useSocket();

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { t } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
@@ -7,6 +6,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { logout } from "@/app/(auth)/actions";
 import { useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function DisableAccountDialog() {
   const [password, setPassword] = useState("");
@@ -15,6 +15,8 @@ export default function DisableAccountDialog() {
   const [success, setSuccess] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const { t } = useTranslation();
 
   const lang = t();
 

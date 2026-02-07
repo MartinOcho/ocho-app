@@ -1,12 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { t } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
 import { MessageCircleMore } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { usePathname } from "next/navigation";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface MessagesButtonProps {
   className?: string;
@@ -15,6 +15,7 @@ interface MessagesButtonProps {
 export default function MessagesButton({
   className,
 }: MessagesButtonProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const isMessagesPage = pathname.startsWith("/messages");
   

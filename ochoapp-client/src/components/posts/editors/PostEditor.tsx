@@ -13,8 +13,8 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useDropzone } from "@uploadthing/react";
 import { Textarea } from "@/components/ui/textarea";
-import { t } from "@/context/LanguageContext";
 import { VocabularyObject } from "@/lib/vocabulary";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function PostEditor() {
   const [clear, setClear] = useState(false);
@@ -31,6 +31,8 @@ export default function PostEditor() {
     removeAttachment,
     reset: resetMediaUpload,
   } = useMediaUpload();
+
+  const { t } = useTranslation();
 
   const {
     wtsup,

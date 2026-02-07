@@ -2,7 +2,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { uploadFile } from "@/lib/fileUtils";
 import { MessageAttachment, AttachmentType } from "@/lib/types";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export interface Attachment extends MessageAttachment {
     file: File;
@@ -12,6 +12,9 @@ export interface Attachment extends MessageAttachment {
 
 export default function useMediaUpload() {
     const { toast } = useToast();
+
+    const { t } = useTranslation();
+
     const {fileMaxLenReached, fileUploadError} = t()
     const [attachments, setAttachment] = useState<Attachment[]>([]);
     const [uploadProgress, setUploadProgress] = useState<number>();

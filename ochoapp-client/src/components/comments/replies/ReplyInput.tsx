@@ -1,6 +1,5 @@
 import { CommentData, FirstCommentData } from "@/lib/types";
 import { useState } from "react";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { Loader2, SendIcon } from "lucide-react";
 import { useSubmitReplyMutation } from "../mutations";
 import { SubmitReply } from "../action";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentInput {
   comment: CommentData;
@@ -22,6 +22,8 @@ export default function ReplyInput({ comment, onClose, profile }: CommentInput) 
   const [input, setInput] = useState("");
   const { user } = useSession();
   const { toast } = useToast();
+
+  const { t } = useTranslation();
 
   const { invalidInput, replyTo } = t();
 

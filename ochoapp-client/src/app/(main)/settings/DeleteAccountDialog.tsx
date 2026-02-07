@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { t } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
@@ -7,12 +6,15 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { logout } from "@/app/(auth)/actions";
 import { useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function DeleteAccountDialog() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const { t } = useTranslation();
 
   const queryClient = useQueryClient();
 

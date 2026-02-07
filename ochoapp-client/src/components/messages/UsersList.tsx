@@ -3,7 +3,7 @@ import { Loader2, Check } from "lucide-react";
 import UserAvatar from "../UserAvatar";
 import { useToast } from "../ui/use-toast";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 type UsersQuery = {
   data: { pages: UsersPage[] } | undefined;
@@ -31,6 +31,9 @@ export default function UsersList({
   canSelect = true,
   onSelect,
 }: UsersListProps) {
+
+  const { t } = useTranslation();
+
   const { toast } = useToast();
   const { cantSelectMoreUsers, showMore } = t();
 

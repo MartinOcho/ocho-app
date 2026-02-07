@@ -9,8 +9,8 @@ import {
 import { Button } from "../ui/button";
 import { MoreVertical, Trash2 } from "lucide-react";
 import DeleteCommentDialog from "./DeleteCommentDialog";
-import { t } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentMoreButtonProps {
   comment: CommentData;
@@ -23,6 +23,7 @@ export default function CommentMoreButton({
   className,
   onRemove,
 }: CommentMoreButtonProps) {
+  const { t } = useTranslation();
   const {delete: deleteText} = t();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   return (

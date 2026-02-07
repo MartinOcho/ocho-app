@@ -12,7 +12,6 @@ import ReplyButton from "./replies/ReplyButton";
 import Replies from "./replies/Replies";
 import ReplyInput from "./replies/ReplyInput";
 import { useState } from "react";
-import { t } from "@/context/LanguageContext";
 import { Button } from "../ui/button";
 import { Heart, MessageSquare } from "lucide-react";
 import { VerifiedType } from "@prisma/client";
@@ -28,6 +27,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@radix-ui/react-popover";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentProps {
   comment: CommentData & { isRepliedByAuthor?: boolean };
@@ -35,6 +35,7 @@ interface CommentProps {
 }
 
 export default function Comment({ comment, isTarget = false }: CommentProps) {
+  const { t } = useTranslation();
   const { user } = useSession();
   const [showInput, setShowInput] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -183,6 +184,7 @@ export default function Comment({ comment, isTarget = false }: CommentProps) {
 }
 
 export function AuthorReplyIcon({ avatarUrl, userId }: { avatarUrl: string | null; userId: string }) {
+  const { t } = useTranslation();
   const { repliedByAuthor } = t();
   const text = <p>{repliedByAuthor}</p>;
   return (
@@ -219,6 +221,7 @@ export function AuthorReplyIcon({ avatarUrl, userId }: { avatarUrl: string | nul
   );
 }
 export function AuthorLikeIcon({ avatarUrl, userId }: { avatarUrl: string | null; userId: string }) {
+  const { t } = useTranslation();
   const likedByAuthor = t("likedByAuthor");
   const text = <p>{likedByAuthor}</p>;
   return (
@@ -262,6 +265,7 @@ export function ShowRepliesButton({
   replies: number;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const { replies: repliesText, reply: replyText } = t(
     ["replies", "reply"],
   );

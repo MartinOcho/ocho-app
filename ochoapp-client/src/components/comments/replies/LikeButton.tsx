@@ -10,9 +10,9 @@ import kyInstance from "@/lib/ky";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { useEffect } from "react";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface LikeButtonProps {
   comment: CommentData;
@@ -26,6 +26,8 @@ export default function LikeButton({
   onAuthorLikeChange,
 }: LikeButtonProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  
   const { like: likeText, likes: likesText, unLike, somethingWentWrong } = t();
   const { socket } = useSocket();
   const commentId = comment.id;

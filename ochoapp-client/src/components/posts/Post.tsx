@@ -32,10 +32,10 @@ import {
   CarouselPrevious,
 } from "../ui/carousel";
 import Zoomable from "../Zoomable";
-import { t } from "@/context/LanguageContext";
 import Verified from "../Verified";
 import { useProgress } from "@/context/ProgressContext";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface PostProps {
   post: PostData;
@@ -50,6 +50,9 @@ export default function Post({ post }: PostProps) {
   const [firstCommentRender, setFirstCommentRender] = useState(false);
   const [targetComment, setTargetComment] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
+
+  const { t } = useTranslation();
+
   const {
     hideComments,
     comment: commentText,
@@ -268,6 +271,7 @@ interface MediaPreviewsProps {
 }
 
 function MediaPreviews({ attachments }: MediaPreviewsProps) {
+  const { t } = useTranslation();
   const [showCarousel, setShowCarousel] = useState(false);
   const maxVisibleAttachments = 3;
 
@@ -460,6 +464,8 @@ function MediaPreview({
 }: MediaPreviewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  const { t } = useTranslation();
+
   // Pause la vidéo si le composant est masqué (hidden = true)
   useEffect(() => {
     if (videoRef.current && hidden) {
@@ -561,6 +567,9 @@ interface CommentButtonProps {
   comments: number;
 }
 export function CommentButton({ comments, onClick }: CommentButtonProps) {
+
+  const { t } = useTranslation();
+
   const { comment: commentText, comments: commentsText } = t();
   return (
     <button

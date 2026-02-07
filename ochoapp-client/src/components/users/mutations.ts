@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";
 import { updateUser } from "./action";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export function useUpdateUserMutation() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { t } = useTranslation();
 
   const { userUpdated, unableToUpdateUser } = t();
 

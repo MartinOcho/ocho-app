@@ -12,10 +12,10 @@ import ReplyButton from "./ReplyButton";
 import ReplyInput from "./ReplyInput";
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { t } from "@/context/LanguageContext";
 import { AuthorLikeIcon } from "../Comment";
 import Verified from "@/components/Verified";
 import { VerifiedType } from "@prisma/client";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentProps {
   comment: CommentData;
@@ -24,6 +24,9 @@ interface CommentProps {
 
 export default function Reply({ comment, isTarget = false }: CommentProps) {
   const { user } = useSession();
+
+  const { t } = useTranslation();
+
   const { appUser, author } = t();
   const [showInput, setShowInput] = useState(false);
   const [authorLiked, setAuthorLiked] = useState(false);

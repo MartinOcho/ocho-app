@@ -10,7 +10,6 @@ import {
 import { RoomData, UserData, UsersPage } from "@/lib/types";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { XIcon, SearchIcon, Frown, Meh } from "lucide-react";
@@ -21,6 +20,7 @@ import UsersList from "./UsersList";
 import { Input } from "../ui/input";
 import { useSocket } from "@/components/providers/SocketProvider"; // Import du socket
 import { useToast } from "../ui/use-toast";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface AddMemberDialogProps {
   room: RoomData;
@@ -34,6 +34,9 @@ export default function AddMemberDialog({
   children,
 }: AddMemberDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const { t } = useTranslation();
+
   const { addMembers } = t();
 
   return (

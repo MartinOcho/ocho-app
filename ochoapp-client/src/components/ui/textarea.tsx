@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { useToast } from "./use-toast";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -17,6 +17,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ) => {
     const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
     const { toast } = useToast();
+
+    const { t } = useTranslation();
+
     const { maxLenReached } = t()
     let fontSize;
     let lineHeight;

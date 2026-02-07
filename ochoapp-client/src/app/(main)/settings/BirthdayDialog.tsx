@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useSession } from "../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import Time from "@/components/Time";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useUpdateUserMutation } from "@/components/users/mutations";
+import { useTranslation } from "@/context/LanguageContext";
 
 // Fonction utilitaire pour savoir si une année est bissextile
 function isLeapYear(year: number) {
@@ -29,6 +29,7 @@ function getDaysInMonth(month: number, year: number) {
 }
 
 export default function BirthdayDialog() {
+  const { t } = useTranslation();
   const { user } = useSession();
   const lang = t();
   const updateUserMutation = useUpdateUserMutation();
@@ -207,7 +208,7 @@ interface MonthSelectProps {
 }
 
 function MonthSelect({ currentMonth, onMonthSelect }: MonthSelectProps) {
-
+const { t } = useTranslation();
 
   const getLabels = (month: number) =>
     new Date(0, month).toLocaleString("default", { month: "long" });

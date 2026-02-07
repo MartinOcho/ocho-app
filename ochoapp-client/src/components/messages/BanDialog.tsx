@@ -12,8 +12,8 @@ import {
 import { Button } from "../ui/button";
 import { CircleX } from "lucide-react";
 import LoadingButton from "../LoadingButton";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface BanDialogProps {
   memberId: string;
@@ -26,6 +26,9 @@ export default function BanDialog({ memberId, room }: BanDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { socket } = useSocket();
+
+  const { t } = useTranslation();
+
   const {
     appUser,
     banFromGroup,

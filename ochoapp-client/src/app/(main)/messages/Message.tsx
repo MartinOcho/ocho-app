@@ -8,7 +8,6 @@ import Time from "@/components/Time";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { 
   Undo2, 
@@ -29,6 +28,7 @@ import ReactionOverlay, {
 import GroupAvatar from "@/components/GroupAvatar";
 import MediaStrip from "@/components/messages/MediaStrip";
 import { useActiveRoom } from "@/context/ChatContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 // --- TYPES ---
 type MessageProps = {
@@ -73,6 +73,7 @@ export function DeletionPlaceholder({
   onCancel: () => void;
   duration?: number;
 }) {
+  const { t } = useTranslation();
   const [progress, setProgress] = useState(100);
   const [timeLeft, setTimeLeft] = useState(duration);
   const size = 18; 
@@ -274,6 +275,7 @@ export default function Message({
   isFirstInCluster = true,
   isMiddleInCluster = false,
 }: MessageProps) {
+  const { t } = useTranslation();
   const { user: loggedUser } = useSession();
   const queryClient = useQueryClient();
   const { socket } = useSocket();

@@ -22,7 +22,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import French from "@/components/flags/French";
 import { useTheme } from "next-themes";
 import US from "@/components/flags/US";
-import { t, useLanguage } from "@/context/LanguageContext";
 import { Language } from "@/lib/vocabulary";
 import { useProgress } from "@/context/ProgressContext";
 import BirthdayDialog from "./BirthdayDialog";
@@ -39,6 +38,7 @@ import { DialogClose } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import LoadingButton from "@/components/LoadingButton";
 import { DialogFooter } from "@/components/ui/dialog";
+import { useLanguage, useTranslation } from "@/context/LanguageContext";
 
 type SubOptionKey = "account" | "privacy" | "display" | "language";
 
@@ -51,6 +51,7 @@ export default function Options({
   setting = null,
   subOption = false,
 }: OptionsProps) {
+  const { t } = useTranslation();
   const { startNavigation: navigate } = useProgress();
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
@@ -262,6 +263,7 @@ export default function Options({
 }
 
 function LogoutDialog() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   // create mutation to logout user
   const logoutMutation = useMutation({

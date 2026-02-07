@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "../SessionProvider";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,6 +9,8 @@ import { PrivacyValue, PrivacyType } from "@/lib/types";
 import kyInstance from "@/lib/ky";
 
 export default function ProfileVisibilityDialog() {
+  const { t } = useTranslation();
+
   const { user } = useSession();
   const [selectedValue, setSelectedValue] = useState<PrivacyValue>("PUBLIC");
   const [isLoading, setIsLoading] = useState(false);

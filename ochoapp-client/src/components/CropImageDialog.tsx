@@ -9,7 +9,7 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import "cropperjs/dist/cropper.css";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CropImageDialogProps {
   src: string;
@@ -24,6 +24,9 @@ export default function CropImageDialog({
   onCropped,
   onClose,
 }: CropImageDialogProps) {
+
+  const { t } = useTranslation();
+
   const cropperRef = useRef<ReactCropperElement>(null);
   const { crop: cropText, cropImage, cancel } = t();
 

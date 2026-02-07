@@ -14,8 +14,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Draggable from "../Draggable";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentsProps {
   post: PostData;
@@ -26,6 +26,8 @@ export default function Comments({ post, onClose }: CommentsProps) {
   const [targetComment, setTargetComment] = useState<string | null>(null);
   const [isDraggable, setIsDraggable] = useState(false);
   const {startNavigation: navigate} = useProgress();
+
+  const { t } = useTranslation();
   const router = useRouter();
 
   const {
@@ -35,9 +37,7 @@ export default function Comments({ post, onClose }: CommentsProps) {
     dataError,
     comments: commentsText,
     comment: commentText,
-  } = t(
-    [  "showPreviousComments", "noComments", "noLongerAvailablecomment", "dataError", "comments", "comment"]
-  );
+  } = t();
 
   const searchParams = useSearchParams();
   const comment = searchParams.get("comment");

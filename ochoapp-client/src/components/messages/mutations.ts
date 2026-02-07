@@ -14,9 +14,9 @@ import {
   removeMember,
   restoreMember,
 } from "./actions";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useCallback } from "react";
+import { useTranslation } from "@/context/LanguageContext";
 
 // Hook pour les mutations via socket
 export function useSocketMutation<T, V>(
@@ -24,6 +24,7 @@ export function useSocketMutation<T, V>(
   onSuccess?: (data: T) => void,
   onError?: (error: Error) => void
 ) {
+  const { t } = useTranslation();
   const { socket, isConnected } = useSocket();
   const { toast } = useToast();
 
@@ -57,6 +58,7 @@ export function useSocketMutation<T, V>(
 
 export function useAddMemberMutation() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { somethingWentWrong, groupAddError, groupAddSuccess } = t()
   const queryClient = useQueryClient();
   const { socket, isConnected } = useSocket();
@@ -98,6 +100,9 @@ export function useAddMemberMutation() {
 }
 export function useAddAdminMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { somethingWentWrong } = t()
   const { socket, isConnected } = useSocket();
 
@@ -132,6 +137,9 @@ export function useAddAdminMutation() {
 }
 export function useRemoveMemberMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { somethingWentWrong } = t()
   const { socket, isConnected } = useSocket();
 
@@ -163,6 +171,9 @@ export function useRemoveMemberMutation() {
 }
 export function useBanMemberMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { somethingWentWrong } = t()
   const { socket, isConnected } = useSocket();
 
@@ -194,6 +205,9 @@ export function useBanMemberMutation() {
 }
 export function useRestoreMemberMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { somethingWentWrong } = t()
   const { socket, isConnected } = useSocket();
 
@@ -226,7 +240,8 @@ export function useRestoreMemberMutation() {
 
 export function useLeaveGroupMutation() {
   const { toast } = useToast();
-  const { somethingWentWrong } = t()
+  const { t } = useTranslation();
+  const { somethingWentWrong } = t();
   const { socket, isConnected } = useSocket();
 
   const mutation = useMutation({

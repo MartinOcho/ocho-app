@@ -27,7 +27,6 @@ import { useActiveRoom } from "@/context/ChatContext";
 import LeaveGroupDialog from "@/components/messages/LeaveGroupDialog";
 import GroupChatSettingsDialog from "@/components/messages/GroupChatSettingsDialog";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import Verified from "@/components/Verified";
 import { MemberType, VerifiedType } from "@prisma/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -45,6 +44,7 @@ import MessageButton from "@/components/messages/MessageButton";
 import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
 import { useSocket } from "@/components/providers/SocketProvider";
 import MediaGallery from "@/components/messages/MediaGallery";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface ChatHeaderProps {
   roomId: string | null;
@@ -59,6 +59,7 @@ export default function RoomHeader({
   onDelete,
   initialRoom,
 }: ChatHeaderProps) {
+  const { t } = useTranslation();
   // Normaliser initialRoom pour garantir que members existe
   const normalizedInitialRoom: RoomData = useMemo(() => ({
     ...initialRoom,

@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { useSession } from "../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 import { updateUsername } from "@/components/users/action";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function UsernameDialog() {
+
+  const { t } = useTranslation();
+
   const { user } = useSession();
   const [newUsername, setNewUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);

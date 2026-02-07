@@ -17,7 +17,6 @@ import {
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +24,7 @@ import kyInstance from "@/lib/ky";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface SidebarProps {
   activeRoom: (room: RoomData) => void;
@@ -47,6 +47,7 @@ export default function SideBar({
   onNewChat,
   onCloseChat,
 }: SidebarProps) {
+  const { t } = useTranslation();
   const { user: loggedinUser } = useSession();
   const { activeRoomId, setActiveRoomId } = useActiveRoom();
   const pathname = usePathname();

@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import FormattedInt from "@/components/FormattedInt";
-import { t } from "@/context/LanguageContext";
 import Verified from "@/components/Verified";
 import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface RoomProps {
   room: RoomData;
@@ -63,6 +63,7 @@ export default function RoomPreview({
   onSelect,
   highlight,
 }: RoomProps) {
+  const { t } = useTranslation();
   const { user: loggedinUser } = useSession();
   const { socket, isConnected } = useSocket();
   const [typing, setTyping] = useState<{

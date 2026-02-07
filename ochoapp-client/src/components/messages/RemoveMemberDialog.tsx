@@ -12,8 +12,8 @@ import { LogOut } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast"; 
 import LoadingButton from "../LoadingButton";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface RemoveMemberDialogProps {
   memberId: string;
@@ -29,6 +29,7 @@ export default function RemoveMemberDialog({
   const queryClient = useQueryClient();
   const { socket } = useSocket();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const {
     appUser,
     removeFromGroup,

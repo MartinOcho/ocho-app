@@ -1,17 +1,18 @@
 import Time from "@/components/Time";
 import UserAvatar from "@/components/UserAvatar";
-import { t } from "@/context/LanguageContext";
 import { NotificationData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotificationType } from "@prisma/client";
 import { AtSign, Heart, MessageSquareMore, User2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface NotificationProps {
   notification: NotificationData;
 }
 
 export default function Notification({ notification }: NotificationProps) {
+  const { t } = useTranslation();
   const {
     followedYou,
     likedYourPost,

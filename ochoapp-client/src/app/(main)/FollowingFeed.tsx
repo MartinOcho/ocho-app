@@ -5,7 +5,7 @@ import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton, {
   PostLoadingSkeleton,
 } from "@/components/posts/PostsLoadingSkeleton";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { VocabularyObject } from "@/lib/vocabulary";
@@ -14,6 +14,7 @@ import { Frown, Loader2, SmilePlus } from "lucide-react";
 
 export default function FollowingFeed() {
   const viewedPosts: string[] = [];
+  const { t } = useTranslation();
 
   const { noPostOnFollowing, dataError }: VocabularyObject = t();
 

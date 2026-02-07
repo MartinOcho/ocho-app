@@ -16,10 +16,10 @@ import { useState, useTransition } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import LoadingButton from "@/components/LoadingButton";
 import { login } from "./actions";
-import { t } from "@/context/LanguageContext";
-import { EmptySession } from "@/app/(main)/SessionProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function LoginForm() {
+  const { t } = useTranslation();
   const { username, yourUsername, password, yourPassword, signIn } = t();
 
   const [error, setError] = useState<string>();

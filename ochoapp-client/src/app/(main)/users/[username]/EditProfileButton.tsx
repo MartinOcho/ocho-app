@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { UserData } from "@/lib/types";
 import { useState } from "react";
 import EditProfileDialog from "./EditProfileDialog";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 
 
@@ -13,6 +13,7 @@ interface EditProfileButtonProps{
 }
 
 export default function EditProfileButton({user}: EditProfileButtonProps) {
+    const { t } = useTranslation();
     const [showDialog, setShowDialog] = useState(false);
     const {editProfile} = t();
 

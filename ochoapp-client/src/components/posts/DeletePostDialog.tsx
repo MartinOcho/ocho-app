@@ -10,8 +10,8 @@ import {
 } from "../ui/dialog";
 import LoadingButton from "../LoadingButton";
 import { Button } from "../ui/button";
-import { t } from "@/context/LanguageContext";
 import { VocabularyKey } from "@/lib/vocabulary";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface DeletePostDialogProps {
   post: PostData;
@@ -25,6 +25,8 @@ export default function DeletePostDialog({
   onClose,
 }: DeletePostDialogProps) {
   const mutation = useDeletePostMutation();
+
+  const { t } = useTranslation();
 
   const { delete: deleteText, cancel, deleteConfirmPrompt } = t();
 

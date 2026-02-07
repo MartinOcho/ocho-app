@@ -13,9 +13,9 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { toast } from "../ui/use-toast";
 import { Loader2, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { MessageData } from "@/lib/types";
+import { useTranslation } from "@/context/LanguageContext";
 
 // Définition des types pour le contexte
 interface PendingMessage {
@@ -76,6 +76,7 @@ export default function SocketProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const { user, token } = useSession();
 
   // Ref pour stocker l'instance du socket

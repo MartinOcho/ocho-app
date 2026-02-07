@@ -32,7 +32,6 @@ import RoomHeader from "./RoomHeader";
 import { useMenuBar } from "@/context/MenuBarContext";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { t } from "@/context/LanguageContext";
 import ChatSkeleton from "./skeletons/ChatSkeleton";
 import { useProgress } from "@/context/ProgressContext";
 import { Button } from "@/components/ui/button";
@@ -60,6 +59,7 @@ import {
 import MediaGallery from "@/components/messages/MediaGallery";
 import MediaStrip from "@/components/messages/MediaStrip";
 import { useActiveRoom } from "@/context/ChatContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface ChatProps {
   roomId: string | null;
@@ -136,7 +136,7 @@ function DateHeader({ date }: { date: Date | string }) {
 }
 
 export default function Chat({ roomId, initialData, onClose }: ChatProps) {
-  // AJOUT : on récupère isConnecting pour gérer l'état de reconnexion si besoin
+  const { t } = useTranslation();
   const { socket, isConnected, retryConnection, getPendingMessages } =
     useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
@@ -455,16 +455,18 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   const roomName = room?.name || roomId || "Chat";
 
-  if (!room || isRoomError || !loggedUser) {
-    if (!isLoading) {
+  useEffect(() => {
+    const rName = room?.name || roomId || "Chat";
+    if (!isLoading && (!room || isRoomError || !loggedUser)) {
       toast({
         variant: "destructive",
-        description: unableToLoadChat.replace("[name]", roomName),
+        description: (unableToLoadChat || "").replace("[name]", rName),
       });
       onClose();
     }
-    return null;
-  }
+  }, [isLoading, room, isRoomError, loggedUser, onClose, roomId, unableToLoadChat]);
+
+  if (!room || isRoomError || !loggedUser) return null;
 
   const loggedMember = room.members.find(
     (member) => member.userId === loggedUser.id,
@@ -878,8 +880,7 @@ function ChatContextMenu({
   onClose,
   onCloseChat,
 }: ChatContextMenuProps) {
-  // On utilise un Portal pour être sûr d'être au-dessus de tout (z-50)
-  // On réutilise les classes de ReactionOverlay (backdrop-blur, animate-in, etc.)
+  const { t } = useTranslation();
   return createPortal(
     <div
       className="fixed inset-0 isolate z-50 flex flex-col font-sans"
@@ -930,6 +931,7 @@ export function MessageForm({
   onTypingStart,
   onTypingStop,
 }: MessageFormProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1019,6 +1021,7 @@ interface SendingMessageProps {
 }
 
 function SendingMessage({ content, status, onRetry, attachments }: SendingMessageProps) {
+  const { t } = useTranslation();
   const [isRetrying, setIsRetrying] = useState(false);
 
   const handleRetryClick = () => {

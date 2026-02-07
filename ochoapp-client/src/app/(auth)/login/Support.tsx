@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import GoogleSignInButton from "./GoogleSignInButton";
 import GithubSignInButton from "./GithubSignInButton";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function Support() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const [isSameOrigin, setIsSameOrigin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setIsLoading(false);

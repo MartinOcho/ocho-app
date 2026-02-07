@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, ButtonProps } from "@/components/ui/button";
-import { t } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { NotificationCountInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -11,6 +10,7 @@ import { useSocket } from "@/components/providers/SocketProvider";
 import { Bell } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface NotificationsButtonProps extends ButtonProps {
   initialState: NotificationCountInfo;
@@ -22,6 +22,7 @@ export default function NotificationsButton({
   className,
   ...props
 }: NotificationsButtonProps) {
+  const { t } = useTranslation();
   const { activity, activityCenter, notifications } = t();
   const pathname = usePathname();
   const isMessagesPage = pathname.startsWith("/messages");

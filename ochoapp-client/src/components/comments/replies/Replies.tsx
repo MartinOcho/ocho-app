@@ -3,7 +3,6 @@ import CommentsLoadingSkeleton from "@/components/comments/CommentsLoadingSkelet
 import Draggable from "@/components/Draggable";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { t } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { CommentData, CommentsPage, RepliesPage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,7 @@ import { Loader2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import Reply from "./Reply";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface RepliesProps {
   comment: CommentData;
@@ -28,6 +28,7 @@ export default function Replies({
   onCountChange,
   onAuthorReplyChange,
 }: RepliesProps) {
+  const { t } = useTranslation();
   const [targetComment, setTargetComment] = useState<string | null>(null);
   const [isDraggable, setIsDraggable] = useState(false);
   const previousWidth = useRef(window.innerWidth);

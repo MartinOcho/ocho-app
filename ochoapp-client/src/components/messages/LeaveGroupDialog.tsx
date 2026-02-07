@@ -13,8 +13,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";
 import LoadingButton from "../LoadingButton";
 import { useSession } from "@/app/(main)/SessionProvider";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface LeaveGroupDialogProps {
   room: RoomData;
@@ -30,6 +30,9 @@ export default function LeaveGroupDialog({ room, onDelete }: LeaveGroupDialogPro
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { socket } = useSocket();
+
+  const { t } = useTranslation();
+
   const {
     leave,
     leaveAndDelete,

@@ -16,9 +16,10 @@ import { useState, useTransition } from "react";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/PasswordInput";
 import LoadingButton from "@/components/LoadingButton";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function SignUpForm() {
+  const { t } = useTranslation();
   const {
     username,
     yourUsername,

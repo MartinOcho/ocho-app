@@ -8,8 +8,8 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { LanguageProvider, t } from "@/context/LanguageContext";
 import { VerifiedType } from "@prisma/client";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface VerifiedProps extends SVGProps<SVGSVGElement> {
   type?: VerifiedType;
@@ -20,6 +20,7 @@ export default function Verified({
   type = "STANDARD",
   prompt = true,
 }: VerifiedProps) {
+  const { t } = useTranslation();
   const { veriFiedPrompt } = t();
   const color = type === "STANDARD" ? "#3b82f6" : "#f99100";
 

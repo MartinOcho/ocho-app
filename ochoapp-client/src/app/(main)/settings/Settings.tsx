@@ -5,7 +5,6 @@ import { useSession } from "../SessionProvider";
 import OchoLink from "@/components/ui/OchoLink";
 import { Button } from "@/components/ui/button";
 import { Language,  } from "@/lib/vocabulary";
-import { t } from "@/context/LanguageContext";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";

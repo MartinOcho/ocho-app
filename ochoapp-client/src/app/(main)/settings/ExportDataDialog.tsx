@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { t } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, Download } from "lucide-react";
 import { exportUserData } from "@/components/users/action";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 export default function ExportDataDialog() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const { t } = useTranslation();
 
   const lang = t();
 

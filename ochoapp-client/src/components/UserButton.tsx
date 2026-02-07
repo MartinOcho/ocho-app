@@ -29,7 +29,7 @@ import { useTheme } from "next-themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { Language, VocabularyKey, VocabularyObject } from "@/lib/vocabulary";
-import { t, useLanguage } from "@/context/LanguageContext";
+import { useLanguage, useTranslation } from "@/context/LanguageContext";
 import US from "./flags/US";
 import French from "./flags/French";
 import {
@@ -52,6 +52,7 @@ interface UserButtonProps {
 
 export default function UserButton({ className }: UserButtonProps) {
   const { user } = useSession();
+  const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
 
   const {
@@ -182,6 +183,7 @@ export function LogoutDialog({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   // create mutation to logout user
   const logoutMutation = useMutation({

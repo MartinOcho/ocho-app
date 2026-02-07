@@ -10,7 +10,7 @@ import {
 } from "../ui/dialog";
 import LoadingButton from "../LoadingButton";
 import { Button } from "../ui/button";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface DeleteCommentDialogProps {
   comment: CommentData;
@@ -23,6 +23,7 @@ export default function DeleteCommentDialog({
   open,
   onClose,
 }: DeleteCommentDialogProps) {
+  const { t } = useTranslation();
   const mutation = useDeleteCommentMutation();
   const replyMutation = useDeleteReplyMutation();
   const { commentDeleteConfirmPrompt, cancel, delete: deleteText } = t(

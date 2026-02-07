@@ -3,7 +3,7 @@
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { VocabularyKey } from "@/lib/vocabulary";
@@ -16,6 +16,8 @@ interface UserPostsProps {
 }
 
 export default function UserPosts({ userId, name }: UserPostsProps) {
+
+  const { t } = useTranslation();
 
   const { noPostOnProfile, dataError } = t();
 

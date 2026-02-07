@@ -10,13 +10,15 @@ import NewChat from "./NewChat";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import AppLogo from "@/components/AppLogo";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, WifiOff } from "lucide-react";
 
 export default function Messages() {
+  const { t } = useTranslation();
+
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [newChat, setNewChat] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<RoomData>();

@@ -9,15 +9,16 @@ import { useSearch } from "@/context/SearchContext";
 import { useNavigation } from "@/context/NavigationContext";
 import { cn } from "@/lib/utils";
 import MessagesButton from "./MessagesButton";
-import { t } from "@/context/LanguageContext";
 import { VocabularyObject } from "@/lib/vocabulary";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface MenuBarProps {
   className?: string;
 }
 
 export default function MenuBar({ className }: MenuBarProps) {
+  const { t } = useTranslation();
   const { user } = useSession();
   const { setSearchActive } = useSearch();
   const { currentNavigation } = useNavigation();

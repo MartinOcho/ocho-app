@@ -7,8 +7,8 @@ import { Textarea } from "../ui/textarea";
 import { useSession } from "@/app/(main)/SessionProvider";
 import UserAvatar from "../UserAvatar";
 import { useToast } from "../ui/use-toast";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface CommentInput {
   post: PostData;
@@ -18,6 +18,8 @@ export default function CommentInput({ post }: CommentInput) {
   const [input, setInput] = useState("");
   const { user } = useSession();
   const { toast } = useToast();
+
+  const { t } = useTranslation();
 
   const {
     invalidInput,

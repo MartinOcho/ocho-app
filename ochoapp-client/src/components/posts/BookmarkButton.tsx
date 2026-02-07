@@ -9,8 +9,8 @@ import {
 import kyInstance from "@/lib/ky";
 import { Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import { VocabularyKey } from "@/lib/vocabulary";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface BookmarkButtonProps {
   postId: string;
@@ -22,6 +22,7 @@ export default function BookmarkButton({
   initialState,
 }: BookmarkButtonProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const {
     addToBookmarks,
     addedToBookmarks,

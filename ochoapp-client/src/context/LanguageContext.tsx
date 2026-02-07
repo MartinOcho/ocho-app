@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import {
   allVocabularyKeys,
   Language,
@@ -15,105 +15,106 @@ import { useProgress } from "./ProgressContext";
 type LanguageContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
+  isReady: boolean; // Pour savoir si l'hydratation est terminée
 };
 
-// Contexte initial
 const LanguageContext = createContext<LanguageContextType>({
   language: "en",
   setLanguage: () => {},
+  isReady: false,
 });
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  // On initialise toujours avec la langue par défaut pour le SSR
   const [language, setLanguage] = useState<Language>("en");
+  const [isReady, setIsReady] = useState(false);
   const { user } = useSession();
   const { startNavigation: navigate } = useProgress();
 
   const userId = user?.id || "guest";
 
-  // Charger la langue au démarrage
   useEffect(() => {
+    // Cette partie ne s'exécute QUE sur le client après le premier rendu
     const browserLang = navigator.language.startsWith("fr") ? "fr" : "en";
     const storedLang =
       Cookies.get(`lang-${userId}`) ||
       localStorage.getItem(`lang-${userId}`) ||
       browserLang;
 
-    const shortLang = storedLang.split("-")[0] as Language;
-    setLanguage(shortLang as Language);
+    const shortLang = (storedLang?.split("-")[0] as Language) || "en";
+    
+    setLanguage(shortLang);
+    setIsReady(true);
 
-    // Sauvegarder la langue côté serveur (cookie) si non défini
     if (!Cookies.get(`lang-${userId}`)) {
       Cookies.set(`lang-${userId}`, shortLang, { expires: 365 });
-      Cookies.set(`lang-guest`, shortLang, { expires: 365 });
     }
   }, [userId]);
-  
-  // Mettre à jour la langue côté client et serveur
-  const changeLanguage = (lang: Language) => {
+
+  const changeLanguage = useCallback((lang: Language) => {
     setLanguage(lang);
     localStorage.setItem(`lang-${userId}`, lang);
-    localStorage.setItem(`lang-guest`, lang);
     Cookies.set(`lang-${userId}`, lang, { expires: 365 });
-    Cookies.set(`lang-guest`, lang, { expires: 365 });
-    navigate(); // Recharger pour refléter la nouvelle langue si nécessaire
-  };
+    navigate();
+  }, [userId, navigate]);
+
+  const value = useMemo(() => ({
+    language,
+    setLanguage: changeLanguage,
+    isReady
+  }), [language, changeLanguage, isReady]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage: changeLanguage }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
 };
 
-// Hook pour utiliser le contexte de langue
 export const useLanguage = () => useContext(LanguageContext);
 
-// Fonction pour récupérer une ou plusieurs traductions côté client
-export function t(keys: VocabularyKey[]): Record<VocabularyKey, string>;
-export function t(keys: VocabularyKey): string;
-export function t( keys: VocabularyKey | VocabularyKey[], replacements: Record<string, string | number>): string;
-export function t(): VocabularyObject;
-export function t(
-  keys?: VocabularyKey | VocabularyKey[],
-  replacements?: Record<string, string | number>,
-): VocabularyObject | string | Record<VocabularyKey, string> {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { language } = useLanguage();
+/**
+ * Hook de traduction sécurisé pour l'hydratation
+ */
+export function useTranslation() {
+  const { language, isReady } = useLanguage();
 
-  if (keys === undefined) {
-    // Return full object
-    return allVocabularyKeys.reduce(
-      (acc, key) => {
-        acc[key] = vocabulary[language][key];
+  // On définit la logique de traduction à l'intérieur du hook
+  // pour qu'elle dépende de l'état "language" du contexte.
+  const t = useCallback((
+    keys?: VocabularyKey | VocabularyKey[],
+    replacements?: Record<string, string | number>
+  ): any => {
+    // Note : Tant que isReady est faux, on pourrait forcer "en" 
+    // pour garantir la correspondance avec le serveur
+    const activeLang = isReady ? language : "en";
+
+    if (keys === undefined) {
+      return allVocabularyKeys.reduce((acc, key) => {
+        acc[key] = vocabulary[activeLang][key];
         return acc;
-      },
-      {} as VocabularyObject,
-    );
-  }
+      }, {} as VocabularyObject);
+    }
 
-  // Si replacements est fourni, traiter comme interpolation pour une clé unique
-  if (replacements && !Array.isArray(keys)) {
-    let translation = vocabulary[language][keys];
-    Object.entries(replacements).forEach(([key, value]) => {
-      translation = translation.replace(new RegExp(`\\[${key}\\]`, 'g'), String(value));
-      translation = translation.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
-    });
-    return translation;
-  }
+    if (replacements && !Array.isArray(keys)) {
+      let translation = vocabulary[activeLang][keys as VocabularyKey] || "";
+      Object.entries(replacements).forEach(([key, value]) => {
+        translation = translation.replace(new RegExp(`\\[${key}\\]`, 'g'), String(value));
+        translation = translation.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+      });
+      return translation;
+    }
 
-  // Convertir une clé unique en tableau pour simplifier le traitement
-  const keysArray = Array.isArray(keys) ? keys : [keys];
-
-  // Construire un objet avec les traductions demandées
-  const result = keysArray.reduce(
-    (acc, key) => {
-      acc[key] = vocabulary[language][key];
+    const keysArray = Array.isArray(keys) ? keys : [keys as VocabularyKey];
+    const result = keysArray.reduce((acc, key) => {
+      acc[key] = vocabulary[activeLang][key];
       return acc;
-    },
-    {} as Record<VocabularyKey, string>,
-  );
+    }, {} as Record<VocabularyKey, string>);
 
-  return Array.isArray(keys) ? result : result[keys];
+    return Array.isArray(keys) ? result : result[keys as VocabularyKey];
+  }, [language, isReady]);
+
+  return { t, language, isReady };
 }

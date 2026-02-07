@@ -25,8 +25,8 @@ import {
 import { useUploadThing } from "@/lib/uploadthing";
 import kyInstance from "@/lib/ky";
 import { useSession } from "../../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 async function uploadAvatar(file: File): Promise<LocalUpload[] | null> {
   return new Promise<LocalUpload[] | null>(async (resolve, reject) => {
@@ -79,6 +79,8 @@ export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
   const { startUpload: startAvatarUpload } =
     useUploadThing("avatar");
+
+    const { t } = useTranslation();
 
   const { profileUpdated, profileUpdateError } = t();
 
@@ -159,10 +161,10 @@ export function useUpdateProfileMutation() {
 
 export function useDeleteAvatarMutation() {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  const { profilePicDeleted, profilePicDeleteError } = t(
-    ["profilePicDeleted", "profilePicDeleteError"],
-  );
+
+  const { profilePicDeleted, profilePicDeleteError } = t();
 
   const { startNavigation: navigate } = useProgress();
   const queryClient = useQueryClient();
@@ -224,14 +226,13 @@ export function useUpdateGroupChatMutation({
   roomId: string;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const { startUpload: startAvatarUpload } =
     useUploadThing("group-chat-avatar");
   const { user } = useSession();
 
-  const { groupUpdated, groupUpdateError } = t(
-    ["groupUpdated", "groupUpdateError"],
-  );
+  const { groupUpdated, groupUpdateError } = t();
 
   const { startNavigation: navigate } = useProgress();
   const queryClient = useQueryClient();
@@ -324,6 +325,7 @@ export function useUpdateGroupChatMutation({
   return mutation;
 }
 export function useDeleteGroupChatAvatarMutation() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user } = useSession();
   const { groupIconDeleted, groupIconDeleteError } = t();

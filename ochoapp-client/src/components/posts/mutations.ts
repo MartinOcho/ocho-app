@@ -8,11 +8,14 @@ import { useToast } from "../ui/use-toast";
 import { usePathname } from "next/navigation";
 import { deletePost } from "./actions";
 import { PostsPage } from "@/lib/types";
-import { t } from "@/context/LanguageContext";
 import { useProgress } from "@/context/ProgressContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export function useDeletePostMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { postDeleted, unableToDeletePost } = t();
 
   const queryClient = useQueryClient();

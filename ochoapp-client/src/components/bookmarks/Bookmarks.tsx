@@ -3,7 +3,7 @@
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { VocabularyKey } from "@/lib/vocabulary";
@@ -11,6 +11,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { BookmarkIcon, Frown, Loader2 } from "lucide-react";
 
 export default function Bookmarks() {
+  const { t } = useTranslation();
   const { noBookmark, dataError } = t();
 
   const {

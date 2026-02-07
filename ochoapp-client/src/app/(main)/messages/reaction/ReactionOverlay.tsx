@@ -7,8 +7,8 @@ import { SKIN_TONES, QUICK_REACTIONS, EMOJI_CATEGORIES } from "../lists/emoji-li
 import { MessageBubbleContent } from "../Message";
 import UserAvatar from "@/components/UserAvatar";
 import { useSession } from "../../SessionProvider";
-import { t } from "@/context/LanguageContext";
 import Time from "@/components/Time";
+import { useTranslation } from "@/context/LanguageContext";
 
 export interface ReactionData {
   content: string;
@@ -52,6 +52,7 @@ export default function ReactionOverlay({
   onReact: (emoji: string) => void;
   currentReactions: ReactionData[];
 }){
+  const { t } = useTranslation();
   const [verticalOffset, setVerticalOffset] = useState(0);
   const [showFullPicker, setShowFullPicker] = useState(false);
   const [currentSkinTone, setCurrentSkinTone] = useState(SKIN_TONES[0]);
@@ -297,6 +298,7 @@ export function ReactionList ({
   onReact: (emoji: string) => void,
   onShowDetails: (event: React.MouseEvent, reactionContent?: string) => void
 }){
+  const { t } = useTranslation();
   if (!reactions || reactions.length === 0) return null;
 
   // Calcul pour la pillule unique
@@ -352,6 +354,7 @@ export function ReactionDetailsPopover({
   anchorRect: DOMRect;
   initialTab?: string | null;
 }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>('All');
 
   // Extraction des emojis uniques pour les onglets

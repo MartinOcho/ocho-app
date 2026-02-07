@@ -37,7 +37,7 @@ import GroupAvatar from "../GroupAvatar";
 import { Camera, Trash2 } from "lucide-react";
 import CropImageDialog from "../CropImageDialog";
 import { useToast } from "../ui/use-toast";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface GroupChatSettingsDialogProps {
   room: RoomData;
@@ -58,6 +58,7 @@ export default function GroupChatSettingsDialog({
 }: GroupChatSettingsDialogProps) {
   const [croppedAvatar, setCroppedAvatar] = useState<Blob | null>(null);
   const { toast } = useToast();
+  const { t } = useTranslation();
   const {
     changeGroupSettings,
     groupIcon,
@@ -187,6 +188,9 @@ interface AvatarInputProps {
 }
 
 function AvatarInput({ roomId, src, onImageCropped }: AvatarInputProps) {
+
+  const { t } = useTranslation();
+
   const [imageToCrop, setImageToCrop] = useState<File>();
 
   const mutation = useDeleteGroupChatAvatarMutation();

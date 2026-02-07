@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 import kyInstance from "@/lib/ky";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { VocabularyKey } from "@/lib/vocabulary";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface FollowButtonProps {
   userId: string;
@@ -19,6 +19,8 @@ export default function FollowButton({
   userId,
   initialState,
 }: FollowButtonProps) {
+  const { t } = useTranslation();
+
   const { toast } = useToast();
   const { socket } = useSocket();
   const {

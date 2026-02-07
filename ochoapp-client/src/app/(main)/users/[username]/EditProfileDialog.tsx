@@ -31,7 +31,7 @@ import avatarPlaceholder from "@/assets/avatar-placeholder.png";
 import { Camera, Trash2 } from "lucide-react";
 import CropImageDialog from "@/components/CropImageDialog";
 import Resizer from "react-image-file-resizer";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface EditProfileDialogProps {
   user: UserData;
@@ -44,6 +44,7 @@ export default function EditProfileDialog({
   open,
   onOpenChange,
 }: EditProfileDialogProps) {
+  const { t } = useTranslation();
   const {
     editProfile,
     profilePicture,
@@ -151,6 +152,7 @@ interface AvatarInputProps {
 }
 
 function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
+  const { t } = useTranslation();
   const [imageToCrop, setImageToCrop] = useState<File>();
 
   const {profilePicture, clickToSelectImage, removePic } = t(

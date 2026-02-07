@@ -7,9 +7,9 @@ import { AttachmentType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { t } from "@/context/LanguageContext";
 import { CircleProgress } from "@/components/ui/CircleProgress";
 import { useActiveRoom } from "@/context/ChatContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface LocalAttachment {
   id: string; 
@@ -38,6 +38,7 @@ export function MessageFormComponent({
   onTypingStop,
   canAttach = true,
 }: MessageFormComponentProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);

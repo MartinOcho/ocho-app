@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingButton from "@/components/LoadingButton";
 import UsersList from "@/components/messages/UsersList";
-import { t } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { useTranslation } from "@/context/LanguageContext";
 
 const fetchUsers =
   (endpoint: string) =>
@@ -38,6 +38,7 @@ export default function NewChat({
   onChatStart,
   className,
 }: NewChatProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user: loggedinUser } = useSession();
   const queryClient = useQueryClient();

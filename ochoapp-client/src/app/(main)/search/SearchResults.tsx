@@ -7,7 +7,6 @@ import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import OchoLink from "@/components/ui/OchoLink";
 import UserAvatar from "@/components/UserAvatar";
 import UserTooltip from "@/components/UserTooltip";
-import { t } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { SearchFilter, SearchPage, PostData, UserData } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -20,6 +19,7 @@ import { useProgress } from "@/context/ProgressContext";
 import { VerifiedType } from "@prisma/client";
 import Verified from "@/components/Verified";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface SearchResultsProps {
   query: string;
@@ -30,6 +30,7 @@ export default function SearchResults({
   query,
   filter: initialFilter = "posts",
 }: SearchResultsProps) {
+  const { t } = useTranslation();
   const { startNavigation: navigate } = useProgress();
   const { posts: postsText, noSearchResultFor, tryNewSearch, dataError, users, verifiedUsers, friends, followers, followings } = t();
   const { user: loggedInUser } = useSession();
@@ -264,7 +265,7 @@ interface UserItemProps {
 }
 
 export function UserItem({ user, loggedInUser }: UserItemProps) {
-  const isUserOnline = user.lastSeen > new Date(Date.now() - 60 * 1000);
+  const { t } = useTranslation();
   const expiresAt = user.verified?.[0]?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
 

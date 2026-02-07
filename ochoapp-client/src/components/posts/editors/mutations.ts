@@ -8,10 +8,13 @@ import {
 import { submitPost } from "./actions";
 import { PostsPage } from "@/lib/types";
 import { useSession } from "@/app/(main)/SessionProvider";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 
 export function useSubmitPostMutation() {
   const { toast } = useToast();
+
+  const { t } = useTranslation();
+
   const { postSuccess, postError } = t();
 
   const queryClient = useQueryClient();

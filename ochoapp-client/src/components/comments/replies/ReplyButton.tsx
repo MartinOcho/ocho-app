@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { t } from "@/context/LanguageContext";
+import { useTranslation } from "@/context/LanguageContext";
 import { MessageSquareIcon, MessageSquareMore } from "lucide-react";
 
 interface ReplyButtonProps {
@@ -8,6 +8,7 @@ interface ReplyButtonProps {
 }
 
 export default function ReplyButton({ replies, onClick }: ReplyButtonProps) {
+  const { t } = useTranslation();
   const { toReply } = t();
   return (
     <Button
