@@ -1,3 +1,5 @@
+"use client"
+
 import AppLogo from "@/components/AppLogo";
 import SearchField from "@/components/SearchField";
 import UserButton from "@/components/UserButton";
