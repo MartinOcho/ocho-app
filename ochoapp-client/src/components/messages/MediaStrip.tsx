@@ -25,7 +25,7 @@ export default function MediaStrip({
     <>
       <div
         className={cn(
-          "flex gap-2 flex-wrap mt-2 max-sm:max-w-52",
+          "flex gap-2 flex-wrap mt-2 max-sm:max-w-64",
           className
         )}
       >
