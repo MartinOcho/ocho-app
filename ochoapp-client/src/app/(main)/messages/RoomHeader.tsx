@@ -59,10 +59,16 @@ export default function RoomHeader({
   onDelete,
   initialRoom,
 }: ChatHeaderProps) {
+  // Normaliser initialRoom pour garantir que members existe
+  const normalizedInitialRoom: RoomData = {
+    ...initialRoom,
+    members: Array.isArray(initialRoom?.members) ? initialRoom.members : [],
+  } as any;
+
   const [active, setActive] = useState(false);
   const [expandMembers, setExpandMembers] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [room, setRoom] = useState<RoomData>(initialRoom);
+  const [room, setRoom] = useState<RoomData>(normalizedInitialRoom);
   const [dialogFocus, setDialogFocus] = useState<"name" | "description" | null>(
     null,
   );
@@ -136,20 +142,29 @@ export default function RoomHeader({
   useEffect(() => {
     if (roomId) {
       // Clear the old room data
-      setRoom(initialRoom);
+      setRoom(normalizedInitialRoom);
       // Revalidate the new room data
       queryClient.invalidateQueries({ queryKey });
     }
-  }, [roomId]);
+  }, [roomId, normalizedInitialRoom, queryClient, queryKey]);
 
   useEffect(() => {
-    setRoom(initialRoom);
-  }, []);
+    setRoom(normalizedInitialRoom);
+  }, [normalizedInitialRoom]);
   useEffect(() => {
     if (data) {
-      setRoom(data);
+      // Normaliser la donnée API aussi
+      const normalizedData = {
+        ...data,
+        members: Array.isArray(data?.members) ? data.members : [],
+      } as any;
+      setRoom(normalizedData);
+    } else if (status === "error") {
+      // Si la requête a échoué, utiliser normalizedInitialRoom
+      setRoom(normalizedInitialRoom);
     }
-  }, [data]);
+    // Ne pas reset à initialRoom quand data === undefined pendant le loading
+  }, [data, status, normalizedInitialRoom]);
   if (!room) {
     if (status === "pending") {
       return (
@@ -235,21 +250,28 @@ export default function RoomHeader({
 
   const size = active ? 120 : 40;
 
+  // Ensure room and members are properly initialized
+  const safeMembers = Array.isArray(room?.members) ? room.members : [];
+  const safeRoom = {
+    ...room,
+    members: safeMembers,
+  };
+
   // Get loggedinMember from members
-  const loggedinMember = room?.members?.find(
+  const loggedinMember = safeMembers.find(
     (member) => member.userId === loggedUser.id,
   );
   // Get admins
-  const admins = (room?.members || []).filter(
+  const admins = safeMembers.filter(
     (member) =>
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
   // Get owner
   const owner = [
-    (room?.members || []).find((member) => member.type === "OWNER"),
+    safeMembers.find((member) => member.type === "OWNER"),
   ].filter((member) => member?.userId !== loggedinMember?.userId);
   // Get members
-  const members = (room?.members || []).filter(
+  const members = safeMembers.filter(
     (member) => member.type !== "ADMIN",
   );
 
@@ -746,7 +768,7 @@ export function RestoreMemberButton({
   const [loading, setLoading] = useState(false);
 
   const roomId = room.id;
-  const member = room?.members?.find((member) => member.userId === memberId);
+  const member = (room?.members || []).find((member) => member.userId === memberId);
 
   function handleSubmit() {
     if (!socket) return;
@@ -793,7 +815,7 @@ export function GroupUserPopover({
 }: GroupUserPopover) {
   const { user: loggedInUser } = useSession();
   const isMember = type !== "OLD" && type !== "BANNED";
-  const member = room.members.find((member) => member.userId === user.id);
+  const member = (room?.members || []).find((member) => member.userId === user.id);
 
   const { groupAdmin, groupOwner, joined, leftSince, profile, you } = t();
 
