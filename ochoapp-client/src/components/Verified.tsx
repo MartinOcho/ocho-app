@@ -9,7 +9,7 @@ import {
 } from "./ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { VerifiedType } from "@prisma/client";
-import { useTranslation } from "@/context/LanguageContext";
+import { LanguageProvider, useTranslation } from "@/context/LanguageContext";
 
 interface VerifiedProps extends SVGProps<SVGSVGElement> {
   type?: VerifiedType;

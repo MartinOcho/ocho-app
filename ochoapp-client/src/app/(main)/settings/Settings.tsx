@@ -8,6 +8,7 @@ import { Language,  } from "@/lib/vocabulary";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useTranslation } from "@/context/LanguageContext";
 
 export type SettingsOption = {
   value: string;
@@ -35,6 +36,9 @@ export default function Settings({
   const [currentDialog, setCurrentDialog] = useState<JSX.Element | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogTitle, setDialogTitle] = useState<string | null>(null);
+
+  const { t } = useTranslation();
+
   const viewProfile = t("viewProfile");
 
   if (!user) return null;

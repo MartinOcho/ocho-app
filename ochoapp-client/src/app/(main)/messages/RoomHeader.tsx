@@ -661,6 +661,8 @@ export function AdminButton({ member, type, room }: AdminButtonProps) {
   const queryClient = useQueryClient();
   const { socket } = useSocket();
 
+  const { t } = useTranslation();
+
   const { user: loggedInUser } = useSession();
   const { makeGroupAdmin, dismissAsAdmin } = t();
 
@@ -738,6 +740,7 @@ export function RestoreMemberButton({
 }: RestoreMemberButtonProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { groupRestoreSuccess } = t();
   const { socket } = useSocket();
   const [loading, setLoading] = useState(false);
@@ -788,6 +791,7 @@ export function GroupUserPopover({
   room,
   children,
 }: GroupUserPopover) {
+  const { t } = useTranslation();
   const { user: loggedInUser } = useSession();
   const isMember = type !== "OLD" && type !== "BANNED";
   const member = (room?.members || []).find((member) => member.userId === user.id);

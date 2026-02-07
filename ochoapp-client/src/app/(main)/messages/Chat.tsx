@@ -380,7 +380,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   useEffect(() => {
     setPrevPathname(pathname);
   }, [pathname]);
-
   // --- DATA FETCHING ---
   const {
     data: room,
@@ -396,6 +395,19 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     refetchOnWindowFocus: false,
     enabled: !!roomId,
   });
+
+  const roomName = room?.name || roomId || "Chat";
+
+  useEffect(() => {
+    const rName = room?.name || roomId || "Chat";
+    if (!isLoading && (!room || isRoomError || !loggedUser)) {
+      toast({
+        variant: "destructive",
+        description: (unableToLoadChat || "").replace("[name]", rName),
+      });
+      onClose();
+    }
+  }, [isLoading, room, isRoomError, loggedUser, onClose, roomId, unableToLoadChat]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
     useInfiniteQuery({
@@ -453,18 +465,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   if (!roomId) return null;
   if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
 
-  const roomName = room?.name || roomId || "Chat";
-
-  useEffect(() => {
-    const rName = room?.name || roomId || "Chat";
-    if (!isLoading && (!room || isRoomError || !loggedUser)) {
-      toast({
-        variant: "destructive",
-        description: (unableToLoadChat || "").replace("[name]", rName),
-      });
-      onClose();
-    }
-  }, [isLoading, room, isRoomError, loggedUser, onClose, roomId, unableToLoadChat]);
 
   if (!room || isRoomError || !loggedUser) return null;
 

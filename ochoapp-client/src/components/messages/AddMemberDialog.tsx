@@ -72,6 +72,7 @@ export function AddMemberForm({ onAdd, room }: AddMemberFormProps) {
   const queryClient = useQueryClient();
   const { socket } = useSocket(); // Hook socket
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { add, availableUsers, noAvailableUser, dataError, searchUsers } = t();
 
   const addUser = (user: UserData) => {
