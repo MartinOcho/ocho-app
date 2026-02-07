@@ -175,7 +175,7 @@ export const MessageBubbleContent = ({
     } else if (isMiddleInCluster) {
       borderRadiusClass = "rounded-3xl rounded-tr-[4px] rounded-br-[4px]";
     } else if (isLastInCluster) {
-      borderRadiusClass = "rounded-3xl rounded-tr-[4px] rounded-br-2xl";
+      borderRadiusClass = "rounded-3xl rounded-tr-[4px]";
     } else {
       borderRadiusClass = "rounded-3xl";
     }
@@ -738,7 +738,7 @@ export default function Message({
                     <div className={cn(
                         "absolute -bottom-3", 
                         isOwner ? "left-0 -translate-x-3" : "right-0 translate-x-3",
-                        !activeOverlayRect && !activeDetailsRect ? "z-20 pointer-events-auto" : "z-0 pointer-events-none opacity-0",
+                        !activeOverlayRect && !activeDetailsRect ? "z-20 pointer-events-auto" : "z-50 pointer-events-none opacity-0",
                     )}>
                         <ReactionList
                             reactions={reactions}

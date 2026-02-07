@@ -87,7 +87,8 @@ export default function RoomHeader({
     hide,
     memberSince,
     thisAccountDeleted,
-  } = t(['group', 'groupChat', 'appUser', 'you', 'online', 'activeText', 'viewProfile', 'created', 'member', 'members', 'namesAndName', 'namesAndOthers', 'settings', 'addAMember', 'addMembers', 'addDescription', 'noDescription', 'joined', 'seeAllMore', 'hide', 'memberSince', 'thisAccountDeleted']);
+    messageYourself,
+  } = t(['group', 'groupChat', 'appUser', 'you', 'online', 'activeText', 'viewProfile', 'created', 'member', 'members', 'namesAndName', 'namesAndOthers', 'settings', 'addAMember', 'addMembers', 'addDescription', 'noDescription', 'joined', 'seeAllMore', 'hide', 'memberSince', 'thisAccountDeleted', 'messageYourself']);
   const queryClient = useQueryClient();
   const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({
@@ -99,6 +100,7 @@ export default function RoomHeader({
 
   const { user: loggedUser } = useSession();
   const { activeRoomId } = useActiveRoom();
+  const { socket } = useSocket();
 
   useEffect(() => {
     setActive(false);
@@ -265,6 +267,34 @@ export default function RoomHeader({
     ? new Date(new Date(otherUser.lastSeen).getTime() - 30_000).getTime()
     : null;
 
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleUserOnline = (data: { userId: string }) => {
+      setOnlineUsers(prev => prev.includes(data.userId) ? prev : [...prev, data.userId]);
+    };
+    const handleUserOffline = (data: { userId: string }) => {
+      setOnlineUsers(prev => prev.filter(id => id !== data.userId));
+    };
+    socket.on('user_online', handleUserOnline);
+    socket.on('user_offline', handleUserOffline);
+    return () => {
+      socket.off('user_online', handleUserOnline);
+      socket.off('user_offline', handleUserOffline);
+    };
+  }, [socket]);
+
+  const getStatusDisplay = () => {
+    if (isSaved) return messageYourself;
+    if (!otherUser?.id) return thisAccountDeleted;
+    if (onlineUsers.includes(otherUser.id)) return online;
+    if (lastSeenTimeStamp && lastSeenTimeStamp < now) {
+      return `${activeText}`;
+    }
+    return `@${otherUser?.username || 'ochoapp-user'}`;
+  };
+
   return (
     <div
       className={cn("z-50", active ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative flex-1")}
@@ -309,7 +339,18 @@ export default function RoomHeader({
               className="transition-all *:transition-all"
             />
           )}
-          <div className="">
+          <div className="flex-1">
+            {room.isGroup ? (
+              <div>
+                <div className="text-xl font-bold">{chatName}</div>
+                <div className="text-muted-foreground text-sm">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-xl font-bold">{chatName}</div>
+                <div className="text-muted-foreground text-sm">{getStatusDisplay()}</div>
+              </div>
+            )}
           </div>
         </div>
         {active && (
@@ -434,7 +475,7 @@ export default function RoomHeader({
               </div>
               {room.isGroup && loggedinMember?.type !== "BANNED" && (
                 <ul className="flex w-full flex-col py-3">
-                  <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers.length} ${membersText.toLowerCase()}`}</li>
+                  <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</li>
                   {loggedinMember?.type !== "OLD" && (
                     <AddMemberDialog room={room}>
                       <li className="cursor-pointer p-4 active:bg-muted/30">
