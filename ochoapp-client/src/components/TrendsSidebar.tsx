@@ -60,7 +60,7 @@ async function WhoToFollow() {
   });
 
   return (
-    <div className="space-y-5 bg-card p-5 shadow-sm sm:rounded-2xl">
+    <div className="space-y-5 bg-card p-5 shadow-sm sm:rounded-3xl">
       <h2 className="text-xl font-bold">{whoToFollow}</h2>
       {usersToFollow.map((user) => {
         const now = Date.now();
@@ -149,7 +149,7 @@ async function TrendingTopics() {
   const { trending, noTrends, aPost, posts } = await getTranslation();
 
   return (
-    <div className="space-y-5 bg-card p-5 shadow-sm sm:rounded-2xl">
+    <div className="space-y-5 bg-card p-5 shadow-sm sm:rounded-3xl">
       <h2 className="text-xl font-bold">{trending}</h2>
       {!trendingTopics.length && (
         <p className="w-full px-2 py-8 text-center italic text-muted-foreground">

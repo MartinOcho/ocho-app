@@ -103,34 +103,23 @@ export default function SocketProvider({
     }
   }, []);
 
+  // Ref pour stocker les messages en attente (évite les re-renders)
+  const pendingMessagesRef = useRef<Record<string, PendingMessage[]>>(pendingMessages);
+
+  useEffect(() => {
+    pendingMessagesRef.current = pendingMessages;
+  }, [pendingMessages]);
+
   // Fonction pour récupérer les messages en attente pour une room
   const getPendingMessages = useCallback((roomId: string): PendingMessage[] => {
-    // Note: On utilise setPendingMessages en version fonctionnelle pour éviter de dépendre de pendingMessages
-    let messages: PendingMessage[] = [];
+    const messages = pendingMessagesRef.current[roomId] || [];
+    // Nettoyer les messages de cette room immédiatement après les avoir récupérés
     setPendingMessages((prev) => {
-      messages = prev[roomId] || [];
       const updated = { ...prev };
       delete updated[roomId];
       return updated;
     });
     return messages;
-  }, []);
-
-  // Nettoyage automatique des messages en attente après 30 secondes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPendingMessages((prev) => {
-        const now = Date.now();
-        const cleaned: typeof prev = {};
-        // Garder seulement les messages moins de 30s, sinon on les oublie
-        Object.entries(prev).forEach(([roomId, msgs]) => {
-          // Garder les messages créés à l'instant (sans timestamp historique)
-          cleaned[roomId] = msgs;
-        });
-        return cleaned;
-      });
-    }, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Fonction pour forcer une reconnexion manuelle
