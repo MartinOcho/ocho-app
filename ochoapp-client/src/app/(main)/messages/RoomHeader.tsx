@@ -952,7 +952,7 @@ export function GroupUserPopover({
 // Composant helper pour charger les messages et afficher la galerie de médias
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["room", "messages", roomId],
+    queryKey: ["room", "medias", roomId],
     queryFn: async () => {
       try {
         const response = await kyInstance
