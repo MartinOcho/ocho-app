@@ -2,7 +2,7 @@ import { RoomData, UserData, MessageData } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
 import UserAvatar from "@/components/UserAvatar";
-import { PropsWithChildren, useEffect, useState } from "react";
+import { PropsWithChildren, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -60,10 +60,10 @@ export default function RoomHeader({
   initialRoom,
 }: ChatHeaderProps) {
   // Normaliser initialRoom pour garantir que members existe
-  const normalizedInitialRoom: RoomData = {
+  const normalizedInitialRoom: RoomData = useMemo(() => ({
     ...initialRoom,
     members: Array.isArray(initialRoom?.members) ? initialRoom.members : [],
-  } as any;
+  } as any), [initialRoom]);
 
   const [active, setActive] = useState(false);
   const [expandMembers, setExpandMembers] = useState(false);
@@ -149,22 +149,20 @@ export default function RoomHeader({
   }, [roomId, normalizedInitialRoom, queryClient, queryKey]);
 
   useEffect(() => {
-    setRoom(normalizedInitialRoom);
-  }, [normalizedInitialRoom]);
-  useEffect(() => {
+    // Sync room data with API response when data arrives
     if (data) {
-      // Normaliser la donnée API aussi
       const normalizedData = {
         ...data,
         members: Array.isArray(data?.members) ? data.members : [],
       } as any;
       setRoom(normalizedData);
-    } else if (status === "error") {
-      // Si la requête a échoué, utiliser normalizedInitialRoom
-      setRoom(normalizedInitialRoom);
     }
-    // Ne pas reset à initialRoom quand data === undefined pendant le loading
-  }, [data, status, normalizedInitialRoom]);
+  }, [data]);
+
+  useEffect(() => {
+    // Sync room with initial data on component mount
+    setRoom(normalizedInitialRoom);
+  }, [normalizedInitialRoom]);
   if (!room) {
     if (status === "pending") {
       return (

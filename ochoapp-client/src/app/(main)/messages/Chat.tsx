@@ -416,7 +416,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     });
 
   const allMessages = (
-    data?.pages.flatMap((page) => page?.messages) || []
+    data?.pages?.flatMap((page) => page?.messages) || []
   ).filter((msg) => msg.type !== "REACTION");
 
   // --- FILTRAGE LOCAL DES MESSAGES ---
@@ -442,11 +442,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- CLUSTERING MEMOISÉ ---
   const clusteredMessages = useMemo(
-    () => groupMessages(filteredMessages),
+    () => groupMessages(filteredMessages || []),
     [filteredMessages],
   );
   const clusteredNewMessages = useMemo(
-    () => groupMessages(filteredNewMessages),
+    () => groupMessages(filteredNewMessages || []),
     [filteredNewMessages],
   );
 
