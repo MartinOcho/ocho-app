@@ -286,7 +286,6 @@ export default function Message({
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { isMediaFullscreen } = useActiveRoom();
 
   // Refs
   const messageRef = useRef<HTMLDivElement>(null);
@@ -742,7 +741,7 @@ export default function Message({
                 </span>
               )}
 
-              <div className={cn("group/message relative w-fit max-w-[75%] select-none flex flex-col", isOwner ? "items-end" : "items-start", isMediaFullscreen && "opacity-0 pointer-events-none")}>
+              <div className={cn("group/message relative w-fit max-w-[75%] select-none flex flex-col", isOwner ? "items-end" : "items-start")}>
                 
                 {message.senderId !== loggedUser.id && isFirstInCluster && room.isGroup && (
                   <div className="ps-2 text-xs font-semibold text-muted-foreground/80 mb-1 ml-1">

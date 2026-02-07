@@ -5,20 +5,25 @@ import { useState, useMemo } from "react";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
 import { Play } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MediaGalleryProps {
-  messages: MessageData[];
+  messages?: MessageData[];
   className?: string;
+  isLoading?: boolean;
 }
 
 export default function MediaGallery({
-  messages,
+  messages = [],
   className,
+  isLoading = false,
 }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Extract all attachments from messages in reverse order (newest first)
   const allAttachments = useMemo(() => {
+    if (!messages || messages.length === 0) return [];
+    
     const attachments: (typeof messages[0]["attachments"][0] & { messageId: string })[] = [];
     
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -35,6 +40,21 @@ export default function MediaGallery({
     
     return attachments;
   }, [messages]);
+
+  if (isLoading) {
+    return (
+      <div className={cn("p-3 border-t border-border", className)}>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          Médias
+        </h4>
+        <div className="grid grid-cols-3 gap-2">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-md" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (allAttachments.length === 0) {
     return null;

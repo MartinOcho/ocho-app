@@ -5,17 +5,30 @@ import { useState } from "react";
 import { Play } from "lucide-react";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MediaStripProps {
-  attachments: MessageAttachment[];
+  attachments?: MessageAttachment[];
   className?: string;
+  isLoading?: boolean;
 }
 
 export default function MediaStrip({
-  attachments,
+  attachments = [],
   className,
+  isLoading = false,
 }: MediaStripProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className={cn("flex gap-2 flex-wrap mt-2 max-sm:max-w-64", className)}>
+        {[...Array(2)].map((_, i) => (
+          <Skeleton key={i} className="size-32 max-sm:size-24 rounded-lg" />
+        ))}
+      </div>
+    );
+  }
 
   if (!attachments || attachments.length === 0) {
     return null;

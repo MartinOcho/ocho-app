@@ -106,7 +106,7 @@ export default function Messages() {
             }}
           />
         </div>
-        <div className={cn("relative flex h-full w-screen flex-col max-sm:min-w-screen sm:w-3/4", isMediaFullscreen && "z-[999] max-sm:h-screen w-screen fixed inset-0")}>
+        <div className={cn("relative flex h-full w-screen flex-col max-sm:min-w-screen sm:w-3/4")}>
           {!activeRoomId && (
             <div className="flex h-full select-none flex-col items-center justify-center px-4 text-center">
               <div className="text-muted-foreground/50">

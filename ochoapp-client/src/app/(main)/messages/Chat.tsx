@@ -677,9 +677,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   return (
     // RETRAIT de onContextMenu ici
-    <div className={cn("absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30", isMediaFullscreen && "[&>*]:z-0")}>
+    <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
       {/* HEADER */}
-      <div className={cn("flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50", isMediaFullscreen && "z-0")}>
+      <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
         <div
           className="flex cursor-pointer hover:text-red-500"
           onClick={onClose}
@@ -703,9 +703,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className={cn("messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50", isMediaFullscreen && "z-0")}>
+      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
         <div
-          className={cn("sticky bottom-0 z-10 h-full w-full", isMediaFullscreen && "z-0")}
+          className="sticky bottom-0 z-10 h-full w-full"
           onContextMenu={handleContextMenu}
         />
         <InfiniteScrollContainer
@@ -835,7 +835,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
           {/* Affichage du RoomFooter selon l'état */}
           {!!roomId && (
-            <div className={cn("z-20", isMediaFullscreen && "z-0")}>
+            <div className="z-20">
               <RoomFooter
                 state={footerState}
                 roomId={roomId}
