@@ -221,12 +221,13 @@ export const MessageBubbleContent = ({
           <MediaStrip 
             attachments={message.attachments as MessageAttachment[]}
             className={cn(
-              "!mt-2 !mb-6",
+              "!mt-2 !mb-6 media-strip-wrapper", // Ajout de la classe marker
               message.content ? "mt-2" : "mt-0"
             )}
           />
         )}
-        <div className="pr-4 pb-1">
+        {/* Conteneur de texte avec marker pour le calcul de position */}
+        <div className="pr-4 pb-1 text-content-wrapper">
             {message.content ? (
                 <HighlightText
                 text={message.content}
@@ -480,10 +481,42 @@ export default function Message({
     return () => { socket.off("message_read_update", handleReadUpdate); };
   }, [socket, messageId, roomId, loggedUser, message.senderId, reads, queryClient, queryKey]);
 
+  // --- GESTION DU CLIC DROIT AVEC CALCUL AJUSTÉ ---
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isDeleting) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    
+    const target = e.currentTarget as HTMLElement;
+    let rect = target.getBoundingClientRect();
+
+    if (message.attachments && message.attachments.length > 0) {
+       const textContainer = target.querySelector('.text-content-wrapper');
+       if (textContainer) {
+          const textRect = textContainer.getBoundingClientRect();
+          const style = window.getComputedStyle(target);
+          const paddingTop = parseFloat(style.paddingTop) || 8; // fallback to default py-2
+
+          // Le nouveau Top = Le haut du texte - le padding du container
+          const newTop = textRect.top - paddingTop;
+          
+          // La nouvelle Hauteur = La distance entre ce nouveau top et le bas original
+          const newHeight = rect.bottom - newTop;
+
+          // On crée un objet compatible DOMRect
+          rect = {
+            top: newTop,
+            left: rect.left,
+            right: rect.right,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: newHeight,
+            x: rect.left,
+            y: newTop,
+            toJSON: () => {}
+          } as DOMRect;
+       }
+    }
+
     setActiveOverlayRect(rect);
   };
 

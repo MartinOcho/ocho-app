@@ -105,8 +105,7 @@ export default function ReactionOverlay({
           transform: `translateY(${verticalOffset}px)`,
         }}
       >
-        <div className="pointer-events-none z-20 h-full w-full scale-100 origin-top-left">
-           {/* Clone visuel du message pour l'effet zoom/focus */}
+        <div className="pointer-events-none z-20 h-fit w-full scale-100 origin-top-left">
           <MessageBubbleContent
             message={message}
             isOwner={isOwner}
@@ -123,7 +122,6 @@ export default function ReactionOverlay({
             mounted ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
           )}
         >
-          {/* ... PICKER LOGIC (Conservée telle quelle, juste stylisée un peu) ... */}
           <div
             className={cn(
               "flex w-[320px] flex-col gap-2 transition-all duration-300",
