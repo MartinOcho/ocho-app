@@ -59,8 +59,6 @@ import {
   GroupFullIcon,
   UnspecifiedIcon,
 } from "./FooterStates";
-import MediaGallery from "@/components/messages/MediaGallery";
-import MediaStrip from "@/components/messages/MediaStrip";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -86,7 +84,12 @@ const MAX_TIME_DIFF = 20 * 60 * 1000; // 20 minutes en millisecondes
 function groupMessages(messages: MessageData[], limit: number = 5) {
   const groups: MessageData[][] = [];
   let currentGroup: MessageData[] = [];
+  
+  if (!Array.isArray(messages)) return groups;
+
   messages.forEach((msg, index) => {
+    if (!msg) return; // Guard extra défensif
+
     if (currentGroup.length === 0) {
       currentGroup.push(msg);
       return;
@@ -95,13 +98,13 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
     const newerMsg = currentGroup[currentGroup.length - 1];
 
     const isSameSender = newerMsg.senderId === msg.senderId;
-
     const isContent = msg.type === "CONTENT" && newerMsg.type === "CONTENT";
-
     const isNotFull = currentGroup.length < limit;
-
+    
+    // Safety checks for dates
     const date1 = new Date(msg.createdAt);
     const date2 = new Date(newerMsg.createdAt);
+    
     const isSameDay =
       date1.getDate() === date2.getDate() &&
       date1.getMonth() === date2.getMonth() &&
@@ -129,6 +132,7 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 
 // --- NOUVEAU COMPOSANT : HEADER DE DATE ---
 function DateHeader({ date }: { date: Date | string }) {
+  if (!date) return null;
   return (
     <div className="pointer-events-none flex w-full select-none justify-center pt-4">
       <div className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
@@ -143,7 +147,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const { socket, isConnected, retryConnection, getPendingMessages } =
     useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
-  const { isMediaFullscreen } = useActiveRoom(); 
+  const { isMediaFullscreen } = useActiveRoom();
+
   const pathname = usePathname();
   const router = useRouter();
   const { startNavigation: navigate } = useProgress();
@@ -189,7 +194,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     // Récupérer les messages qui ont été reçus via socket avant que le composant soit monté
     const pendingMsgs = getPendingMessages(roomId);
 
-    if (pendingMsgs.length === 0) return;
+    // FIX: Vérification défensive pour éviter le crash sur .length
+    if (!pendingMsgs || !pendingMsgs.length) return;
 
     console.log(
       `📥 Traitement de ${pendingMsgs.length} messages en attente pour la room ${roomId}`,
@@ -264,9 +270,11 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
           (oldData) => {
+            // Guard: Si pas de données, on ne fait rien (on attend le fetch initial)
             if (!oldData || !Array.isArray(oldData.pages)) return oldData;
 
             const newPages = oldData.pages.map((page, index) => {
+              // On insert seulement dans la première page
               if (index === 0 && page) {
                 return {
                   ...page,
@@ -310,14 +318,21 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
         ["room", "messages", roomId],
         (oldData) => {
           if (!oldData || !Array.isArray(oldData.pages)) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
+
+          // FIX: Utilisation d'un map sécurisé pour éviter d'accéder à des pages undefined
+          const newPages = oldData.pages.map((page) => {
+            if (!page) return page; // Guard essentiel
+            return {
               ...page,
               messages: (page.messages ?? []).filter(
                 (msg: MessageData) => msg.id !== data.messageId,
               ),
-            })),
+            };
+          });
+
+          return {
+            ...oldData,
+            pages: newPages,
           };
         },
       );
@@ -385,6 +400,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   useEffect(() => {
     setPrevPathname(pathname);
   }, [pathname]);
+
   // --- DATA FETCHING ---
   const {
     data: room,
@@ -469,9 +485,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   if (!roomId) return null;
   if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
-
-
-  if (!room || isRoomError || !loggedUser) return null;
+    if (!room || isRoomError || !loggedUser) return null;
 
   const loggedMember = room.members.find(
     (member) => member.userId === loggedUser.id,
@@ -856,8 +870,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           )}
         </div>
       </div>
-
-  
 
       {/* MENU CONTEXTUEL (Click Droit) */}
       {contextMenuPos && (
