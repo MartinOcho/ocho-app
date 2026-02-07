@@ -25,7 +25,7 @@ export default function MediaStrip({
     <>
       <div
         className={cn(
-          "flex gap-2 flex-wrap mt-2 max-sm:max-w-40",
+          "flex gap-2 flex-wrap mt-2 max-sm:max-w-52",
           className
         )}
       >
@@ -57,7 +57,7 @@ export default function MediaStrip({
                 alt={`Attachment ${index + 1}`}
                 className={cn(
                   "rounded-lg object-cover cursor-pointer",
-                  attachments.length === 1 ? "max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24"
+                  attachments.length === 1 ? "max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24"
                 )}
               />
             )}
