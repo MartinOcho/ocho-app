@@ -742,7 +742,7 @@ export default function Message({
                 </span>
               )}
 
-              <div className={cn("group/message relative w-fit max-w-[75%] select-none flex flex-col", isOwner ? "items-end" : "items-start", isMediaFullscreen && "fixed w-screen h-screen max-sm:translate-x-full")}>
+              <div className={cn("group/message relative w-fit max-w-[75%] select-none flex flex-col", isOwner ? "items-end" : "items-start", isMediaFullscreen && "opacity-0 pointer-events-none")}>
                 
                 {message.senderId !== loggedUser.id && isFirstInCluster && room.isGroup && (
                   <div className="ps-2 text-xs font-semibold text-muted-foreground/80 mb-1 ml-1">
