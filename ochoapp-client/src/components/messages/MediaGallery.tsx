@@ -53,7 +53,7 @@ export default function MediaGallery({
         </h4>
         <div className="grid grid-cols-3 gap-2">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="aspect-square rounded-md" />
+            <Skeleton key={i} className="w-full h-24 rounded-md" />
           ))}
         </div>
       </div>

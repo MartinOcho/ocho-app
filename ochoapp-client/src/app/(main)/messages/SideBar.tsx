@@ -306,6 +306,7 @@ export default function SideBar({
 
     // (Optionnel) Recherche dans le dernier message
     if (
+      room.messages && Array.isArray(room.messages) &&
       room.messages.length > 0 &&
       room.messages[0].content?.toLowerCase().includes(query)
     )

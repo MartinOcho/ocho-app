@@ -60,7 +60,7 @@ export function useRoomFooterState({
   }
 
   // Groupe plein
-  if (room.members.length >= room.maxMembers) {
+  if ((room?.members?.length || 0) >= room?.maxMembers) {
     return { type: RoomFooterStateType.GroupFull };
   }
 

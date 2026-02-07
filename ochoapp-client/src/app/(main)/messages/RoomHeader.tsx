@@ -226,7 +226,7 @@ export default function RoomHeader({
     ? room.name
     : (isSaved
         ? loggedUser.displayName + ` (${you})`
-        : room?.members.filter((member) => member.userId !== loggedUser.id)?.[0]
+        : room?.members?.filter((member) => member.userId !== loggedUser.id)?.[0]
             ?.user?.displayName) || (room.isGroup ? groupChat : appUser);
   const weekAgo = new Date(
     new Date(room.createdAt).getTime() - 6 * 24 * 60 * 60 * 1000,
@@ -272,18 +272,18 @@ export default function RoomHeader({
     ...owner,
     ...admins,
     ...filteredMembers3,
-  ];
-  const allMembers = mergedMembers
+  ].filter(Boolean); // Filtrer les undefined
+  const allMembers = (mergedMembers || [])
     .filter((member) => member?.type !== "OLD")
     .filter((member) => member?.type !== "BANNED");
 
-  const oldMembers = mergedMembers.filter((member) => member?.type === "OLD");
-  const bannedMembers = mergedMembers.filter(
+  const oldMembers = (mergedMembers || []).filter((member) => member?.type === "OLD");
+  const bannedMembers = (mergedMembers || []).filter(
     (member) => member?.type === "BANNED",
   );
 
-  const firstPage = allMembers.slice(0, 10);
-  const lastPage = allMembers.slice(10, allMembers.length);
+  const firstPage = (allMembers || []).slice(0, 10);
+  const lastPage = (allMembers || []).slice(10, (allMembers || []).length);
 
   const now = Date.now();
 
@@ -950,19 +950,29 @@ export function GroupUserPopover({
 
 // Composant helper pour charger les messages et afficher la galerie de médias
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages, isLoading, error } = useQuery({
     queryKey: ["room", "messages", roomId],
     queryFn: async () => {
-      const response = await kyInstance
-        .get(`/api/rooms/${roomId}/messages`, {
-          searchParams: { limit: "100" },
-        })
-        .json<{ messages: MessageData[] }>();
-      return response.messages || [];
+      try {
+        const response = await kyInstance
+          .get(`/api/rooms/${roomId}/messages`, {
+            searchParams: { limit: "100" },
+          })
+          .json<{ messages?: MessageData[] }>();
+        return response?.messages || [];
+      } catch (err) {
+        console.error("[MediaGalleryContainer] Erreur API:", err);
+        return [];
+      }
     },
     enabled: !!roomId,
   });
 
   // Toujours rendre MediaGallery: il gère le skeleton via `isLoading`
-  return <MediaGallery messages={messages} isLoading={isLoading} />;
+  return (
+    <MediaGallery 
+      messages={Array.isArray(messages) ? messages : []} 
+      isLoading={isLoading} 
+    />
+  );
 }

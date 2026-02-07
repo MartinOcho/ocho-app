@@ -29,9 +29,9 @@ export default function MediaCarousel({
     return () => setIsMediaFullscreen(false);
   }, [setIsMediaFullscreen]);
 
-  const current = attachments[currentIndex];
+  const current = Array.isArray(attachments) ? attachments[currentIndex] : null;
   const isFirstImage = currentIndex === 0;
-  const isLastImage = currentIndex === attachments.length - 1;
+  const isLastImage = Array.isArray(attachments) ? currentIndex === attachments.length - 1 : false;
 
   // Keyboard navigation
   useEffect(() => {
@@ -114,9 +114,9 @@ export default function MediaCarousel({
       <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-2 text-white text-sm">
           <span className="font-medium">
-            {currentIndex + 1} / {attachments.length}
+            {currentIndex + 1} / {Array.isArray(attachments) ? attachments.length : 0}
           </span>
-          {current.type && (
+          {current?.type && (
             <span className="text-white/50 text-xs">
               {current.type === "VIDEO" ? "Vidéo" : "Image"}
             </span>
@@ -177,7 +177,7 @@ export default function MediaCarousel({
         </div>
 
         {/* Navigation Flèches */}
-        {attachments.length > 1 && (
+        {Array.isArray(attachments) && attachments.length > 1 && (
           <>
             <button
               onClick={goToPrevious}
@@ -211,7 +211,7 @@ export default function MediaCarousel({
       </div>
 
       {/* Footer avec filmstrip/thumbnails */}
-      {attachments.length > 1 && (
+      {Array.isArray(attachments) && attachments.length > 1 && (
         <div className="border-t border-white/10 bg-black/50 p-4 overflow-x-auto">
           <div className="flex gap-2 relative">
             {attachments.map((attachment, index) => (
