@@ -102,12 +102,9 @@ export function MessageFormComponent({
     }, 100);
 
     try {
-      // Si le fichier est volumineux, diriger vers le serveur backend (proxy) pour contourner les limites Vercel
-      const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5MB
       const serverUrl = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_SERVER_URL) || "http://localhost:5000";
 
       let res;
-      if (file.size > LARGE_FILE_THRESHOLD) {
         // Envoi multipart/form-data vers le serveur Express qui fait le upload vers Cloudinary
         const form = new FormData();
         form.append("file", file);
@@ -117,10 +114,7 @@ export function MessageFormComponent({
           body: form,
           timeout: 180000,
         }).json<{ success: boolean; attachmentId?: string; error?: string }>();
-      } else {
-        // Petit fichier : utiliser l'API Next.js interne
-        res = await kyInstance.post("/api/cloudinary/upload", { json: { file: dataUrl }, timeout: 120000 }).json<{ success: boolean; attachmentId?: string; error?: string }>();
-      }
+      
 
       clearInterval(progressInterval);
       onProgress?.(100);
