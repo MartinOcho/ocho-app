@@ -21,7 +21,7 @@ export default function Messages() {
   const [newChat, setNewChat] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<RoomData>();
   const { user } = useSession();
-  const { activeRoomId, setActiveRoomId } = useActiveRoom();
+  const { activeRoomId, setActiveRoomId, isMediaFullscreen } = useActiveRoom();
   const queryClient = useQueryClient();
   const { startNavigation: navigate } = useProgress();
   const { socket, isConnected, isConnecting, retryConnection } = useSocket();
@@ -106,7 +106,7 @@ export default function Messages() {
             }}
           />
         </div>
-        <div className="relative flex h-full w-screen flex-col max-sm:min-w-screen sm:w-3/4">
+        <div className={cn("relative flex h-full w-screen flex-col max-sm:min-w-screen sm:w-3/4", isMediaFullscreen && "z-[999999] max-sm:h-screen w-screen fixed inset-0")}>
           {!activeRoomId && (
             <div className="flex h-full select-none flex-col items-center justify-center px-4 text-center">
               <div className="text-muted-foreground/50">

@@ -140,7 +140,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const { socket, isConnected, retryConnection, getPendingMessages } =
     useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
-  const { isMediaFullscreen } = useActiveRoom(); // Récupérer état fullscreen
+  const { isMediaFullscreen } = useActiveRoom(); 
   const pathname = usePathname();
   const router = useRouter();
   const { startNavigation: navigate } = useProgress();

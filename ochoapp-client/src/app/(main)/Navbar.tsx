@@ -2,10 +2,13 @@ import AppLogo from "@/components/AppLogo";
 import SearchField from "@/components/SearchField";
 import UserButton from "@/components/UserButton";
 import OchoLink from "@/components/ui/OchoLink";
+import { useActiveRoom } from "@/context/ChatContext";
+import { cn } from "@/lib/utils";
 
 export default function Navbar() {
+  const {isMediaFullscreen} = useActiveRoom();
   return (
-    <header className="sticky top-0 z-10 bg-card shadow-sm">
+    <header className={cn("sticky top-0 z-10 bg-card shadow-sm", isMediaFullscreen && "hidden")}>
       <nav className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 px-5 py-3 max-sm:justify-between">
         <OchoLink
           href="/"

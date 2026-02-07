@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t } from "@/context/LanguageContext";
 import { CircleProgress } from "@/components/ui/CircleProgress";
+import { useActiveRoom } from "@/context/ChatContext";
 
 interface LocalAttachment {
   id: string; 
@@ -41,7 +42,7 @@ export function MessageFormComponent({
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { typeMessage } = t();
+  const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -112,7 +113,6 @@ export function MessageFormComponent({
         const apiServer = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_CHAT_SERVER_URL || serverUrl).replace(/\/$/, "");
         res = await kyInstance.post(`${apiServer}/api/cloudinary/proxy-upload-multipart`, {
           body: form,
-          timeout: 180000,
         }).json<{ success: boolean; attachmentId?: string; error?: string }>();
       
 
@@ -262,8 +262,9 @@ export function MessageFormComponent({
   return (
     <div
       className={cn(
-        "relative z-20 flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
+        "relative flex z-20 w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
         expanded ? "" : "aspect-square w-fit rounded-full p-0",
+        isMediaFullscreen && "hidden"
       )}
     >
       <input
@@ -368,7 +369,7 @@ export function MessageFormComponent({
           </div>
         )}
         <Textarea
-          placeholder={typeMessage}
+          placeholder={t("typeMessage")}
           className={cn(
             "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
             expanded ? "relative w-full" : "invisible absolute w-0",
