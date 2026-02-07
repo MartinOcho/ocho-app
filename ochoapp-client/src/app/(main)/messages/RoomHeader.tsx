@@ -904,19 +904,6 @@ export function MediaGalleryContainer({ roomId }: { roomId: string }) {
     enabled: !!roomId,
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
-  }
-
-  if (!messages || messages.length === 0) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">Aucun média</div>
-    );
-  }
-
-  return <MediaGallery messages={messages} />;
+  // Toujours rendre MediaGallery: il gère le skeleton via `isLoading`
+  return <MediaGallery messages={messages} isLoading={isLoading} />;
 }
