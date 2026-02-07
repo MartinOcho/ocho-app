@@ -60,12 +60,12 @@ export default function MediaGallery({
     );
   }
 
-  if (allAttachments.length === 0) {
+  if (!allAttachments?.length) {
     return null;
   }
 
   // Show grid of thumbnails (maximum 6 items)
-  const displayedAttachments = allAttachments.slice(0, 12);
+  const displayedAttachments = allAttachments?.slice(0, 12) || [];
 
   return (
     <>

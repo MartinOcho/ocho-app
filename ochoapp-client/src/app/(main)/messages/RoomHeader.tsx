@@ -35,7 +35,11 @@ import kyInstance from "@/lib/ky";
 import { Skeleton } from "@/components/ui/skeleton";
 import LoadingButton from "@/components/LoadingButton";
 import { useToast } from "@/components/ui/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import BanDialog from "@/components/messages/BanDialog";
 import MessageButton from "@/components/messages/MessageButton";
 import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
@@ -88,7 +92,31 @@ export default function RoomHeader({
     memberSince,
     thisAccountDeleted,
     messageYourself,
-  } = t(['group', 'groupChat', 'appUser', 'you', 'online', 'activeText', 'viewProfile', 'created', 'member', 'members', 'namesAndName', 'namesAndOthers', 'settings', 'addAMember', 'addMembers', 'addDescription', 'noDescription', 'joined', 'seeAllMore', 'hide', 'memberSince', 'thisAccountDeleted', 'messageYourself']);
+  } = t([
+    "group",
+    "groupChat",
+    "appUser",
+    "you",
+    "online",
+    "activeText",
+    "viewProfile",
+    "created",
+    "member",
+    "members",
+    "namesAndName",
+    "namesAndOthers",
+    "settings",
+    "addAMember",
+    "addMembers",
+    "addDescription",
+    "noDescription",
+    "joined",
+    "seeAllMore",
+    "hide",
+    "memberSince",
+    "thisAccountDeleted",
+    "messageYourself",
+  ]);
   const queryClient = useQueryClient();
   const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({
@@ -164,12 +192,12 @@ export default function RoomHeader({
     createdAt: new Date(0),
     _count: {
       followers: 0,
-      posts: 0
-    }
+      posts: 0,
+    },
   };
 
   const otherUser =
-    (room?.members?.length === 1) && isSaved
+    room?.members?.length === 1 && isSaved
       ? room?.members?.filter((member) => member.userId === loggedUser.id)?.[0]
           ?.user || emptyUser
       : room?.members?.filter((member) => member.userId !== loggedUser.id)?.[0]
@@ -217,11 +245,13 @@ export default function RoomHeader({
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
   // Get owner
-  const owner = [(room?.members || []).find((member) => member.type === "OWNER")].filter(
-    (member) => member?.userId !== loggedinMember?.userId,
-  );
+  const owner = [
+    (room?.members || []).find((member) => member.type === "OWNER"),
+  ].filter((member) => member?.userId !== loggedinMember?.userId);
   // Get members
-  const members = (room?.members || []).filter((member) => member.type !== "ADMIN");
+  const members = (room?.members || []).filter(
+    (member) => member.type !== "ADMIN",
+  );
 
   // Remove logged user from owner admins and members
   const filteredMembers = members.filter(
@@ -266,16 +296,18 @@ export default function RoomHeader({
   useEffect(() => {
     if (!socket) return;
     const handleUserOnline = (data: { userId: string }) => {
-      setOnlineUsers(prev => prev.includes(data.userId) ? prev : [...prev, data.userId]);
+      setOnlineUsers((prev) =>
+        prev.includes(data.userId) ? prev : [...prev, data.userId],
+      );
     };
     const handleUserOffline = (data: { userId: string }) => {
-      setOnlineUsers(prev => prev.filter(id => id !== data.userId));
+      setOnlineUsers((prev) => prev.filter((id) => id !== data.userId));
     };
-    socket.on('user_online', handleUserOnline);
-    socket.on('user_offline', handleUserOffline);
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
     return () => {
-      socket.off('user_online', handleUserOnline);
-      socket.off('user_offline', handleUserOffline);
+      socket.off("user_online", handleUserOnline);
+      socket.off("user_offline", handleUserOffline);
     };
   }, [socket]);
 
@@ -286,12 +318,17 @@ export default function RoomHeader({
     if (lastSeenTimeStamp && lastSeenTimeStamp < now) {
       return `${activeText}`;
     }
-    return `@${otherUser?.username || 'ochoapp-user'}`;
+    return `@${otherUser?.username || "ochoapp-user"}`;
   };
 
   return (
     <div
-      className={cn("z-50", active ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative flex-1")}
+      className={cn(
+        "z-50",
+        active
+          ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
+          : "relative flex-1",
+      )}
     >
       <div
         className={
@@ -337,18 +374,24 @@ export default function RoomHeader({
             {room.isGroup ? (
               <div>
                 <div className="text-xl font-bold">{chatName}</div>
-                <div className="text-muted-foreground text-sm">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
               </div>
             ) : (
               <div>
                 <div className="text-xl font-bold">{chatName}</div>
-                <div className="text-muted-foreground text-sm">{getStatusDisplay()}</div>
+                <div className="text-sm text-muted-foreground">
+                  {getStatusDisplay()}
+                </div>
               </div>
             )}
           </div>
         </div>
         {active && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex w-full flex-col gap-3 flex-1">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as any)}
+            className="flex w-full flex-1 flex-col gap-3"
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="info" className="flex items-center gap-2">
                 <Info size={16} />
@@ -360,166 +403,161 @@ export default function RoomHeader({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="info" className="flex flex-col gap-3 flex-1 overflow-y-auto">
-            <div className="flex w-full flex-1 flex-col gap-3">
-              {active && (
-                <div className="flex w-full justify-center">
-                  {room.isGroup ? (
-                    <div className="flex w-full justify-center gap-2">
-                      {loggedinMember?.type !== "OLD" && (
-                        <AddMemberDialog room={room} className="max-w-44 flex-1">
-                          <Button
-                            variant="outline"
-                            className="flex h-fit w-full flex-col gap-2"
+            <TabsContent
+              value="info"
+              className="flex flex-1 flex-col gap-3 overflow-y-auto"
+            >
+              <div className="flex w-full flex-1 flex-col gap-3">
+                {active && (
+                  <div className="flex w-full justify-center">
+                    {room.isGroup ? (
+                      <div className="flex w-full justify-center gap-2">
+                        {loggedinMember?.type !== "OLD" && (
+                          <AddMemberDialog
+                            room={room}
+                            className="max-w-44 flex-1"
                           >
-                            <UserRoundPlus size={35} />
-                            <span>
-                              {addAM} <span className="max-sm:hidden">{aMember}</span>
-                            </span>
-                          </Button>
-                        </AddMemberDialog>
-                      )}
-                      {(loggedinMember?.type === "ADMIN" ||
-                        loggedinMember?.type === "OWNER") && (
-                        <GroupChatSettingsDialog
-                          room={room}
-                          open={showDialog}
-                          onOpenChange={(open) => {
-                            setShowDialog(open);
-                            open === false && setDialogFocus(null);
-                          }}
-                          className="max-w-44 flex-1"
-                          focus={dialogFocus}
-                        >
-                          <Button
-                            variant="outline"
-                            className="flex h-fit w-full flex-col gap-2"
+                            <Button
+                              variant="outline"
+                              className="flex h-fit w-full flex-col gap-2"
+                            >
+                              <UserRoundPlus size={35} />
+                              <span>
+                                {addAM}{" "}
+                                <span className="max-sm:hidden">{aMember}</span>
+                              </span>
+                            </Button>
+                          </AddMemberDialog>
+                        )}
+                        {(loggedinMember?.type === "ADMIN" ||
+                          loggedinMember?.type === "OWNER") && (
+                          <GroupChatSettingsDialog
+                            room={room}
+                            open={showDialog}
+                            onOpenChange={(open) => {
+                              setShowDialog(open);
+                              open === false && setDialogFocus(null);
+                            }}
+                            className="max-w-44 flex-1"
+                            focus={dialogFocus}
                           >
-                            <Settings2 size={35} />
-                            <span>{settings}</span>
-                          </Button>
-                        </GroupChatSettingsDialog>
-                      )}
-                    </div>
-                  ) : (
-                    <OchoLink href={`/users/${otherUser?.username || "-"}`} className="text-inherit">
-                      <Button variant="outline" className="flex gap-1">
-                        <UserCircle2 /> {viewProfile}
-                      </Button>
-                    </OchoLink>
-                  )}
-                </div>
-              )}
-              <Linkify>
-                {room.isGroup ? (
-                  <>
-                    {room.description ? (
-                      <p className="whitespace-pre-line break-words py-2 px-4 text-center">
-                        {room.description}
-                      </p>
-                    ) : loggedinMember?.type === "ADMIN" ||
-                      loggedinMember?.type === "OWNER" ? (
-                      <div className="px-4 text-center">
-                        <Button
-                          variant="link"
-                          className="py-0"
-                          title={addDescription}
-                          onClick={() => {
-                            setDialogFocus("description");
-                            setShowDialog(true);
-                          }}
-                        >
-                          {addDescription}
-                        </Button>
+                            <Button
+                              variant="outline"
+                              className="flex h-fit w-full flex-col gap-2"
+                            >
+                              <Settings2 size={35} />
+                              <span>{settings}</span>
+                            </Button>
+                          </GroupChatSettingsDialog>
+                        )}
                       </div>
                     ) : (
-                      <p className="px-4 text-center text-muted-foreground">
-                        {noDescription}
-                      </p>
+                      <OchoLink
+                        href={`/users/${otherUser?.username || "-"}`}
+                        className="text-inherit"
+                      >
+                        <Button variant="outline" className="flex gap-1">
+                          <UserCircle2 /> {viewProfile}
+                        </Button>
+                      </OchoLink>
                     )}
-                  </>
-                ) : (
-                  !!otherUser?.bio && (
-                    <p className="whitespace-pre-line break-words py-2 px-4 text-center">
-                      {otherUser.bio}
-                    </p>
-                  )
+                  </div>
                 )}
-              </Linkify>
-              <div className="px-4 text-center text-sm text-muted-foreground">
-                {room.isGroup ? (
-                  <span>
-                    {created}{" "}
-                    <Time time={room.createdAt} relative={!isWeekAgo} long />
-                  </span>
-                ) : (
-                  <span>
-                    {otherUser?.id ? (
-                      <>
-                        {room.isGroup ? joined : memberSince}{" "}
-                        {!!otherUser?.createdAt && (
-                          <Time time={otherUser.createdAt} long />
-                        )}
-                      </>
-                    ) : (
-                      thisAccountDeleted
-                    )}
-                  </span>
-                )}
-              </div>
-              {room.isGroup && loggedinMember?.type !== "BANNED" && (
-                <ul className="flex w-full flex-col py-3">
-                  <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</li>
-                  {loggedinMember?.type !== "OLD" && (
-                    <AddMemberDialog room={room}>
-                      <li className="cursor-pointer p-4 active:bg-muted/30">
-                        <div className="flex items-center space-x-2">
-                          <div
-                            className={`relative flex aspect-square h-fit min-h-[35px] w-fit min-w-fit items-center justify-center overflow-hidden rounded-full bg-primary`}
+                <Linkify>
+                  {room.isGroup ? (
+                    <>
+                      {room.description ? (
+                        <p className="whitespace-pre-line break-words px-4 py-2 text-center">
+                          {room.description}
+                        </p>
+                      ) : loggedinMember?.type === "ADMIN" ||
+                        loggedinMember?.type === "OWNER" ? (
+                        <div className="px-4 text-center">
+                          <Button
+                            variant="link"
+                            className="py-0"
+                            title={addDescription}
+                            onClick={() => {
+                              setDialogFocus("description");
+                              setShowDialog(true);
+                            }}
                           >
-                            <UserRoundPlus
-                              className="absolute flex items-center justify-center text-primary-foreground"
-                              size={35 - 16}
-                            />
-                          </div>
-                          <p>{addMembers}</p>
+                            {addDescription}
+                          </Button>
                         </div>
-                      </li>
-                    </AddMemberDialog>
+                      ) : (
+                        <p className="px-4 text-center text-muted-foreground">
+                          {noDescription}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    !!otherUser?.bio && (
+                      <p className="whitespace-pre-line break-words px-4 py-2 text-center">
+                        {otherUser.bio}
+                      </p>
+                    )
                   )}
+                </Linkify>
+                <div className="px-4 text-center text-sm text-muted-foreground">
+                  {room.isGroup ? (
+                    <span>
+                      {created}{" "}
+                      <Time time={room.createdAt} relative={!isWeekAgo} long />
+                    </span>
+                  ) : (
+                    <span>
+                      {otherUser?.id ? (
+                        <>
+                          {room.isGroup ? joined : memberSince}{" "}
+                          {!!otherUser?.createdAt && (
+                            <Time time={otherUser.createdAt} long />
+                          )}
+                        </>
+                      ) : (
+                        thisAccountDeleted
+                      )}
+                    </span>
+                  )}
+                </div>
+                {room.isGroup && loggedinMember?.type !== "BANNED" && (
+                  <ul className="flex w-full flex-col py-3">
+                    <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</li>
+                    {loggedinMember?.type !== "OLD" && (
+                      <AddMemberDialog room={room}>
+                        <li className="cursor-pointer p-4 active:bg-muted/30">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`relative flex aspect-square h-fit min-h-[35px] w-fit min-w-fit items-center justify-center overflow-hidden rounded-full bg-primary`}
+                            >
+                              <UserRoundPlus
+                                className="absolute flex items-center justify-center text-primary-foreground"
+                                size={35 - 16}
+                              />
+                            </div>
+                            <p>{addMembers}</p>
+                          </div>
+                        </li>
+                      </AddMemberDialog>
+                    )}
 
-                  {firstPage.map((member, key) => {
-                    if (!member?.user) return null;
-                    const user: UserData = member.user;
-                    return (
-                      <GroupUserPopover
-                        key={key}
-                        user={user}
-                        type={member.type}
-                        room={room}
-                      />
-                    );
-                  })}
+                    {firstPage.map((member, key) => {
+                      if (!member?.user) return null;
+                      const user: UserData = member.user;
+                      return (
+                        <GroupUserPopover
+                          key={key}
+                          user={user}
+                          type={member.type}
+                          room={room}
+                        />
+                      );
+                    })}
 
-                  <>
-                    {!!lastPage.length &&
-                      expandMembers &&
-                      lastPage.map((member, key) => {
-                        if (!member?.user) return null;
-                        const user: UserData = member.user;
-                        return (
-                          <GroupUserPopover
-                            key={key}
-                            user={user}
-                            type={member.type}
-                            room={room}
-                          />
-                        );
-                      })}
-                    {loggedinMember?.type !== "OLD" && !!oldMembers.length && (
-                      <>
-                        <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`Anciens membres (${oldMembers.length})`}</li>
-                        {oldMembers.map((member, key) => {
+                    <>
+                      {!!lastPage.length &&
+                        expandMembers &&
+                        lastPage.map((member, key) => {
                           if (!member?.user) return null;
                           const user: UserData = member.user;
                           return (
@@ -531,61 +569,80 @@ export default function RoomHeader({
                             />
                           );
                         })}
-                      </>
+                      {loggedinMember?.type !== "OLD" &&
+                        !!oldMembers.length && (
+                          <>
+                            <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`Anciens membres (${oldMembers.length})`}</li>
+                            {oldMembers.map((member, key) => {
+                              if (!member?.user) return null;
+                              const user: UserData = member.user;
+                              return (
+                                <GroupUserPopover
+                                  key={key}
+                                  user={user}
+                                  type={member.type}
+                                  room={room}
+                                />
+                              );
+                            })}
+                          </>
+                        )}
+                      {(loggedinMember?.type === "ADMIN" ||
+                        loggedinMember?.type === "OWNER") &&
+                        !!bannedMembers.length && (
+                          <>
+                            <li className="select-none px-4 text-xs font-bold text-destructive">{`Membres suspendus (${bannedMembers.length})`}</li>
+                            {bannedMembers.map((member, key) => {
+                              if (!member?.user) return null;
+                              const user: UserData = member.user;
+                              return (
+                                <GroupUserPopover
+                                  key={key}
+                                  user={user}
+                                  type={member.type}
+                                  room={room}
+                                />
+                              );
+                            })}
+                          </>
+                        )}
+                    </>
+
+                    {!!lastPage.length && !expandMembers && (
+                      <li
+                        className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
+                        onClick={() => setExpandMembers(true)}
+                      >
+                        {seeAllMore.replace("[len]", `${lastPage.length}`)}
+                      </li>
                     )}
-                    {(loggedinMember?.type === "ADMIN" ||
-                      loggedinMember?.type === "OWNER") &&
-                      !!bannedMembers.length && (
-                        <>
-                          <li className="select-none px-4 text-xs font-bold text-destructive">{`Membres suspendus (${bannedMembers.length})`}</li>
-                          {bannedMembers.map((member, key) => {
-                            if (!member?.user) return null;
-                            const user: UserData = member.user;
-                            return (
-                              <GroupUserPopover
-                                key={key}
-                                user={user}
-                                type={member.type}
-                                room={room}
-                              />
-                            );
-                          })}
-                        </>
-                      )}
-                  </>
 
-                  {!!lastPage.length && !expandMembers && (
-                    <li
-                      className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
-                      onClick={() => setExpandMembers(true)}
-                    >
-                      {seeAllMore.replace("[len]", `${lastPage.length}`)}
-                    </li>
-                  )}
-
-                  {expandMembers && (
-                    <li
-                      className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
-                      onClick={() => setExpandMembers(false)}
-                    >
-                      {hide}
-                    </li>
-                  )}
-                </ul>
-              )}
-              {room.isGroup &&
-                loggedinMember?.type !== "OLD" &&
-                loggedinMember?.type !== "BANNED" && (
-                  <ul className="flex w-full select-none flex-col py-3">
-                    <li className="cursor-pointer p-4 text-red-500 active:bg-muted/30">
-                      <LeaveGroupDialog room={room} onDelete={onDelete} />
-                    </li>
+                    {expandMembers && (
+                      <li
+                        className="flex cursor-pointer px-4 py-2 text-primary hover:underline max-sm:justify-center"
+                        onClick={() => setExpandMembers(false)}
+                      >
+                        {hide}
+                      </li>
+                    )}
                   </ul>
                 )}
-            </div>
+                {room.isGroup &&
+                  loggedinMember?.type !== "OLD" &&
+                  loggedinMember?.type !== "BANNED" && (
+                    <ul className="flex w-full select-none flex-col py-3">
+                      <li className="cursor-pointer p-4 text-red-500 active:bg-muted/30">
+                        <LeaveGroupDialog room={room} onDelete={onDelete} />
+                      </li>
+                    </ul>
+                  )}
+              </div>
             </TabsContent>
 
-            <TabsContent value="media" className="flex flex-col gap-3 flex-1 overflow-y-auto">
+            <TabsContent
+              value="media"
+              className="flex flex-1 flex-col gap-3 overflow-y-auto"
+            >
               {roomId && <MediaGalleryContainer roomId={roomId} />}
             </TabsContent>
           </Tabs>
@@ -601,11 +658,7 @@ interface AdminButtonProps {
   room: RoomData;
 }
 
-export function AdminButton({
-  member,
-  type,
-  room,
-}: AdminButtonProps) {
+export function AdminButton({ member, type, room }: AdminButtonProps) {
   const [currentType, setCurrentType] = useState<string>(type);
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
@@ -629,24 +682,24 @@ export function AdminButton({
     (loggedMember?.type === "ADMIN" || loggedMember?.type === "OWNER");
 
   function handleSubmit() {
-    if(!socket) return;
+    if (!socket) return;
     const initialType = currentType;
     setLoading(true);
 
     socket.emit("group_add_admin", { roomId, member }, (res: any) => {
-        setLoading(false);
-        if(res.success) {
-            // Le serveur renvoie le nouveau membre mis à jour
-             const newType = res.data.newRoomMember.type;
-             if(newType !== initialType) {
-                 setCurrentType(newType);
-                 const queryKey = ["chat", roomId];
-                 queryClient.invalidateQueries({ queryKey });
-             }
-        } else {
-            setCurrentType(initialType);
-            console.error(res.error);
+      setLoading(false);
+      if (res.success) {
+        // Le serveur renvoie le nouveau membre mis à jour
+        const newType = res.data.newRoomMember.type;
+        if (newType !== initialType) {
+          setCurrentType(newType);
+          const queryKey = ["chat", roomId];
+          queryClient.invalidateQueries({ queryKey });
         }
+      } else {
+        setCurrentType(initialType);
+        console.error(res.error);
+      }
     });
   }
   return (
@@ -696,23 +749,23 @@ export function RestoreMemberButton({
   const member = room?.members?.find((member) => member.userId === memberId);
 
   function handleSubmit() {
-    if(!socket) return;
+    if (!socket) return;
     setLoading(true);
-    
-    socket.emit("group_restore_member", { roomId, memberId }, (res: any) => {
-        setLoading(false);
-        if(res.success) {
-            const queryKey = ["chat", roomId];
-            queryClient.invalidateQueries({ queryKey });
 
-            toast({
-              description: groupRestoreSuccess
-              .replace("[name]", member?.user?.displayName || "un utilisateur")
-              .replace("[group]", room.name || "ce groupe"),
-            });
-        } else {
-            console.error(res.error);
-        }
+    socket.emit("group_restore_member", { roomId, memberId }, (res: any) => {
+      setLoading(false);
+      if (res.success) {
+        const queryKey = ["chat", roomId];
+        queryClient.invalidateQueries({ queryKey });
+
+        toast({
+          description: groupRestoreSuccess
+            .replace("[name]", member?.user?.displayName || "un utilisateur")
+            .replace("[group]", room.name || "ce groupe"),
+        });
+      } else {
+        console.error(res.error);
+      }
     });
   }
   return (
@@ -764,7 +817,6 @@ export function GroupUserPopover({
   ) : null;
 
   console.log("verifiedCheck:", verifiedCheck);
-  
 
   //  get the loggedin user values in members
   const loggedMember = members.find(
@@ -781,7 +833,11 @@ export function GroupUserPopover({
         {children ?? (
           <li className="cursor-pointer px-4 py-2 active:bg-muted/30">
             <div className="flex items-center space-x-2">
-              <UserAvatar userId={user?.id} avatarUrl={user?.avatarUrl} size={35} />
+              <UserAvatar
+                userId={user?.id}
+                avatarUrl={user?.avatarUrl}
+                size={35}
+              />
               <div className="flex-1 select-none">
                 <p className={cn(isVerified && "flex items-center gap-1")}>
                   {user.id === loggedInUser?.id ? you : user?.displayName}
@@ -808,10 +864,17 @@ export function GroupUserPopover({
             >
               <div className={`flex items-center justify-center gap-2`}>
                 <OchoLink href={`/users/${user.username}`}>
-                  <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={70} />
+                  <UserAvatar
+                    userId={user.id}
+                    avatarUrl={user.avatarUrl}
+                    size={70}
+                  />
                 </OchoLink>
               </div>
-              <OchoLink href={`/users/${user.username}`} className="text-inherit">
+              <OchoLink
+                href={`/users/${user.username}`}
+                className="text-inherit"
+              >
                 <div
                   className={cn(
                     "text-lg font-semibold hover:underline",
@@ -858,11 +921,7 @@ export function GroupUserPopover({
               <>
                 {isLoggedAdmin && type !== "OWNER" && (
                   <>
-                    <AdminButton
-                      type={type}
-                      room={room}
-                      member={user.id}
-                    />
+                    <AdminButton type={type} room={room} member={user.id} />
                     <RemoveMemberDialog memberId={user.id} room={room} />
                     <BanDialog memberId={user.id} room={room} />
                   </>

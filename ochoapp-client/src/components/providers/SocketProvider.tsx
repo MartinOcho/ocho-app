@@ -156,22 +156,6 @@ export default function SocketProvider({
 
     setIsConnecting(true);
     setShowStatus(true);
-
-    // 3. Initialisation du Socket
-    console.log("🔄 Initialisation d'une nouvelle connexion Socket...");
-    !isServerTriggered &&
-      kyInstance
-        .post(
-          (process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"),
-        )
-        .json<{ message: string }>()
-        .then((res) => console.log(res.message))
-        .catch((err) => {
-          // the server is triggered and wil start in a moment
-          console.log(err);
-          console.log("The server is triggered and wil start in a moment");
-        })
-        .finally(() => setIsServerTriggered(true));
     const socketInstance = io(
       process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000",
       {
