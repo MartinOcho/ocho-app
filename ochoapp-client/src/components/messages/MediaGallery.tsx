@@ -22,22 +22,26 @@ export default function MediaGallery({
 
   // Extract all attachments from messages in reverse order (newest first)
   const allAttachments = useMemo(() => {
-    if (!messages || messages.length === 0) return [];
-    
-    const attachments: (typeof messages[0]["attachments"][0] & { messageId: string })[] = [];
-    
+    if (!Array.isArray(messages) || messages.length === 0) return [];
+
+    const attachments: (MessageAttachment & { messageId: string })[] = [];
+
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
-      if (msg.attachments && msg.attachments.length > 0) {
-        msg.attachments.forEach((att) => {
-          attachments.push({
-            ...att,
-            messageId: msg.id,
-          });
+      if (!msg) continue;
+      const atts = Array.isArray(msg.attachments) ? msg.attachments : [];
+      if (atts.length > 0) {
+        atts.forEach((att) => {
+          if (att) {
+            attachments.push({
+              ...att,
+              messageId: msg.id,
+            });
+          }
         });
       }
     }
-    
+
     return attachments;
   }, [messages]);
 
