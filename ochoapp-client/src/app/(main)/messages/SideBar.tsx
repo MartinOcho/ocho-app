@@ -58,14 +58,7 @@ export default function SideBar({
     dataError,
     search,
     noMessageFoundFor,
-  } = t([
-    "chats",
-    "startNewChat",
-    "noChat",
-    "dataError",
-    "search",
-    "noMessageFoundFor",
-  ]);
+  } = t();
 
   // --- SOCKET & STATE ---
   const { socket, isConnected, retryConnection } = useSocket();

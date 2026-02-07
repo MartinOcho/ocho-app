@@ -36,18 +36,7 @@ export default function PasswordDialog() {
     fetchHasPassword();
   }, []);
 
-  const lang = t([
-    'currentPassword',
-    'newPassword',
-    'confirmPassword',
-    'changePassword',
-    'passwordRequirements',
-    'passwordChanged',
-    'passwordChangeError',
-    'passwordMismatch',
-    'passwordTooWeak',
-    'enterCurrentPassword'
-  ]);
+  const lang = t();
 
 
   const handleSubmit = async (e: React.FormEvent) => {

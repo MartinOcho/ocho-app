@@ -11,14 +11,7 @@ export default function ExportDataDialog() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const lang = t([
-    'exportDataTitle',
-    'exportDataDescription',
-    'exportDataWarning',
-    'exportDataSuccess',
-    'exportDataError',
-    'exportData'
-  ]);
+  const lang = t();
 
   const handleExport = async () => {
     setIsLoading(true);

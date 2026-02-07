@@ -27,7 +27,7 @@ export default function SignUpForm() {
     emailAdress,
     exampleMail,
     createAccount,
-  } = t(['username', 'yourUsername', 'password', 'createPassword', 'emailAdress', 'exampleMail', 'createAccount']);
+  } = t();
 
   const [error, setError] = useState<string>();
 

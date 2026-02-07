@@ -11,6 +11,7 @@ import { NavigationProvider } from "@/context/NavigationContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ProgressProvider } from "@/context/ProgressContext";
 import SocketProvider from "@/components/providers/SocketProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 export default async function Layout({
   children,
@@ -34,6 +35,7 @@ export default async function Layout({
       {/* Le SocketProvider enveloppe les enfants pour activer le temps réel partout */}
       <LanguageProvider>
         <SocketProvider>
+        <Toaster/>
             <NavigationProvider>
               <MenuBarProvider>
                 <SearchProvider>

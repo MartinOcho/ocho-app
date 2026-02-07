@@ -16,17 +16,7 @@ export default function DisableAccountDialog() {
 
   const queryClient = useQueryClient();
 
-  const lang = t([
-    'disableMyAccount',
-    'password',
-    'disable',
-    'cancel',
-    'disabling',
-    'accountDisabled',
-    'accountDisableError',
-    'passwordRequired',
-    'disableAccountWarning',
-  ]);
+  const lang = t();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

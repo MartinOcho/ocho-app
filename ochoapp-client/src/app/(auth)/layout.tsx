@@ -2,6 +2,8 @@ import { validateRequest } from "@/auth";
 import { redirect } from "next/navigation";
 import { EmptySession } from "../(main)/SessionProvider";
 import { ProgressProvider } from "@/context/ProgressContext";
+import { Toaster } from "@/components/ui/toaster";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export default async function Layout({
   children,
@@ -14,6 +16,8 @@ export default async function Layout({
   return (
     <ProgressProvider>
       <EmptySession>
+        <LanguageProvider>
+      <Toaster/>
         <main className="flex h-screen max-h-vh items-center justify-center p-5">
           <div className="flex flex-col items-center justify-between gap-5 h-full">
             {children}
@@ -22,6 +26,8 @@ export default async function Layout({
             </div>
           </div>
         </main>
+
+        </LanguageProvider>
       </EmptySession>
     </ProgressProvider>
   );

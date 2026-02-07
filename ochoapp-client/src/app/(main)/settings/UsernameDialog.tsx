@@ -15,16 +15,7 @@ export default function UsernameDialog() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const lang = t([
-    'currentUsername',
-    'newUsername',
-    'changeUsername',
-    'usernameRequirements',
-    'usernameChanged',
-    'usernameChangeError',
-    'usernameTaken',
-    'usernameTooFrequent'
-  ]);
+  const lang = t();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

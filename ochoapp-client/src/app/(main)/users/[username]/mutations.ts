@@ -80,10 +80,7 @@ export function useUpdateProfileMutation() {
   const { startUpload: startAvatarUpload } =
     useUploadThing("avatar");
 
-  const { profileUpdated, profileUpdateError } = t([
-    "profileUpdated",
-    "profileUpdateError",
-  ]);
+  const { profileUpdated, profileUpdateError } = t();
 
   async function upload(file: File) {
     // const uploadResult = null;
@@ -329,10 +326,7 @@ export function useUpdateGroupChatMutation({
 export function useDeleteGroupChatAvatarMutation() {
   const { toast } = useToast();
   const { user } = useSession();
-  const { groupIconDeleted, groupIconDeleteError } = t([
-    "groupIconDeleted",
-    "groupIconDeleteError",
-  ]);
+  const { groupIconDeleted, groupIconDeleteError } = t();
 
   const { startNavigation: navigate } = useProgress();
   const queryClient = useQueryClient();

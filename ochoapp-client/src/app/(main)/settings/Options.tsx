@@ -75,27 +75,7 @@ export default function Options({
     postPrivacy,
     messagePrivacy,
     onlineStatusVisibility,
-  } = t([
-    "account",
-    "privacy",
-    "display",
-    "language",
-    "logout",
-    "birthday",
-    "password",
-    "username",
-    "exportMyData",
-    "disableMyAccount",
-    "deleteMyAccount",
-    "onlineStatus",
-    "system",
-    "light",
-    "dark",
-    "profileVisibility",
-    "postPrivacy",
-    "messagePrivacy",
-    "onlineStatusVisibility",
-  ]);
+  } = t();
 
   const queryClient = useQueryClient();
 

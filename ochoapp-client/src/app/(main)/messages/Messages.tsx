@@ -25,10 +25,7 @@ export default function Messages() {
   const queryClient = useQueryClient();
   const { startNavigation: navigate } = useProgress();
   const { socket, isConnected, isConnecting, retryConnection } = useSocket();
-  const { messagesOnApp, selectChatToStart } = t([
-    "messagesOnApp",
-    "selectChatToStart",
-  ]);
+  const { messagesOnApp, selectChatToStart } = t();
 
   if (!user) {
     return null;

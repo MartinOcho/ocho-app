@@ -7,10 +7,7 @@ export function useUpdateUserMutation() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { userUpdated, unableToUpdateUser } = t([
-    "userUpdated",
-    "unableToUpdateUser",
-  ]);
+  const { userUpdated, unableToUpdateUser } = t();
 
   const mutation = useMutation({
     mutationFn: updateUser,

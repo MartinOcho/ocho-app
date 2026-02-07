@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/context/LanguageContext";
-import kyInstance from "@/lib/ky";
 import { cn } from "@/lib/utils";
 import { MessageCircleMore } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
@@ -20,9 +19,7 @@ export default function MessagesButton({
   const isMessagesPage = pathname.startsWith("/messages");
   
   // Récupérer le compte non-lu des messages via socket
-  const { messagesUnread } = useSocket();
-
-  const { messages } = t(['messages']);
+  const { messagesUnread } = useSocket();;
 
   const unreadCount = typeof messagesUnread === "number" ? messagesUnread : 0;
 
@@ -33,7 +30,7 @@ export default function MessagesButton({
         "flex items-center justify-start max-sm:h-fit max-sm:flex-1 max-sm:p-1.5 sm:gap-3",
         className,
       )}
-      title={messages}
+      title={t("messages")}
       asChild
     >
       <OchoLink
@@ -48,8 +45,8 @@ export default function MessagesButton({
             </span>
           )}
         </div>
-        <span className="text-[0.65rem] max-sm:font-normal sm:hidden">{messages}</span>
-        <span className={cn("max-lg:hidden", isMessagesPage && "hidden")}>{messages}</span>
+        <span className="text-[0.65rem] max-sm:font-normal sm:hidden">{t("messages")}</span>
+        <span className={cn("max-lg:hidden", isMessagesPage && "hidden")}>{t("messages")}</span>
       </OchoLink>
     </Button>
   );

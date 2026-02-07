@@ -52,15 +52,7 @@ export default function EditProfileDialog({
     bio,
     tellUsAboutYou,
     save,
-  } = t([
-    "editProfile",
-    "profilePicture",
-    "fullName",
-    "yourFullName",
-    "bio",
-    "tellUsAboutYou",
-    "save",
-  ]);
+  } = t();
   const form = useForm<UpdateUserProfileValues>({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {

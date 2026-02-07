@@ -98,31 +98,7 @@ export default function RoomHeader({
     memberSince,
     thisAccountDeleted,
     messageYourself,
-  } = t([
-    "group",
-    "groupChat",
-    "appUser",
-    "you",
-    "online",
-    "activeText",
-    "viewProfile",
-    "created",
-    "member",
-    "members",
-    "namesAndName",
-    "namesAndOthers",
-    "settings",
-    "addAMember",
-    "addMembers",
-    "addDescription",
-    "noDescription",
-    "joined",
-    "seeAllMore",
-    "hide",
-    "memberSince",
-    "thisAccountDeleted",
-    "messageYourself",
-  ]);
+  } = t();
   const queryClient = useQueryClient();
   const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({

@@ -16,16 +16,7 @@ export default function OnlineStatusVisibilityDialog() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const lang = t([
-    "onlineStatusVisibility",
-    "public",
-    "private",
-    "followers",
-    "everyone",
-    "noOne",
-    "save",
-    "somethingWentWrong"
-  ]);
+  const lang = t();
 
   const options: { value: PrivacyValue; label: string; description: string }[] = [
     { value: "PUBLIC", label: lang.everyone, description: "Anyone on the platform can see when you're online" },

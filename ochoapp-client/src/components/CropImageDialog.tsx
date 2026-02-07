@@ -25,11 +25,7 @@ export default function CropImageDialog({
   onClose,
 }: CropImageDialogProps) {
   const cropperRef = useRef<ReactCropperElement>(null);
-  const { crop: cropText, cropImage, cancel } = t([
-    "crop",
-    "cropImage",
-    "cancel",
-  ]);
+  const { crop: cropText, cropImage, cancel } = t();
 
   function crop() {
     const cropper = cropperRef.current?.cropper;

@@ -16,17 +16,7 @@ export default function DeleteAccountDialog() {
 
   const queryClient = useQueryClient();
 
-  const lang = t([
-    'deleteMyAccount',
-    'password',
-    'delete',
-    'cancel',
-    'deleting',
-    'accountDeleted',
-    'accountDeleteError',
-    'passwordRequired',
-    'deleteAccountWarning',
-  ]);
+  const lang = t();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

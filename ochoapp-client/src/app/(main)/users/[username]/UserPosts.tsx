@@ -17,10 +17,7 @@ interface UserPostsProps {
 
 export default function UserPosts({ userId, name }: UserPostsProps) {
 
-  const { noPostOnProfile, dataError } = t([
-    "noPostOnFollowing",
-    "dataError",
-  ]);
+  const { noPostOnProfile, dataError } = t();
 
   const {
     data,

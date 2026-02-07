@@ -30,7 +30,7 @@ function getDaysInMonth(month: number, year: number) {
 
 export default function BirthdayDialog() {
   const { user } = useSession();
-  const lang = t(['noBirthdate', 'day', 'year', 'updateBirthdate', 'mustBeAtLeast13', 'month']);
+  const lang = t();
   const updateUserMutation = useUpdateUserMutation();
 
   const today = new Date();
@@ -207,7 +207,7 @@ interface MonthSelectProps {
 }
 
 function MonthSelect({ currentMonth, onMonthSelect }: MonthSelectProps) {
-  const lang = t(['month']);
+
 
   const getLabels = (month: number) =>
     new Date(0, month).toLocaleString("default", { month: "long" });
@@ -225,7 +225,7 @@ function MonthSelect({ currentMonth, onMonthSelect }: MonthSelectProps) {
         value={`${currentMonth}`}
       >
         <SelectTrigger>
-          <SelectValue placeholder={lang.month} />
+          <SelectValue placeholder={t("month")} />
         </SelectTrigger>
         <SelectContent>{months}</SelectContent>
       </Select>

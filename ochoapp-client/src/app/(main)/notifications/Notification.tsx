@@ -22,7 +22,7 @@ export default function Notification({ notification }: NotificationProps) {
     commentPrev,
     onYourPost,
     onYourComment,
-  } = t(['followedYou', 'likedYourPost', 'likedYourComment', 'taggedYou', 'commented', 'replied', 'commentPrev', 'onYourPost', 'onYourComment']);
+  } = t();
   const notificationTypeMap: Record<
     NotificationType,
     {

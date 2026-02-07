@@ -31,7 +31,7 @@ export default function SearchResults({
   filter: initialFilter = "posts",
 }: SearchResultsProps) {
   const { startNavigation: navigate } = useProgress();
-  const { posts: postsText, noSearchResultFor, tryNewSearch, dataError, users, verifiedUsers, friends, followers, followings } = t(['posts', 'noSearchResultFor', 'tryNewSearch', 'dataError', 'users', 'verifiedUsers', 'friends', 'followers', 'followings']);
+  const { posts: postsText, noSearchResultFor, tryNewSearch, dataError, users, verifiedUsers, friends, followers, followings } = t();
   const { user: loggedInUser } = useSession();
   const [filter, setFilter] = useState<SearchFilter>(initialFilter);
 

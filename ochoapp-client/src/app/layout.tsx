@@ -39,9 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning={true}>
+    <html suppressHydrationWarning={true}>
       <body className={`${geistSans.variable} ${geistMono.variable} ${emojiFont.variable}`}>
-        <Toaster/>
         <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)}/>
         <ReactQueryProvider>
           <ThemeProvider

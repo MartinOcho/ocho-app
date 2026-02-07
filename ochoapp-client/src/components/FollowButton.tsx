@@ -28,14 +28,7 @@ export default function FollowButton({
     following,
     followBack,
     unFollow,
-  } = t([
-    "somethingWentWrong",
-    "friend",
-    "follow",
-    "following",
-    "followBack",
-    "unFollow",
-  ]);
+  } = t();
 
   const queryClient = useQueryClient();
 

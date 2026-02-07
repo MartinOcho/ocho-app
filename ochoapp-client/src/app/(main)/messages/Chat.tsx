@@ -930,7 +930,6 @@ export function MessageForm({
   onTypingStart,
   onTypingStop,
 }: MessageFormProps) {
-  const { typeMessage } = t(["typeMessage"]);
   const [input, setInput] = useState("");
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -984,7 +983,7 @@ export function MessageForm({
       )}
     >
       <Textarea
-        placeholder={typeMessage}
+        placeholder={t("typeMessage")}
         className={cn(
           "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
           expanded ? "relative w-full" : "invisible absolute w-0",

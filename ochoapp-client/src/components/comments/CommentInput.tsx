@@ -22,10 +22,7 @@ export default function CommentInput({ post }: CommentInput) {
   const {
     invalidInput,
     commentAs
-  } = t([
-    "invalidInput",
-    "commentAs"
-  ]);
+  } = t();
 
   const {startNavigation: navigate} = useProgress();
 

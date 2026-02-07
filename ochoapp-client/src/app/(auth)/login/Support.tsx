@@ -9,7 +9,6 @@ export default function Support() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const [isSameOrigin, setIsSameOrigin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { unsupportedEnv } = t(['unsupportedEnv']);
 
   useEffect(() => {
     setIsLoading(false);
@@ -27,7 +26,7 @@ export default function Support() {
       </div>
       {!isLoading && !isSameOrigin && (
         <span className="text-center text-sm italic text-destructive">
-          {unsupportedEnv}
+          {t("unsupportedEnv")}
         </span>
       )}
     </div>
