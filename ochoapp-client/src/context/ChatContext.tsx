@@ -6,6 +6,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 interface ChatContextType {
   activeRoomId: string | null;
   setActiveRoomId: (id: string | null) => void;
+  isMediaFullscreen: boolean;
+  setIsMediaFullscreen: (fullscreen: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(
@@ -35,6 +37,7 @@ export const ChatProvider = ({
     }
     return null;
   });
+  const [isMediaFullscreen, setIsMediaFullscreen] = useState(false);
 
   useEffect(() => {
     // Mettre à jour sessionStorage lorsque activeRoomId change
@@ -44,7 +47,7 @@ export const ChatProvider = ({
   }, [activeRoomId, userId]);
 
   return (
-    <ChatContext.Provider value={{ activeRoomId, setActiveRoomId }}>
+    <ChatContext.Provider value={{ activeRoomId, setActiveRoomId, isMediaFullscreen, setIsMediaFullscreen }}>
       {children}
     </ChatContext.Provider>
   );

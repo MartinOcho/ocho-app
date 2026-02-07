@@ -23,7 +23,7 @@ interface LocalAttachment {
 interface MessageFormComponentProps {
   expanded: boolean;
   onExpanded: (expanded: boolean) => void;
-  onSubmit: (content: string, attachmentIds?: string[]) => void;
+  onSubmit: (content: string, attachmentIds?: string[], attachments?: LocalAttachment[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   canAttach?: boolean;
@@ -62,11 +62,10 @@ export function MessageFormComponent({
       onExpanded(true);
     } else if (canSend()) {
       // Filter to only include uploaded attachments with IDs
-      const uploadedAttachmentIds = attachments
-        .filter((a) => !a.isUploading && a.attachmentId)
-        .map((a) => a.attachmentId!);
+      const uploadedAttachments = attachments.filter((a) => !a.isUploading && a.attachmentId);
+      const uploadedAttachmentIds = uploadedAttachments.map((a) => a.attachmentId!);
 
-      onSubmit(input, uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined);
+      onSubmit(input, uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined, uploadedAttachments.length > 0 ? uploadedAttachments : undefined);
       setInput("");
       setAttachments([]);
       onTypingStop?.();
@@ -103,9 +102,25 @@ export function MessageFormComponent({
     }, 100);
 
     try {
-      const res = await kyInstance
-        .post("/api/cloudinary/upload", { json: { file: dataUrl } })
-        .json<{ success: boolean; attachmentId?: string; error?: string }>();
+      // Si le fichier est volumineux, diriger vers le serveur backend (proxy) pour contourner les limites Vercel
+      const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5MB
+      const serverUrl = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_SERVER_URL) || "http://localhost:5000";
+
+      let res;
+      if (file.size > LARGE_FILE_THRESHOLD) {
+        // Envoi multipart/form-data vers le serveur Express qui fait le upload vers Cloudinary
+        const form = new FormData();
+        form.append("file", file);
+        // essayer d'utiliser NEXT_PUBLIC_API_SERVER sinon NEXT_PUBLIC_CHAT_SERVER_URL
+        const apiServer = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_CHAT_SERVER_URL || serverUrl).replace(/\/$/, "");
+        res = await kyInstance.post(`${apiServer}/api/cloudinary/proxy-upload-multipart`, {
+          body: form,
+          timeout: 180000,
+        }).json<{ success: boolean; attachmentId?: string; error?: string }>();
+      } else {
+        // Petit fichier : utiliser l'API Next.js interne
+        res = await kyInstance.post("/api/cloudinary/upload", { json: { file: dataUrl }, timeout: 120000 }).json<{ success: boolean; attachmentId?: string; error?: string }>();
+      }
 
       clearInterval(progressInterval);
       onProgress?.(100);

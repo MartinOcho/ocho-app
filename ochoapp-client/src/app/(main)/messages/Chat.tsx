@@ -11,6 +11,7 @@ import {
   RoomData,
   MessagesSection,
   MessageData,
+  MessageAttachment,
 } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
@@ -57,6 +58,8 @@ import {
   UnspecifiedIcon,
 } from "./FooterStates";
 import MediaGallery from "@/components/messages/MediaGallery";
+import MediaStrip from "@/components/messages/MediaStrip";
+import { useActiveRoom } from "@/context/ChatContext";
 
 interface ChatProps {
   roomId: string | null;
@@ -71,6 +74,7 @@ interface SentMessageState {
   recipientId?: string;
   type: MessageType;
   status: "sending" | "error";
+  attachmentIds?: string[];
 }
 
 // --- FONCTION UTILITAIRE DE CLUSTERING AVANCÉE ---
@@ -136,6 +140,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const { socket, isConnected, retryConnection, getPendingMessages } =
     useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
+  const { isMediaFullscreen } = useActiveRoom(); // Récupérer état fullscreen
   const pathname = usePathname();
   const router = useRouter();
   const { startNavigation: navigate } = useProgress();
@@ -154,6 +159,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   // État pour gérer les messages en cours d'envoi (Optimistic UI géré manuellement)
   const [sentMessages, setSentMessages] = useState<SentMessageState[]>([]);
   const [newMessages, setNewMessages] = useState<MessageData[]>([]);
+  const [tempAttachments, setTempAttachments] = useState<Record<string, MessageAttachment[]>>({});
 
   const { unableToLoadChat, noMessage, dataError, search } = t();
   const queryClient = useQueryClient();
@@ -509,7 +515,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     const tempId = Math.random().toString(36).slice(2);
 
     // Only add to sentMessages if there's content (attachments-only messages go directly via socket)
-    if (content.trim()) {
+    if (content.trim() || (attachmentIds && attachmentIds.length > 0)) {
       setSentMessages((prev) => [
         ...prev,
         {
@@ -518,6 +524,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           roomId,
           type: "CONTENT",
           status: "sending",
+          attachmentIds,
         },
       ]);
     }
@@ -565,6 +572,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   // --- GESTION DU CLIC DROIT (CONTEXT MENU) ---
   const handleContextMenu = (e: React.MouseEvent) => {
+    // Désactiver le menu contextuel si un média est en fullscreen
+    if (isMediaFullscreen) {
+      e.preventDefault();
+      return;
+    }
+    
     const target = e.target as HTMLElement;
     // if the target has no classname  messages-container, do nothing
     if (
@@ -664,9 +677,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
   return (
     // RETRAIT de onContextMenu ici
-    <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
+    <div className={cn("absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30", isMediaFullscreen && "[&>*]:z-0")}>
       {/* HEADER */}
-      <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
+      <div className={cn("flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50", isMediaFullscreen && "z-0")}>
         <div
           className="flex cursor-pointer hover:text-red-500"
           onClick={onClose}
@@ -690,9 +703,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50">
+      <div className={cn("messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50", isMediaFullscreen && "z-0")}>
         <div
-          className="sticky bottom-0 z-10 h-full w-full"
+          className={cn("sticky bottom-0 z-10 h-full w-full", isMediaFullscreen && "z-0")}
           onContextMenu={handleContextMenu}
         />
         <InfiniteScrollContainer
@@ -754,7 +767,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                   content={msg.content}
                   status={msg.status}
                   onRetry={() => handleRetryMessage(msg)}
-                />
+                  attachments={tempAttachments[msg.tempId] || []} />
               ))}
 
               {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
@@ -821,7 +834,9 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           </div>
 
           {/* Affichage du RoomFooter selon l'état */}
-          {!!roomId && <RoomFooter
+          {!!roomId && (
+            <div className={cn("z-20", isMediaFullscreen && "z-0")}>
+              <RoomFooter
                 state={footerState}
                 roomId={roomId}
                 onMessageSend={handleSendMessage}
@@ -830,7 +845,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
               />
-            }
+            </div>
+          )}
         </div>
       </div>
 
@@ -1000,9 +1016,10 @@ interface SendingMessageProps {
   content: string;
   status: "sending" | "error";
   onRetry: () => void;
+  attachments?: MessageAttachment[];
 }
 
-function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
+function SendingMessage({ content, status, onRetry, attachments }: SendingMessageProps) {
   const [isRetrying, setIsRetrying] = useState(false);
 
   const handleRetryClick = () => {
@@ -1049,6 +1066,20 @@ function SendingMessage({ content, status, onRetry }: SendingMessageProps) {
                 </p>
               </Linkify>
             </div>
+              {/* Afficher les pièces jointes temporaires (si présentes) */}
+              {attachments && attachments.length > 0 && (
+                <div className="mt-2 flex gap-2">
+                  {attachments.map((att) => (
+                    <div key={att.id} className="h-16 w-16 overflow-hidden rounded-md bg-muted/20">
+                      {/* Ne pas présumer trop sur les propriétés exactes — tenter d'afficher une image si disponible */}
+                      {att.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={att.url} alt={att.id} className="h-full w-full object-cover" />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
           <div className="mt-1 flex justify-end px-1">
             <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">

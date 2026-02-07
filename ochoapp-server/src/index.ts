@@ -2,8 +2,10 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import multer from "multer";
 import dotenv from "dotenv";
 import { MessageType, PrismaClient } from "@prisma/client";
+import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import {
@@ -65,11 +67,102 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+// Autoriser de gros payloads pour uploads (200MB)
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
 app.use(cookieParser());
+
+// Cloudinary config (utilisé pour proxy upload depuis le client si nécessaire)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// multer en mémoire pour streaming multipart
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello from the server" });
+});
+
+// Endpoint proxy pour upload Cloudinary (accepte dataURL en JSON)
+app.post("/api/cloudinary/proxy-upload", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const file = body.file;
+    if (!file) return res.status(400).json({ success: false, error: "No file provided" });
+
+    // upload vers Cloudinary avec timeout/ retry minimal
+    const uploadResult = await cloudinary.uploader.upload(file, { resource_type: 'auto' });
+
+    // Créer l'entrée en base
+    const attachmentType = uploadResult.resource_type && String(uploadResult.resource_type).startsWith("video")
+      ? "VIDEO"
+      : (uploadResult.resource_type === "image" || (uploadResult.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
+        ? "IMAGE"
+        : "DOCUMENT");
+
+    const messageAttachment = await prisma.messageAttachment.create({
+      data: {
+        type: attachmentType,
+        url: uploadResult.secure_url || uploadResult.url || "",
+        publicId: uploadResult.public_id || null,
+        width: uploadResult.width || null,
+        height: uploadResult.height || null,
+        format: uploadResult.format || null,
+        resourceType: uploadResult.resource_type || null,
+      },
+    });
+
+    return res.json({ success: true, attachmentId: messageAttachment.id, result: uploadResult });
+  } catch (err) {
+    console.error('Proxy upload error', err);
+    return res.status(500).json({ success: false, error: 'Upload failed', details: err instanceof Error ? err.message : undefined });
+  }
+});
+
+// Endpoint multipart (FormData) pour upload direct via multer -> Cloudinary (stream)
+app.post("/api/cloudinary/proxy-upload-multipart", upload.single("file"), async (req, res) => {
+  try {
+    const file = (req as any).file;
+    if (!file || !file.buffer) return res.status(400).json({ success: false, error: "No file provided" });
+
+    // Utiliser upload_stream pour éviter d'écrire sur le disque
+    const streamUpload = (buffer: Buffer) =>
+      new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({ resource_type: 'auto' }, (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        });
+        stream.end(buffer);
+      });
+
+    const uploadResult = await streamUpload(file.buffer);
+
+    const attachmentType = uploadResult.resource_type && String(uploadResult.resource_type).startsWith("video")
+      ? "VIDEO"
+      : (uploadResult.resource_type === "image" || (uploadResult.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
+        ? "IMAGE"
+        : "DOCUMENT");
+
+    const messageAttachment = await prisma.messageAttachment.create({
+      data: {
+        type: attachmentType,
+        url: uploadResult.secure_url || uploadResult.url || "",
+        publicId: uploadResult.public_id || null,
+        width: uploadResult.width || null,
+        height: uploadResult.height || null,
+        format: uploadResult.format || null,
+        resourceType: uploadResult.resource_type || null,
+      },
+    });
+
+    return res.json({ success: true, attachmentId: messageAttachment.id, result: uploadResult });
+  } catch (err) {
+    console.error('Proxy multipart upload error', err);
+    return res.status(500).json({ success: false, error: 'Upload failed', details: err instanceof Error ? err.message : undefined });
+  }
 });
 app.post("/api/auth/session", validateSession);
 

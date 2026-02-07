@@ -1,9 +1,10 @@
 "use client";
 
 import { MessageAttachment } from "@/lib/types";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useActiveRoom } from "@/context/ChatContext";
 
 interface MediaCarouselProps {
   attachments: MessageAttachment[];
@@ -16,10 +17,17 @@ export default function MediaCarousel({
   initialIndex = 0,
   onClose,
 }: MediaCarouselProps) {
+  const { setIsMediaFullscreen } = useActiveRoom();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mettre le état fullscreen au montage et nettoyer au démontage
+  useEffect(() => {
+    setIsMediaFullscreen(true);
+    return () => setIsMediaFullscreen(false);
+  }, [setIsMediaFullscreen]);
 
   const current = attachments[currentIndex];
   const isFirstImage = currentIndex === 0;
@@ -100,9 +108,10 @@ export default function MediaCarousel({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Header avec contrôles */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-2 text-white text-sm">
           <span className="font-medium">
             {currentIndex + 1} / {attachments.length}
@@ -132,10 +141,10 @@ export default function MediaCarousel({
         </div>
       </div>
 
-      {/* Media Container */}
+      {/* Media Container - prend tout l'espace disponible */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-auto relative"
+        className="flex-1 flex items-center justify-center overflow-hidden relative w-full min-h-0"
       >
         <div
           className="flex items-center justify-center relative h-full w-full"
@@ -148,15 +157,17 @@ export default function MediaCarousel({
             <video
               src={current.url}
               controls
-              className="max-h-full max-w-full object-contain"
+              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen"
               autoPlay
+              onContextMenu={(e) => e.preventDefault()}
             />
           ) : isImage ? (
             <img
               src={current.url}
               alt={`Media ${currentIndex + 1}`}
-              className="max-h-full max-w-full object-contain"
+              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen"
               onClick={() => setIsZoomed(!isZoomed)}
+              onContextMenu={(e) => e.preventDefault()}
             />
           ) : (
             <div className="text-white text-center">
