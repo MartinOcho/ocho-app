@@ -169,10 +169,10 @@ export default function RoomHeader({
   };
 
   const otherUser =
-    room.members.length === 1 && isSaved
-      ? room?.members.filter((member) => member.userId === loggedUser.id)?.[0]
+    (room?.members?.length === 1) && isSaved
+      ? room?.members?.filter((member) => member.userId === loggedUser.id)?.[0]
           ?.user || emptyUser
-      : room?.members.filter((member) => member.userId !== loggedUser.id)?.[0]
+      : room?.members?.filter((member) => member.userId !== loggedUser.id)?.[0]
           ?.user || emptyUser;
 
   const expiresAt = isSaved
@@ -208,20 +208,20 @@ export default function RoomHeader({
   const size = active ? 120 : 40;
 
   // Get loggedinMember from members
-  const loggedinMember = room.members.find(
+  const loggedinMember = room?.members?.find(
     (member) => member.userId === loggedUser.id,
   );
   // Get admins
-  const admins = room.members.filter(
+  const admins = (room?.members || []).filter(
     (member) =>
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
   // Get owner
-  const owner = [room.members.find((member) => member.type === "OWNER")].filter(
+  const owner = [(room?.members || []).find((member) => member.type === "OWNER")].filter(
     (member) => member?.userId !== loggedinMember?.userId,
   );
   // Get members
-  const members = room.members.filter((member) => member.type !== "ADMIN");
+  const members = (room?.members || []).filter((member) => member.type !== "ADMIN");
 
   // Remove logged user from owner admins and members
   const filteredMembers = members.filter(
@@ -616,7 +616,7 @@ export function AdminButton({
 
   const roomId = room.id;
 
-  const members = room.members;
+  const members = room?.members || [];
 
   //  get the loggedin user values in members
   const loggedMember = members.find(
@@ -693,7 +693,7 @@ export function RestoreMemberButton({
   const [loading, setLoading] = useState(false);
 
   const roomId = room.id;
-  const member = room.members.find((member) => member.userId === memberId);
+  const member = room?.members?.find((member) => member.userId === memberId);
 
   function handleSubmit() {
     if(!socket) return;
@@ -747,7 +747,7 @@ export function GroupUserPopover({
   const joinedAt: Date | null = member?.joinedAt ?? null;
   const leftAt: Date | null = member?.leftAt ?? null;
 
-  const members = room.members;
+  const members = room?.members || [];
 
   const expiresAt = member?.user?.verified?.[0]?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
