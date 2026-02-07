@@ -12,6 +12,9 @@ import {
   MessagesSection,
   MessageData,
   MessageAttachment,
+  SocketReceiveMessageEvent,
+  SocketTypingUpdateEvent,
+  SocketMessageDeletedEvent,
 } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
@@ -193,20 +196,26 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     );
 
     // Traiter chaque message en attente de la même manière que handleReceiveMessage
-    pendingMsgs.forEach((data) => {
-      if (data.newMessage.type === "REACTION") return; // On ignore les réactions
+    pendingMsgs.forEach((data: SocketReceiveMessageEvent) => {
+      if (!data.newMessage || data.newMessage.type === "REACTION") return; // On ignore les réactions
+
+      // Guard: vérifier que newMessage est bien un MessageData valide
+      if (!data.newMessage.id || !data.newMessage.type) {
+        console.warn("Message en attente invalide:", data.newMessage);
+        return;
+      }
 
       // Mettre à jour le cache React Query
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
         ["room", "messages", roomId],
         (oldData) => {
-          if (!oldData) return oldData;
+          if (!oldData || !Array.isArray(oldData.pages)) return oldData;
 
           const newPages = oldData.pages.map((page, index) => {
-            if (index === 0) {
+            if (index === 0 && page) {
               return {
                 ...page,
-                messages: [data.newMessage, ...page.messages],
+                messages: [data.newMessage, ...(page.messages ?? [])],
               };
             }
             return page;
@@ -242,24 +251,26 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     };
 
     // 2. Écouter la confirmation de réception (Broadcast du serveur)
-    const handleReceiveMessage = (data: {
-      newMessage: MessageData;
-      roomId: string;
-      tempId?: string; // On reçoit l'ID temporaire pour le nettoyage
-    }) => {
-      if (data.roomId === roomId) {
+    const handleReceiveMessage = (data: SocketReceiveMessageEvent) => {
+      if (data.roomId === roomId && data.newMessage) {
+        // Guard: vérifier que newMessage est bien un MessageData valide
+        if (!data.newMessage.id || !data.newMessage.type) {
+          console.warn("Message invalide reçu du socket:", data.newMessage);
+          return;
+        }
+
         // 1. Mettre à jour le cache React Query directement
         if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
           (oldData) => {
-            if (!oldData) return oldData;
+            if (!oldData || !Array.isArray(oldData.pages)) return oldData;
 
             const newPages = oldData.pages.map((page, index) => {
-              if (index === 0) {
+              if (index === 0 && page) {
                 return {
                   ...page,
-                  messages: [data.newMessage, ...page.messages],
+                  messages: [data.newMessage, ...(page.messages ?? [])],
                 };
               }
               return page;
@@ -281,35 +292,29 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       }
     };
 
-    const handleTypingUpdate = (data: {
-      roomId: string;
-      typingUsers: { id: string; displayName: string; avatarUrl: string }[];
-    }) => {
-      if (data.roomId === roomId) {
+    const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
+      if (data.roomId === roomId && Array.isArray(data.typingUsers)) {
         setTypingUsers(data.typingUsers.filter((u) => u.id !== loggedUser?.id));
       }
     };
 
     // --- GESTION DE LA SUPPRESSION ---
-    const handleMessageDeleted = (data: {
-      messageId: string;
-      roomId: string;
-    }) => {
-      if (data.roomId !== roomId) return;
+    const handleMessageDeleted = (data: SocketMessageDeletedEvent) => {
+      if (data.roomId !== roomId || !data.messageId) return;
 
       // 1. Mettre à jour les "newMessages" (ceux reçus via socket avant refresh)
       setNewMessages((prev) => prev.filter((msg) => msg.id !== data.messageId));
 
       // 2. Mettre à jour le cache React Query (Infinite Query)
-      queryClient.setQueryData<MessagesSection>(
+      queryClient.setQueryData<InfiniteData<MessagesSection>>(
         ["room", "messages", roomId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
+        (oldData) => {
+          if (!oldData || !Array.isArray(oldData.pages)) return oldData;
           return {
             ...oldData,
-            pages: oldData.pages.map((page: any) => ({
+            pages: oldData.pages.map((page) => ({
               ...page,
-              messages: page.messages.filter(
+              messages: (page.messages ?? []).filter(
                 (msg: MessageData) => msg.id !== data.messageId,
               ),
             })),
@@ -428,8 +433,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     });
 
   const allMessages = (
-    data?.pages?.flatMap((page) => page?.messages) || []
-  ).filter((msg) => msg.type !== "REACTION");
+    data?.pages?.flatMap((page) => page?.messages ?? []) || []
+  ).filter((msg) => msg && msg.type !== "REACTION");
 
   // --- FILTRAGE LOCAL DES MESSAGES ---
   // On filtre si une recherche est active

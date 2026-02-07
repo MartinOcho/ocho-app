@@ -301,6 +301,23 @@ export interface MessagesSection {
   nextCursor: string | null;
 }
 
+// --- TYPES POUR LES ÉVÉNEMENTS SOCKET (PARTAGÉS AVEC CLIENT) ---
+export interface SocketReceiveMessageEvent {
+  newMessage: MessageData;
+  roomId: string;
+  tempId?: string;
+  newRoom?: RoomData;
+}
+
+export interface SocketTypingUpdateEvent {
+  roomId: string;
+  typingUsers: { id: string; displayName: string; avatarUrl: string }[];
+}
+
+export interface SocketMessageDeletedEvent {
+  messageId: string;
+  roomId: string;
+}
 
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
