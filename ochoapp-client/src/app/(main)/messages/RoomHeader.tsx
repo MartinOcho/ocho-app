@@ -257,12 +257,6 @@ export default function RoomHeader({
 
   const now = Date.now();
 
-  const isUserOnline =
-    !active &&
-    (room.id === `saved-${loggedUser.id}` ||
-      (!!otherUser?.lastSeen &&
-        new Date(otherUser.lastSeen).getTime() - 40_000 > now));
-
   const lastSeenTimeStamp = otherUser?.lastSeen
     ? new Date(new Date(otherUser.lastSeen).getTime() - 30_000).getTime()
     : null;
