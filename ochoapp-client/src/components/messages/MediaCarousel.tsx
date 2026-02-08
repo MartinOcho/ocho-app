@@ -27,6 +27,7 @@ export default function MediaCarousel({
   const containerRef = useRef<HTMLDivElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const currentThumbnailRef = useRef<HTMLButtonElement>(null);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
   // Mettre le état fullscreen au montage et nettoyer au démontage
   useEffect(() => {
@@ -109,7 +110,7 @@ export default function MediaCarousel({
     };
   }, [zoomLevel]);
 
-  // Pan when zoomed
+  // Pan when zoomed (mouse)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -144,6 +145,62 @@ export default function MediaCarousel({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging, panX, panY, zoomLevel, dragStart]);
+
+  // Touch swipe and pan
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (zoomLevel > 1) {
+        // Si zoomé: utiliser pour le pan
+        e.preventDefault();
+        const deltaX = e.touches[0].clientX - touchStartRef.current.x;
+        const deltaY = e.touches[0].clientY - touchStartRef.current.y;
+        setPanX(panX + deltaX);
+        setPanY(panY + deltaY);
+        touchStartRef.current.x = e.touches[0].clientX;
+        touchStartRef.current.y = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (zoomLevel <= 1) {
+        // Si pas zoomé: utiliser pour naviguer
+        const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+        const timeDiff = Date.now() - touchStartRef.current.time;
+        const isSwipe = Math.abs(deltaX) > 50 && timeDiff < 500;
+
+        if (isSwipe) {
+          if (deltaX > 0) {
+            // Swipe vers la droite = image précédente
+            goToPrevious();
+          } else {
+            // Swipe vers la gauche = image suivante
+            goToNext();
+          }
+        }
+      }
+    };
+
+    container.addEventListener("touchstart", handleTouchStart);
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [zoomLevel, panX, panY]);
 
   const goToNext = () => {
     if (!isLastImage) {
@@ -332,12 +389,12 @@ export default function MediaCarousel({
         )}
       </div>
 
-      {/* Footer avec filmstrip/thumbnails scrollable */}
+      {/* Footer avec filmstrip/thumbnails scrollable - taille réduite */}
       {Array.isArray(attachments) && attachments.length > 1 && (
-        <div className="border-t border-white/10 bg-black/50 p-4 flex-shrink-0">
+        <div className="border-t border-white/10 bg-black/50 p-2 flex-shrink-0">
           <div 
             ref={filmstripRef}
-            className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
+            className="flex gap-1.5 overflow-x-auto pb-2 scroll-smooth"
             style={{ scrollBehavior: "smooth" }}
           >
             {attachments.map((attachment, index) => (
@@ -358,17 +415,17 @@ export default function MediaCarousel({
                   <>
                     <video
                       src={attachment.url}
-                      className="w-20 h-20 object-cover"
+                      className="w-14 h-14 object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <div className="w-0 h-0 border-l-6 border-l-transparent border-r-6 border-r-transparent border-t-10 border-t-white/70 opacity-60"></div>
+                      <div className="w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-6 border-t-white/70 opacity-60"></div>
                     </div>
                   </>
                 ) : (
                   <img
                     src={attachment.url}
                     alt={`Thumbnail ${index + 1}`}
-                    className="w-20 h-20 object-cover"
+                    className="w-14 h-14 object-cover"
                   />
                 )}
               </button>

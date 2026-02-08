@@ -24,11 +24,10 @@ export default function MediaStrip({
 }: MediaStripProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   
-  // Limiter à 4 médias affichés
-  const MAX_VISIBLE_MEDIA = 4;
-  const visibleAttachments = attachments.slice(0, MAX_VISIBLE_MEDIA);
+  // Afficher 3 images complètes + la 4ème avec overlay badge
+  const MAX_VISIBLE_MEDIA = 3;
+  const hasMore = attachments.length > MAX_VISIBLE_MEDIA;
   const remainingCount = attachments.length - MAX_VISIBLE_MEDIA;
-  const hasMore = remainingCount > 0;
 
   if (isLoading) {
     return (
@@ -57,7 +56,7 @@ export default function MediaStrip({
           className
         )}
       >
-        {visibleAttachments.map((attachment, index) => (
+        {attachments.slice(0, MAX_VISIBLE_MEDIA).map((attachment, index) => (
           <button
             key={index}
             onClick={() => handleMediaClick(index)}
@@ -94,18 +93,50 @@ export default function MediaStrip({
           </button>
         ))}
 
-        {/* Badge "+N" pour les médias restants */}
-        {hasMore && (
+        {/* 4ème image avec badge "+N" overlay */}
+        {hasMore && attachments[MAX_VISIBLE_MEDIA] && (
           <button
             onClick={() => {
               setSelectedIndex(MAX_VISIBLE_MEDIA);
               onMediaOpen?.();
             }}
-            className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity size-32 max-sm:size-24 bg-muted/50 border border-muted-foreground/30 flex items-center justify-center cursor-pointer"
+            className="relative group rounded-lg overflow-hidden hover:opacity-70 transition-opacity"
           >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">+{remainingCount}</div>
-              <div className="text-xs text-muted-foreground">voir plus</div>
+            {attachments[MAX_VISIBLE_MEDIA].type === "VIDEO" ? (
+              <div className={`h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`}>
+                <video
+                  src={attachments[MAX_VISIBLE_MEDIA].url}
+                  className={cn(
+                    "rounded-lg object-cover cursor-pointer",
+                    "size-32 max-sm:size-24",
+                    `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
+                  )}
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
+                  <Play
+                    size={32}
+                    className="text-white/80 fill-white/80"
+                  />
+                </div>
+              </div>
+            ) : (
+              <img
+                src={attachments[MAX_VISIBLE_MEDIA].url}
+                alt={`Attachment 4`}
+                className={cn(
+                  "rounded-lg object-cover cursor-pointer",
+                  "size-32 max-sm:size-24",
+                  `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
+                )}
+              />
+            )}
+
+            {/* Badge overlay "+N" */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">+{remainingCount}</div>
+                <div className="text-xs text-white/80">voir plus</div>
+              </div>
             </div>
           </button>
         )}
