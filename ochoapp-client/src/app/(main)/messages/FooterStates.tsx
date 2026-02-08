@@ -62,7 +62,7 @@ export function UnavailableFooter({
           {buttonLabel}
         </Button>
       )}
-      <div className="flex items-center flex-1 gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 max-sm:flex-col sm:px-5">
+      <div className="flex items-center flex-1 gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 sm:px-5">
         {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
         <p className="text-center font-semibold text-destructive">
           {stateText}
