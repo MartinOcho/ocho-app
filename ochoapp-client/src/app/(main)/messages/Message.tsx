@@ -148,7 +148,9 @@ export const MessageBubbleContent = ({
   isFirstInCluster,
   isMiddleInCluster,
   isOnlyMessageInCluster,
-  readStatus
+  readStatus,
+  onMediaOpen,
+  onMediaClose,
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -163,6 +165,8 @@ export const MessageBubbleContent = ({
   isOnlyMessageInCluster?: boolean;
   createdAt?: Date;
   readStatus?: 'read' | 'delivered';
+  onMediaOpen?: () => void;
+  onMediaClose?: () => void;
 }) => {
   
   // --- LOGIQUE BORDER RADIUS (Stacking) ---
@@ -226,6 +230,8 @@ export const MessageBubbleContent = ({
               "!mt-2 !mb-6 media-strip-wrapper", // Ajout de la classe marker
               message.content ? "mt-2" : "mt-0"
             )}
+            onMediaOpen={onMediaOpen}
+            onMediaClose={onMediaClose}
           />
         )}
         {/* Conteneur de texte avec marker pour le calcul de position */}
@@ -287,6 +293,7 @@ export default function Message({
   const [activeDetailsRect, setActiveDetailsRect] = useState<DOMRect | null>(null);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMediaOpen, setIsMediaOpen] = useState(false);
 
 
   // Refs
@@ -718,7 +725,7 @@ export default function Message({
           <div
             className={cn(
               "relative flex w-full flex-col gap-1 mb-2",
-              activeOverlayRect ? "z-0" : "",
+              isMediaOpen ? "z-[10000]" : activeOverlayRect ? "z-0" : "",
             )}
             ref={messageRef}
           >
@@ -769,6 +776,8 @@ export default function Message({
                             isOnlyMessageInCluster={isLastInCluster && isFirstInCluster}
                             createdAt={new Date(message.createdAt)}
                             readStatus={readStatus}
+                          onMediaOpen={() => setIsMediaOpen(true)}
+                          onMediaClose={() => setIsMediaOpen(false)}
                         />
                     </div>
 

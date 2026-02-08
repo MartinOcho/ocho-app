@@ -11,12 +11,16 @@ interface MediaStripProps {
   attachments?: MessageAttachment[];
   className?: string;
   isLoading?: boolean;
+  onMediaOpen?: () => void;
+  onMediaClose?: () => void;
 }
 
 export default function MediaStrip({
   attachments = [],
   className,
   isLoading = false,
+  onMediaOpen,
+  onMediaClose,
 }: MediaStripProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -45,7 +49,10 @@ export default function MediaStrip({
         {attachments.map((attachment, index) => (
           <button
             key={index}
-            onClick={() => setSelectedIndex(index)}
+            onClick={() => {
+              setSelectedIndex(index);
+              onMediaOpen?.();
+            }}
             className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
           >
             {attachment.type === "VIDEO" ? (
@@ -54,7 +61,7 @@ export default function MediaStrip({
                   src={attachment.url}
                   className={cn(
                     "rounded-lg object-cover cursor-pointer",
-                    attachments.length === 1 ? "max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24"
+                    attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24"
                   )}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
@@ -70,7 +77,7 @@ export default function MediaStrip({
                 alt={`Attachment ${index + 1}`}
                 className={cn(
                   "rounded-lg object-cover cursor-pointer",
-                  attachments.length === 1 ? "max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24"
+                  attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24"
                 )}
               />
             )}
@@ -82,7 +89,10 @@ export default function MediaStrip({
         <MediaCarousel
           attachments={attachments}
           initialIndex={selectedIndex}
-          onClose={() => setSelectedIndex(null)}
+          onClose={() => {
+            setSelectedIndex(null);
+            onMediaClose?.();
+          }}
         />
       )}
     </>
