@@ -29,6 +29,12 @@ export default function MediaCarousel({
   const currentThumbnailRef = useRef<HTMLButtonElement>(null);
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
+  // Wrapper pour fermer avec mise à jour du contexte
+  const handleCloseCarousel = useCallback(() => {
+    setIsMediaFullscreen(false);
+    onClose();
+  }, [onClose, setIsMediaFullscreen]);
+
   // Mettre le état fullscreen au montage et nettoyer au démontage
   useEffect(() => {
     setIsMediaFullscreen(true);
@@ -69,7 +75,7 @@ export default function MediaCarousel({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleCloseCarousel();
       } else if (e.key === "ArrowLeft") {
         goToPrevious();
       } else if (e.key === "ArrowRight") {
@@ -87,7 +93,7 @@ export default function MediaCarousel({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, onClose]);
+  }, [currentIndex]);
 
   // Mouse wheel zoom
   useEffect(() => {
@@ -174,18 +180,30 @@ export default function MediaCarousel({
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (zoomLevel <= 1) {
-        // Si pas zoomé: utiliser pour naviguer
+        // Si pas zoomé: utiliser pour naviguer ou fermer
         const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
         const timeDiff = Date.now() - touchStartRef.current.time;
         const isSwipe = Math.abs(deltaX) > 50 && timeDiff < 500;
 
         if (isSwipe) {
           if (deltaX > 0) {
-            // Swipe vers la droite = image précédente
-            goToPrevious();
+            // Swipe vers la droite
+            if (isFirstImage) {
+              // À la première image: fermer le carrousel
+              handleCloseCarousel();
+            } else {
+              // Sinon: aller à l'image précédente
+              goToPrevious();
+            }
           } else {
-            // Swipe vers la gauche = image suivante
-            goToNext();
+            // Swipe vers la gauche
+            if (isLastImage) {
+              // À la dernière image: fermer le carrousel
+              handleCloseCarousel();
+            } else {
+              // Sinon: aller à l'image suivante
+              goToNext();
+            }
           }
         }
       }
@@ -200,7 +218,7 @@ export default function MediaCarousel({
       container.removeEventListener("touchmove", handleTouchMove);
       container.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [zoomLevel, panX, panY]);
+  }, [zoomLevel, panX, panY, isFirstImage, isLastImage, handleCloseCarousel]);
 
   const goToNext = () => {
     if (!isLastImage) {
@@ -248,7 +266,7 @@ export default function MediaCarousel({
     <div
       className="fixed inset-0 z-[9999999] max-sm:translate-x-full bg-black/95 backdrop-blur-sm flex flex-col transition-transform duration-200 max-sm:w-screen max-sm:h-screen max-sm:max-h-dvh max-sm:max-w-dvw"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleCloseCarousel();
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -308,7 +326,7 @@ export default function MediaCarousel({
             <Download size={20} className="text-white" />
           </button>
           <button
-            onClick={onClose}
+            onClick={handleCloseCarousel}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
             title="Fermer"
           >
