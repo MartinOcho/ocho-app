@@ -373,7 +373,8 @@ export function MessageFormComponent({
       </Button>
       <div className={cn("flex w-full flex-col gap-2 border-r border-border", !expanded && "hidden")}>
         {attachments.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          // MODIFICATION ICI : Ajout de flex-wrap, max-h-40, overflow-y-auto
+          <div className="flex w-full flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
             {attachments.map((a, i) => (
               <div
                 key={i}
@@ -425,7 +426,7 @@ export function MessageFormComponent({
                 <button
                 onClick={() => removeAttachment(a.id)}
                 className={cn(
-                    "absolute top-0.5 right-0.5 z-10 rounded-full bg-destructive/80 p-1 text-white transition-opacity hover:opacity-100",
+                    "absolute top-0.5 right-0.5 z-10 rounded-full bg-destructive/80 p-1 text-white transition-opacity hover:opacity-100 max-sm:opacity-100",
                     a.isUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                 )}
                 type="button"
