@@ -60,14 +60,18 @@ export default function RoomHeader({
   isGroup,
   onDelete,
   initialRoom,
-  onCloseChat
+  onCloseChat,
 }: ChatHeaderProps) {
   const { t } = useTranslation();
   // Normaliser initialRoom pour garantir que members existe
-  const normalizedInitialRoom: RoomData = useMemo(() => ({
-    ...initialRoom,
-    members: Array.isArray(initialRoom?.members) ? initialRoom.members : [],
-  } as any), [initialRoom]);
+  const normalizedInitialRoom: RoomData = useMemo(
+    () =>
+      ({
+        ...initialRoom,
+        members: Array.isArray(initialRoom?.members) ? initialRoom.members : [],
+      }) as any,
+    [initialRoom],
+  );
 
   const [active, setActive] = useState(false);
   const [expandMembers, setExpandMembers] = useState(false);
@@ -106,7 +110,7 @@ export default function RoomHeader({
     messageYourself,
   } = t();
   const queryClient = useQueryClient();
-  const {checkUserStatus, onlineStatus} = useSocket();
+  const { checkUserStatus, onlineStatus } = useSocket();
   const queryKey = ["room", "head", roomId];
   const { data, status, error } = useQuery({
     queryKey,
@@ -170,12 +174,12 @@ export default function RoomHeader({
     }
   }
 
-  function backHandler(){
-    if(active){
+  function backHandler() {
+    if (active) {
       setActive(false);
-      return
+      return;
     }
-    if(activeRoomId){
+    if (activeRoomId) {
       onCloseChat();
     }
   }
@@ -210,8 +214,8 @@ export default function RoomHeader({
           ?.user || emptyUser;
 
   const userId = otherUser?.id;
-    const activeStatus = onlineStatus[userId || ""];
-    !activeStatus && checkUserStatus(userId || "");
+  const activeStatus = onlineStatus[userId || ""];
+  !activeStatus && checkUserStatus(userId || "");
 
   const expiresAt = isSaved
     ? otherUser?.verified?.[0]?.expiresAt
@@ -236,8 +240,9 @@ export default function RoomHeader({
     ? room.name
     : (isSaved
         ? loggedUser.displayName + ` (${you})`
-        : room?.members?.filter((member) => member.userId !== loggedUser.id)?.[0]
-            ?.user?.displayName) || (room.isGroup ? groupChat : appUser);
+        : room?.members?.filter(
+            (member) => member.userId !== loggedUser.id,
+          )?.[0]?.user?.displayName) || (room.isGroup ? groupChat : appUser);
   const weekAgo = new Date(
     new Date(room.createdAt).getTime() - 6 * 24 * 60 * 60 * 1000,
   );
@@ -262,13 +267,11 @@ export default function RoomHeader({
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
   // Get owner
-  const owner = [
-    safeMembers.find((member) => member.type === "OWNER"),
-  ].filter((member) => member?.userId !== loggedinMember?.userId);
-  // Get members
-  const members = safeMembers.filter(
-    (member) => member.type !== "ADMIN",
+  const owner = [safeMembers.find((member) => member.type === "OWNER")].filter(
+    (member) => member?.userId !== loggedinMember?.userId,
   );
+  // Get members
+  const members = safeMembers.filter((member) => member.type !== "ADMIN");
 
   // Remove logged user from owner admins and members
   const filteredMembers = members.filter(
@@ -294,7 +297,9 @@ export default function RoomHeader({
     .filter((member) => member?.type !== "OLD")
     .filter((member) => member?.type !== "BANNED");
 
-  const oldMembers = (mergedMembers || []).filter((member) => member?.type === "OLD");
+  const oldMembers = (mergedMembers || []).filter(
+    (member) => member?.type === "OLD",
+  );
   const bannedMembers = (mergedMembers || []).filter(
     (member) => member?.type === "BANNED",
   );
@@ -343,15 +348,15 @@ export default function RoomHeader({
       className={cn(
         "z-50",
         active
-          ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl flex items-start"
-          : "relative flex-1 flex w-full items-center gap-2 px-4 py-3 max-sm:absolute max-sm:top-0 max-sm:left-0 max-sm:right-0 max-sm:bg-none",
+          ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
+          : "relative flex w-full flex-1 items-center gap-2 px-4 py-3 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none",
       )}
     >
       <div
-        className={
-          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden" +
-          (!active && "hidden")
-        }
+        className={cn(
+          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden",
+          !active && "hidden",
+        )}
       >
         <div
           className="cursor-pointer sm:pointer-events-none sm:opacity-0"
@@ -377,38 +382,74 @@ export default function RoomHeader({
           )}
           onClick={() => !active && setActive(true)}
         >
-          <div className={cn("sm:hidden flex w-full items-center gap-2 px-0 py-0", !active && "max-sm:flex")}> 
+          <div
+            className={cn(
+              "flex w-full items-center gap-2 px-0 py-0 sm:hidden",
+              !active && "max-sm:flex",
+            )}
+          >
             <div
-              className="flex cursor-pointer bg-card/30 rounded-3xl sm:hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit items-center"
+              className="flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit"
               title="Fermer la discussion items-center"
               onClick={backHandler}
             >
               <ChevronLeft size={28} className="sm:hidden" />
-              <div className="flex items-center bg-primary p-1 rounded-2xl px-2 text-xs ml-2">999+</div>
+              <div className="ml-2 flex items-center rounded-2xl bg-primary p-1 px-2 text-xs">
+                999+
+              </div>
             </div>
 
-            <div className={cn("z-50 relative flex-1 flex cursor-pointer bg-card/30 sm:hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit rounded-[4rem] items-center", active && "flex-col")}>
-            {room.isGroup ? (
-              <GroupAvatar size={size} className="transition-all *:transition-all" avatarUrl={room.groupAvatarUrl} />
-            ) : (
-              <UserAvatar userId={otherUser?.id || null} avatarUrl={otherUser?.avatarUrl} size={size} className="transition-all *:transition-all" />
-            )}
-            <div className="flex-1">
-              {room.isGroup ? (
-                <div>
-                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
-                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
-                </div>
-              ) : (
-                <div>
-                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
-                  <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
-                    {getStatusDisplay()}
-                  </div>
-                </div>
+            <div
+              className={cn(
+                "relative z-50 flex flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit",
+                active && "flex-col",
               )}
+            >
+              {room.isGroup ? (
+                <GroupAvatar
+                  size={size}
+                  className="transition-all *:transition-all"
+                  avatarUrl={room.groupAvatarUrl}
+                />
+              ) : (
+                <UserAvatar
+                  userId={otherUser?.id || null}
+                  avatarUrl={otherUser?.avatarUrl}
+                  size={size}
+                  className="transition-all *:transition-all"
+                />
+              )}
+              <div className="flex-1">
+                {room.isGroup ? (
+                  <div>
+                    <span className="flex items-center gap-1 text-xl font-bold">
+                      <span className="line-clamp-1 text-ellipsis">
+                        {chatName}
+                      </span>
+                      {verifiedCheck}
+                    </span>
+                    <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="flex items-center gap-1 text-xl font-bold">
+                      <span className="line-clamp-1 text-ellipsis">
+                        {chatName}
+                      </span>
+                      {verifiedCheck}
+                    </span>
+                    <div
+                      className={cn(
+                        "text-sm text-muted-foreground",
+                        (activeStatus?.isOnline || isSaved) && "text-primary",
+                      )}
+                    >
+                      {getStatusDisplay()}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
             <div
               className="flex cursor-pointer hover:text-red-500"
@@ -420,22 +461,46 @@ export default function RoomHeader({
           </div>
 
           {/* Desktop / default layout (visible on sm and up) */}
-          <div className="hidden sm:flex w-full items-center gap-2">
+          <div className="hidden w-full items-center gap-2 sm:flex">
             {room.isGroup ? (
-              <GroupAvatar size={size} className="transition-all *:transition-all" avatarUrl={room.groupAvatarUrl} />
+              <GroupAvatar
+                size={size}
+                className="transition-all *:transition-all"
+                avatarUrl={room.groupAvatarUrl}
+              />
             ) : (
-              <UserAvatar userId={otherUser?.id || null} avatarUrl={otherUser?.avatarUrl} size={size} className="transition-all *:transition-all" />
+              <UserAvatar
+                userId={otherUser?.id || null}
+                avatarUrl={otherUser?.avatarUrl}
+                size={size}
+                className="transition-all *:transition-all"
+              />
             )}
             <div className="flex-1">
               {room.isGroup ? (
                 <div>
-                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
+                  <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className="line-clamp-1 text-ellipsis">
+                      {chatName}
+                    </span>
+                    {verifiedCheck}
+                  </span>
                   <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
                 </div>
               ) : (
                 <div>
-                    <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
-                  <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
+                  <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className="line-clamp-1 text-ellipsis">
+                      {chatName}
+                    </span>
+                    {verifiedCheck}
+                  </span>
+                  <div
+                    className={cn(
+                      "text-sm text-muted-foreground",
+                      (activeStatus?.isOnline || isSaved) && "text-primary",
+                    )}
+                  >
                     {getStatusDisplay()}
                   </div>
                 </div>
@@ -447,7 +512,7 @@ export default function RoomHeader({
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as any)}
-            className="flex w-full flex-1 flex-col gap-3 h-full overflow-y-auto"
+            className="flex h-full w-full flex-1 flex-col gap-3 overflow-y-auto"
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="info" className="flex items-center gap-2">
@@ -806,7 +871,9 @@ export function RestoreMemberButton({
   const [loading, setLoading] = useState(false);
 
   const roomId = room.id;
-  const member = (room?.members || []).find((member) => member.userId === memberId);
+  const member = (room?.members || []).find(
+    (member) => member.userId === memberId,
+  );
 
   function handleSubmit() {
     if (!socket) return;
@@ -854,7 +921,9 @@ export function GroupUserPopover({
   const { t } = useTranslation();
   const { user: loggedInUser } = useSession();
   const isMember = type !== "OLD" && type !== "BANNED";
-  const member = (room?.members || []).find((member) => member.userId === user.id);
+  const member = (room?.members || []).find(
+    (member) => member.userId === user.id,
+  );
 
   const { groupAdmin, groupOwner, joined, leftSince, profile, you } = t();
 
@@ -876,7 +945,6 @@ export function GroupUserPopover({
   const verifiedCheck = isVerified ? (
     <Verified type={verifiedType} prompt={false} />
   ) : null;
-
 
   //  get the loggedin user values in members
   const loggedMember = members.find(
@@ -1010,19 +1078,14 @@ export function GroupUserPopover({
 
 // Composant helper pour charger les médias et afficher la galerie
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useGalleryQuery({ roomId, enabled: !!roomId });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useGalleryQuery({ roomId, enabled: !!roomId });
 
   const queryClient = useQueryClient();
 
   const allMedias = useMemo(
     () => data?.pages?.flatMap((page) => page?.medias ?? []) || [],
-    [data]
+    [data],
   );
 
   return (
