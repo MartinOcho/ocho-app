@@ -712,18 +712,12 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
       {/* HEADER */}
       <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
-        <div
-          className="flex cursor-pointer hover:text-red-500"
-          onClick={onClose}
-          title="Fermer la discussion"
-        >
-          <ChevronLeft size={35} className="sm:hidden" />
-        </div>
         <RoomHeader
           initialRoom={room}
           roomId={room.id}
           onDelete={onClose}
           isGroup={room.isGroup}
+          onCloseChat={onClose}
         />
         <div
           className="flex cursor-pointer hover:text-red-500"

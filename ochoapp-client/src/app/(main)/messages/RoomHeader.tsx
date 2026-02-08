@@ -52,6 +52,7 @@ interface ChatHeaderProps {
   isGroup: boolean;
   onDelete: () => void;
   initialRoom: RoomData;
+  onCloseChat: () => void;
 }
 
 export default function RoomHeader({
@@ -59,6 +60,7 @@ export default function RoomHeader({
   isGroup,
   onDelete,
   initialRoom,
+  onCloseChat
 }: ChatHeaderProps) {
   const { t } = useTranslation();
   // Normaliser initialRoom pour garantir que members existe
@@ -118,7 +120,7 @@ export default function RoomHeader({
   const { socket } = useSocket();
 
   useEffect(() => {
-    setActive(false);
+    backHandler();
   }, [activeRoomId]);
   useEffect(() => {
     if (roomId) {
@@ -166,6 +168,14 @@ export default function RoomHeader({
         </div>
       );
     }
+  }
+
+  function backHandler(){
+    if(active){
+      setActive(false);
+      return
+    }
+    onCloseChat();
   }
 
   const aMember = addAMember.match(/-(.*?)-/)?.[1] || "a member";
@@ -332,7 +342,7 @@ export default function RoomHeader({
         "z-50",
         active
           ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
-          : "relative flex-1 flex w-full items-center gap-2 px-4 py-3 max-sm:absolute max-sm:top-0 max-sm:left-0 max-sm:right-0 max-sm:bg-card/50",
+          : "relative flex-1 flex w-full items-center gap-2 px-4 py-3 max-sm:absolute max-sm:top-0 max-sm:left-0 max-sm:right-0 max-sm:bg-none",
       )}
     >
       <div
@@ -343,13 +353,13 @@ export default function RoomHeader({
       >
         <div
           className="cursor-pointer sm:pointer-events-none sm:opacity-0"
-          onClick={() => setActive(false)}
+          onClick={backHandler}
         >
           <ChevronLeft size={35} />
         </div>
         <div
           className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
-          onClick={() => setActive(false)}
+          onClick={backHandler}
         >
           <X size={35} />
         </div>
@@ -368,12 +378,9 @@ export default function RoomHeader({
           {/* Mobile compact bar shown only on max-sm when not active */}
           <div className={cn("hidden max-sm:flex w-full items-center gap-2 px-0 py-0", !active && "max-sm:flex")}> 
             <div
-              className="flex cursor-pointer bg-card/30 rounded-2xl hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit items-center"
+              className="flex cursor-pointer bg-card/30 rounded-3xl sm:hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit items-center"
               title="Fermer la discussion items-center"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActive(false);
-              }}
+              onClick={backHandler}
             >
               <ChevronLeft size={28} className="sm:hidden" />
               <div className="flex items-center bg-primary p-1 rounded-2xl px-2 text-xs ml-2">999+</div>
@@ -405,10 +412,7 @@ export default function RoomHeader({
             <div
               className="flex cursor-pointer hover:text-red-500"
               title="Fermer la discussion"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActive(false);
-              }}
+              onClick={backHandler}
             >
               <X size={25} className="max-sm:hidden" />
             </div>
