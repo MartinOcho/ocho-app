@@ -2,7 +2,7 @@
 
 import { MessageAttachment } from "@/lib/types";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveRoom } from "@/context/ChatContext";
 
@@ -19,15 +19,46 @@ export default function MediaCarousel({
 }: MediaCarouselProps) {
   const { setIsMediaFullscreen } = useActiveRoom();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [isZoomed, setIsZoomed] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const filmstripRef = useRef<HTMLDivElement>(null);
+  const currentThumbnailRef = useRef<HTMLButtonElement>(null);
 
   // Mettre le état fullscreen au montage et nettoyer au démontage
   useEffect(() => {
     setIsMediaFullscreen(true);
     return () => setIsMediaFullscreen(false);
   }, [setIsMediaFullscreen]);
+
+  // Reset zoom quand on change de média
+  useEffect(() => {
+    setZoomLevel(1);
+    setPanX(0);
+    setPanY(0);
+  }, [currentIndex]);
+
+  // Scroll la pellicule pour afficher le média courant
+  useEffect(() => {
+    if (currentThumbnailRef.current && filmstripRef.current) {
+      const thumbnail = currentThumbnailRef.current;
+      const filmstrip = filmstripRef.current;
+      
+      const thumbnailLeft = thumbnail.offsetLeft;
+      const thumbnailRight = thumbnailLeft + thumbnail.offsetWidth;
+      const filmstripLeft = filmstrip.scrollLeft;
+      const filmstripRight = filmstripLeft + filmstrip.clientWidth;
+
+      if (thumbnailLeft < filmstripLeft) {
+        filmstrip.scrollLeft = thumbnailLeft - 10;
+      } else if (thumbnailRight > filmstripRight) {
+        filmstrip.scrollLeft = thumbnailRight - filmstrip.clientWidth + 10;
+      }
+    }
+  }, [currentIndex]);
 
   const current = Array.isArray(attachments) ? attachments[currentIndex] : null;
   const isFirstImage = currentIndex === 0;
@@ -42,6 +73,14 @@ export default function MediaCarousel({
         goToPrevious();
       } else if (e.key === "ArrowRight") {
         goToNext();
+      } else if (e.key === "+") {
+        handleZoomIn();
+      } else if (e.key === "-") {
+        handleZoomOut();
+      } else if (e.key === "0") {
+        setZoomLevel(1);
+        setPanX(0);
+        setPanY(0);
       }
     };
 
@@ -70,20 +109,66 @@ export default function MediaCarousel({
     };
   }, [zoomLevel]);
 
+  // Pan when zoomed
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (zoomLevel > 1) {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && zoomLevel > 1) {
+        const newPanX = e.clientX - dragStart.x;
+        const newPanY = e.clientY - dragStart.y;
+        setPanX(newPanX);
+        setPanY(newPanY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    container.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      container.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, panX, panY, zoomLevel, dragStart]);
+
   const goToNext = () => {
     if (!isLastImage) {
       setCurrentIndex((prev) => prev + 1);
-      setZoomLevel(1);
-      setIsZoomed(false);
     }
   };
 
   const goToPrevious = () => {
     if (!isFirstImage) {
       setCurrentIndex((prev) => prev - 1);
-      setZoomLevel(1);
-      setIsZoomed(false);
     }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(3, prev + 0.2));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => Math.max(1, prev - 0.2));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPanX(0);
+    setPanY(0);
   };
 
   const handleDownload = () => {
@@ -121,9 +206,43 @@ export default function MediaCarousel({
               {current.type === "VIDEO" ? "Vidéo" : "Image"}
             </span>
           )}
+          {zoomLevel > 1 && (
+            <span className="text-white/50 text-xs ml-2">
+              Zoom: {(zoomLevel * 100).toFixed(0)}%
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {isImage && (
+            <>
+              <button
+                onClick={handleZoomIn}
+                disabled={zoomLevel >= 3}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-30"
+                title="Zoom avant (Ctrl + Souris)"
+              >
+                <ZoomIn size={20} className="text-white" />
+              </button>
+              <button
+                onClick={handleZoomOut}
+                disabled={zoomLevel <= 1}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-30"
+                title="Zoom arrière"
+              >
+                <ZoomOut size={20} className="text-white" />
+              </button>
+              {zoomLevel > 1 && (
+                <button
+                  onClick={handleResetZoom}
+                  className="px-2 py-1 text-xs rounded-lg hover:bg-white/10 transition-colors"
+                  title="Réinitialiser le zoom"
+                >
+                  100%
+                </button>
+              )}
+            </>
+          )}
           <button
             onClick={handleDownload}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -144,20 +263,24 @@ export default function MediaCarousel({
       {/* Media Container - prend tout l'espace disponible */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden relative w-full min-h-0"
+        className={cn(
+          "flex-1 flex items-center justify-center overflow-hidden relative w-full min-h-0",
+          isDragging && "cursor-grabbing",
+          zoomLevel > 1 && !isDragging && "cursor-grab"
+        )}
       >
         <div
           className="flex items-center justify-center relative h-full w-full"
           style={{
-            transform: isZoomed ? `scale(${zoomLevel})` : "scale(1)",
-            transition: "transform 0.2s ease-out",
+            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
+            transition: isDragging ? "none" : "transform 0.2s ease-out",
           }}
         >
           {isVideo ? (
             <video
               src={current.url}
               controls
-              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen"
+              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen pointer-events-auto"
               autoPlay
               onContextMenu={(e) => e.preventDefault()}
             />
@@ -165,8 +288,7 @@ export default function MediaCarousel({
             <img
               src={current.url}
               alt={`Media ${currentIndex + 1}`}
-              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen"
-              onClick={() => setIsZoomed(!isZoomed)}
+              className="w-full h-full object-contain max-sm:w-screen max-sm:h-screen cursor-auto"
               onContextMenu={(e) => e.preventDefault()}
             />
           ) : (
@@ -183,7 +305,7 @@ export default function MediaCarousel({
               onClick={goToPrevious}
               disabled={isFirstImage}
               className={cn(
-                "absolute left-4 p-3 rounded-full transition-all",
+                "absolute left-4 p-3 rounded-full transition-all z-10",
                 isFirstImage
                   ? "opacity-30 cursor-not-allowed bg-white/5"
                   : "opacity-70 hover:opacity-100 hover:bg-white/20 cursor-pointer"
@@ -197,7 +319,7 @@ export default function MediaCarousel({
               onClick={goToNext}
               disabled={isLastImage}
               className={cn(
-                "absolute right-4 p-3 rounded-full transition-all",
+                "absolute right-4 p-3 rounded-full transition-all z-10",
                 isLastImage
                   ? "opacity-30 cursor-not-allowed bg-white/5"
                   : "opacity-70 hover:opacity-100 hover:bg-white/20 cursor-pointer"
@@ -210,17 +332,20 @@ export default function MediaCarousel({
         )}
       </div>
 
-      {/* Footer avec filmstrip/thumbnails */}
+      {/* Footer avec filmstrip/thumbnails scrollable */}
       {Array.isArray(attachments) && attachments.length > 1 && (
-        <div className="border-t border-white/10 bg-black/50 p-4 overflow-x-auto">
-          <div className="flex gap-2 relative">
+        <div className="border-t border-white/10 bg-black/50 p-4 flex-shrink-0">
+          <div 
+            ref={filmstripRef}
+            className="flex gap-2 overflow-x-auto pb-2 scroll-smooth"
+            style={{ scrollBehavior: "smooth" }}
+          >
             {attachments.map((attachment, index) => (
               <button
                 key={index}
+                ref={currentIndex === index ? currentThumbnailRef : null}
                 onClick={() => {
                   setCurrentIndex(index);
-                  setZoomLevel(1);
-                  setIsZoomed(false);
                 }}
                 className={cn(
                   "relative flex-shrink-0 rounded-lg overflow-hidden transition-all",

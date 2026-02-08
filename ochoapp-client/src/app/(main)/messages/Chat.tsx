@@ -87,7 +87,16 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
   
   if (!Array.isArray(messages)) return groups;
 
-  messages.forEach((msg, index) => {
+  // Déduplication des messages par ID pour éviter les doublons
+  const seenIds = new Set<string>();
+  const uniqueMessages = messages.filter((msg) => {
+    if (!msg || !msg.id) return false;
+    if (seenIds.has(msg.id)) return false;
+    seenIds.add(msg.id);
+    return true;
+  });
+
+  uniqueMessages.forEach((msg, index) => {
     if (!msg) return; // Guard extra défensif
 
     if (currentGroup.length === 0) {

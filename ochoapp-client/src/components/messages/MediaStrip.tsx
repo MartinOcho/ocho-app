@@ -23,6 +23,12 @@ export default function MediaStrip({
   onMediaClose,
 }: MediaStripProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  
+  // Limiter à 4 médias affichés
+  const MAX_VISIBLE_MEDIA = 4;
+  const visibleAttachments = attachments.slice(0, MAX_VISIBLE_MEDIA);
+  const remainingCount = attachments.length - MAX_VISIBLE_MEDIA;
+  const hasMore = remainingCount > 0;
 
   if (isLoading) {
     return (
@@ -38,6 +44,11 @@ export default function MediaStrip({
     return null;
   }
 
+  const handleMediaClick = (index: number) => {
+    setSelectedIndex(index);
+    onMediaOpen?.();
+  };
+
   return (
     <>
       <div
@@ -46,13 +57,10 @@ export default function MediaStrip({
           className
         )}
       >
-        {attachments.map((attachment, index) => (
+        {visibleAttachments.map((attachment, index) => (
           <button
             key={index}
-            onClick={() => {
-              setSelectedIndex(index);
-              onMediaOpen?.();
-            }}
+            onClick={() => handleMediaClick(index)}
             className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
           >
             {attachment.type === "VIDEO" ? (
@@ -85,6 +93,22 @@ export default function MediaStrip({
             )}
           </button>
         ))}
+
+        {/* Badge "+N" pour les médias restants */}
+        {hasMore && (
+          <button
+            onClick={() => {
+              setSelectedIndex(MAX_VISIBLE_MEDIA);
+              onMediaOpen?.();
+            }}
+            className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity size-32 max-sm:size-24 bg-muted/50 border border-muted-foreground/30 flex items-center justify-center cursor-pointer"
+          >
+            <div className="text-center">
+              <div className="text-2xl font-bold text-foreground">+{remainingCount}</div>
+              <div className="text-xs text-muted-foreground">voir plus</div>
+            </div>
+          </button>
+        )}
       </div>
 
       {selectedIndex !== null && (
