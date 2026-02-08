@@ -37,6 +37,7 @@ const getFriendlyErrorMessage = (error: unknown): string => {
   
   const msg = (error as Error).message || "";
 
+  if (msg === "Upload cancelled") return "Upload annulé"; // Cas spécial pour ne pas alarmer
   if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
     return "Problème de connexion. Veuillez vérifier votre internet.";
   }
@@ -66,6 +67,10 @@ export function MessageFormComponent({
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  
+  // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
+  const abortControllersRef = useRef<Record<string, () => void>>({});
+  
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
@@ -110,7 +115,12 @@ export function MessageFormComponent({
   };
 
   // Fonction d'upload native avec XMLHttpRequest pour le suivi réel de la progression
-  const uploadToCloudinary = async (file: File, onProgress?: (progress: number) => void): Promise<string> => {    
+  // Ajout du paramètre onCancelSetup pour enregistrer la fonction d'annulation
+  const uploadToCloudinary = async (
+    file: File, 
+    onProgress?: (progress: number) => void,
+    onCancelSetup?: (cancelFn: () => void) => void
+  ): Promise<string> => {    
     return new Promise((resolve, reject) => {
       const serverUrl = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_SERVER_URL) || "http://localhost:5000";
       const apiServer = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_CHAT_SERVER_URL || serverUrl).replace(/\/$/, "");
@@ -119,6 +129,13 @@ export function MessageFormComponent({
       const xhr = new XMLHttpRequest();
       const form = new FormData();
       form.append("file", file);
+
+      // Enregistrement de la fonction d'annulation pour l'extérieur
+      if (onCancelSetup) {
+        onCancelSetup(() => {
+          xhr.abort();
+        });
+      }
 
       // IMPORTANT: Pour tracker l'upload réel
       xhr.upload.onprogress = (event) => {
@@ -143,7 +160,6 @@ export function MessageFormComponent({
             reject(new Error("Réponse serveur invalide"));
           }
         } else {
-          // Erreur HTTP (4xx, 5xx)
           reject(new Error(`Erreur HTTP: ${xhr.status}`));
         }
       };
@@ -152,14 +168,14 @@ export function MessageFormComponent({
         reject(new Error("Network Error"));
       };
 
+      xhr.onabort = () => {
+        reject(new Error("Upload cancelled"));
+      };
+
       // Si votre API nécessite des cookies (session), décommentez ceci :
       xhr.withCredentials = true;
 
       xhr.open("POST", uploadUrl);
-      // Si vous utilisiez kyInstance pour des headers spécifiques (ex: Authorization Bearer), 
-      // il faudrait les ajouter ici via xhr.setRequestHeader
-      // Exemple: xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      
       xhr.send(form);
     });
   };
@@ -203,7 +219,6 @@ export function MessageFormComponent({
     }
 
     if (errors.length > 0) {
-      // On garde l'alert ici car c'est une validation avant envoi, pas une erreur serveur
       alert(errors.join("\n"));
     }
 
@@ -222,16 +237,23 @@ export function MessageFormComponent({
 
     setAttachments((prev) => [...prev, ...newAttachments]);
 
-    // start uploads in background
-    for (let i = 0; i < validFiles.length; i++) {
-      const file = validFiles[i];
+    // Démarrage des uploads en PARALLÈLE (au lieu de séquentiel)
+    // On utilise map au lieu d'une boucle for await pour ne pas bloquer
+    validFiles.forEach(async (file, index) => {
       const fileName = file.name;
-      const localId = newAttachments[i].id;
+      const localId = newAttachments[index].id;
 
       try {
-        const attachmentId = await uploadToCloudinary(file, (progress) => {
-          setUploadProgress((prev) => ({ ...prev, [fileName]: progress }));
-        });
+        const attachmentId = await uploadToCloudinary(
+          file, 
+          (progress) => {
+            setUploadProgress((prev) => ({ ...prev, [fileName]: progress }));
+          },
+          (cancelFn) => {
+            // On stocke la fonction d'annulation pour cet ID
+            abortControllersRef.current[localId] = cancelFn;
+          }
+        );
 
         setAttachments((prev) => {
           const copy = [...prev];
@@ -243,27 +265,43 @@ export function MessageFormComponent({
           return copy;
         });
       } catch (err) {
-        console.error(`Erreur upload ${fileName}:`, err);
+        const errorMessage = err instanceof Error ? err.message : "";
         
-        // Suppression de l'attachement échoué de l'UI
+        // On ne loggue l'erreur et n'alerte l'utilisateur que si ce n'est PAS une annulation volontaire
+        if (errorMessage !== "Upload cancelled") {
+          console.error(`Erreur upload ${fileName}:`, err);
+          const friendlyMessage = getFriendlyErrorMessage(err);
+          alert(`Échec pour ${fileName}: ${friendlyMessage}`);
+        }
+
+        // Suppression de l'attachement échoué ou annulé de l'UI
         setAttachments((prev) => prev.filter((a) => a.id !== localId));
         
-        // Utilisation de la fonction friendly message au lieu de l'erreur brute
-        const friendlyMessage = getFriendlyErrorMessage(err);
-        alert(`Échec pour ${fileName}: ${friendlyMessage}`);
       } finally {
+        // Nettoyage de la référence d'annulation et de la progression
+        if (abortControllersRef.current[localId]) {
+          delete abortControllersRef.current[localId];
+        }
         setUploadProgress((prev) => {
           const copy = { ...prev };
           delete copy[fileName];
           return copy;
         });
       }
-    }
+    });
 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeAttachment = (localId: string) => {
+    // Si un upload est en cours pour cet ID, on l'annule via le contrôleur
+    if (abortControllersRef.current[localId]) {
+      abortControllersRef.current[localId](); // Ceci déclenche xhr.abort()
+      delete abortControllersRef.current[localId];
+    }
+
+    // Le reste du nettoyage se fera dans le bloc catch/finally de handleFiles
+    // Mais on update l'UI immédiatement pour la réactivité si ce n'était pas en upload
     setAttachments((prev) => prev.filter((a) => a.id !== localId));
     setUploadProgress((prev) => {
       const copy = { ...prev };
@@ -383,17 +421,18 @@ export function MessageFormComponent({
                   </div>
                 )}
 
-                {/* Bouton de supression */}
-                {!a.isUploading && (
-                    <button
-                    onClick={() => removeAttachment(a.id)}
-                    className="absolute top-0.5 right-0.5 rounded-full bg-destructive/80 p-1 text-white transition-opacity hover:opacity-100 opacity-0 group-hover:opacity-100"
-                    type="button"
-                    title="Supprimer"
-                    >
-                    <X className="h-3 w-3" />
-                    </button>
+                {/* Bouton de supression / Annulation */}
+                <button
+                onClick={() => removeAttachment(a.id)}
+                className={cn(
+                    "absolute top-0.5 right-0.5 z-10 rounded-full bg-destructive/80 p-1 text-white transition-opacity hover:opacity-100",
+                    a.isUploading ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                 )}
+                type="button"
+                title={a.isUploading ? "Annuler l'envoi" : "Supprimer"}
+                >
+                <X className="h-3 w-3" />
+                </button>
 
                 {/* Badge du type */}
                 <div className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
