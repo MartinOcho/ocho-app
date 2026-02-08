@@ -1157,7 +1157,7 @@ io.on("connection", async (socket) => {
     
     typingUsersByRoom.forEach((typingUsers, room) => {
       typingUsers.delete(userId);
-      io.to(room).emit("stop_typing", { roomId: room });
+      io.to(room).emit("typing_stop", { roomId: room });
     });
 
     console.log(chalk.yellow(`${displayName} s'est déconnecté.`));
