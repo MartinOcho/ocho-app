@@ -104,7 +104,7 @@ export default function MediaCarousel({
 
   return (
     <div
-      className="fixed inset-0 z-[9999999] max-sm:translate-x-full bg-black/95 backdrop-blur-sm flex flex-col transition-transform duration-200 max-sm:w-screen max-sm:h-screen"
+      className="fixed inset-0 z-[9999999] max-sm:translate-x-full bg-black/95 backdrop-blur-sm flex flex-col transition-transform duration-200 max-sm:w-screen max-sm:h-screen max-sm:max-h-dvh max-sm:max-w-dvw"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
