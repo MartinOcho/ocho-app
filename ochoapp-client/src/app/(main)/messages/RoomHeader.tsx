@@ -332,7 +332,7 @@ export default function RoomHeader({
         "z-50",
         active
           ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
-          : "relative flex-1",
+          : "relative flex-1 flex w-full items-center gap-2 px-4 py-3 max-sm:absolute max-sm:top-0 max-sm:left-0 max-sm:right-0 max-sm:bg-card/50",
       )}
     >
       <div
@@ -358,37 +358,84 @@ export default function RoomHeader({
         className={`flex w-full flex-1 flex-col transition-all ${active ? "absolute inset-0 h-fit min-h-full bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative"}`}
       >
         <div
-          className={cn(`group/head flex flex-1 items-center gap-2 transition-all`, active ? "cursor-default flex-col p-3" : "cursor-pointer", isMediaFullscreen && "hidden")}
+          className={cn(
+            `group/head flex flex-1 items-center gap-2 transition-all`,
+            active ? "cursor-default flex-col p-3" : "cursor-pointer",
+            isMediaFullscreen && "hidden",
+          )}
           onClick={() => !active && setActive(true)}
         >
-          {room.isGroup ? (
-            <GroupAvatar
-              size={size}
-              className="transition-all *:transition-all"
-              avatarUrl={room.groupAvatarUrl}
-            />
-          ) : (
-            <UserAvatar
-              userId={otherUser?.id || null}
-              avatarUrl={otherUser?.avatarUrl}
-              size={size}
-              className="transition-all *:transition-all"
-            />
-          )}
-          <div className="flex-1">
+          {/* Mobile compact bar shown only on max-sm when not active */}
+          <div className={cn("hidden max-sm:flex w-full items-center gap-2 px-0 py-0", !active && "max-sm:flex")}> 
+            <div
+              className="flex cursor-pointer bg-card/30 rounded-2xl hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit items-center"
+              title="Fermer la discussion items-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActive(false);
+              }}
+            >
+              <ChevronLeft size={28} className="sm:hidden" />
+              <div className="flex items-center bg-primary p-1 rounded-2xl px-2 text-xs ml-2">999+</div>
+            </div>
+
+            <div className="z-50 relative flex-1 flex cursor-pointer bg-card/30 hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit rounded-[4rem]">
             {room.isGroup ? (
-              <div>
-                <div className="text-xl font-bold">{chatName}</div>
-                <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
-              </div>
+              <GroupAvatar size={size} className="transition-all *:transition-all" avatarUrl={room.groupAvatarUrl} />
             ) : (
-              <div>
-                <div className="text-xl font-bold">{chatName}</div>
-                <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
-                  {getStatusDisplay()}
-                </div>
-              </div>
+              <UserAvatar userId={otherUser?.id || null} avatarUrl={otherUser?.avatarUrl} size={size} className="transition-all *:transition-all" />
             )}
+            <div className="flex-1">
+              {room.isGroup ? (
+                <div>
+                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
+                    {getStatusDisplay()}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+            <div
+              className="flex cursor-pointer hover:text-red-500"
+              title="Fermer la discussion"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActive(false);
+              }}
+            >
+              <X size={25} className="max-sm:hidden" />
+            </div>
+          </div>
+
+          {/* Desktop / default layout (visible on sm and up) */}
+          <div className="hidden sm:flex w-full items-center gap-2">
+            {room.isGroup ? (
+              <GroupAvatar size={size} className="transition-all *:transition-all" avatarUrl={room.groupAvatarUrl} />
+            ) : (
+              <UserAvatar userId={otherUser?.id || null} avatarUrl={otherUser?.avatarUrl} size={size} className="transition-all *:transition-all" />
+            )}
+            <div className="flex-1">
+              {room.isGroup ? (
+                <div>
+                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
+                    {getStatusDisplay()}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {active && (
