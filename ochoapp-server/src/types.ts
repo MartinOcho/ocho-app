@@ -348,6 +348,56 @@ export interface SocketSendMessageEvent {
   recipientId?: string;
 }
 
+export interface SocketStartChatEvent {
+  targetUserId: string;
+  isGroup: boolean;
+  name?: string;
+  membersIds?: string[];
+}
+
+export interface SocketMarkMessageReadEvent {
+  messageId: string;
+  roomId: string;
+}
+
+export interface SocketAddReactionEvent {
+  messageId: string;
+  roomId: string;
+  content: string;
+}
+
+export interface SocketRemoveReactionEvent {
+  messageId: string;
+  roomId: string;
+}
+
+export interface SocketDeleteMessageEvent {
+  messageId: string;
+  roomId: string;
+}
+
+export interface SocketGetRoomsEvent {
+  cursor?: string | null;
+}
+
+export interface SocketCheckUserStatusEvent {
+  userId: string;
+}
+
+export interface SocketCreateNotificationEvent {
+  type: any;
+  recipientId?: string;
+  postId?: string;
+  commentId?: string;
+}
+
+export interface SocketDeleteNotificationEvent {
+  type: any;
+  recipientId?: string;
+  postId?: string;
+  commentId?: string;
+}
+
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
 }>;
