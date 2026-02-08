@@ -420,6 +420,8 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const roomName = room?.name || roomId || "Chat";
 
   useEffect(() => {
+    if (!roomId) return; // Ne rien faire si aucune room demandée
+
     const rName = room?.name || roomId || "Chat";
     if (!isLoading && (!room || isRoomError || !loggedUser)) {
       toast({
