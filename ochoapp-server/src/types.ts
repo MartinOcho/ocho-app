@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { MessageType, Prisma } from "@prisma/client";
 
 export type PrivacyType =
   | "PROFILE_VISIBILITY"
