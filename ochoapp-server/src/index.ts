@@ -12,6 +12,7 @@ import {
   getChatRoomDataInclude,
   getMessageDataInclude,
   getUserDataSelect,
+  MessageData,
 } from "./types";
 import {
   addAdminSchema,
@@ -833,7 +834,7 @@ io.on("connection", async (socket) => {
 
       try {
         const isSavedMessage = roomId === `saved-${userId}`;
-        let newMessage;
+        let newMessage: MessageData | null = null;
 
         if (isSavedMessage) {
           const savedMsg = await prisma.message.create({
@@ -849,7 +850,7 @@ io.on("connection", async (socket) => {
           if (content === "create-" + userId) {
             emissionType = "SAVED";
           }
-          const newMessage = { ...savedMsg, type: emissionType };
+          newMessage = { ...savedMsg, type: emissionType } as MessageData;
 
           socket.join(roomId);
           // AJOUT : Renvoyer tempId au client
@@ -927,55 +928,86 @@ io.on("connection", async (socket) => {
             include: { user: true },
           });
 
-          for (const member of activeMembers) {
-            if (member.userId) {
-              await prisma.lastMessage.upsert({
-                where: { userId_roomId: { userId: member.userId, roomId } },
-                create: {
-                  userId: member.userId,
-                  roomId,
-                  messageId: newMessage.id,
-                },
-                update: { messageId: newMessage.id, createdAt: new Date() },
+          if (newMessage) {
+            for (const member of activeMembers) {
+              if (member.userId) {
+                await prisma.lastMessage.upsert({
+                  where: { userId_roomId: { userId: member.userId, roomId } },
+                  create: {
+                    userId: member.userId,
+                    roomId,
+                    messageId: newMessage.id,
+                  },
+                  update: { messageId: newMessage.id, createdAt: new Date() },
+                });
+              }
+            }
+            socket.join(roomId);
+
+            // AJOUT : Émettre une mise à jour de la galerie si le message a des attachements
+            if (
+              attachmentIds &&
+              attachmentIds.length > 0 &&
+              newMessage &&
+              newMessage.attachments &&
+              newMessage.sender
+            ) {
+              const galleryMedias = newMessage.attachments.map((att) => ({
+                id: att.id,
+                type: att.type,
+                url: att.url,
+                publicId: att.publicId,
+                width: att.width,
+                height: att.height,
+                format: att.format,
+                resourceType: att.resourceType,
+                messageId: newMessage!.id,
+                senderUsername: newMessage!.sender!.username,
+                senderAvatar: newMessage!.sender!.avatarUrl,
+                sentAt: newMessage!.createdAt,
+              }));
+
+              io.to(roomId).emit("gallery_updated", {
+                roomId,
+                medias: galleryMedias,
               });
             }
-          }
-          socket.join(roomId);
 
-          // AJOUT : Renvoyer tempId au client
-          io.to(roomId).emit("receive_message", {
-            newMessage,
-            roomId,
-            newRoom: roomData,
-            tempId, // Important pour le mapping côté client
-          });
+            // AJOUT : Renvoyer tempId au client
+            io.to(roomId).emit("receive_message", {
+              newMessage,
+              roomId,
+              newRoom: roomData,
+              tempId, // Important pour le mapping côté client
+            });
 
-          await Promise.all(
-            activeMembers.map(async (member) => {
-              if (member.userId && member.user) {
-                try {
-                  const updatedRooms = await getFormattedRooms(
-                    member.userId,
-                    member.user.username
-                  );
-                  io.to(member.userId).emit("room_list_updated", updatedRooms);
+            await Promise.all(
+              activeMembers.map(async (member) => {
+                if (member.userId && member.user) {
+                  try {
+                    const updatedRooms = await getFormattedRooms(
+                      member.userId,
+                      member.user.username
+                    );
+                    io.to(member.userId).emit("room_list_updated", updatedRooms);
 
-                  // --- MODIFICATION ICI : Calcul exact ---
-                  // On ne fait plus un simple increment. On recalcule le VRAI nombre.
-                  if (member.userId !== userId) {
-                    const unreadCount = await getUnreadRoomsCount(member.userId);
-                    io.to(member.userId).emit("rooms_unreads_update", {
-                        unreadCount // Envoi du nombre exact (ex: 3 salons non lus)
-                    });
+                    // --- MODIFICATION ICI : Calcul exact ---
+                    // On ne fait plus un simple increment. On recalcule le VRAI nombre.
+                    if (member.userId !== userId) {
+                      const unreadCount = await getUnreadRoomsCount(member.userId);
+                      io.to(member.userId).emit("rooms_unreads_update", {
+                          unreadCount // Envoi du nombre exact (ex: 3 salons non lus)
+                      });
+                    }
+                    // ----------------------------------------
+
+                  } catch (e) {
+                    console.error("Erreur refresh member:", member.userId);
                   }
-                  // ----------------------------------------
-
-                } catch (e) {
-                  console.error("Erreur refresh member:", member.userId);
                 }
-              }
-            })
-          );
+              })
+            );
+          }
         }
       } catch (error) {
         console.error("Erreur send_message:", error);

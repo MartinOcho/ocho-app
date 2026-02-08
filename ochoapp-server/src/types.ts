@@ -319,6 +319,26 @@ export interface SocketMessageDeletedEvent {
   roomId: string;
 }
 
+export interface GalleryMedia {
+  id: string;
+  type: string;
+  url: string;
+  publicId: string | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  resourceType: string | null;
+  messageId: string;
+  senderUsername: string;
+  senderAvatar: string | null;
+  sentAt: Date;
+}
+
+export interface SocketGalleryUpdatedEvent {
+  roomId: string;
+  medias: GalleryMedia[];
+}
+
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
 }>;

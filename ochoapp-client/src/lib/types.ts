@@ -321,6 +321,18 @@ export interface MessagesSection {
   nextCursor: string | null;
 }
 
+export type GalleryMedia = MessageAttachment & {
+  messageId: string;
+  senderUsername: string;
+  senderAvatar: string | null;
+  sentAt: Date;
+};
+
+export interface GalleryMediasSection {
+  medias: GalleryMedia[];
+  nextCursor: string | null;
+}
+
 // --- TYPES POUR LES ÉVÉNEMENTS SOCKET ---
 export interface SocketReceiveMessageEvent {
   newMessage: MessageData;
@@ -337,6 +349,11 @@ export interface SocketTypingUpdateEvent {
 export interface SocketMessageDeletedEvent {
   messageId: string;
   roomId: string;
+}
+
+export interface SocketGalleryUpdatedEvent {
+  roomId: string;
+  medias: GalleryMedia[];
 }
 
 export type PostData = Prisma.PostGetPayload<{

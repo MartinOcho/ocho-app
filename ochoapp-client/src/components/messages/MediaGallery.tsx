@@ -1,55 +1,75 @@
 "use client";
 
-import { RoomData, MessageData, MessageAttachment } from "@/lib/types";
-import { useState, useMemo } from "react";
+import { GalleryMedia, SocketGalleryUpdatedEvent } from "@/lib/types";
+import { useState, useMemo, useEffect } from "react";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
-import { Play } from "lucide-react";
+import { Play, ChevronDown, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSocket } from "@/components/providers/SocketProvider";
+import { useInView } from "react-intersection-observer";
 
 interface MediaGalleryProps {
-  messages?: MessageData[];
+  roomId: string;
   className?: string;
+  medias?: GalleryMedia[];
   isLoading?: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
 export default function MediaGallery({
-  messages = [],
+  roomId,
+  medias = [],
   className,
   isLoading = false,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  onLoadMore,
 }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [displayedMedias, setDisplayedMedias] = useState<GalleryMedia[]>(medias);
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.1,
+  });
+  const { socket } = useSocket();
 
-  // Extract all attachments from messages in reverse order (newest first)
-  const allAttachments = useMemo(() => {
-    if (!Array.isArray(messages) || messages.length === 0) return [];
+  // Mettre à jour les médias affichés quand `medias` change
+  useEffect(() => {
+    setDisplayedMedias(medias);
+  }, [medias]);
 
-    const attachments: (MessageAttachment & { messageId: string })[] = [];
-
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const msg = messages[i];
-      if (!msg) continue;
-      const atts = Array.isArray(msg.attachments) ? msg.attachments : [];
-      if (atts.length > 0) {
-        atts.forEach((att) => {
-          if (att) {
-            attachments.push({
-              ...att,
-              messageId: msg.id,
-            });
-          }
-        });
-      }
+  // Gérer le chargement des pages suivantes via IntersectionObserver
+  useEffect(() => {
+    if (inView && hasNextPage && onLoadMore && !isFetchingNextPage) {
+      onLoadMore();
     }
+  }, [inView, hasNextPage, onLoadMore, isFetchingNextPage]);
 
-    return attachments;
-  }, [messages]);
+  // Écouter les mises à jour de la galerie via socket
+  useEffect(() => {
+    if (!socket) return;
 
-  if (isLoading) {
+    const handleGalleryUpdated = (event: SocketGalleryUpdatedEvent) => {
+      if (event.roomId === roomId && event.medias && event.medias.length > 0) {
+        // Ajouter les nouveaux médias au début de la liste
+        setDisplayedMedias((prev) => [...event.medias, ...prev]);
+      }
+    };
+
+    socket.on("gallery_updated", handleGalleryUpdated);
+
+    return () => {
+      socket.off("gallery_updated", handleGalleryUpdated);
+    };
+  }, [socket, roomId]);
+
+  if (isLoading && displayedMedias.length === 0) {
     return (
       <div className={cn("p-3 border-t border-border", className)}>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Médias
+          Galerie
         </h4>
         <div className="grid grid-cols-3 gap-2">
           {[...Array(6)].map((_, i) => (
@@ -60,30 +80,31 @@ export default function MediaGallery({
     );
   }
 
-  if (!allAttachments?.length) {
+  if (!displayedMedias?.length) {
     return null;
   }
 
-  // Show grid of thumbnails (maximum 6 items)
-  const displayedAttachments = allAttachments?.slice(0, 12) || [];
+  // Show grid of thumbnails (maximum 12 items initially)
+  const visibleMedias = displayedMedias.slice(0, 12);
 
   return (
     <>
       <div className={cn("p-3 border-t border-border", className)}>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Médias
+          Galerie
         </h4>
         <div className="grid grid-cols-3 gap-2">
-          {displayedAttachments.map((attachment, index) => (
+          {visibleMedias.map((media, index) => (
             <button
-              key={`${attachment.messageId}-${index}`}
+              key={`${media.messageId}-${media.id}`}
               onClick={() => setSelectedIndex(index)}
               className="relative group rounded-md overflow-hidden aspect-square hover:opacity-80 transition-opacity"
+              title={`Envoyé par ${media.senderUsername}`}
             >
-              {attachment.type === "VIDEO" ? (
+              {media.type === "VIDEO" ? (
                 <>
                   <video
-                    src={attachment.url}
+                    src={media.url}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
@@ -95,8 +116,8 @@ export default function MediaGallery({
                 </>
               ) : (
                 <img
-                  src={attachment.url}
-                  alt={`Media ${index + 1}`}
+                  src={media.url}
+                  alt={`Media de ${media.senderUsername}`}
                   className="w-full h-full object-cover"
                 />
               )}
@@ -104,16 +125,38 @@ export default function MediaGallery({
           ))}
         </div>
 
-        {allAttachments.length > displayedAttachments.length && (
-          <p className="text-xs text-muted-foreground mt-2">
-            +{allAttachments.length - displayedAttachments.length} médias
-          </p>
+        {displayedMedias.length > visibleMedias.length && (
+          <div className="mt-2 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              +{displayedMedias.length - visibleMedias.length} médias
+            </p>
+            {hasNextPage && (
+              <button
+                ref={loadMoreRef}
+                onClick={onLoadMore}
+                disabled={isFetchingNextPage}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Chargement...
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={14} />
+                    Charger plus
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
       {selectedIndex !== null && (
         <MediaCarousel
-          attachments={displayedAttachments as MessageAttachment[]}
+          attachments={visibleMedias}
           initialIndex={selectedIndex}
           onClose={() => setSelectedIndex(null)}
         />

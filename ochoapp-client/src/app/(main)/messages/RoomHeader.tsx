@@ -44,6 +44,7 @@ import MessageButton from "@/components/messages/MessageButton";
 import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
 import { useSocket } from "@/components/providers/SocketProvider";
 import MediaGallery from "@/components/messages/MediaGallery";
+import { useGalleryQuery } from "@/hooks/useGalleryQuery";
 import { useTranslation } from "@/context/LanguageContext";
 
 interface ChatHeaderProps {
@@ -319,7 +320,7 @@ export default function RoomHeader({
     if (isSaved) return messageYourself;
     if (!otherUser?.id) return thisAccountDeleted;
     if (onlineUsers.includes(otherUser.id)) return online;
-    if (activeStatus.isOnline) {
+    if (activeStatus?.isOnline) {
       return online;
     }
     return `@${otherUser?.username || "ochoapp-user"}`;
@@ -383,7 +384,7 @@ export default function RoomHeader({
             ) : (
               <div>
                 <div className="text-xl font-bold">{chatName}</div>
-                <div className={cn("text-sm text-muted-foreground", (activeStatus || isSaved)  && "text-primary")}>
+                <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
                   {getStatusDisplay()}
                 </div>
               </div>
@@ -956,31 +957,29 @@ export function GroupUserPopover({
   );
 }
 
-// Composant helper pour charger les messages et afficher la galerie de médias
+// Composant helper pour charger les médias et afficher la galerie
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
-  const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["room", "gallery", roomId],
-    queryFn: async () => {
-      try {
-        const response = await kyInstance
-          .get(`/api/rooms/${roomId}/messages`, {
-            searchParams: { limit: "100" },
-          })
-          .json<{ messages?: MessageData[] }>();
-        return response?.messages || [];
-      } catch (err) {
-        console.error("[MediaGalleryContainer] Erreur API:", err);
-        return [];
-      }
-    },
-    enabled: !!roomId,
-  });
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useGalleryQuery({ roomId, enabled: !!roomId });
 
-  // Toujours rendre MediaGallery: il gère le skeleton via `isLoading`
+  const allMedias = useMemo(
+    () => data?.pages?.flatMap((page) => page?.medias ?? []) || [],
+    [data]
+  );
+
   return (
-    <MediaGallery 
-      messages={Array.isArray(messages) ? messages : []} 
-      isLoading={isLoading} 
+    <MediaGallery
+      roomId={roomId}
+      medias={allMedias}
+      isLoading={isLoading}
+      hasNextPage={hasNextPage ?? false}
+      isFetchingNextPage={isFetchingNextPage}
+      onLoadMore={() => fetchNextPage()}
     />
   );
 }
