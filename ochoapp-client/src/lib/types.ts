@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { MessageType } from "@prisma/client";
 import { Vocabulary, Language } from "./vocabulary";
 
 export type PrivacyType =
@@ -354,6 +355,15 @@ export interface SocketMessageDeletedEvent {
 export interface SocketGalleryUpdatedEvent {
   roomId: string;
   medias: GalleryMedia[];
+}
+
+export interface SocketSendMessageEvent {
+  content: string;
+  roomId: string;
+  type: MessageType;
+  tempId?: string;
+  attachmentIds?: string[];
+  recipientId?: string;
 }
 
 export type PostData = Prisma.PostGetPayload<{

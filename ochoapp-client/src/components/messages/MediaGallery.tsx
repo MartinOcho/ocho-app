@@ -81,7 +81,22 @@ export default function MediaGallery({
   }
 
   if (!displayedMedias?.length) {
-    return null;
+    return (
+      <div className={cn("p-3 border-t border-border", className)}>
+        <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+          Galerie
+        </h4>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Images
+            size={32}
+            className="text-muted-foreground/50 mb-2"
+          />
+          <p className="text-sm text-muted-foreground">
+            Aucun média partagé
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Show grid of thumbnails (maximum 12 items initially)

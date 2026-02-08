@@ -339,6 +339,15 @@ export interface SocketGalleryUpdatedEvent {
   medias: GalleryMedia[];
 }
 
+export interface SocketSendMessageEvent {
+  content: string;
+  roomId: string;
+  type: MessageType;
+  tempId?: string;
+  attachmentIds?: string[];
+  recipientId?: string;
+}
+
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
 }>;

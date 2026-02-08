@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import { MessageType, PrismaClient } from "@prisma/client";
+import { MessageType, PrismaClient, Prisma } from "@prisma/client";
 import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
@@ -13,6 +13,7 @@ import {
   getMessageDataInclude,
   getUserDataSelect,
   MessageData,
+  SocketSendMessageEvent,
 } from "./types";
 import {
   addAdminSchema,
@@ -817,14 +818,7 @@ io.on("connection", async (socket) => {
 
   socket.on(
     "send_message",
-    async (data: {
-      content: string;
-      roomId: string;
-      type: MessageType;
-      recipientId: string | undefined;
-      tempId?: string;
-      attachmentIds?: string[];
-    }) => {
+    async (data: SocketSendMessageEvent) => {
       const userId = socket.data.user.id;
       const username = socket.data.user.username;
       const { content, roomId, type, recipientId, tempId, attachmentIds = [] } = data;
@@ -872,8 +866,10 @@ io.on("connection", async (socket) => {
           }
 
           // Support attachments: use attachmentIds from client
-          let createdMessage: any = null;
-          let roomData: any = null;
+          let createdMessage: Prisma.MessageGetPayload<object> | null = null;
+          let roomData: Prisma.RoomGetPayload<{
+            include: ReturnType<typeof getChatRoomDataInclude>;
+          }> | null = null;
 
           await prisma.$transaction(async (tx) => {
             // Create message
