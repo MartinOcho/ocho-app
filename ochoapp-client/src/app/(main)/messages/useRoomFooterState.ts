@@ -21,54 +21,69 @@ export function useRoomFooterState({
   otherUser,
   isLoading,
 }: UseRoomFooterStateParams): RoomFooterState {
-  // État de chargement
+  
+  // 1. État de chargement et garde-fous
+  // Nous vérifions en premier si les données essentielles sont présentes pour éviter les erreurs de lecture.
   if (isLoading || !room || !loggedUserId) {
     return { type: RoomFooterStateType.Loading };
   }
 
-  // Cas spécial : Messages sauvegardés
+  // 2. Cas spécial : Messages sauvegardés (Notes personnelles)
   if (isSaved) {
     return { type: RoomFooterStateType.Normal };
   }
 
-  // Si ce n'est pas un groupe (conversation privée)
+  // 3. Gestion des conversations privées (DM)
   if (!room.isGroup) {
-    // Vérifier si l'utilisateur interlocuteur a supprimé son compte
     if (!otherUser?.id) {
       return { type: RoomFooterStateType.UserDeleted };
     }
-    // Sinon, l'utilisateur peut envoyer des messages
     return { type: RoomFooterStateType.Normal };
   }
 
-  // Pour les groupes, vérifier le statut du membre
+  // 4. Gestion des Groupes
   const member = room.members.find((m) => m.userId === loggedUserId);
 
-  // Utilisateur expulsé
-  if (member?.type === "OLD" && member.kickedAt !== null) {
-    return { type: RoomFooterStateType.UserKicked };
+  // Si l'utilisateur n'est pas trouvé dans la liste des membres et n'est pas "OLD"
+  if (!member) {
+    return { type: RoomFooterStateType.Unspecified };
   }
 
-  // Utilisateur banni
-  if (member?.type === "BANNED") {
+  // Priorité 1 : Le bannissement (statut permanent et restrictif)
+  if (member.type === "BANNED") {
     return { type: RoomFooterStateType.UserBanned };
   }
 
-  // Utilisateur a quitté
-  if (member?.type === "OLD" && member.kickedAt === null) {
-    return { type: RoomFooterStateType.UserLeft };
+  // Priorité 2 : Analyse des anciens membres (OLD)
+  if (member.type === "OLD") {
+    /**
+     * CORRECTION : On compare les dates si les deux existent, 
+     * ou on vérifie la présence stricte de l'un ou l'autre.
+     * Si 'kickedAt' existe mais que 'leftAt' est plus récent, c'est un départ volontaire.
+     */
+    const kickedDate = member.kickedAt ? new Date(member.kickedAt).getTime() : 0;
+    const leftDate = member.leftAt ? new Date(member.leftAt).getTime() : 0;
+
+    if (kickedDate > 0 && kickedDate >= leftDate) {
+      return { type: RoomFooterStateType.UserKicked };
+    } 
+    
+    if (leftDate > 0) {
+      return { type: RoomFooterStateType.UserLeft };
+    }
   }
 
-  // Groupe plein
-  if ((room?.members?.length || 0) >= room?.maxMembers) {
+  // 5. Vérification du remplissage du groupe pour les nouveaux membres potentiels
+  // On ne vérifie cela que si l'utilisateur n'est pas déjà un membre actif.
+  const isCurrentlyActive = ["MEMBER", "OWNER", "ADMIN"].includes(member.type);
+  if (!isCurrentlyActive && (room.members.length >= room.maxMembers)) {
     return { type: RoomFooterStateType.GroupFull };
   }
 
-  // Utilisateur membre, admin ou owner
-  if (member?.type === "MEMBER" || member?.type === "OWNER" || member?.type === "ADMIN") {
+  // 6. Utilisateur actif
+  if (isCurrentlyActive) {
     return { type: RoomFooterStateType.Normal };
   }
 
-  // Cas non spécifié
   return { type: RoomFooterStateType.Unspecified };
 }
