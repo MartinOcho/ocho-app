@@ -348,8 +348,8 @@ export default function RoomHeader({
       className={cn(
         "z-50",
         active
-          ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
-          : "relative flex w-full flex-1 items-center gap-2 px-4 py-3 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none",
+          ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card max-sm:bg-background px-4 py-3 sm:rounded-e-3xl"
+          : "relative flex w-full flex-1 items-center gap-2 max-sm:px-4 max-sm:py-3 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none",
       )}
     >
       <div
