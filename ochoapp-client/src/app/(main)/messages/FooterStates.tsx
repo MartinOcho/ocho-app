@@ -52,7 +52,7 @@ export function UnavailableFooter({
   }
 
   return (
-    <div className="relative flex w-full select-none items-center justify-center gap-3 flex-wrap sm:flex-wrap-reverse">
+    <div className="relative flex w-full flex-1 select-none items-center justify-center gap-3 flex-wrap sm:flex-wrap-reverse">
       {buttonLabel && (
         <Button
           size="sm"
@@ -62,7 +62,7 @@ export function UnavailableFooter({
           {buttonLabel}
         </Button>
       )}
-      <div className="flex items-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 max-sm:flex-col sm:px-5">
+      <div className="flex items-center flex-1 gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 max-sm:flex-col sm:px-5">
         {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
         <p className="text-center font-semibold text-destructive">
           {stateText}
