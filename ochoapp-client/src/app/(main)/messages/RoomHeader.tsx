@@ -512,7 +512,7 @@ export default function RoomHeader({
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as any)}
-            className="flex h-full w-full flex-1 flex-col gap-3 overflow-y-auto"
+            className=""
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="info" className="flex items-center gap-2">
