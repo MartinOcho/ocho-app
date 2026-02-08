@@ -166,7 +166,7 @@ export function UserDeletedFooter({
   const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText={t("accountDeleted")}
+      stateText={t("deletedAccount")}
       buttonLabel={t("deleteConversation")}
       onButtonClick={onDeleteConversation}
       icon={<Ghost className="h-5 w-5 text-red-500" />}
