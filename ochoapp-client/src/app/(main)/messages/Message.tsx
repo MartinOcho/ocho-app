@@ -104,7 +104,7 @@ export function DeletionPlaceholder({
   const secondsLeft = Math.ceil(timeLeft / 1000);
 
   return (
-    <div className="relative flex w-full justify-end z-20">
+    <div className="relative flex w-full justify-end z-0">
       <div className="relative flex w-fit select-none flex-col items-end">
         <div className="relative flex w-fit items-center justify-between gap-2 overflow-hidden rounded-full border border-destructive/40 bg-destructive/5 p-1.5 pe-4 text-destructive shadow-sm backdrop-blur-sm">
           <div
@@ -113,7 +113,7 @@ export function DeletionPlaceholder({
           />
           <button
             onClick={onCancel}
-            className="z-10 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
+            className="z-0 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
           >
             <div className="relative flex items-center justify-center">
               <svg height={size} width={size} className="-rotate-90 transform">
@@ -127,7 +127,7 @@ export function DeletionPlaceholder({
               <span className="uppercase">{t("cancel")}</span>
             </div>
           </button>
-          <span className="z-10 italic tracking-wider">{t("deleting")}</span>
+          <span className="z-0 italic tracking-wider">{t("deleting")}</span>
         </div>
       </div>
     </div>
@@ -729,7 +729,7 @@ export default function Message({
               )}
             >
               {message.senderId !== loggedUser.id && (
-                <span className="pb-1 z-10">
+                <span className="pb-1 z-0">
                   {isLastInCluster ? (
                     <UserAvatar
                       userId={message.senderId}
@@ -775,7 +775,7 @@ export default function Message({
                     <div className={cn(
                         "absolute -bottom-3", 
                         isOwner ? "left-0 -translate-x-3" : "right-0 translate-x-3",
-                        !activeOverlayRect && !activeDetailsRect ? "z-20 pointer-events-auto" : "z-50 pointer-events-none opacity-0",
+                        !activeOverlayRect && !activeDetailsRect ? "z-0 pointer-events-auto" : "z-50 pointer-events-none opacity-0",
                     )}>
                         <ReactionList
                             reactions={reactions}
@@ -865,7 +865,7 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
           className="border-2 border-background"
         />
       ) : (
-        <div className="z-10 flex size-6 min-h-6 min-w-6 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+        <div className="z-0 flex size-6 min-h-6 min-w-6 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
           {typingUsers.length || 0}
         </div>
       )}
