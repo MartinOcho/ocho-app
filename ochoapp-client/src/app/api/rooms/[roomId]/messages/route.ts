@@ -14,7 +14,8 @@ export async function GET(
     params: Promise<{ roomId: string }>;
   },
 ) {
-  const {roomId} = await params
+  const { roomId } = await params;
+
   try {
     const url = new URL(req.url);
     const cursor = url.searchParams.get("cursor") || undefined;
@@ -26,64 +27,57 @@ export async function GET(
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
-    // Vérifier si on récupère des messages sauvegardés ou une room
+    // Vérifier si on récupère des messages sauvegardés
     const isSavedMessages = roomId === `saved-${user.id}`;
-    
-    let roomData;
-    if (!isSavedMessages) {
-      roomData = await prisma.room.findUnique({
-        where: { id: roomId },
-      });
-      if (!roomData) {
-        return Response.json(
-          { error: "Le canal n'existe pas" },
-          { status: 400 },
-        );
-      }
-    }
 
-    let messages: MessageData[];
+    let messages: MessageData[] = [];
+    let nextCursor: string | null = null;
 
     if (isSavedMessages) {
-      // Récupérer les messages sauvegardés
+      // --- LOGIQUE MESSAGES SAUVEGARDÉS ---
       messages = await prisma.message.findMany({
         where: {
           senderId: user.id,
           type: "SAVED",
         },
         include: getMessageDataInclude(user.id),
-        orderBy: { createdAt: "desc" },
+        // CORRECTION MAJEURE: Ajout de l'ID pour un tri stable
+        orderBy: [
+          { createdAt: "desc" },
+          { id: "desc" } 
+        ],
         take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
         skip: cursor ? 1 : 0,
       });
-      // Convertir les anciens messages SAVED en CONTENT pour l'affichage
-      if (messages && messages.length > 0) {
+
+      // Transformation des types pour l'affichage
+      if (messages.length > 0) {
         messages = messages.map((m) => {
           if (m.content !== `create-${user.id}`) {
-            m.type = "CONTENT" as any;
+            m.type = "CONTENT";
           }
           return m;
         });
       }
-    } else {
-      // Récupérer les messages d'une room spécifique
-      messages = await prisma.message.findMany({
-        where: { roomId },
-        include: getMessageDataInclude(user.id),
-        orderBy: { createdAt: "desc" },
-        take: pageSize + 1,
-        cursor: cursor ? { id: cursor } : undefined,
-        skip: cursor ? 1 : 0,
+
+    } else {     
+      // 1. Récupérer les infos de la room
+      const roomData = await prisma.room.findUnique({
+        where: { id: roomId },
+        select: { isGroup: true }, // On optimise en ne sélectionnant que le nécessaire
       });
-    }
 
-    const nextCursor =
-      messages.length > pageSize ? messages[pageSize].id : null;
+      if (!roomData) {
+        return Response.json(
+          { error: "Le canal n'existe pas" },
+          { status: 404 },
+        );
+      }
 
-    const isGroup = roomData?.isGroup;
-
-    if (isGroup) {
+      // 2. SÉCURITÉ & LOGIQUE MEMBRE (Unifiée pour Groupes et DMs)
+      // On vérifie TOUJOURS si l'utilisateur est membre, même pour un DM.
+      // Cela empêche un utilisateur de lire les messages d'un DM dont il ne fait pas partie.
       const member = await prisma.roomMember.findUnique({
         where: {
           roomId_userId: {
@@ -92,34 +86,64 @@ export async function GET(
           },
         },
       });
+
       if (!member) {
         return Response.json(
-          { error: "Vous n'êtes pas membre de ce groupe" },
-          { status: 403 },
-        );
-      }
-      if (member.type === "BANNED") {
-        return Response.json(
-          { error: "Vous avez été suspendu de ce groupe par un administrateur" },
+          { error: "Vous n'êtes pas membre de cette conversation" },
           { status: 403 },
         );
       }
 
-      const leftDate = member.leftAt;
-      if (leftDate) {
-        // Filter out messages sent after the user left the group
-        messages = messages.filter((message) => message.createdAt < leftDate);
+      // Gestion spécifique aux groupes (Banni / Date de départ)
+      const isGroup = roomData.isGroup;
+      if (isGroup) {
+        if (member.type === "BANNED") {
+          return Response.json(
+            { error: "Vous avez été suspendu de ce groupe" },
+            { status: 403 },
+          );
+        }
       }
+
+      // 3. Récupération des messages
+      const whereClause: any = { roomId };
+      
+      
+      if (isGroup && member.leftAt) {
+        whereClause.createdAt = {
+          lt: member.leftAt
+        };
+      }
+
+      messages = await prisma.message.findMany({
+        where: whereClause,
+        include: getMessageDataInclude(user.id),
+        // CORRECTION MAJEURE: Tri stable sur deux colonnes
+        orderBy: [
+          { createdAt: "desc" },
+          { id: "desc" }
+        ],
+        take: pageSize + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
+      });
+    }
+
+    // Calcul du curseur suivant
+    if (messages.length > pageSize) {
+      const nextItem = messages.pop();
+      nextCursor = nextItem ? nextItem.id : null;
     }
 
     const data: MessagesSection = {
-      messages: messages.slice(0, pageSize),
+      messages,
       nextCursor,
     };
 
     return Response.json(data);
+
   } catch (error) {
-    console.error(error);
+    console.error("Erreur lors de la récupération des messages:", error);
     return Response.json(
       { error: "Erreur interne du serveur" },
       { status: 500 },
