@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface UnavailableFooterProps {
   stateText: string;
@@ -114,10 +115,11 @@ export function UserLeftFooter({
   onContactAdmin,
   compact = false,
 }: UserLeftFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Vous avez quitté le groupe"
-      buttonLabel="Contacter un administrateur"
+      stateText={t("youLeftGroup")}
+      buttonLabel={t("contactAdmin")}
       onButtonClick={onContactAdmin}
       icon={<LogOut className="h-5 w-5 text-orange-500" />}
       compact={compact}
@@ -136,10 +138,11 @@ export function UserKickedFooter({
   onContactAdmin,
   compact = false,
 }: UserKickedFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Un administrateur vous a retiré du groupe"
-      buttonLabel="Contacter un administrateur"
+      stateText={t("youWereKickedFromGroup")}
+      buttonLabel={t("contactAdmin")}
       onButtonClick={onContactAdmin}
       icon={<AlertTriangle className="h-5 w-5 text-orange-500" />}
       compact={compact}
@@ -160,10 +163,11 @@ export function UserDeletedFooter({
   onDeleteConversation,
   compact = false,
 }: UserDeletedFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Compte supprimé"
-      buttonLabel="Supprimer la discussion"
+      stateText={t("accountDeleted")}
+      buttonLabel={t("deleteConversation")}
       onButtonClick={onDeleteConversation}
       icon={<Ghost className="h-5 w-5 text-red-500" />}
       compact={compact}
@@ -182,10 +186,11 @@ export function UserBannedFooter({
   onContactSupport,
   compact = false,
 }: UserBannedFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Vous avez été banni"
-      buttonLabel="Contacter le support"
+      stateText={t("youAreBanned")}
+      buttonLabel={t("contactSupport")}
       onButtonClick={onContactSupport}
       icon={<Ban className="h-5 w-5 text-destructive" />}
       compact={compact}
@@ -204,10 +209,11 @@ export function PrivateProfileFooter({
   onFollowUser,
   compact = false,
 }: PrivateProfileFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Profil privé"
-      buttonLabel="Suivre pour discuter"
+      stateText={t("privateProfile")}
+      buttonLabel={t("followToChat")}
       onButtonClick={onFollowUser}
       icon={<Lock className="h-5 w-5 text-pink-500" />}
       compact={compact}
@@ -226,10 +232,11 @@ export function GroupFullFooter({
   onViewDetails,
   compact = false,
 }: GroupFullFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="Groupe plein"
-      buttonLabel="Voir les détails"
+      stateText={t("groupFull")}
+      buttonLabel={t("viewDetails")}
       onButtonClick={onViewDetails}
       icon={<Users className="h-5 w-5 text-yellow-500" />}
       compact={compact}
@@ -248,10 +255,11 @@ export function UnspecifiedFooter({
   onContactSupport,
   compact = false,
 }: UnspecifiedFooterProps) {
+  const {t} = useTranslation();
   return (
     <UnavailableFooter
-      stateText="L'envoi de message n'est pas disponible"
-      buttonLabel="Contacter le support"
+      stateText={t("cantMessage")}
+      buttonLabel={t("contactSupport")}
       onButtonClick={onContactSupport}
       icon={<AlertCircle className="h-5 w-5 text-muted-foreground" />}
       compact={compact}
