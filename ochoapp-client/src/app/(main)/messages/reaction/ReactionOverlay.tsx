@@ -9,6 +9,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { useSession } from "../../SessionProvider";
 import Time from "@/components/Time";
 import { useTranslation } from "@/context/LanguageContext";
+import { useActiveRoom } from "@/context/ChatContext";
 
 export interface ReactionData {
   content: string;
@@ -106,7 +107,7 @@ export default function ReactionOverlay({
           transform: `translateY(${verticalOffset}px)`,
         }}
       >
-        <div className="pointer-events-none z-20 h-fit w-full scale-100 origin-top-left">
+        <div className={cn("pointer-events-none z-20 h-fit w-full scale-100 origin-top-left", isOwner ? "origin-top-right" : "origin-top-left")}>
           <MessageBubbleContent
             message={message}
             isOwner={isOwner}
