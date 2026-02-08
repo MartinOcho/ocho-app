@@ -753,7 +753,7 @@ export default function Message({
 
                 <div className="relative">
                     <div
-                        className={cn("relative z-10", activeOverlayRect ? "opacity-0" : "opacity-100")}
+                        className={cn("relative z-0", activeOverlayRect ? "opacity-0" : "opacity-100")}
                         onContextMenu={handleContextMenu}
                         ref={bubbleRef}
                     >

@@ -154,17 +154,13 @@ export async function GET(
     const processedMessages: string[] = [];
 
     for (const message of messagesWithAttachments.slice(0, pageSize)) {
-      if (
-        message.attachments &&
-        message.attachments.length > 0 &&
-        message.sender
-      ) {
+      if (message.attachments && message.attachments.length > 0) {
         for (const attachment of message.attachments) {
           medias.push({
             ...attachment,
             messageId: message.id,
-            senderUsername: message.sender.username,
-            senderAvatar: message.sender.avatarUrl,
+            senderUsername: message.sender?.username,
+            senderAvatar: message.sender?.avatarUrl,
             sentAt: message.createdAt,
           });
         }

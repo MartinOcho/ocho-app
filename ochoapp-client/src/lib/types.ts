@@ -323,8 +323,8 @@ export interface MessagesSection {
 
 export type GalleryMedia = MessageAttachment & {
   messageId: string;
-  senderUsername: string;
-  senderAvatar: string | null;
+  senderUsername?: string;
+  senderAvatar?: string | null;
   sentAt: Date;
 };
 
