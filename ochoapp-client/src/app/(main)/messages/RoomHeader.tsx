@@ -388,7 +388,7 @@ export default function RoomHeader({
               <div className="flex items-center bg-primary p-1 rounded-2xl px-2 text-xs ml-2">999+</div>
             </div>
 
-            <div className="z-50 relative flex-1 flex cursor-pointer bg-card/30 hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit rounded-[4rem]">
+            <div className={cn("z-50 relative flex-1 flex cursor-pointer bg-card/30 sm:hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit rounded-[4rem] items-center", active && "flex-col")}>
             {room.isGroup ? (
               <GroupAvatar size={size} className="transition-all *:transition-all" avatarUrl={room.groupAvatarUrl} />
             ) : (
@@ -397,12 +397,12 @@ export default function RoomHeader({
             <div className="flex-1">
               {room.isGroup ? (
                 <div>
-                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
                   <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
                   <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
                     {getStatusDisplay()}
                   </div>
@@ -430,12 +430,12 @@ export default function RoomHeader({
             <div className="flex-1">
               {room.isGroup ? (
                 <div>
-                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
                   <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-xl font-bold">{chatName}</div>
+                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
                   <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
                     {getStatusDisplay()}
                   </div>
@@ -448,7 +448,7 @@ export default function RoomHeader({
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as any)}
-            className="flex w-full flex-1 flex-col gap-3"
+            className="flex w-full flex-1 flex-col gap-3 h-full overflow-y-auto"
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="info" className="flex items-center gap-2">
@@ -878,7 +878,6 @@ export function GroupUserPopover({
     <Verified type={verifiedType} prompt={false} />
   ) : null;
 
-  console.log("verifiedCheck:", verifiedCheck);
 
   //  get the loggedin user values in members
   const loggedMember = members.find(
