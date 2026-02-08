@@ -389,7 +389,7 @@ export default function RoomHeader({
             )}
           >
             <div
-              className={cn("flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit", active && "absolute left-2 top-2 z-50")}
+              className={cn("flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit", active && "max-sm:absolute left-2 top-2 z-50")}
               title="Fermer la discussion items-center"
               onClick={backHandler}
             >
