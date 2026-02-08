@@ -376,8 +376,8 @@ export default function RoomHeader({
       >
         <div
           className={cn(
-            `group/head flex flex-1 items-center gap-2 transition-all`,
-            active ? "cursor-default flex-col p-3" : "cursor-pointer",
+            `group/head flex items-center gap-2 transition-all`,
+            active ? "cursor-default flex-col p-3" : "cursor-pointer flex-1",
             isMediaFullscreen && "hidden",
           )}
           onClick={() => !active && setActive(true)}
@@ -389,7 +389,7 @@ export default function RoomHeader({
             )}
           >
             <div
-              className="flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit"
+              className={cn("flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit", active && "absolute left-0 top-0 z-50")}
               title="Fermer la discussion items-center"
               onClick={backHandler}
             >
@@ -401,8 +401,8 @@ export default function RoomHeader({
 
             <div
               className={cn(
-                "relative z-50 flex flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit",
-                active && "flex-col",
+                "relative z-50 flex flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md  xl:w-fit",
+                active && "flex-col bg-transparent border-none shadow-none",
               )}
             >
               {room.isGroup ? (
