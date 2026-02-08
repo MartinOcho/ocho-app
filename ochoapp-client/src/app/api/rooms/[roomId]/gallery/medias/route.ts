@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { MessageAttachment } from "@/lib/types";
 
 export interface GalleryMediasSection {
-  medias: (MessageAttachment & { messageId: string; senderUsername: string; senderAvatar: string | null; sentAt: Date })[];
+  medias: (MessageAttachment & { messageId: string; senderUsername: string | null; senderAvatar: string | null; sentAt: Date })[];
   nextCursor: string | null;
 }
 
@@ -159,8 +159,8 @@ export async function GET(
           medias.push({
             ...attachment,
             messageId: message.id,
-            senderUsername: message.sender?.username,
-            senderAvatar: message.sender?.avatarUrl,
+            senderUsername: message.sender?.username || null,
+            senderAvatar: message.sender?.avatarUrl || null,
             sentAt: message.createdAt,
           });
         }
