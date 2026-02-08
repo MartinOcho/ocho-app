@@ -83,38 +83,47 @@ export function useTranslation() {
 
   // On définit la logique de traduction à l'intérieur du hook
   // pour qu'elle dépende de l'état "language" du contexte.
-  const t = useCallback((
-    keys?: VocabularyKey | VocabularyKey[],
-    replacements?: Record<string, string | number>
-  ): any => {
-    // Note : Tant que isReady est faux, on pourrait forcer "en" 
-    // pour garantir la correspondance avec le serveur
-    const activeLang = isReady ? language : "en";
+  
+  // Surcharges de fonction pour un typage strict
+  const t = useCallback(
+    ((
+      keys?: VocabularyKey | VocabularyKey[],
+      replacements?: Record<string, string | number>
+    ) => {
+      // Note : Tant que isReady est faux, on pourrait forcer "en" 
+      // pour garantir la correspondance avec le serveur
+      const activeLang = isReady ? language : "en";
 
-    if (keys === undefined) {
-      return allVocabularyKeys.reduce((acc, key) => {
+      if (keys === undefined) {
+        return allVocabularyKeys.reduce((acc, key) => {
+          acc[key] = vocabulary[activeLang][key];
+          return acc;
+        }, {} as VocabularyObject);
+      }
+
+      if (replacements && !Array.isArray(keys)) {
+        let translation = vocabulary[activeLang][keys as VocabularyKey] || "";
+        Object.entries(replacements).forEach(([key, value]) => {
+          translation = translation.replace(new RegExp(`\\[${key}\\]`, 'g'), String(value));
+          translation = translation.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+        });
+        return translation;
+      }
+
+      const keysArray = Array.isArray(keys) ? keys : [keys as VocabularyKey];
+      const result = keysArray.reduce((acc, key) => {
         acc[key] = vocabulary[activeLang][key];
         return acc;
-      }, {} as VocabularyObject);
-    }
+      }, {} as Record<VocabularyKey, string>);
 
-    if (replacements && !Array.isArray(keys)) {
-      let translation = vocabulary[activeLang][keys as VocabularyKey] || "";
-      Object.entries(replacements).forEach(([key, value]) => {
-        translation = translation.replace(new RegExp(`\\[${key}\\]`, 'g'), String(value));
-        translation = translation.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
-      });
-      return translation;
-    }
-
-    const keysArray = Array.isArray(keys) ? keys : [keys as VocabularyKey];
-    const result = keysArray.reduce((acc, key) => {
-      acc[key] = vocabulary[activeLang][key];
-      return acc;
-    }, {} as Record<VocabularyKey, string>);
-
-    return Array.isArray(keys) ? result : result[keys as VocabularyKey];
-  }, [language, isReady]);
+      return Array.isArray(keys) ? result : result[keys as VocabularyKey];
+    }) as {
+      (): VocabularyObject;
+      (keys: VocabularyKey, replacements?: Record<string, string | number>): string;
+      (keys: VocabularyKey[], replacements?: Record<string, string | number>): Record<VocabularyKey, string>;
+    },
+    [language, isReady]
+  );
 
   return { t, language, isReady };
 }
