@@ -4,7 +4,7 @@ import { GalleryMedia, SocketGalleryUpdatedEvent } from "@/lib/types";
 import { useState, useMemo, useEffect } from "react";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
-import { Play, ChevronDown, Loader2 } from "lucide-react";
+import { Play, ChevronDown, Loader2, Images } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useInView } from "react-intersection-observer";
