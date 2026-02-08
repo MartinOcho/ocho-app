@@ -711,7 +711,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     // RETRAIT de onContextMenu ici
     <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
       {/* HEADER */}
-      <div className="flex w-full items-center gap-2 px-4 py-3 max-sm:bg-card/50">
+      <div className="flex w-full items-center gap-2 sm:px-4 sm:py-3">
         <RoomHeader
           initialRoom={room}
           roomId={room.id}

@@ -149,7 +149,7 @@ export default function RoomHeader({
   if (!room) {
     if (status === "pending") {
       return (
-        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0 max-sm:bg-card/50">
+        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex w-full flex-col gap-2">
             <Skeleton className="h-3 w-40 max-w-full" />
@@ -343,14 +343,14 @@ export default function RoomHeader({
       className={cn(
         "z-50",
         active
-          ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl"
+          ? "absolute inset-0 h-full w-full overflow-y-auto bg-card max-sm:bg-background sm:rounded-e-3xl flex items-start"
           : "relative flex-1 flex w-full items-center gap-2 px-4 py-3 max-sm:absolute max-sm:top-0 max-sm:left-0 max-sm:right-0 max-sm:bg-none",
       )}
     >
       <div
         className={
-          "sticky inset-0 z-40 flex justify-between p-4 " +
-          (!active ? "hidden" : "")
+          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden" +
+          (!active && "hidden")
         }
       >
         <div
@@ -377,8 +377,7 @@ export default function RoomHeader({
           )}
           onClick={() => !active && setActive(true)}
         >
-          {/* Mobile compact bar shown only on max-sm when not active */}
-          <div className={cn("hidden max-sm:flex w-full items-center gap-2 px-0 py-0", !active && "max-sm:flex")}> 
+          <div className={cn("sm:hidden flex w-full items-center gap-2 px-0 py-0", !active && "max-sm:flex")}> 
             <div
               className="flex cursor-pointer bg-card/30 rounded-3xl sm:hover:text-red-500 backdrop-blur-md p-2 border shadow-lg xl:w-fit items-center"
               title="Fermer la discussion items-center"
@@ -397,12 +396,12 @@ export default function RoomHeader({
             <div className="flex-1">
               {room.isGroup ? (
                 <div>
-                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
+                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
                   <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
+                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
                   <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
                     {getStatusDisplay()}
                   </div>
@@ -430,12 +429,12 @@ export default function RoomHeader({
             <div className="flex-1">
               {room.isGroup ? (
                 <div>
-                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
+                  <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
                   <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
                 </div>
               ) : (
                 <div>
-                  <div className="text-xl font-bold">{chatName}{" "}{verifiedCheck}</div>
+                    <span className="text-xl font-bold flex items-center gap-1"><span className="text-ellipsis line-clamp-1">{chatName}</span>{verifiedCheck}</span>
                   <div className={cn("text-sm text-muted-foreground", (activeStatus?.isOnline || isSaved)  && "text-primary")}>
                     {getStatusDisplay()}
                   </div>
