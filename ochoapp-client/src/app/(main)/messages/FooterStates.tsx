@@ -52,7 +52,7 @@ export function UnavailableFooter({
   }
 
   return (
-    <div className="relative flex w-full select-none items-center justify-center gap-3">
+    <div className="relative flex w-full select-none items-center justify-center gap-3 flex-wrap max-sm:flex-wrap-reverse">
       {buttonLabel && (
         <Button
           size="sm"
