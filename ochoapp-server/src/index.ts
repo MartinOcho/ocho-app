@@ -877,16 +877,16 @@ io.on("connection", async (socket) => {
 
           await prisma.$transaction(async (tx) => {
             // Create message
-            createdMessage = await tx.message.create({
-              data: {
-                content,
-                roomId,
-                senderId: userId,
-                type,
-                recipientId,
-              },
-              include: getMessageDataInclude(userId),
-            });
+              createdMessage = await tx.message.create({
+                data: {
+                  content,
+                  roomId,
+                  senderId: userId,
+                  type,
+                  recipientId,
+                },
+                // NB: on crée le message ici sans attachments encore liés
+              });
 
             // If attachmentIds provided, verify they exist and associate them with the message
             if (attachmentIds && attachmentIds.length > 0) {
@@ -921,7 +921,12 @@ io.on("connection", async (socket) => {
             });
           });
 
-          newMessage = createdMessage;
+          // Après la transaction, recharger le message avec les relations (attachments, sender, etc.)
+          // afin que l'objet émis contienne bien les attachments qui viennent d'être liés.
+          newMessage = await prisma.message.findUnique({
+            where: { id: createdMessage.id },
+            include: getMessageDataInclude(userId),
+          });
 
           const activeMembers = await prisma.roomMember.findMany({
             where: { roomId, leftAt: null, type: { not: "BANNED" } },
