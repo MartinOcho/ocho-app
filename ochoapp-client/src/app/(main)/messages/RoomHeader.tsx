@@ -175,7 +175,9 @@ export default function RoomHeader({
       setActive(false);
       return
     }
-    onCloseChat();
+    if(activeRoomId){
+      onCloseChat();
+    }
   }
 
   const aMember = addAMember.match(/-(.*?)-/)?.[1] || "a member";
