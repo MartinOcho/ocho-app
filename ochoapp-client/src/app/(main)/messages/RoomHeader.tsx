@@ -120,7 +120,7 @@ export default function RoomHeader({
   const { socket } = useSocket();
 
   useEffect(() => {
-    backHandler();
+    setActive(false);
   }, [activeRoomId]);
   useEffect(() => {
     if (roomId) {
