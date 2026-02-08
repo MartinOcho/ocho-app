@@ -15,6 +15,12 @@ export default function InfiniteScrollContainer({
 }: InfiniteScrollContainerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [root, setRoot] = useState<HTMLElement | null>(null);
+  const onBottomReachedRef = useRef(onBottomReached);
+
+  // Mettre en cache le callback pour éviter les re-attachements
+  useEffect(() => {
+    onBottomReachedRef.current = onBottomReached;
+  }, [onBottomReached]);
 
   // Détecte dynamiquement le parent scrollable
   useEffect(() => {
@@ -22,27 +28,37 @@ export default function InfiniteScrollContainer({
       setRoot(getScrollableParent(containerRef.current));
     }
   }, []);
+  
   useEffect(() => {
     if(!root){
        return 
     }
+    
+    // Debounce pour éviter les appels répétés trop rapides
+    let debounceTimer: NodeJS.Timeout;
     const handleScroll = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
         if (reversed) {
-          // Détection en haut pour un conteneur inversé
+          // Détection en haut pour un conteneur inversé (ajout d'anciens messages)
           if (root.scrollTop <= 300) {
-            onBottomReached();
+            onBottomReachedRef.current();
           }
         } else {
           // Détection en bas pour un conteneur normal
           if (root.scrollTop + root.clientHeight >= root.scrollHeight - 300) {
-            onBottomReached();
+            onBottomReachedRef.current();
           }
         }
-      };
+      }, 100);
+    };
     
-      root.addEventListener('scroll', handleScroll);
-      return () => root.removeEventListener('scroll', handleScroll);
-  }, [root, onBottomReached, reversed]);
+    root.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      clearTimeout(debounceTimer);
+      root.removeEventListener('scroll', handleScroll);
+    };
+  }, [root, reversed]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -66,7 +82,7 @@ export default function InfiniteScrollContainer({
     rootMargin: "300px",
     onChange(inView) {
       if (inView) {
-        onBottomReached();
+        onBottomReachedRef.current();
       }
     },
   });
