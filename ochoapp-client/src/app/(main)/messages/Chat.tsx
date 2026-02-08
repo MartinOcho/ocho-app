@@ -856,7 +856,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
           {/* Affichage du RoomFooter selon l'état */}
           {!!roomId && (
-            <div className="z-20">
+            <div className="z-20 flex-1">
               <RoomFooter
                 state={footerState}
                 roomId={roomId}
