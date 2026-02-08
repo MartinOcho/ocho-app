@@ -354,7 +354,7 @@ export default function RoomHeader({
     >
       <div
         className={cn(
-          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden",
+          "sticky sm:relative inset-0 z-40 flex justify-between p-4 max-sm:hidden",
           !active && "hidden",
         )}
       >
@@ -363,12 +363,6 @@ export default function RoomHeader({
           onClick={backHandler}
         >
           <ChevronLeft size={35} />
-        </div>
-        <div
-          className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
-          onClick={backHandler}
-        >
-          <X size={35} />
         </div>
       </div>
       <div
@@ -401,7 +395,7 @@ export default function RoomHeader({
 
             <div
               className={cn(
-                "relative z-40 flex flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md  xl:w-fit",
+                "relative z-40 flex gap-2 flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md  xl:w-fit",
                 active && "flex-col bg-transparent border-none shadow-none backdrop-blur-none",
               )}
             >
@@ -422,7 +416,7 @@ export default function RoomHeader({
               <div className="flex-1">
                 {room.isGroup ? (
                   <div>
-                    <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className="flex items-center gap-0.5 text-xl font-bold">
                       <span className="line-clamp-1 text-ellipsis">
                         {chatName}
                       </span>
@@ -461,7 +455,13 @@ export default function RoomHeader({
           </div>
 
           {/* Desktop / default layout (visible on sm and up) */}
-          <div className="hidden w-full items-center gap-2 sm:flex">
+          <div className="max-sm:hidden w-full items-center gap-2 flex">
+            <div
+          className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
+          onClick={backHandler}
+        >
+          <X size={35} />
+        </div>
             {room.isGroup ? (
               <GroupAvatar
                 size={size}
