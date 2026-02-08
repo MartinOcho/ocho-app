@@ -700,15 +700,41 @@ io.on("connection", async (socket) => {
         }
 
         if (roomId === "saved-" + userId) {
+          // Récupérer les attachements avant suppression
+          const attachments = await prisma.messageAttachment.findMany({
+            where: { messageId },
+          });
+
+          // Supprimer le message (les attachements restent dans la BD pour nettoyage futur)
           await prisma.message.delete({
             where: { id: messageId },
           });
+
           io.to(roomId).emit("message_deleted", { messageId, roomId });
+          socket.emit("message_deleted", { messageId, roomId });
+
+          // Émettre mise à jour galerie si des médias ont été supprimés
+          if (attachments.length > 0) {
+            io.to(roomId).emit("gallery_deleted", {
+              roomId,
+              attachmentIds: attachments.map(a => a.id),
+            });
+            socket.emit("gallery_deleted", {
+              roomId,
+              attachmentIds: attachments.map(a => a.id),
+            });
+          }
+
           const updatedRooms = await getFormattedRooms(userId, username);
           io.to(userId).emit("room_list_updated", updatedRooms);
 
           return;
         }
+
+        // Récupérer les attachements avant suppression
+        const attachments = await prisma.messageAttachment.findMany({
+          where: { messageId },
+        });
 
         await prisma.$transaction(async (tx) => {
           const nextLatestMessage = await tx.message.findFirst({
@@ -736,12 +762,21 @@ io.on("connection", async (socket) => {
             });
           }
 
+          // Note: Les attachements restent dans la BD pour nettoyage futur
           await tx.message.delete({
             where: { id: messageId },
           });
         });
 
         io.to(roomId).emit("message_deleted", { messageId, roomId });
+
+        // Émettre mise à jour galerie si des médias ont été supprimés
+        if (attachments.length > 0) {
+          io.to(roomId).emit("gallery_deleted", {
+            roomId,
+            attachmentIds: attachments.map(a => a.id),
+          });
+        }
 
         const activeMembers = await prisma.roomMember.findMany({
           where: { roomId, leftAt: null, type: { not: "BANNED" } },
@@ -794,30 +829,33 @@ io.on("connection", async (socket) => {
         let newMessage: MessageData | null = null;
 
         if (isSavedMessage) {
-          // --- BLOC MESSAGES SAUVEGARDÉS (CORRIGÉ POUR ATTACHEMENTS) ---
+          // --- BLOC MESSAGES SAUVEGARDÉS ---
           
-          // 1. Création du message de base
-          let savedMsg = await prisma.message.create({
-            data: {
-              content,
-              senderId: userId,
-              type: "SAVED",
-            },
-            // On n'inclut pas tout de suite pour pouvoir lier les attachments
+          let createdSavedMessage: Prisma.MessageGetPayload<object> | null = null;
+
+          // Utiliser une transaction pour la cohérence
+          await prisma.$transaction(async (tx) => {
+            createdSavedMessage = await tx.message.create({
+              data: {
+                content,
+                senderId: userId,
+                type: "SAVED",
+              },
+            });
+
+            // Lier les attachements au message sauvegardé
+            if (attachmentIds && attachmentIds.length > 0) {
+              await tx.messageAttachment.updateMany({
+                where: { id: { in: attachmentIds } },
+                data: { messageId: createdSavedMessage.id },
+              });
+            }
           });
 
-          // 2. Liaison des attachements pour les messages sauvegardés
-          if (attachmentIds && attachmentIds.length > 0) {
-             await prisma.messageAttachment.updateMany({
-                where: { id: { in: attachmentIds } },
-                data: { messageId: savedMsg.id },
-             });
-          }
-
-          // 3. Récupération du message complet avec les attachments
+          // Récupérer le message complet avec les attachments
           const completeSavedMsg = await prisma.message.findUnique({
-              where: { id: savedMsg.id },
-              include: getMessageDataInclude(userId),
+            where: { id: createdSavedMessage?.id || "" },
+            include: getMessageDataInclude(userId),
           });
 
           if (!completeSavedMsg) return;
@@ -830,10 +868,11 @@ io.on("connection", async (socket) => {
 
           socket.join(roomId);
           
-          // Etape A: Émettre le message d'abord (pour que le client ait l'ID)
+          // Émettre le message au socket et à la room
           io.to(roomId).emit("receive_message", { newMessage, roomId, tempId });
+          socket.emit("receive_message", { newMessage, roomId, tempId });
 
-          // Etape B: Émettre la mise à jour galerie si nécessaire
+          // Émettre la mise à jour galerie si nécessaire
           if (
               attachmentIds &&
               attachmentIds.length > 0 &&
@@ -856,11 +895,17 @@ io.on("connection", async (socket) => {
                 sentAt: newMessage!.createdAt,
               }));
 
-              // Ajout du tempId pour aider le client à faire le lien si nécessaire
+              // Envoyer la mise à jour galerie au socket et à la room
               io.to(roomId).emit("gallery_updated", {
                 roomId,
                 medias: galleryMedias,
-                tempId // Helper pour le front
+                tempId,
+              });
+
+              socket.emit("gallery_updated", {
+                roomId,
+                medias: galleryMedias,
+                tempId,
               });
             }
 
@@ -987,6 +1032,13 @@ io.on("connection", async (socket) => {
                 roomId,
                 medias: galleryMedias,
                 tempId // Ajouté par sécurité si le front veut l'utiliser
+              });
+
+              // S'assurer que l'envoyeur reçoit aussi la mise à jour
+              socket.emit("gallery_updated", {
+                roomId,
+                medias: galleryMedias,
+                tempId,
               });
             }
 

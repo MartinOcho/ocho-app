@@ -56,7 +56,7 @@ export default function MediaGallery({
     }
   }, [inView, hasNextPage, onLoadMore, isFetchingNextPage]);
 
-  // Écouter les mises à jour de la galerie via socket
+  // Écouter les mises à jour et suppressions de la galerie via socket
   useEffect(() => {
     if (!socket) return;
 
@@ -128,10 +128,63 @@ export default function MediaGallery({
       }
     };
 
+    const handleGalleryDeleted = (event: {
+      roomId: string;
+      attachmentIds: string[];
+    }) => {
+      // Guard 1: Vérifier que c'est le bon salon
+      if (event.roomId !== roomId) {
+        return;
+      }
+
+      const attachmentIdsToDelete = new Set(event.attachmentIds);
+
+      // Mettre à jour l'état local en supprimant les médias
+      setDisplayedMedias((prev) =>
+        prev.filter((m) => !attachmentIdsToDelete.has(m.id))
+      );
+
+      // Mettre à jour le cache React Query
+      if (queryClient) {
+        queryClient.setQueryData<InfiniteData<GalleryMediasSection>>(
+          ["gallery", "medias", roomId],
+          (oldData) => {
+            // Guard 2: Vérifier la structure des données du cache
+            if (
+              !oldData ||
+              !Array.isArray(oldData.pages) ||
+              oldData.pages.length === 0
+            ) {
+              return oldData;
+            }
+
+            // Mettre à jour toutes les pages pour supprimer les médias
+            const newPages = oldData.pages.map((page) => {
+              if (!page) return page;
+
+              return {
+                ...page,
+                medias: (page.medias ?? []).filter(
+                  (m) => !attachmentIdsToDelete.has(m.id)
+                ),
+              };
+            });
+
+            return {
+              ...oldData,
+              pages: newPages,
+            };
+          }
+        );
+      }
+    };
+
     socket.on("gallery_updated", handleGalleryUpdated);
+    socket.on("gallery_deleted", handleGalleryDeleted);
 
     return () => {
       socket.off("gallery_updated", handleGalleryUpdated);
+      socket.off("gallery_deleted", handleGalleryDeleted);
     };
   }, [socket, roomId, queryClient]);
 
