@@ -364,6 +364,12 @@ export default function RoomHeader({
         >
           <ChevronLeft size={35} />
         </div>
+            <div
+          className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
+          onClick={backHandler}
+        >
+          <X size={35} />
+        </div>
       </div>
       <div
         className={`flex w-full flex-1 flex-col transition-all ${active ? "absolute inset-0 h-fit min-h-full bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative"}`}
@@ -456,12 +462,6 @@ export default function RoomHeader({
 
           {/* Desktop / default layout (visible on sm and up) */}
           <div className="max-sm:hidden w-full items-center gap-2 flex">
-            <div
-          className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
-          onClick={backHandler}
-        >
-          <X size={35} />
-        </div>
             {room.isGroup ? (
               <GroupAvatar
                 size={size}
