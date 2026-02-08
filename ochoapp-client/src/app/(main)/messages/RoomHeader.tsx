@@ -967,6 +967,8 @@ export function MediaGalleryContainer({ roomId }: { roomId: string }) {
     isLoading,
   } = useGalleryQuery({ roomId, enabled: !!roomId });
 
+  const queryClient = useQueryClient();
+
   const allMedias = useMemo(
     () => data?.pages?.flatMap((page) => page?.medias ?? []) || [],
     [data]
@@ -980,6 +982,7 @@ export function MediaGalleryContainer({ roomId }: { roomId: string }) {
       hasNextPage={hasNextPage ?? false}
       isFetchingNextPage={isFetchingNextPage}
       onLoadMore={() => fetchNextPage()}
+      queryClient={queryClient}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { GalleryMedia, SocketGalleryUpdatedEvent } from "@/lib/types";
+import { GalleryMedia, SocketGalleryUpdatedEvent, GalleryMediasSection } from "@/lib/types";
 import { useState, useMemo, useEffect } from "react";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,11 @@ import { Play, ChevronDown, Loader2, Images } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useInView } from "react-intersection-observer";
+import { QueryClient, InfiniteData } from "@tanstack/react-query";
+import {
+  isValidGalleryMedia,
+  validateGalleryMedias,
+} from "@/lib/validation-types";
 
 interface MediaGalleryProps {
   roomId: string;
@@ -17,6 +22,7 @@ interface MediaGalleryProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
+  queryClient?: QueryClient;
 }
 
 export default function MediaGallery({
@@ -27,9 +33,11 @@ export default function MediaGallery({
   hasNextPage = false,
   isFetchingNextPage = false,
   onLoadMore,
+  queryClient,
 }: MediaGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [displayedMedias, setDisplayedMedias] = useState<GalleryMedia[]>(medias);
+  const [showMore, setShowMore] = useState(false);
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
   });
@@ -37,7 +45,8 @@ export default function MediaGallery({
 
   // Mettre à jour les médias affichés quand `medias` change
   useEffect(() => {
-    setDisplayedMedias(medias);
+    const validatedMedias = validateGalleryMedias(medias ?? []);
+    setDisplayedMedias(validatedMedias);
   }, [medias]);
 
   // Gérer le chargement des pages suivantes via IntersectionObserver
@@ -52,9 +61,70 @@ export default function MediaGallery({
     if (!socket) return;
 
     const handleGalleryUpdated = (event: SocketGalleryUpdatedEvent) => {
-      if (event.roomId === roomId && event.medias && event.medias.length > 0) {
-        // Ajouter les nouveaux médias au début de la liste
-        setDisplayedMedias((prev) => [...event.medias, ...prev]);
+      // Guard 1: Vérifier les données entrantes
+      if (event.roomId !== roomId) {
+        return;
+      }
+
+      // Guard 2: Valider et filtrer les médias reçus
+      const validMedias = validateGalleryMedias(event.medias ?? []);
+
+      if (validMedias.length === 0) {
+        if (event.medias && event.medias.length > 0) {
+          console.warn("Médias invalides reçus du socket:", event.medias);
+        }
+        return;
+      }
+
+      // Mettre à jour l'état local avec les nouveaux médias
+      setDisplayedMedias((prev) => {
+        // Éviter les doublons (vérifier par ID)
+        const existingIds = new Set(prev.map((m) => m.id));
+        const newMedias = validMedias.filter((m) => !existingIds.has(m.id));
+        return newMedias.length > 0 ? [...newMedias, ...prev] : prev;
+      });
+
+      // Mettre à jour le cache React Query directement avec typage strict
+      if (queryClient) {
+        queryClient.setQueryData<InfiniteData<GalleryMediasSection>>(
+          ["gallery", "medias", roomId],
+          (oldData) => {
+            // Guard 3: Vérifier la structure des données du cache
+            if (
+              !oldData ||
+              !Array.isArray(oldData.pages) ||
+              oldData.pages.length === 0
+            ) {
+              return oldData;
+            }
+
+            // Mettre à jour la première page uniquement
+            const newPages = oldData.pages.map((page, index) => {
+              if (index !== 0 || !page) return page;
+
+              // Guard 4: Vérifier que la page a les médias et les valider
+              const pageMedias = validateGalleryMedias(page.medias ?? []);
+
+              // Éviter les doublons
+              const existingIds = new Set(pageMedias.map((m) => m.id));
+              const newMedias = validMedias.filter(
+                (m) => !existingIds.has(m.id)
+              );
+
+              if (newMedias.length === 0) return page;
+
+              return {
+                ...page,
+                medias: [...newMedias, ...pageMedias],
+              };
+            });
+
+            return {
+              ...oldData,
+              pages: newPages,
+            };
+          }
+        );
       }
     };
 
@@ -63,7 +133,7 @@ export default function MediaGallery({
     return () => {
       socket.off("gallery_updated", handleGalleryUpdated);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, queryClient]);
 
   if (isLoading && displayedMedias.length === 0) {
     return (
@@ -100,7 +170,10 @@ export default function MediaGallery({
   }
 
   // Show grid of thumbnails (maximum 12 items initially)
-  const visibleMedias = displayedMedias.slice(0, 12);
+  // If showMore is true, show all medias from the current state
+  // Guard: Valider les médias avant affichage
+  const safeDisplayedMedias = validateGalleryMedias(displayedMedias);
+  const visibleMedias = showMore ? safeDisplayedMedias : safeDisplayedMedias.slice(0, 12);
 
   return (
     <>
@@ -109,13 +182,20 @@ export default function MediaGallery({
           Galerie
         </h4>
         <div className="grid grid-cols-3 gap-2">
-          {visibleMedias.map((media, index) => (
-            <button
-              key={`${media.messageId}-${media.id}`}
-              onClick={() => setSelectedIndex(index)}
-              className="relative group rounded-md overflow-hidden aspect-square hover:opacity-80 transition-opacity"
-              title={`Envoyé par ${media.senderUsername}`}
-            >
+          {visibleMedias.map((media) => {
+            // Guard final: Vérifier chaque média avant rendu
+            if (!isValidGalleryMedia(media)) {
+              console.warn("Média invalide à l'affichage:", media);
+              return null;
+            }
+
+            return (
+              <button
+                key={`${media.messageId}-${media.id}`}
+                onClick={() => setSelectedIndex(visibleMedias.indexOf(media))}
+                className="relative group rounded-md overflow-hidden aspect-square hover:opacity-80 transition-opacity"
+                title={`Envoyé par ${media.senderUsername || "inconnu"}`}
+              >
               {media.type === "VIDEO" ? (
                 <>
                   <video
@@ -137,32 +217,58 @@ export default function MediaGallery({
                 />
               )}
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {displayedMedias.length > visibleMedias.length && (
-          <div className="mt-2 space-y-2">
-            <p className="text-xs text-muted-foreground">
-              +{displayedMedias.length - visibleMedias.length} médias
-            </p>
-            {hasNextPage && (
+          <div className="mt-4 space-y-3 border-t border-border pt-3">
+            {displayedMedias.length > visibleMedias.length && !hasNextPage && !showMore && (
+              <p className="text-xs text-muted-foreground text-center">
+                Affichage de {visibleMedias.length} sur {displayedMedias.length} médias
+              </p>
+            )}
+            {hasNextPage ? (
               <button
                 ref={loadMoreRef}
                 onClick={onLoadMore}
                 disabled={isFetchingNextPage}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Chargement...
+                    <Loader2 size={16} className="animate-spin" />
+                    Chargement des anciens médias...
                   </>
                 ) : (
                   <>
-                    <ChevronDown size={14} />
-                    Charger plus
+                    <ChevronDown size={16} />
+                    Afficher les médias plus anciens
                   </>
                 )}
+              </button>
+            ) : (
+              !showMore && (
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors border border-primary/30"
+                  onClick={() => setShowMore(true)}
+                >
+                  <>
+                    <ChevronDown size={16} />
+                    Afficher ({safeDisplayedMedias.length - visibleMedias.length} médias supplémentaires)
+                  </>
+                </button>
+              )
+            )}
+            {showMore && safeDisplayedMedias.length > visibleMedias.length && (
+              <button
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                onClick={() => setShowMore(false)}
+              >
+                <>
+                  <ChevronDown size={16} className="rotate-180" />
+                  Masquer
+                </>
               </button>
             )}
           </div>
