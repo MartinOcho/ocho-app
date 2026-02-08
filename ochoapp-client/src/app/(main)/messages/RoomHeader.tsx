@@ -359,7 +359,7 @@ export default function RoomHeader({
         )}
       >
         <div
-          className="cursor-pointer sm:pointer-events-none sm:opacity-0"
+          className="cursor-pointer sm:pointer-events-none sm:hidden"
           onClick={backHandler}
         >
           <ChevronLeft size={35} />
@@ -461,7 +461,7 @@ export default function RoomHeader({
           </div>
 
           {/* Desktop / default layout (visible on sm and up) */}
-          <div className="max-sm:hidden w-full items-center gap-2 flex">
+          <div className="max-sm:hidden w-full items-center gap-2 ps-14">
             {room.isGroup ? (
               <GroupAvatar
                 size={size}
