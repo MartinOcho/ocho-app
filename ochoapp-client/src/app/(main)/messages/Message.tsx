@@ -336,6 +336,7 @@ export default function Message({
     addedMember,
     memberLeft,
     youRemovedMember,
+    youLeftGroup,
     removedYou,
     removedMember,
     memberBanned,
@@ -609,6 +610,9 @@ export default function Message({
                 : removedMember
                     .replace("[name]", senderFirstName)
                     .replace("[member]", memberName));
+        }
+        if (isRecipient) {
+          text = youLeftGroup.replace("[name]", memberName);
         }
         systemContent = text;
       }
