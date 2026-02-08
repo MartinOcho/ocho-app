@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import { MessageType, PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
@@ -16,12 +16,10 @@ import {
   SocketSendMessageEvent,
 } from "./types";
 import {
-  addAdminSchema,
-  addMemberSchema,
   getFormattedRooms,
   getMessageReactions,
   getMessageReads,
-  getUnreadRoomsCount, // <--- Import de la nouvelle fonction
+  getUnreadRoomsCount, 
   groupManagment,
   memberActionSchema,
   socketHandler,
@@ -46,17 +44,13 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: Function) {
-    // Permettre les requêtes sans origin (comme mobile apps ou requests simple)
     if (!origin) {
       return callback(null, true);
     }
-    
-    // Normaliser origin pour comparaison
     const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
     const normalizedAllowed = allowedOrigins.map(url => 
       url.toLowerCase().replace(/\/$/, "")
     );
-    
     if (normalizedAllowed.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
@@ -69,36 +63,30 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Autoriser de gros payloads pour uploads (200MB)
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true }));
 app.use(cookieParser());
 
-// Cloudinary config (utilisé pour proxy upload depuis le client si nécessaire)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// multer en mémoire pour streaming multipart
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello from the server" });
 });
 
-// Endpoint proxy pour upload Cloudinary (accepte dataURL en JSON)
 app.post("/api/cloudinary/proxy-upload", async (req, res) => {
   try {
     const body = req.body || {};
     const file = body.file;
     if (!file) return res.status(400).json({ success: false, error: "No file provided" });
 
-    // upload vers Cloudinary avec timeout/ retry minimal
     const uploadResult = await cloudinary.uploader.upload(file, { resource_type: 'auto' });
 
-    // Créer l'entrée en base
     const attachmentType = uploadResult.resource_type && String(uploadResult.resource_type).startsWith("video")
       ? "VIDEO"
       : (uploadResult.resource_type === "image" || (uploadResult.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
@@ -124,13 +112,11 @@ app.post("/api/cloudinary/proxy-upload", async (req, res) => {
   }
 });
 
-// Endpoint multipart (FormData) pour upload direct via multer -> Cloudinary (stream)
 app.post("/api/cloudinary/proxy-upload-multipart", upload.single("file"), async (req, res) => {
   try {
     const file = (req as any).file;
     if (!file || !file.buffer) return res.status(400).json({ success: false, error: "No file provided" });
 
-    // Utiliser upload_stream pour éviter d'écrire sur le disque
     const streamUpload = (buffer: Buffer) =>
       new Promise<any>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({ resource_type: 'auto' }, (error, result) => {
@@ -181,12 +167,10 @@ const io = new Server(server, {
       if (!origin) {
         return callback(null, true);
       }
-      
       const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
       const normalizedAllowed = allowedOrigins.map(url => 
         url.toLowerCase().replace(/\/$/, "")
       );
-      
       if (normalizedAllowed.includes(normalizedOrigin)) {
         callback(null, true);
       } else {
@@ -213,7 +197,6 @@ io.on("connection", async (socket) => {
 
   socket.join(userId);
 
-  // -- GESTION DES GROUPES -- //
   groupManagment(io, socket, { userId, username, displayName, avatarUrl });
 
   socket.on(
@@ -224,7 +207,6 @@ io.on("connection", async (socket) => {
           ? [...(membersIds || []), userId]
           : [userId, targetUserId];
 
-        // Supprime les doublons et les valeurs falsy (null, undefined, chaine vide)
         const uniqueMemberIds = [...new Set(rawMembers)].filter((id) => id);
 
         if (isGroup && uniqueMemberIds.length < 2) {
@@ -235,7 +217,6 @@ io.on("connection", async (socket) => {
           return;
         }
 
-        // Vérification de conversation existante (seulement pour le 1-on-1)
         if (!isGroup) {
           const existingRoom = await prisma.room.findFirst({
             where: {
@@ -255,7 +236,6 @@ io.on("connection", async (socket) => {
         }
 
         const newRoom = await prisma.$transaction(async (tx) => {
-          // 2. Création de la room avec rôles explicites
           const room = await tx.room.create({
             data: {
               name: isGroup ? name : null,
@@ -263,7 +243,6 @@ io.on("connection", async (socket) => {
               members: {
                 create: uniqueMemberIds.map((id) => ({
                   userId: id,
-                  // Si c'est le créateur du groupe, on le met OWNER, sinon MEMBER
                   type: isGroup && id === userId ? "OWNER" : "MEMBER",
                 })),
               },
@@ -271,18 +250,16 @@ io.on("connection", async (socket) => {
             include: getChatRoomDataInclude(),
           });
 
-          // 3. Message système de création
           const message = await tx.message.create({
             data: {
               content: "created",
               roomId: room.id,
-              senderId: userId, // Important: le créateur est l'expéditeur du message système
+              senderId: userId,
               type: "CREATE",
             },
-            include: getMessageDataInclude(userId), // On inclut les infos sender pour l'affichage
+            include: getMessageDataInclude(userId),
           });
 
-          // 4. Mise à jour de LastMessage pour tous les membres
           for (const memberId of uniqueMemberIds) {
             await tx.lastMessage.upsert({
               where: {
@@ -297,27 +274,17 @@ io.on("connection", async (socket) => {
             });
           }
 
-          // Retourne la room complète avec le premier message
           return { ...room, messages: [message] };
         });
 
-        // 5. Gestion des Sockets et Diffusion
         socket.join(newRoom.id);
 
-        // On notifie tous les membres (sauf soi-même car on utilise room_ready)
         uniqueMemberIds.forEach((memberId) => {
           if (memberId !== userId) {
-            // Mise à jour en temps réel pour les autres membres
             io.to(memberId).emit("new_room_created", newRoom);
-
-            // Notification optionnelle "unread"
-            // Note: CREATE ne compte généralement pas comme unread, mais si vous le souhaitez :
-            // const unread = await getUnreadRoomsCount(memberId);
-            // io.to(memberId).emit("rooms_unreads_update", { unreadCount: unread });
           }
         });
 
-        // Réponse au créateur
         socket.emit("room_ready", newRoom);
       } catch (error) {
         console.error("Erreur start_chat:", error);
@@ -465,13 +432,10 @@ io.on("connection", async (socket) => {
           reads: updatedReads,
         });
 
-        // --- MISE À JOUR DU COMPTEUR POUR L'UTILISATEUR ---
-        // On recalcule le nombre réel de SALONS non lus pour cet user
         const newUnreadCount = await getUnreadRoomsCount(userId);
         io.to(userId).emit("rooms_unreads_update", { 
           unreadCount: newUnreadCount 
         });
-        // --------------------------------------------------
         
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
@@ -794,7 +758,6 @@ io.on("connection", async (socket) => {
                 );
                 io.to(member.userId).emit("room_list_updated", updatedRooms);
                 
-                // Recalcul des non lus (le message supprimé peut changer le statut lu du salon)
                 const newUnreadCount = await getUnreadRoomsCount(member.userId);
                 io.to(member.userId).emit("rooms_unreads_update", { 
                     unreadCount: newUnreadCount 
@@ -831,28 +794,81 @@ io.on("connection", async (socket) => {
         let newMessage: MessageData | null = null;
 
         if (isSavedMessage) {
-          const savedMsg = await prisma.message.create({
+          // --- BLOC MESSAGES SAUVEGARDÉS (CORRIGÉ POUR ATTACHEMENTS) ---
+          
+          // 1. Création du message de base
+          let savedMsg = await prisma.message.create({
             data: {
               content,
               senderId: userId,
               type: "SAVED",
             },
-            include: getMessageDataInclude(userId),
+            // On n'inclut pas tout de suite pour pouvoir lier les attachments
           });
+
+          // 2. Liaison des attachements pour les messages sauvegardés
+          if (attachmentIds && attachmentIds.length > 0) {
+             await prisma.messageAttachment.updateMany({
+                where: { id: { in: attachmentIds } },
+                data: { messageId: savedMsg.id },
+             });
+          }
+
+          // 3. Récupération du message complet avec les attachments
+          const completeSavedMsg = await prisma.message.findUnique({
+              where: { id: savedMsg.id },
+              include: getMessageDataInclude(userId),
+          });
+
+          if (!completeSavedMsg) return;
 
           let emissionType = "CONTENT";
           if (content === "create-" + userId) {
             emissionType = "SAVED";
           }
-          newMessage = { ...savedMsg, type: emissionType } as MessageData;
+          newMessage = { ...completeSavedMsg, type: emissionType } as MessageData;
 
           socket.join(roomId);
-          // AJOUT : Renvoyer tempId au client
+          
+          // Etape A: Émettre le message d'abord (pour que le client ait l'ID)
           io.to(roomId).emit("receive_message", { newMessage, roomId, tempId });
+
+          // Etape B: Émettre la mise à jour galerie si nécessaire
+          if (
+              attachmentIds &&
+              attachmentIds.length > 0 &&
+              newMessage &&
+              newMessage.attachments &&
+              newMessage.sender
+            ) {
+              const galleryMedias = newMessage.attachments.map((att) => ({
+                id: att.id,
+                type: att.type,
+                url: att.url,
+                publicId: att.publicId,
+                width: att.width,
+                height: att.height,
+                format: att.format,
+                resourceType: att.resourceType,
+                messageId: newMessage!.id,
+                senderUsername: newMessage!.sender!.username,
+                senderAvatar: newMessage!.sender!.avatarUrl,
+                sentAt: newMessage!.createdAt,
+              }));
+
+              // Ajout du tempId pour aider le client à faire le lien si nécessaire
+              io.to(roomId).emit("gallery_updated", {
+                roomId,
+                medias: galleryMedias,
+                tempId // Helper pour le front
+              });
+            }
 
           const updatedRooms = await getFormattedRooms(userId, username);
           io.to(userId).emit("room_list_updated", updatedRooms);
+
         } else {
+          // --- BLOC MESSAGES NORMAUX ---
           const membership = await prisma.roomMember.findUnique({
             where: { roomId_userId: { roomId, userId } },
           });
@@ -865,14 +881,12 @@ io.on("connection", async (socket) => {
             return socket.emit("error", { message: "Action non autorisée" });
           }
 
-          // Support attachments: use attachmentIds from client
           let createdMessage: Prisma.MessageGetPayload<object> | null = null;
           let roomData: Prisma.RoomGetPayload<{
             include: ReturnType<typeof getChatRoomDataInclude>;
           }> | null = null;
 
           await prisma.$transaction(async (tx) => {
-            // Create message
               createdMessage = await tx.message.create({
                 data: {
                   content,
@@ -881,12 +895,9 @@ io.on("connection", async (socket) => {
                   type,
                   recipientId,
                 },
-                // NB: on crée le message ici sans attachments encore liés
               });
 
-            // If attachmentIds provided, verify they exist and associate them with the message
             if (attachmentIds && attachmentIds.length > 0) {
-              // Verify all attachments exist
               const existingAttachments = await tx.messageAttachment.findMany({
                 where: {
                   id: { in: attachmentIds },
@@ -900,7 +911,6 @@ io.on("connection", async (socket) => {
                 });
               }
 
-              // Update attachments to associate with this message
               await tx.messageAttachment.updateMany({
                 where: {
                   id: { in: attachmentIds },
@@ -917,10 +927,8 @@ io.on("connection", async (socket) => {
             });
           });
 
-          // Après la transaction, recharger le message avec les relations (attachments, sender, etc.)
-          // afin que l'objet émis contienne bien les attachments qui viennent d'être liés.
           newMessage = await prisma.message.findUnique({
-            where: { id: createdMessage.id },
+            where: { id: createdMessage?.id || "" },
             include: getMessageDataInclude(userId),
           });
 
@@ -944,8 +952,15 @@ io.on("connection", async (socket) => {
               }
             }
             socket.join(roomId);
+            
+            io.to(roomId).emit("receive_message", {
+              newMessage,
+              roomId,
+              newRoom: roomData,
+              tempId, 
+            });
 
-            // AJOUT : Émettre une mise à jour de la galerie si le message a des attachements
+            // 2. ENSUITE envoyer la mise à jour galerie.
             if (
               attachmentIds &&
               attachmentIds.length > 0 &&
@@ -971,16 +986,9 @@ io.on("connection", async (socket) => {
               io.to(roomId).emit("gallery_updated", {
                 roomId,
                 medias: galleryMedias,
+                tempId // Ajouté par sécurité si le front veut l'utiliser
               });
             }
-
-            // AJOUT : Renvoyer tempId au client
-            io.to(roomId).emit("receive_message", {
-              newMessage,
-              roomId,
-              newRoom: roomData,
-              tempId, // Important pour le mapping côté client
-            });
 
             await Promise.all(
               activeMembers.map(async (member) => {
@@ -992,16 +1000,12 @@ io.on("connection", async (socket) => {
                     );
                     io.to(member.userId).emit("room_list_updated", updatedRooms);
 
-                    // --- MODIFICATION ICI : Calcul exact ---
-                    // On ne fait plus un simple increment. On recalcule le VRAI nombre.
                     if (member.userId !== userId) {
                       const unreadCount = await getUnreadRoomsCount(member.userId);
                       io.to(member.userId).emit("rooms_unreads_update", {
-                          unreadCount // Envoi du nombre exact (ex: 3 salons non lus)
+                          unreadCount 
                       });
                     }
-                    // ----------------------------------------
-
                   } catch (e) {
                     console.error("Erreur refresh member:", member.userId);
                   }
@@ -1012,14 +1016,11 @@ io.on("connection", async (socket) => {
         }
       } catch (error) {
         console.error("Erreur send_message:", error);
-        // On pourrait ajouter le tempId ici aussi si on voulait gérer l'erreur spécifiquement
         socket.emit("error", { message: "Erreur lors de l'envoi" });
       }
     }
   );
 
-  // Créer une notification via socket : le socket reçoit les données, crée la notification
-  // en base, puis émet l'objet complet au destinataire + met à jour le compteur
   socket.on(
     "create_notification",
     async (data: {
@@ -1031,7 +1032,7 @@ io.on("connection", async (socket) => {
       try {
         const { type, recipientId, postId, commentId } = data;
         if (!recipientId || !type) return;
-        if (userId === recipientId) return; // Don't notify yourself
+        if (userId === recipientId) return; 
 
         const notification = await prisma.notification.create({
           data: {
@@ -1063,10 +1064,8 @@ io.on("connection", async (socket) => {
           },
         });
 
-        // Émettre l'objet notification complet à la socket du destinataire
         io.to(recipientId).emit("notification_received", notification);
 
-        // Recalculer et émettre le compteur non-lu
         const unreadCount = await prisma.notification.count({
           where: { recipientId, read: false },
         });
@@ -1077,7 +1076,6 @@ io.on("connection", async (socket) => {
     }
   );
 
-  // Supprimer une notification via socket
   socket.on(
     "delete_notification",
     async (data: {
@@ -1090,7 +1088,6 @@ io.on("connection", async (socket) => {
         const { type, recipientId, postId, commentId } = data;
         if (!recipientId || !type) return;
 
-        // Supprimer la notification correspondante
         const deleteResult = await prisma.notification.deleteMany({
           where: {
             type,
@@ -1102,10 +1099,8 @@ io.on("connection", async (socket) => {
         });
 
         if (deleteResult.count > 0) {
-          // Émettre l'événement de suppression
           io.to(recipientId).emit("notification_deleted", { type, postId, commentId });
 
-          // Recalculer et émettre le compteur non-lu
           const unreadCount = await prisma.notification.count({
             where: { recipientId, read: false },
           });
@@ -1160,7 +1155,6 @@ io.on("connection", async (socket) => {
   });
 });
 
-// @ts-expect-error - L'argument de type 'string' n'est pas attribuable au paramètre de type 'number'.
 server.listen(PORT, "0.0.0.0", () => {
   console.log(chalk.blueBright(`🚀 Serveur de chat prêt sur le port ${PORT}`));
 });
