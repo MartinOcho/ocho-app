@@ -669,7 +669,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     if (!group.length) return null;
     return (
       <div key={`cluster-${groupIndex}`} className="contents">
-        <div className="flex w-full flex-col-reverse">
+        <div data-message-cluster className="flex w-full flex-col-reverse">
           {group.map((msg, msgIndex) => {
             const isVisuallyLast = msgIndex === 0; // Le dernier envoyé (bas)
             const isFirstInCluster = msgIndex === group.length - 1; // Le premier envoyé (haut)

@@ -295,6 +295,33 @@ export default function Message({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
 
+  // Appliquer le z-index au cluster parent lorsque le media est ouvert
+  useEffect(() => {
+    const clusterEl = messageRef.current?.closest('[data-message-cluster]') as HTMLElement | null;
+    if (!clusterEl) return;
+
+    if (isMediaOpen) {
+      // sauvegarder l'état précédent
+      try {
+        (clusterEl.dataset as any)._prevPosition = clusterEl.style.position || "";
+        (clusterEl.dataset as any)._prevZ = clusterEl.style.zIndex || "";
+      } catch (e) {}
+      if (!clusterEl.style.position) clusterEl.style.position = "relative";
+      clusterEl.style.zIndex = "10000";
+    } else {
+      try {
+        const prevZ = (clusterEl.dataset as any)._prevZ;
+        const prevPosition = (clusterEl.dataset as any)._prevPosition;
+        if (prevZ !== undefined) clusterEl.style.zIndex = prevZ;
+        else clusterEl.style.zIndex = "";
+        if (prevPosition !== undefined) clusterEl.style.position = prevPosition;
+        else clusterEl.style.position = "";
+        delete (clusterEl.dataset as any)._prevZ;
+        delete (clusterEl.dataset as any)._prevPosition;
+      } catch (e) {}
+    }
+  }, [isMediaOpen]);
+
 
   // Refs
   const messageRef = useRef<HTMLDivElement>(null);
