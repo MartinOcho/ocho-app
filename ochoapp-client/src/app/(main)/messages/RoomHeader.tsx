@@ -396,7 +396,7 @@ export default function RoomHeader({
     <div
       ref={scrollRef} 
       className={cn(
-        "z-50 transition-all duration-300", // Ajout de transition
+        "z-50 transition-all duration-300", 
         active
           ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card px-4 py-3 max-sm:bg-background sm:rounded-e-3xl"
           : "relative flex w-full flex-1 items-center gap-2 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none max-sm:px-4 max-sm:py-3",
@@ -542,7 +542,7 @@ export default function RoomHeader({
               <div className={cn("flex-1 transition-all duration-300", active && !isScrolled ? "text-center items-center flex flex-col" : "")}>
                 {room.isGroup ? (
                   <div>
-                    <span className="flex items-center gap-0.5 text-xl font-bold justify-center">
+                    <span className={cn("flex items-center gap-0.5 text-xl font-bold")}>
                       <span className="line-clamp-1 text-ellipsis">
                         {chatName}
                       </span>
