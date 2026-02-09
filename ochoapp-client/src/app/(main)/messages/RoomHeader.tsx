@@ -420,7 +420,7 @@ export default function RoomHeader({
                 className="transition-all *:transition-all"
               />
             )}
-            <div className="flex-1">
+            <div className="flex-1 flex items-center gap-2">
               {room.isGroup ? (
                 <div>
                   <span className="flex items-center gap-1 text-xl font-bold">
