@@ -598,7 +598,7 @@ export default function RoomHeader({
             >
               <div className="flex w-full flex-1 flex-col gap-3">
                 {active && (
-                  <div className="flex w-full justify-center">
+                  <div className="flex w-full justify-center divide-y">
                     {room.isGroup ? (
                       <div className="flex w-full justify-center gap-2">
                         {loggedinMember?.type !== "OLD" && (
@@ -640,16 +640,16 @@ export default function RoomHeader({
                           </GroupChatSettingsDialog>
                         )}
                       </div>
-                    ) : (
+                    ) : (otherUser?.username ?(
                       <OchoLink
-                        href={`/users/${otherUser?.username || "-"}`}
+                        href={`/users/${otherUser?.username}`}
                         className="text-inherit"
                       >
                         <Button variant="outline" className="flex gap-1">
                           <UserCircle2 /> {viewProfile}
                         </Button>
                       </OchoLink>
-                    )}
+                    ): null)}
                   </div>
                 )}
                 <Linkify>
