@@ -84,6 +84,7 @@ export default function RoomHeader({
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const isTransitioningRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMediaFullscreen } = useActiveRoom();
 
@@ -131,6 +132,7 @@ export default function RoomHeader({
     setActive(false);
     setIsScrolled(false);
     isTransitioningRef.current = false;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, [activeRoomId]);
 
   useEffect(() => {
@@ -159,11 +161,25 @@ export default function RoomHeader({
     if (!element) return;
 
     const handleScroll = () => {
-      
-      if (isTransitioningRef.current) return;
-
       const currentScrollY = element.scrollTop;
       
+      if (currentScrollY <= 0) {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        isTransitioningRef.current = false;
+        if (isScrolled) setIsScrolled(false);
+        return;
+      }
+
+      if (currentScrollY > 60) {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        isTransitioningRef.current = false;
+        if (!isScrolled) setIsScrolled(true);
+        return;
+      }
+      
+      // 3. Logique standard avec délai pour la zone intermédiaire (entre 0 et 60px)
+      if (isTransitioningRef.current) return;
+
       let shouldBeScrolled = isScrolled;
       
       if (!isScrolled && currentScrollY > 20) {
@@ -175,7 +191,9 @@ export default function RoomHeader({
       if (shouldBeScrolled !== isScrolled) {
         setIsScrolled(shouldBeScrolled);
         isTransitioningRef.current = true;
-        setTimeout(() => {
+        
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
           isTransitioningRef.current = false;
         }, 350);
       }
@@ -184,6 +202,7 @@ export default function RoomHeader({
     element.addEventListener("scroll", handleScroll);
     return () => {
       element.removeEventListener("scroll", handleScroll);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [isScrolled]);
 
