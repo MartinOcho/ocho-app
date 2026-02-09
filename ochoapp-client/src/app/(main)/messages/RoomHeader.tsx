@@ -463,7 +463,7 @@ export default function RoomHeader({
         </div>
         <div
           className={cn(
-            `group/head flex items-center gap-2 transition-all`,
+            `group/head flex items-center gap-2 transition-all sticky top-0`,
             active ? "cursor-default flex-col p-3" : "flex-1 cursor-pointer",
             isMediaFullscreen && "hidden",
           )}
@@ -492,7 +492,7 @@ export default function RoomHeader({
             <div
               className={cn(
                 "relative z-40 flex flex-1 cursor-pointer items-center gap-2 rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md xl:w-fit",
-                active &&
+                (active && !isScrolled) &&
                   "flex-col border-none bg-transparent shadow-none backdrop-blur-none",
               )}
             >
