@@ -348,75 +348,81 @@ export default function RoomHeader({
       className={cn(
         "z-50",
         active
-          ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card max-sm:bg-background px-4 py-3 sm:rounded-e-3xl"
-          : "relative flex w-full flex-1 items-center gap-2 max-sm:px-4 max-sm:py-3 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none",
+          ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card px-4 py-3 max-sm:bg-background sm:rounded-e-3xl"
+          : "relative flex w-full flex-1 items-center gap-2 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none max-sm:px-4 max-sm:py-3",
       )}
     >
       <div
-        className={cn(
-          "sticky inset-0 z-40 flex justify-between max-sm:hidden",
-        )}
+        className={cn("sticky inset-0 z-40 flex justify-between max-sm:hidden")}
       >
         <div
-          className={cn("cursor-pointer sm:pointer-events-none sm:hidden", !active && "hidden",)}
+          className={cn(
+            "cursor-pointer sm:pointer-events-none sm:hidden",
+            !active && "hidden",
+          )}
           onClick={backHandler}
         >
           <ChevronLeft size={35} />
         </div>
-            <div
-          className="cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0"
+        <div
+          className={cn(
+            "cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0",
+            active && "hidden",
+          )}
           onClick={backHandler}
         >
           <X size={35} />
         </div>
-        
-          {/* Desktop / default layout (visible on sm and up) */}
-          <div className={cn("max-sm:hidden w-full items-center gap-2 flex cursor-pointer transition-all *:transition-all", active && "ps-14")} onClick={() => !active && setActive(true)}>
+
+        {/* Desktop / default layout (visible on sm and up) */}
+        <div
+          className={cn(
+            "flex w-full cursor-pointer items-center gap-2 transition-all *:transition-all max-sm:hidden",
+            active && "ps-14",
+          )}
+          onClick={() => !active && setActive(true)}
+        >
+          {room.isGroup ? (
+            <GroupAvatar
+              size={size}
+              className="transition-all *:transition-all"
+              avatarUrl={room.groupAvatarUrl}
+            />
+          ) : (
+            <UserAvatar
+              userId={otherUser?.id || null}
+              avatarUrl={otherUser?.avatarUrl}
+              size={size}
+              className="transition-all *:transition-all"
+            />
+          )}
+          <div className="flex-1">
             {room.isGroup ? (
-              <GroupAvatar
-                size={size}
-                className="transition-all *:transition-all"
-                avatarUrl={room.groupAvatarUrl}
-              />
+              <div>
+                <span className="flex items-center gap-1 text-xl font-bold">
+                  <span className="line-clamp-1 text-ellipsis">{chatName}</span>
+                  {verifiedCheck}
+                </span>
+                <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+              </div>
             ) : (
-              <UserAvatar
-                userId={otherUser?.id || null}
-                avatarUrl={otherUser?.avatarUrl}
-                size={size}
-                className="transition-all *:transition-all"
-              />
+              <div>
+                <span className="flex items-center gap-1 text-xl font-bold">
+                  <span className="line-clamp-1 text-ellipsis">{chatName}</span>
+                  {verifiedCheck}
+                </span>
+                <div
+                  className={cn(
+                    "text-sm text-muted-foreground",
+                    (activeStatus?.isOnline || isSaved) && "text-primary",
+                  )}
+                >
+                  {getStatusDisplay()}
+                </div>
+              </div>
             )}
-            <div className="flex-1">
-              {room.isGroup ? (
-                <div>
-                  <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
-                      {chatName}
-                    </span>
-                    {verifiedCheck}
-                  </span>
-                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
-                </div>
-              ) : (
-                <div>
-                  <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
-                      {chatName}
-                    </span>
-                    {verifiedCheck}
-                  </span>
-                  <div
-                    className={cn(
-                      "text-sm text-muted-foreground",
-                      (activeStatus?.isOnline || isSaved) && "text-primary",
-                    )}
-                  >
-                    {getStatusDisplay()}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
+        </div>
       </div>
       <div
         className={`flex w-full flex-1 flex-col transition-all ${active ? "absolute inset-0 h-fit min-h-full bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative"}`}
@@ -424,7 +430,7 @@ export default function RoomHeader({
         <div
           className={cn(
             `group/head flex items-center gap-2 transition-all`,
-            active ? "cursor-default flex-col p-3" : "cursor-pointer flex-1",
+            active ? "cursor-default flex-col p-3" : "flex-1 cursor-pointer",
             isMediaFullscreen && "hidden",
           )}
           onClick={() => !active && setActive(true)}
@@ -436,7 +442,10 @@ export default function RoomHeader({
             )}
           >
             <div
-              className={cn("flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit", active && "max-sm:absolute left-2 top-2 z-50")}
+              className={cn(
+                "flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit",
+                active && "left-2 top-2 z-50 max-sm:absolute",
+              )}
               title="Fermer la discussion items-center"
               onClick={backHandler}
             >
@@ -448,8 +457,9 @@ export default function RoomHeader({
 
             <div
               className={cn(
-                "relative z-40 flex gap-2 flex-1 cursor-pointer items-center rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md  xl:w-fit",
-                active && "flex-col bg-transparent border-none shadow-none backdrop-blur-none",
+                "relative z-40 flex flex-1 cursor-pointer items-center gap-2 rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md xl:w-fit",
+                active &&
+                  "flex-col border-none bg-transparent shadow-none backdrop-blur-none",
               )}
             >
               {room.isGroup ? (
@@ -506,7 +516,6 @@ export default function RoomHeader({
               <X size={25} className="max-sm:hidden" />
             </div>
           </div>
-
         </div>
         {active && (
           <Tabs
