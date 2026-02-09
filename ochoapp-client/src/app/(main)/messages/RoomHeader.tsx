@@ -477,7 +477,7 @@ export default function RoomHeader({
           >
             <div
               className={cn(
-                "flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit",
+                "flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md xl:w-fit",
                 (active && !isScrolled) && "left-2 top-2 z-50 max-sm:absolute",
               )}
               title="Fermer la discussion items-center"
