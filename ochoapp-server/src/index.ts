@@ -4,7 +4,8 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client"; // Garder les types
+import prisma from "./prisma"; 
 import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
@@ -46,7 +47,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const prisma = new PrismaClient();
+// SUPPRIMÉ: const prisma = new PrismaClient(); -> On utilise l'import singleton
 
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
@@ -357,7 +358,6 @@ io.on("connection", async (socket: Socket) => {
         });
         
         // 2. Mise à jour SPÉCIFIQUE AU SALON (badge room)
-        // CORRECTION : On ne met plus 0 en dur, on calcule le vrai reste.
         const currentRoomUnreadCount = await getUnreadMessagesCountPerRoom(userId, roomId);
         
         io.to(userId).emit("room_unread_count_update", {

@@ -1,4 +1,3 @@
-import { Prisma, PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import {
@@ -12,8 +11,8 @@ import {
 import { DefaultEventsMap, ExtendedError, Server, Socket } from "socket.io";
 import chalk from "chalk";
 import z from "zod";
+import prisma from "./prisma";
 
-const prisma = new PrismaClient();
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "super_secret_key_change_me_in_prod";
@@ -77,7 +76,9 @@ export async function getUnreadRoomsCount(userId: string): Promise<number> {
   });
   return unreadCount;
 }
+
 export async function getUnreadMessagesCountPerRoom(userId: string, roomId: string): Promise<number> {
+  // On s'assure que prisma est bien connecté
   const roomMember = await prisma.roomMember.findUnique({
     where: {
       roomId_userId: {
@@ -92,7 +93,7 @@ export async function getUnreadMessagesCountPerRoom(userId: string, roomId: stri
   const joinedAt = roomMember.joinedAt;
   const leftAt = roomMember.leftAt;
 
-  const dateFilter: Prisma.DateTimeFilter = {
+  const dateFilter: any = { // Typage any temporaire pour flexibilité Prisma ou Prisma.DateTimeFilter
     gte: joinedAt,
   };
 
@@ -130,6 +131,7 @@ export async function getUnreadMessagesCountPerRoom(userId: string, roomId: stri
 
   return unreadCount;
 }
+
 export async function validateUserInDb(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -137,6 +139,7 @@ export async function validateUserInDb(userId: string) {
   });
   return !!user;
 }
+
 export async function validateSession(
   req: Request<{ userId: string }>,
   res: Response,
@@ -167,6 +170,10 @@ export async function socketHandler(
 ) {
   try {
     const { token } = socket.handshake.auth;
+    
+    // Ajout d'une vérification de base
+    if (!token) return next(new Error("Token manquant"));
+
     const session = await prisma.session.findUnique({
       where: {
         id: token,
@@ -197,6 +204,7 @@ export async function socketHandler(
     next(new Error("Erreur de connexion"));
   }
 }
+
 export async function getMessageReactions(
   messageId: string,
   currentUserId: string,
@@ -220,7 +228,6 @@ export async function getMessageReactions(
     orderBy: { createdAt: "desc" },
   });
 
-  // 2. Définition du Map avec la nouvelle structure d'utilisateur
   const groupedMap = new Map<
     string,
     {
@@ -231,7 +238,6 @@ export async function getMessageReactions(
     }
   >();
 
-  // 3. Logique de regroupement
   allReactions.forEach((r) => {
     if (!groupedMap.has(r.content)) {
       groupedMap.set(r.content, {
@@ -245,7 +251,6 @@ export async function getMessageReactions(
     const entry = groupedMap.get(r.content)!;
     entry.count++;
 
-    // Insertion de l'utilisateur avec sa date de réaction spécifique
     entry.users.push({
       ...r.user,
       reactedAt: r.createdAt,
@@ -259,7 +264,6 @@ export async function getMessageReactions(
   return Array.from(groupedMap.values());
 }
 
-// RÉCUPÉRER LES LECTURES (READS) ---
 export async function getMessageReads(messageId: string) {
   const message = await prisma.message.findUnique({
     where: { id: messageId },
@@ -280,12 +284,9 @@ export async function getMessageReads(messageId: string) {
   });
 
   if (!message) return [];
-
-  // On retourne la liste des utilisateurs qui ont lu, format identique à votre API
   return message.reads.map((read) => read.user);
 }
 
-// --- LOGIQUE RÉUTILISABLE POUR OBTENIR LES ROOMS ---
 export async function getFormattedRooms(
   userId: string,
   username: string,
@@ -293,7 +294,6 @@ export async function getFormattedRooms(
 ): Promise<RoomsSection> {
   const pageSize = 10;
 
-  // 1. Récupération de l'utilisateur
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: getUserDataSelect(userId, username),
@@ -301,7 +301,6 @@ export async function getFormattedRooms(
 
   if (!user) throw new Error("User not found");
 
-  // 2. Récupération des conversations standard via LastMessage
   const lastMessages = await prisma.lastMessage.findMany({
     where: { userId },
     select: {
@@ -328,7 +327,6 @@ export async function getFormattedRooms(
     })
     .filter((r): r is RoomData => r !== null);
 
-  // 3. Injection de la "Self Room" (Messages Enregistrés)
   if (!cursor) {
     const savedMessage = await prisma.message.findFirst({
       where: { senderId: userId, type: "SAVED" },
@@ -337,7 +335,6 @@ export async function getFormattedRooms(
     });
 
     if (savedMessage) {
-      // Logique visuelle : si le contenu est technique "create-userId", on le garde en SAVED (caché/système)
       let type = "CONTENT";
       if (savedMessage.content === "create-" + userId) {
         type = "SAVED";
@@ -345,9 +342,8 @@ export async function getFormattedRooms(
 
       const selfMessage = { ...savedMessage, type };
 
-      // Création de la room virtuelle en mémoire
       const selfRoom: RoomData = {
-        id: `saved-${userId}`, // ID Virtuel
+        id: `saved-${userId}`,
         name: "Messages enregistrés",
         description: null,
         groupAvatarUrl: null,
@@ -371,7 +367,6 @@ export async function getFormattedRooms(
     }
   }
 
-  // 4. Gestion de la pagination
   let nextCursor: string | null = null;
   if (rooms.length > pageSize) {
     const nextItem = rooms.pop();
@@ -535,7 +530,6 @@ export function groupManagment(
 
         if (!newMembersCreated) throw new Error("Erreur ajout membres");
 
-        // Création des messages système et notifications
         const sentInfoMessages = await Promise.all(
           newMembers.map(async (memberId) => {
             const message = await prisma.message.create({
@@ -549,7 +543,6 @@ export function groupManagment(
               include: getMessageDataInclude(userId),
             });
 
-            // Mise à jour pour TOUS les membres actifs du groupe (Add est public)
             const activeMemberIds = room.members
               .filter((m) => !["OLD", "BANNED"].includes(m.type))
               .map((m) => {
@@ -660,7 +653,6 @@ export function groupManagment(
         include: getMessageDataInclude(userId),
       });
 
-      // Mise à jour UNIQUE pour le banni et l'admin qui a fait l'action (consigne : pas les autres)
       const relevantUsers = [userId, targetId];
       await Promise.all(
         relevantUsers.map((uid) =>
@@ -679,7 +671,6 @@ export function groupManagment(
       io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
       io.to(roomId).emit("member_removed", { roomId, userId: targetId });
 
-      // Rafraichir seulement pour les concernés
       for (const uid of relevantUsers) {
         const userRooms = await getFormattedRooms(uid, "");
         io.to(uid).emit("room_list_updated", userRooms);
@@ -713,7 +704,6 @@ export function groupManagment(
         include: getMessageDataInclude(userId),
       });
 
-      // Mise à jour UNIQUE pour le banni et l'admin
       const relevantUsers = [userId, targetId];
       await Promise.all(
         relevantUsers.map((uid) =>
@@ -804,7 +794,6 @@ export function groupManagment(
           data: { type: "OLD", leftAt: new Date() },
         });
 
-        // Pour un départ volontaire, on met à jour pour TOUS les membres actifs restants + celui qui part
         const activeMemberIds = room.members
           .filter((m) => !["OLD", "BANNED"].includes(m.type))
           .map((m) => m.userId)
@@ -857,7 +846,6 @@ export function groupManagment(
         include: getMessageDataInclude(userId),
       });
 
-      // Mise à jour pour TOUS les membres actifs (restauration publique)
       const room = await prisma.room.findUnique({
         where: { id: roomId },
         include: { members: true },
@@ -892,5 +880,3 @@ export function groupManagment(
     }
   });
 }
-
-

@@ -219,7 +219,6 @@ export default function RoomPreview({
         .get(`/api/rooms/${room.id}/unread-count`)
         .json<NotificationCountInfo>(),
     initialData: { unreadCount: 0 },
-    staleTime: Infinity,
   });
 
   const { unreadCount } = data;
@@ -422,7 +421,7 @@ export default function RoomPreview({
                 (messageType !== "CONTENT" || typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
-                (unreadCount && !typing.isTyping) && "font-semibold",
+                (unreadCount && !typing.isTyping) && "font-semibold text-foreground",
               )}
             >
               {typing.isTyping
