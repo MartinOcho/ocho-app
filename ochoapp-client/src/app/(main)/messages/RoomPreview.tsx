@@ -414,14 +414,13 @@ export default function RoomPreview({
             <HighlightText text={chatName} highlight={highlight} />
             {verifiedCheck}
           </span>
-          <div className="flex w-full items-center gap-1 text-sm text-muted-foreground">
+          <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-[#ff661e]",)}>
             <span
               className={cn(
                 "line-clamp-2 text-ellipsis break-all",
                 (messageType !== "CONTENT" || typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
-                (unreadCount && !typing.isTyping) && "font-semibold text-foreground",
               )}
             >
               {typing.isTyping
