@@ -355,11 +355,10 @@ export default function RoomHeader({
       <div
         className={cn(
           "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden",
-          !active && "hidden",
         )}
       >
         <div
-          className="cursor-pointer sm:pointer-events-none sm:hidden"
+          className={cn("cursor-pointer sm:pointer-events-none sm:hidden", !active && "hidden",)}
           onClick={backHandler}
         >
           <ChevronLeft size={35} />
