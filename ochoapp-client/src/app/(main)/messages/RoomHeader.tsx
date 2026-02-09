@@ -46,6 +46,7 @@ import { useSocket } from "@/components/providers/SocketProvider";
 import MediaGallery from "@/components/messages/MediaGallery";
 import { useGalleryQuery } from "@/hooks/useGalleryQuery";
 import { useTranslation } from "@/context/LanguageContext";
+import FormattedInt from "@/components/FormattedInt";
 
 interface ChatHeaderProps {
   roomId: string | null;
@@ -506,9 +507,7 @@ export default function RoomHeader({
             >
               <ChevronLeft size={28} className="sm:hidden" />
               {!active && (
-                 <div className="ml-2 flex items-center rounded-2xl bg-primary p-1 px-2 text-xs">
-                  999+
-                </div>
+                 <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white">999+</div>
               )}
             </div>
 

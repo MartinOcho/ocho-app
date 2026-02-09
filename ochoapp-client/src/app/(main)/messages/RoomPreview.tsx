@@ -82,7 +82,7 @@ export default function RoomPreview({
     if (!socket || !isConnected) return;
 
     // 1. Gestionnaire pour incrémenter le compteur (nouveau message reçu)
-    const handleIncrement = ({ roomId: targetRoomId }: { roomId: string }) => {
+    const handleUnreadCount = ({ roomId: targetRoomId }: { roomId: string }) => {
       if (targetRoomId === room.id) {
         // Mise à jour optimiste du cache React Query
         queryClient.setQueryData<NotificationCountInfo>(
@@ -107,11 +107,11 @@ export default function RoomPreview({
       }
     };
 
-    socket.on("unread_count_increment", handleIncrement);
+    socket.on("rooms_unreads_update", handleUnreadCount);
     socket.on("unread_count_cleared", handleClear);
 
     return () => {
-      socket.off("unread_count_increment", handleIncrement);
+      socket.off("rooms_unreads_update", handleUnreadCount);
       socket.off("unread_count_cleared", handleClear);
     };
   }, [socket, isConnected, room.id, queryClient]);
@@ -470,12 +470,9 @@ export default function RoomPreview({
             )}
           </div>
         </div>
+        {/* Gérer le unreadcount de ce salon ici */}
         {!!unreadCount && (
-          <span className="relative flex items-center justify-end pl-2">
-            <span className="relative min-w-fit rounded-full bg-primary px-1 text-xs font-medium tabular-nums text-primary-foreground">
-              <FormattedInt number={unreadCount} />
-            </span>
-          </span>
+          <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white"><FormattedInt number={unreadCount} /></div>
         )}
       </div>
     </li>
