@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import {
@@ -75,6 +75,58 @@ export async function getUnreadRoomsCount(userId: string): Promise<number> {
       },
     },
   });
+  return unreadCount;
+}
+export async function getUnreadMessagesCountPerRoom(userId: string, roomId: string): Promise<number> {
+  const roomMember = await prisma.roomMember.findUnique({
+    where: {
+      roomId_userId: {
+        userId,
+        roomId,
+      },
+    },
+  });
+
+  if (!roomMember) return 0;
+
+  const joinedAt = roomMember.joinedAt;
+  const leftAt = roomMember.leftAt;
+
+  const dateFilter: Prisma.DateTimeFilter = {
+    gte: joinedAt,
+  };
+
+  if (leftAt) {
+    dateFilter.lte = leftAt;
+  }
+
+  const unreadCount = await prisma.message.count({
+    where: {
+      roomId: roomId,
+      createdAt: dateFilter,
+      reads: {
+        none: {
+          userId: userId,
+        },
+      },
+      OR: [
+        { type: { not: "REACTION" } },
+        {
+          AND: [
+            { type: "REACTION" },
+            { OR: [{ recipientId: userId }, { senderId: userId }] },
+          ],
+        },
+      ],
+      NOT: {
+        AND: {
+          type: "CREATE",
+          senderId: userId,
+        },
+      },
+    },
+  });
+
   return unreadCount;
 }
 export async function validateUserInDb(userId: string) {

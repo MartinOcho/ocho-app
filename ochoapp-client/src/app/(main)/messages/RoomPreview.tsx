@@ -81,45 +81,24 @@ export default function RoomPreview({
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    // 1. Gestionnaire pour incrémenter le compteur (nouveau message reçu)
-    // IMPORTANT: Le socket envoie maintenant { unreadCount, roomId }
-    const handleUnreadCount = (data: { roomId?: string; unreadCount?: number }) => {
+    // 1. Gestionnaire pour le compteur SPÉCIFIQUE AU SALON (Nouveau socket séparé)
+    const handleRoomUnreadCount = (data: { roomId: string; unreadCount: number }) => {
       // On vérifie si l'update concerne CE salon
       if (data.roomId === room.id) {
-        // Mise à jour optimiste du cache React Query pour ce salon spécifique
+        // Mise à jour précise du cache React Query avec la valeur serveur
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
-          (old) => {
-            const currentCount = old?.unreadCount || 0;
-            return { unreadCount: currentCount + 1 };
-          },
+          { unreadCount: data.unreadCount }
         );
       }
     };
 
-    // 2. Gestionnaire pour remettre à zéro le compteur (lecture effectuée)
-    const handleClear = ({ roomId: targetRoomId }: { roomId: string }) => {
-      // Si un message est lu quelque part (marqué vu) dans ce salon, on peut vouloir rafraichir
-      // Mais généralement, on met à 0 quand ON clique dessus.
-      // Cette socket est utile si on a le chat ouvert sur un autre appareil et qu'on lit le message là-bas.
-      if (targetRoomId === room.id) {
-         // Invalider ou mettre à jour
-         queryClient.setQueryData<NotificationCountInfo>(
-            ["room", "unread", room.id],
-            { unreadCount: 0 }
-         );
-      }
-    };
+    // Écoute de l'événement SPÉCIFIQUE (room_unread_count_update)
+    // Au lieu de l'événement global (rooms_unreads_update) qui sert au badge général
+    socket.on("room_unread_count_update", handleRoomUnreadCount);
     
-    // Écoute de l'événement global (modifié pour inclure roomId)
-    socket.on("rooms_unreads_update", handleUnreadCount);
-    
-    // Optionnel : Écouter aussi message_read_update pour décrémenter si quelqu'un d'autre lit (contexte partagé rare)
-    // Mais ici on veut surtout savoir quand NOUS on a lu ailleurs.
-    // socket.on("message_read_update", handleClear); 
-
     return () => {
-      socket.off("rooms_unreads_update", handleUnreadCount);
+      socket.off("room_unread_count_update", handleRoomUnreadCount);
     };
   }, [socket, isConnected, room.id, queryClient]);
 

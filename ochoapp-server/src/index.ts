@@ -27,6 +27,7 @@ import {
 import {
   getFormattedRooms,
   getUnreadRoomsCount, 
+  getUnreadMessagesCountPerRoom,
   groupManagment,
   socketHandler,
   validateSession,
@@ -350,11 +351,18 @@ io.on("connection", async (socket: Socket) => {
           reads,
         });
 
-        // IMPORTANT: On inclut roomId pour que le client sache quel compteur mettre à jour
+        // 1. Mise à jour GLOBAL (badge app/navbar)
         io.to(userId).emit("rooms_unreads_update", {
-          unreadCount,
-          roomId // Ajouté
+          unreadCount, // Total des salons non lus
         });
+        
+        // 2. Mise à jour SPÉCIFIQUE AU SALON (badge room)
+        // Quand on lit, le count de ce salon tombe à 0
+        io.to(userId).emit("room_unread_count_update", {
+           roomId,
+           unreadCount: 0
+        });
+
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
       }
@@ -468,14 +476,20 @@ io.on("connection", async (socket: Socket) => {
             });
             if (user) {
               const updatedRooms = await getFormattedRooms(affectedId, user.username);
-              const newUnreadCount = await getUnreadRoomsCount(affectedId);
+              const newGlobalUnreadCount = await getUnreadRoomsCount(affectedId);
+              const newRoomUnreadCount = await getUnreadMessagesCountPerRoom(affectedId, data.roomId);
               
               io.to(affectedId).emit("room_list_updated", updatedRooms);
               
-              // IMPORTANT: On passe le roomId concerné par la suppression (pour décrémenter le compteur local)
+              // 1. Mise à jour GLOBAL (Badge Navbar/Menu)
               io.to(affectedId).emit("rooms_unreads_update", { 
-                unreadCount: newUnreadCount,
-                roomId: data.roomId 
+                unreadCount: newGlobalUnreadCount,
+              });
+
+              // 2. Mise à jour SPÉCIFIQUE (Badge Salon)
+              io.to(affectedId).emit("room_unread_count_update", {
+                roomId: data.roomId,
+                unreadCount: newRoomUnreadCount
               });
             }
           }
@@ -564,11 +578,18 @@ io.on("connection", async (socket: Socket) => {
               io.to(affectedId).emit("room_list_updated", updatedRooms);
 
               if (affectedId !== userId) {
-                const unreadCount = await getUnreadRoomsCount(affectedId);
-                // IMPORTANT: Ajout du roomId pour cibler le composant RoomPreview spécifique
+                const globalUnreadCount = await getUnreadRoomsCount(affectedId);
+                const roomUnreadCount = await getUnreadMessagesCountPerRoom(affectedId, roomId);
+
+                // 1. Mise à jour GLOBAL (Badge Navbar/Menu : nombre de salons avec non-lus)
                 io.to(affectedId).emit("rooms_unreads_update", { 
-                  unreadCount,
-                  roomId: roomId 
+                  unreadCount: globalUnreadCount,
+                });
+
+                // 2. Mise à jour SPÉCIFIQUE (Badge Salon : nombre de messages non-lus dans CE salon)
+                io.to(affectedId).emit("room_unread_count_update", { 
+                  roomId: roomId,
+                  unreadCount: roomUnreadCount
                 });
               }
             }
