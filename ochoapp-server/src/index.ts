@@ -350,8 +350,10 @@ io.on("connection", async (socket: Socket) => {
           reads,
         });
 
+        // IMPORTANT: On inclut roomId pour que le client sache quel compteur mettre à jour
         io.to(userId).emit("rooms_unreads_update", {
           unreadCount,
+          roomId // Ajouté
         });
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
@@ -467,8 +469,14 @@ io.on("connection", async (socket: Socket) => {
             if (user) {
               const updatedRooms = await getFormattedRooms(affectedId, user.username);
               const newUnreadCount = await getUnreadRoomsCount(affectedId);
+              
               io.to(affectedId).emit("room_list_updated", updatedRooms);
-              io.to(affectedId).emit("rooms_unreads_update", { unreadCount: newUnreadCount });
+              
+              // IMPORTANT: On passe le roomId concerné par la suppression (pour décrémenter le compteur local)
+              io.to(affectedId).emit("rooms_unreads_update", { 
+                unreadCount: newUnreadCount,
+                roomId: data.roomId 
+              });
             }
           }
         }
@@ -557,7 +565,11 @@ io.on("connection", async (socket: Socket) => {
 
               if (affectedId !== userId) {
                 const unreadCount = await getUnreadRoomsCount(affectedId);
-                io.to(affectedId).emit("rooms_unreads_update", { unreadCount });
+                // IMPORTANT: Ajout du roomId pour cibler le composant RoomPreview spécifique
+                io.to(affectedId).emit("rooms_unreads_update", { 
+                  unreadCount,
+                  roomId: roomId 
+                });
               }
             }
           }

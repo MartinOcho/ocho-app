@@ -82,9 +82,11 @@ export default function RoomPreview({
     if (!socket || !isConnected) return;
 
     // 1. Gestionnaire pour incrémenter le compteur (nouveau message reçu)
-    const handleUnreadCount = ({ roomId: targetRoomId }: { roomId: string }) => {
-      if (targetRoomId === room.id) {
-        // Mise à jour optimiste du cache React Query
+    // IMPORTANT: Le socket envoie maintenant { unreadCount, roomId }
+    const handleUnreadCount = (data: { roomId?: string; unreadCount?: number }) => {
+      // On vérifie si l'update concerne CE salon
+      if (data.roomId === room.id) {
+        // Mise à jour optimiste du cache React Query pour ce salon spécifique
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
           (old) => {
@@ -97,22 +99,27 @@ export default function RoomPreview({
 
     // 2. Gestionnaire pour remettre à zéro le compteur (lecture effectuée)
     const handleClear = ({ roomId: targetRoomId }: { roomId: string }) => {
+      // Si un message est lu quelque part (marqué vu) dans ce salon, on peut vouloir rafraichir
+      // Mais généralement, on met à 0 quand ON clique dessus.
+      // Cette socket est utile si on a le chat ouvert sur un autre appareil et qu'on lit le message là-bas.
       if (targetRoomId === room.id) {
-        queryClient.setQueryData<NotificationCountInfo>(
-          ["room", "unread", room.id],
-          {
-            unreadCount: 0,
-          },
-        );
+         // Invalider ou mettre à jour
+         queryClient.setQueryData<NotificationCountInfo>(
+            ["room", "unread", room.id],
+            { unreadCount: 0 }
+         );
       }
     };
-
+    
+    // Écoute de l'événement global (modifié pour inclure roomId)
     socket.on("rooms_unreads_update", handleUnreadCount);
-    socket.on("unread_count_cleared", handleClear);
+    
+    // Optionnel : Écouter aussi message_read_update pour décrémenter si quelqu'un d'autre lit (contexte partagé rare)
+    // Mais ici on veut surtout savoir quand NOUS on a lu ailleurs.
+    // socket.on("message_read_update", handleClear); 
 
     return () => {
       socket.off("rooms_unreads_update", handleUnreadCount);
-      socket.off("unread_count_cleared", handleClear);
     };
   }, [socket, isConnected, room.id, queryClient]);
 
