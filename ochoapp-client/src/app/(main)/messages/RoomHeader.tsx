@@ -354,7 +354,7 @@ export default function RoomHeader({
     >
       <div
         className={cn(
-          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden",
+          "sticky inset-0 z-40 flex justify-between max-sm:hidden",
         )}
       >
         <div
@@ -371,7 +371,7 @@ export default function RoomHeader({
         </div>
         
           {/* Desktop / default layout (visible on sm and up) */}
-          <div className={cn("max-sm:hidden w-full items-center gap-2 flex", active && "ps-14")}>
+          <div className={cn("max-sm:hidden w-full items-center gap-2 flex cursor-pointer transition-all *:transition-all", active && "ps-14")} onClick={() => !active && setActive(true)}>
             {room.isGroup ? (
               <GroupAvatar
                 size={size}
