@@ -60,6 +60,7 @@ function NotificationsBadge() {
     const { messagesUnread } = useSocket();;
   
     const unreadCount = typeof messagesUnread === "number" ? messagesUnread : 0;
+    if (!unreadCount || unreadCount <= 0) return null
     return <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white">{unreadCount}</div>
 }
 
