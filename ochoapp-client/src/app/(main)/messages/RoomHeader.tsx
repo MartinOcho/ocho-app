@@ -63,7 +63,6 @@ export default function RoomHeader({
   onCloseChat,
 }: ChatHeaderProps) {
   const { t } = useTranslation();
-  // Normaliser initialRoom pour garantir que members existe
   const normalizedInitialRoom: RoomData = useMemo(
     () =>
       ({
@@ -81,9 +80,10 @@ export default function RoomHeader({
     null,
   );
 
-  // État pour gérer le style au scroll
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const isTransitioningRef = useRef(false);
 
   const { isMediaFullscreen } = useActiveRoom();
 
@@ -129,20 +129,18 @@ export default function RoomHeader({
 
   useEffect(() => {
     setActive(false);
-    setIsScrolled(false); // Reset scroll state on room change
+    setIsScrolled(false);
+    isTransitioningRef.current = false;
   }, [activeRoomId]);
 
   useEffect(() => {
     if (roomId) {
-      // Clear the old room data
       setRoom(normalizedInitialRoom);
-      // Revalidate the new room data
       queryClient.invalidateQueries({ queryKey });
     }
   }, [roomId, normalizedInitialRoom, queryClient, queryKey]);
 
   useEffect(() => {
-    // Sync room data with API response when data arrives
     if (data) {
       const normalizedData = {
         ...data,
@@ -153,24 +151,33 @@ export default function RoomHeader({
   }, [data]);
 
   useEffect(() => {
-    // Sync room with initial data on component mount
     setRoom(normalizedInitialRoom);
   }, [normalizedInitialRoom]);
-
-  // Gestionnaire d'événement de scroll AVEC HYSTÉRÉSIS
+  
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
     const handleScroll = () => {
+      
+      if (isTransitioningRef.current) return;
+
       const currentScrollY = element.scrollTop;
       
-      // Hystérésis : on active à 20px, mais on ne désactive que si on repasse sous 10px
-      // Cela évite le clignotement si l'utilisateur scrolle pile autour de 20px
+      let shouldBeScrolled = isScrolled;
+      
       if (!isScrolled && currentScrollY > 20) {
-        setIsScrolled(true);
+        shouldBeScrolled = true;
       } else if (isScrolled && currentScrollY < 10) {
-        setIsScrolled(false);
+        shouldBeScrolled = false;
+      }
+      
+      if (shouldBeScrolled !== isScrolled) {
+        setIsScrolled(shouldBeScrolled);
+        isTransitioningRef.current = true;
+        setTimeout(() => {
+          isTransitioningRef.current = false;
+        }, 350);
       }
     };
 
@@ -178,7 +185,7 @@ export default function RoomHeader({
     return () => {
       element.removeEventListener("scroll", handleScroll);
     };
-  }, [isScrolled]); // Dépendance à isScrolled pour que la closure ait la bonne valeur
+  }, [isScrolled]);
 
   if (!room) {
     if (status === "pending") {
@@ -385,8 +392,7 @@ export default function RoomHeader({
           >
             <X size={35} />
           </div>
-
-          {/* Desktop / default layout (visible on sm and up) */}
+          
           <div
             className={cn(
               "transition-width *:transition-width flex w-full cursor-pointer items-center gap-2 max-sm:hidden",
@@ -452,7 +458,6 @@ export default function RoomHeader({
           </div>
         </div>
         
-        {/* MOBILE HEADER - OPTIMIZED FOR FLICKERING */}
         <div
           className={cn(
             `group/head flex items-center gap-2 transition-all sticky top-0 z-50`, // Toujours sticky et Z-index élevé
@@ -467,18 +472,15 @@ export default function RoomHeader({
               !active && "max-sm:flex",
             )}
           >
-            {/* BOUTON RETOUR - Stabilisé */}
             <div
               className={cn(
                 "flex cursor-pointer items-center rounded-3xl border transition-all duration-300",
                 "backdrop-blur-md shadow-lg xl:w-fit",
-                // Si actif et non scrollé, on le positionne en absolute pour superposition si nécessaire, 
-                // mais attention au saut de layout. Ici on garde le flux standard si possible ou on utilise une transition de margin.
                 active && !isScrolled 
-                   ? "bg-background/80 absolute top-2 left-2 z-[60]" // Superposition mode "cover"
-                   : "bg-card/30 relative", // Mode "sticky bar"
-                active && isScrolled && "p-2", // Padding ajusté
-                !active && "bg-card/30 p-2" // État par défaut
+                   ? "bg-background/80 absolute top-2 left-2 z-[60]"
+                   : "bg-card/30 relative",
+                active && isScrolled && "p-2",
+                !active && "bg-card/30 p-2" 
               )}
               title="Fermer la discussion"
               onClick={backHandler}
