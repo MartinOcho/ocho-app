@@ -408,10 +408,9 @@ export default function RoomHeader({
           {/* Desktop / default layout (visible on sm and up) */}
           <div
             className={cn(
-              "flex w-full cursor-pointer items-center gap-2 transition-all *:transition-all max-sm:hidden",
-              active && isScrolled
-                ? "w-fit rounded-[3rem] border border-border/50 bg-background/80 p-2 px-3 shadow-sm backdrop-blur-md"
-                : "",
+              "flex w-full cursor-pointer items-center gap-2 transition-width *:transition-width max-sm:hidden",
+              (active && isScrolled)
+                && "w-fit rounded-[3rem] border border-border/50 bg-card/30 p-2 px-3 shadow-sm backdrop-blur-md",
             )}
             onClick={() => !active && setActive(true)}
           >
