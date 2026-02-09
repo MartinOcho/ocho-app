@@ -478,7 +478,7 @@ export default function RoomHeader({
             <div
               className={cn(
                 "flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md sm:hover:text-red-500 xl:w-fit",
-                active && "left-2 top-2 z-50 max-sm:absolute",
+                (active || !isScrolled) && "left-2 top-2 z-50 max-sm:absolute",
               )}
               title="Fermer la discussion items-center"
               onClick={backHandler}
@@ -806,7 +806,7 @@ export default function RoomHeader({
 
             <TabsContent
               value="media"
-              className="flex flex-1 flex-col gap-3 overflow-y-auto"
+              className="flex flex-1 flex-col gap-3 overflow-y-auto max-sm:pb-16"
             >
               {roomId && <MediaGalleryContainer roomId={roomId} />}
             </TabsContent>
