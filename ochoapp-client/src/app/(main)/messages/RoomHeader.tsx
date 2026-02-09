@@ -367,7 +367,7 @@ export default function RoomHeader({
         <div
           className={cn(
             "cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0",
-            active && "hidden",
+            !active && "hidden",
           )}
           onClick={backHandler}
         >
