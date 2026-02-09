@@ -80,7 +80,7 @@ export default function RoomHeader({
   const [dialogFocus, setDialogFocus] = useState<"name" | "description" | null>(
     null,
   );
-  
+
   // État pour gérer le style au scroll
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -383,22 +383,13 @@ export default function RoomHeader({
         <div
           className={cn(
             "sticky inset-0 z-40 flex justify-between max-sm:hidden",
-            active && "py-3 px-4", // Padding pour l'espacement quand collant
+            active && "px-4 py-3", // Padding pour l'espacement quand collant
           )}
         >
           <div
             className={cn(
-              "cursor-pointer sm:pointer-events-none sm:hidden",
-              !active && "hidden",
-            )}
-            onClick={backHandler}
-          >
-            <ChevronLeft size={35} />
-          </div>
-          <div
-            className={cn(
               "cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0",
-              !active && "hidden",
+              (!active || isScrolled) && "hidden",
             )}
             onClick={backHandler}
           >
@@ -408,9 +399,10 @@ export default function RoomHeader({
           {/* Desktop / default layout (visible on sm and up) */}
           <div
             className={cn(
-              "flex w-full cursor-pointer items-center gap-2 transition-width *:transition-width max-sm:hidden",
-              (active && isScrolled)
-                && "w-fit rounded-[3rem] border border-border/50 bg-card/30 p-2 px-3 shadow-sm backdrop-blur-md",
+              "transition-width *:transition-width flex w-full cursor-pointer items-center gap-2 max-sm:hidden",
+              active &&
+                isScrolled &&
+                "w-fit rounded-[3rem] border border-border/50 bg-card/30 p-2 px-3 shadow-sm backdrop-blur-md",
             )}
             onClick={() => !active && setActive(true)}
           >
@@ -457,6 +449,15 @@ export default function RoomHeader({
                   </div>
                 </div>
               )}
+              <div
+                className={cn(
+                  "cursor-pointer hover:text-red-500 max-sm:pointer-events-none max-sm:opacity-0",
+                  (!active || !isScrolled) && "hidden",
+                )}
+                onClick={backHandler}
+              >
+                <X size={35} />
+              </div>
             </div>
           </div>
         </div>
