@@ -354,7 +354,7 @@ export default function RoomHeader({
     >
       <div
         className={cn(
-          "sticky sm:relative inset-0 z-40 flex justify-between p-4 max-sm:hidden",
+          "sticky inset-0 z-40 flex justify-between p-4 max-sm:hidden",
           !active && "hidden",
         )}
       >
@@ -370,6 +370,54 @@ export default function RoomHeader({
         >
           <X size={35} />
         </div>
+        
+          {/* Desktop / default layout (visible on sm and up) */}
+          <div className={cn("max-sm:hidden w-full items-center gap-2 flex", active && "ps-14")}>
+            {room.isGroup ? (
+              <GroupAvatar
+                size={size}
+                className="transition-all *:transition-all"
+                avatarUrl={room.groupAvatarUrl}
+              />
+            ) : (
+              <UserAvatar
+                userId={otherUser?.id || null}
+                avatarUrl={otherUser?.avatarUrl}
+                size={size}
+                className="transition-all *:transition-all"
+              />
+            )}
+            <div className="flex-1">
+              {room.isGroup ? (
+                <div>
+                  <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className="line-clamp-1 text-ellipsis">
+                      {chatName}
+                    </span>
+                    {verifiedCheck}
+                  </span>
+                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                </div>
+              ) : (
+                <div>
+                  <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className="line-clamp-1 text-ellipsis">
+                      {chatName}
+                    </span>
+                    {verifiedCheck}
+                  </span>
+                  <div
+                    className={cn(
+                      "text-sm text-muted-foreground",
+                      (activeStatus?.isOnline || isSaved) && "text-primary",
+                    )}
+                  >
+                    {getStatusDisplay()}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
       </div>
       <div
         className={`flex w-full flex-1 flex-col transition-all ${active ? "absolute inset-0 h-fit min-h-full bg-card max-sm:bg-background sm:rounded-e-3xl" : "relative"}`}
@@ -460,53 +508,6 @@ export default function RoomHeader({
             </div>
           </div>
 
-          {/* Desktop / default layout (visible on sm and up) */}
-          <div className={cn("max-sm:hidden w-full items-center gap-2 flex", active && "ps-14")}>
-            {room.isGroup ? (
-              <GroupAvatar
-                size={size}
-                className="transition-all *:transition-all"
-                avatarUrl={room.groupAvatarUrl}
-              />
-            ) : (
-              <UserAvatar
-                userId={otherUser?.id || null}
-                avatarUrl={otherUser?.avatarUrl}
-                size={size}
-                className="transition-all *:transition-all"
-              />
-            )}
-            <div className="flex-1">
-              {room.isGroup ? (
-                <div>
-                  <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
-                      {chatName}
-                    </span>
-                    {verifiedCheck}
-                  </span>
-                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
-                </div>
-              ) : (
-                <div>
-                  <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
-                      {chatName}
-                    </span>
-                    {verifiedCheck}
-                  </span>
-                  <div
-                    className={cn(
-                      "text-sm text-muted-foreground",
-                      (activeStatus?.isOnline || isSaved) && "text-primary",
-                    )}
-                  >
-                    {getStatusDisplay()}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
         {active && (
           <Tabs
