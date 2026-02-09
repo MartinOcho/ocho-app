@@ -56,6 +56,13 @@ interface ChatHeaderProps {
   onCloseChat: () => void;
 }
 
+function NotificationsBadge() {
+    const { messagesUnread } = useSocket();;
+  
+    const unreadCount = typeof messagesUnread === "number" ? messagesUnread : 0;
+    return <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white">{unreadCount}</div>
+}
+
 export default function RoomHeader({
   roomId,
   isGroup,
@@ -506,9 +513,7 @@ export default function RoomHeader({
               onClick={backHandler}
             >
               <ChevronLeft size={28} className="sm:hidden" />
-              {!active && (
-                 <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white">999+</div>
-              )}
+              {!active && <NotificationsBadge/>}
             </div>
 
             <div
