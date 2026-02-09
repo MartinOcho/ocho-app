@@ -357,10 +357,12 @@ io.on("connection", async (socket: Socket) => {
         });
         
         // 2. Mise à jour SPÉCIFIQUE AU SALON (badge room)
-        // Quand on lit, le count de ce salon tombe à 0
+        // CORRECTION : On ne met plus 0 en dur, on calcule le vrai reste.
+        const currentRoomUnreadCount = await getUnreadMessagesCountPerRoom(userId, roomId);
+        
         io.to(userId).emit("room_unread_count_update", {
            roomId,
-           unreadCount: 0
+           unreadCount: currentRoomUnreadCount
         });
 
       } catch (error) {

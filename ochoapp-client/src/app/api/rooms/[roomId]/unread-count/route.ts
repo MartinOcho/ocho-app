@@ -53,6 +53,7 @@ export async function GET(
     const whereClause: Prisma.MessageWhereInput = {
       roomId: roomId,
       createdAt: dateFilter, 
+      senderId: { not: user.id },
       reads: {
         none: {
           userId: user.id,

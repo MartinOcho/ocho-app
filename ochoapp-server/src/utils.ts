@@ -104,6 +104,7 @@ export async function getUnreadMessagesCountPerRoom(userId: string, roomId: stri
     where: {
       roomId: roomId,
       createdAt: dateFilter,
+      senderId: { not: userId },
       reads: {
         none: {
           userId: userId,

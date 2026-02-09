@@ -23,7 +23,6 @@ interface RoomProps {
   highlight?: string; // Prop pour la recherche
 }
 
-// --- Composant utilitaire pour la surbrillance ---
 function HighlightText({
   text,
   highlight,
@@ -34,8 +33,7 @@ function HighlightText({
   if (!highlight || !highlight.trim()) {
     return <>{text}</>;
   }
-
-  // Échapper les caractères spéciaux regex
+  
   const safeHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const parts = text.split(new RegExp(`(${safeHighlight})`, "gi"));
 
@@ -77,30 +75,36 @@ export default function RoomPreview({
 
   const queryClient = useQueryClient();
 
-  // --- GESTION DES MESSAGES NON LUS EN TEMPS RÉEL ---
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    // 1. Gestionnaire pour le compteur SPÉCIFIQUE AU SALON (Nouveau socket séparé)
     const handleRoomUnreadCount = (data: { roomId: string; unreadCount: number }) => {
-      // On vérifie si l'update concerne CE salon
       if (data.roomId === room.id) {
-        // Mise à jour précise du cache React Query avec la valeur serveur
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
           { unreadCount: data.unreadCount }
         );
       }
     };
-
-    // Écoute de l'événement SPÉCIFIQUE (room_unread_count_update)
-    // Au lieu de l'événement global (rooms_unreads_update) qui sert au badge général
+    const handleReceiveMessage = (data: { roomId: string; newMessage: any }) => {
+      if (data.roomId === room.id && data.newMessage.senderId !== loggedinUser?.id) {
+        queryClient.setQueryData<NotificationCountInfo>(
+          ["room", "unread", room.id],
+          (oldData) => ({
+            unreadCount: (oldData?.unreadCount || 0) + 1
+          })
+        );
+      }
+    };
+    
     socket.on("room_unread_count_update", handleRoomUnreadCount);
+    socket.on("receive_message", handleReceiveMessage);
     
     return () => {
       socket.off("room_unread_count_update", handleRoomUnreadCount);
+      socket.off("receive_message", handleReceiveMessage);
     };
-  }, [socket, isConnected, room.id, queryClient]);
+  }, [socket, isConnected, room.id, queryClient, loggedinUser?.id]);
 
   useEffect(() => {
     if (!socket || !isConnected || !room.id) return;
@@ -370,10 +374,6 @@ export default function RoomPreview({
 
   const select = async () => {
     onSelect();
-    // Mise à jour de la clé de cache correcte pour effacer les notifications
-    queryClient.setQueryData(["room", "unread", room.id], {
-      unreadCount: 0,
-    });
     navigate("/messages/chat");
   };
 
@@ -422,6 +422,7 @@ export default function RoomPreview({
                 (messageType !== "CONTENT" || typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
+                (unreadCount && !typing.isTyping) && "font-semibold",
               )}
             >
               {typing.isTyping
@@ -456,7 +457,6 @@ export default function RoomPreview({
             )}
           </div>
         </div>
-        {/* Gérer le unreadcount de ce salon ici */}
         {!!unreadCount && (
           <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white"><FormattedInt number={unreadCount} /></div>
         )}
