@@ -157,22 +157,28 @@ export default function RoomHeader({
     setRoom(normalizedInitialRoom);
   }, [normalizedInitialRoom]);
 
-  // Gestionnaire d'événement de scroll
+  // Gestionnaire d'événement de scroll AVEC HYSTÉRÉSIS
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
     const handleScroll = () => {
-      // Si on a scrollé de plus de 20px, on active le mode "pillule"
-      const scrolled = element.scrollTop > 20;
-      setIsScrolled(scrolled);
+      const currentScrollY = element.scrollTop;
+      
+      // Hystérésis : on active à 20px, mais on ne désactive que si on repasse sous 10px
+      // Cela évite le clignotement si l'utilisateur scrolle pile autour de 20px
+      if (!isScrolled && currentScrollY > 20) {
+        setIsScrolled(true);
+      } else if (isScrolled && currentScrollY < 10) {
+        setIsScrolled(false);
+      }
     };
 
     element.addEventListener("scroll", handleScroll);
     return () => {
       element.removeEventListener("scroll", handleScroll);
     };
-  }, [active]); // Ré-attacher si l'état 'active' change la structure DOM
+  }, [isScrolled]); // Dépendance à isScrolled pour que la closure ait la bonne valeur
 
   if (!room) {
     if (status === "pending") {
@@ -272,37 +278,26 @@ export default function RoomHeader({
   );
   const isWeekAgo = weekAgo.getTime() >= new Date().getTime();
 
-  const size = active ? (isScrolled ? 40 : 120) : 40; // Ajuster la taille de l'avatar au scroll si nécessaire, ou garder la logique actuelle
+  const size = active ? (isScrolled ? 40 : 120) : 40; 
 
-  // Ensure room and members are properly initialized
   const safeMembers = Array.isArray(room?.members) ? room.members : [];
-  const safeRoom = {
-    ...room,
-    members: safeMembers,
-  };
 
-  // Get loggedinMember from members
   const loggedinMember = safeMembers.find(
     (member) => member.userId === loggedUser.id,
   );
-  // Get admins
   const admins = safeMembers.filter(
     (member) =>
       member.type === "ADMIN" && member.userId !== loggedinMember?.userId,
   );
-  // Get owner
   const owner = [safeMembers.find((member) => member.type === "OWNER")].filter(
     (member) => member?.userId !== loggedinMember?.userId,
   );
-  // Get members
   const members = safeMembers.filter((member) => member.type !== "ADMIN");
 
-  // Remove logged user from owner admins and members
   const filteredMembers = members.filter(
     (member) => member.userId !== loggedUser.id,
   );
 
-  // Remove admins and owner from filteredMembers
   const filteredMembers2 = filteredMembers.filter(
     (member) => member.type !== "ADMIN",
   );
@@ -316,7 +311,7 @@ export default function RoomHeader({
     ...owner,
     ...admins,
     ...filteredMembers3,
-  ].filter(Boolean); // Filtrer les undefined
+  ].filter(Boolean); 
   const allMembers = (mergedMembers || [])
     .filter((member) => member?.type !== "OLD")
     .filter((member) => member?.type !== "BANNED");
@@ -331,11 +326,6 @@ export default function RoomHeader({
   const firstPage = (allMembers || []).slice(0, 10);
   const lastPage = (allMembers || []).slice(10, (allMembers || []).length);
 
-  const now = Date.now();
-
-  const lastSeenTimeStamp = otherUser?.lastSeen
-    ? new Date(new Date(otherUser.lastSeen).getTime() - 30_000).getTime()
-    : null;
 
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
@@ -369,9 +359,9 @@ export default function RoomHeader({
 
   return (
     <div
-      ref={scrollRef} // Attach ref here to monitor scroll inside this container
+      ref={scrollRef} 
       className={cn(
-        "z-50",
+        "z-50 transition-all duration-300", // Ajout de transition
         active
           ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card px-4 py-3 max-sm:bg-background sm:rounded-e-3xl"
           : "relative flex w-full flex-1 items-center gap-2 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none max-sm:px-4 max-sm:py-3",
@@ -383,7 +373,7 @@ export default function RoomHeader({
         <div
           className={cn(
             "sticky inset-0 z-40 flex justify-between max-sm:hidden",
-            active && "px-4 py-3", // Padding pour l'espacement quand collant
+            active && "px-4 py-3", 
           )}
         >
           <div
@@ -461,9 +451,11 @@ export default function RoomHeader({
             </div>
           </div>
         </div>
+        
+        {/* MOBILE HEADER - OPTIMIZED FOR FLICKERING */}
         <div
           className={cn(
-            `group/head flex items-center gap-2 transition-all sticky top-0`,
+            `group/head flex items-center gap-2 transition-all sticky top-0 z-50`, // Toujours sticky et Z-index élevé
             active ? "cursor-default flex-col p-3" : "flex-1 cursor-pointer",
             isMediaFullscreen && "hidden",
           )}
@@ -471,35 +463,46 @@ export default function RoomHeader({
         >
           <div
             className={cn(
-              "flex w-full items-center gap-2 px-0 py-0 sm:hidden",
+              "flex w-full items-center gap-2 px-0 py-0 sm:hidden transition-all duration-300 ease-in-out", // Transition douce
               !active && "max-sm:flex",
             )}
           >
+            {/* BOUTON RETOUR - Stabilisé */}
             <div
               className={cn(
-                "flex cursor-pointer items-center rounded-3xl border bg-card/30 p-2 shadow-lg backdrop-blur-md xl:w-fit",
-                (active && !isScrolled) && "left-2 top-2 z-50 max-sm:absolute",
+                "flex cursor-pointer items-center rounded-3xl border transition-all duration-300",
+                "backdrop-blur-md shadow-lg xl:w-fit",
+                // Si actif et non scrollé, on le positionne en absolute pour superposition si nécessaire, 
+                // mais attention au saut de layout. Ici on garde le flux standard si possible ou on utilise une transition de margin.
+                active && !isScrolled 
+                   ? "bg-background/80 absolute top-2 left-2 z-[60]" // Superposition mode "cover"
+                   : "bg-card/30 relative", // Mode "sticky bar"
+                active && isScrolled && "p-2", // Padding ajusté
+                !active && "bg-card/30 p-2" // État par défaut
               )}
-              title="Fermer la discussion items-center"
+              title="Fermer la discussion"
               onClick={backHandler}
             >
               <ChevronLeft size={28} className="sm:hidden" />
-              <div className="ml-2 flex items-center rounded-2xl bg-primary p-1 px-2 text-xs">
-                999+
-              </div>
+              {!active && (
+                 <div className="ml-2 flex items-center rounded-2xl bg-primary p-1 px-2 text-xs">
+                  999+
+                </div>
+              )}
             </div>
 
             <div
               className={cn(
-                "relative z-40 flex flex-1 cursor-pointer items-center gap-2 rounded-[4rem] border bg-card/30 p-2 shadow-lg backdrop-blur-md xl:w-fit",
-                (active && !isScrolled) &&
-                  "flex-col border-none bg-transparent shadow-none backdrop-blur-none",
+                "relative z-40 flex flex-1 cursor-pointer items-center gap-2 rounded-[4rem] border p-2 transition-all duration-300 xl:w-fit",
+                active && !isScrolled 
+                  ? "flex-col border-none bg-transparent shadow-none backdrop-blur-none mt-10"
+                  : "bg-card/30 shadow-lg backdrop-blur-md",
               )}
             >
               {room.isGroup ? (
                 <GroupAvatar
                   size={size}
-                  className="transition-all *:transition-all"
+                  className="transition-all duration-300 *:transition-all"
                   avatarUrl={room.groupAvatarUrl}
                 />
               ) : (
@@ -507,13 +510,13 @@ export default function RoomHeader({
                   userId={otherUser?.id || null}
                   avatarUrl={otherUser?.avatarUrl}
                   size={size}
-                  className="transition-all *:transition-all"
+                  className="transition-all duration-300 *:transition-all"
                 />
               )}
-              <div className="flex-1">
+              <div className={cn("flex-1 transition-all duration-300", active && !isScrolled ? "text-center items-center flex flex-col" : "")}>
                 {room.isGroup ? (
                   <div>
-                    <span className="flex items-center gap-0.5 text-xl font-bold">
+                    <span className="flex items-center gap-0.5 text-xl font-bold justify-center">
                       <span className="line-clamp-1 text-ellipsis">
                         {chatName}
                       </span>
@@ -523,7 +526,7 @@ export default function RoomHeader({
                   </div>
                 ) : (
                   <div>
-                    <span className="flex items-center gap-1 text-xl font-bold">
+                    <span className={cn("flex items-center gap-1 text-xl font-bold", active && !isScrolled && "justify-center")}>
                       <span className="line-clamp-1 text-ellipsis">
                         {chatName}
                       </span>
@@ -1118,8 +1121,6 @@ export function GroupUserPopover({
     </Popover>
   );
 }
-
-// Composant helper pour charger les médias et afficher la galerie
 export function MediaGalleryContainer({ roomId }: { roomId: string }) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useGalleryQuery({ roomId, enabled: !!roomId });
