@@ -52,7 +52,7 @@ export default function MediaStrip({
     <>
       <div
         className={cn(
-          "flex gap-2 flex-wrap max-w-full max-sm:max-w-64",
+          "flex gap-2 flex-wrap w-fit max-w-full max-sm:max-w-64",
           className
         )}
       >
@@ -136,12 +136,12 @@ export default function MediaStrip({
             )}
 
             {/* Badge overlay "+N" */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
+            {remainingCount > 1 && (<div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
               <div className="text-center">
                 <div className="text-2xl font-bold text-white">+{remainingCount}</div>
                 <div className="text-xs text-white/80">voir plus</div>
               </div>
-            </div>
+            </div>)}
           </button>
         )}
       </div>
