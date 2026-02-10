@@ -414,7 +414,7 @@ export default function RoomPreview({
             <HighlightText text={chatName} highlight={highlight} />
             {verifiedCheck}
           </span>
-          <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-[#ff661e]",)}>
+          <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
             <span
               className={cn(
                 "line-clamp-2 text-ellipsis break-all",
@@ -456,7 +456,7 @@ export default function RoomPreview({
           </div>
         </div>
         {!!unreadCount && (
-          <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-[#ff661e] text-white"><FormattedInt number={unreadCount} /></div>
+          <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-primary text-white"><FormattedInt number={unreadCount} /></div>
         )}
       </div>
     </li>

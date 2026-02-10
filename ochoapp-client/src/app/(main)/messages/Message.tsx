@@ -209,7 +209,7 @@ export const MessageBubbleContent = ({
       "dark:bg-transparent dark:text-neutral-200 dark:border-neutral-700 bg-white text-gray-800 border-gray-200 shadow-sm border";
 
   return (
-    <div className={cn("relative w-fit group/bubble flex flex-col gap-1", isClone && "h-full", isOwner ? "justify-end" : "justify-start")}>
+    <div className={cn("relative w-fit group/bubble flex flex-col gap-1", isClone && "h-full", isOwner ? "items-end" : "items-start")}>
         {message.attachments && !isClone && message.attachments.length > 0 && (
           <MediaStrip 
             attachments={message.attachments as MessageAttachment[]}

@@ -65,22 +65,26 @@ export default function MediaStrip({
             {attachment.type === "VIDEO" ? (
               <div className={`h-[${attachment.height}px] w-[${attachment.width}px}]`}>
                 <video
+                  width={attachment.width || undefined}
+                  height={attachment.height || undefined}
                   src={attachment.url}
                   className={cn(
                     "rounded-lg object-cover cursor-pointer",
                     attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24",
                     `h-[${attachment.height}px] w-[${attachment.width}px}]`
                   )}
-                />
+                  />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
                   <Play
                     size={32}
                     className="text-white/80 fill-white/80"
-                  />
+                    />
                 </div>
               </div>
             ) : (
               <img
+                width={attachment.width || undefined}
+                height={attachment.height || undefined}
                 src={attachment.url}
                 alt={`Attachment ${index + 1}`}
                 className={cn(
