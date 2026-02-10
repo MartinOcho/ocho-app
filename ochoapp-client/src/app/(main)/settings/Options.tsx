@@ -273,10 +273,6 @@ function LogoutDialog() {
     },
     onError: (error) => {
       console.log(error);
-      toast({
-        variant: "destructive",
-        description: t("logoutError"),
-      });
     },
   });
 

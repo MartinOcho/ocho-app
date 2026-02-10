@@ -448,7 +448,7 @@ export default function RoomHeader({
               {room.isGroup ? (
                 <div>
                   <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
+                    <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
                       {chatName}
                     </span>
                     {verifiedCheck}
@@ -458,7 +458,7 @@ export default function RoomHeader({
               ) : (
                 <div>
                   <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className="line-clamp-1 text-ellipsis">
+                    <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
                       {chatName}
                     </span>
                     {verifiedCheck}
@@ -543,7 +543,7 @@ export default function RoomHeader({
                 {room.isGroup ? (
                   <div>
                     <span className={cn("flex items-center gap-0.5 text-xl font-bold")}>
-                      <span className="line-clamp-1 text-ellipsis">
+                      <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
                         {chatName}
                       </span>
                       {verifiedCheck}
@@ -553,7 +553,7 @@ export default function RoomHeader({
                 ) : (
                   <div>
                     <span className={cn("flex items-center gap-1 text-xl font-bold", active && !isScrolled && "justify-center")}>
-                      <span className="line-clamp-1 text-ellipsis">
+                      <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
                         {chatName}
                       </span>
                       {verifiedCheck}
