@@ -54,10 +54,6 @@ export default function Messages() {
       window.location.reload();
     }
   };
-
-  // NOTE: L'ancien blocage "if (!isConnected && !isConnecting)" a été supprimé
-  // pour permettre l'affichage des données en cache/HTTP.
-
   return (
     <div className="flex h-full flex-col sm:rounded-2xl bg-card shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen max-sm:bg-transparent">
       

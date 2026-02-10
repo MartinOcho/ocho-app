@@ -47,18 +47,9 @@ import Linkify from "@/components/Linkify";
 import UserAvatar from "@/components/UserAvatar";
 import { createPortal } from "react-dom";
 import Time from "@/components/Time";
-import RoomFooter from "./RoomFooter";
+import RoomFooter, { GroupFullIcon, PrivateProfileIcon, UnspecifiedIcon, UserBannedIcon, UserDeletedIcon, UserKickedIcon, UserLeftIcon } from "./RoomFooter";
 import { useRoomFooterState } from "./useRoomFooterState";
 import { RoomFooterStateType } from "@/lib/types";
-import {
-  UserLeftIcon,
-  UserKickedIcon,
-  UserDeletedIcon,
-  UserBannedIcon,
-  PrivateProfileIcon,
-  GroupFullIcon,
-  UnspecifiedIcon,
-} from "./FooterStates";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -857,7 +848,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
           {/* Affichage du RoomFooter selon l'état */}
           {!!roomId && (
-            <div className="z-20 flex-1">
+            <div className="z-20 flex-1" onClick={()=>!messageInputExpanded && setMessageInputExpanded(true)}>
               <RoomFooter
                 state={footerState}
                 roomId={roomId}
@@ -931,103 +922,6 @@ function ChatContextMenu({
       </div>
     </div>,
     document.body,
-  );
-}
-
-interface MessageFormProps {
-  expanded: boolean;
-  onExpanded: () => void;
-  onSubmit: (content: string) => void;
-  onTypingStart?: () => void; // Trigger de début de saisie
-  onTypingStop?: () => void; // Trigger de fin de saisie
-}
-
-export function MessageForm({
-  expanded,
-  onExpanded,
-  onSubmit,
-  onTypingStart,
-  onTypingStop,
-}: MessageFormProps) {
-  const { t } = useTranslation();
-  const [input, setInput] = useState("");
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Gère l'envoi et réinitialise le typing
-  const triggerSubmit = () => {
-    if (input.trim()) {
-      onSubmit(input);
-      setInput("");
-      // On arrête immédiatement l'indicateur typing lors de l'envoi
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      onTypingStop?.();
-    }
-  };
-
-  function handleBtnClick() {
-    if (expanded) {
-      triggerSubmit();
-    } else {
-      onExpanded();
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const isEnter = e.key === "Enter";
-    const isPhysicalKeyboard = window.matchMedia("(pointer: fine)").matches;
-
-    if (isEnter && !e.shiftKey && isPhysicalKeyboard) {
-      e.preventDefault();
-      triggerSubmit();
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setInput(val);
-
-    // Déclencher le début de saisie
-    onTypingStart?.();
-
-    // Gérer la fin de saisie (debounce)
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      onTypingStop?.();
-    }, 3000);
-  };
-  return (
-    <div
-      className={cn(
-        "relative z-20 flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
-        expanded ? "" : "aspect-square w-fit rounded-full p-0",
-      )}
-    >
-      <Textarea
-        placeholder={t("typeMessage")}
-        className={cn(
-          "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
-          expanded ? "relative w-full" : "invisible absolute w-0",
-        )}
-        rows={1}
-        value={input}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-      />
-      <Button
-        size={!expanded ? "icon" : "default"}
-        disabled={expanded && !input.trim()}
-        onClick={handleBtnClick}
-        className={cn(
-          "rounded-full p-2",
-          expanded
-            ? ""
-            : "h-[50px] w-[50px] rounded-full border-none outline-none",
-        )}
-        variant={expanded && input.trim() ? "default" : "outline"}
-      >
-        <Send />
-      </Button>
-    </div>
   );
 }
 

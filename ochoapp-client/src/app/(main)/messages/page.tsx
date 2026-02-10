@@ -1,7 +1,7 @@
 // "use client"
 
 import { Metadata } from "next";
-import Messages from "./Messages";
+import MessagesPage from "./MessagesPage";
 import SetNavigation from "@/components/SetNavigation";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export default function Page() {
   return (
     <div className="relative max-h-full w-fit sm:w-full overflow-hidden">
       <SetNavigation navPage="messages" />
-      <Messages />
+      <MessagesPage />
     </div>
   );
 }

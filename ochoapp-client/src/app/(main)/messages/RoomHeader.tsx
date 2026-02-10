@@ -609,13 +609,13 @@ export default function RoomHeader({
                         {loggedinMember?.type !== "OLD" && (
                           <AddMemberDialog
                             room={room}
-                            className="max-w-44 flex-1"
+                            className="sm:max-w-52 flex-1"
                           >
                             <Button
                               variant="outline"
                               className="flex h-fit w-full flex-col gap-2"
                             >
-                              <UserRoundPlus size={35} />
+                              <UserRoundPlus />
                               <span>
                                 {addAM}{" "}
                                 <span className="max-sm:hidden">{aMember}</span>
@@ -632,14 +632,14 @@ export default function RoomHeader({
                               setShowDialog(open);
                               open === false && setDialogFocus(null);
                             }}
-                            className="max-w-44 flex-1"
+                            className="sm:max-w-52 flex-1"
                             focus={dialogFocus}
                           >
                             <Button
                               variant="outline"
                               className="flex h-fit w-full flex-col gap-2"
                             >
-                              <Settings2 size={35} />
+                              <Settings2/>
                               <span>{settings}</span>
                             </Button>
                           </GroupChatSettingsDialog>
