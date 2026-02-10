@@ -209,7 +209,18 @@ export const MessageBubbleContent = ({
       "dark:bg-transparent dark:text-neutral-200 dark:border-neutral-700 bg-white text-gray-800 border-gray-200 shadow-sm border";
 
   return (
-    <div className={cn("relative w-fit group/bubble", isClone && "h-full")}>
+    <div className={cn("relative w-fit group/bubble flex flex-col gap-1", isClone && "h-full", isOwner ? "justify-end" : "justify-start")}>
+        {message.attachments && !isClone && message.attachments.length > 0 && (
+          <MediaStrip 
+            attachments={message.attachments as MessageAttachment[]}
+            className={cn(
+              "media-strip-wrapper border-border",
+              isOwner ? "border-r-2" : "border-l-2"
+            )}
+            onMediaOpen={onMediaOpen}
+            onMediaClose={onMediaClose}
+          />
+        )}
       <div
         onClick={!isClone ? toggleCheck : undefined}
         onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
@@ -221,19 +232,6 @@ export const MessageBubbleContent = ({
           borderRadiusClass
         )}
       >
-
-        {/* Attachments (Images/Videos) */}
-        {message.attachments && !isClone && message.attachments.length > 0 && (
-          <MediaStrip 
-            attachments={message.attachments as MessageAttachment[]}
-            className={cn(
-              "!mt-2 !mb-6 media-strip-wrapper", // Ajout de la classe marker
-              message.content ? "mt-2" : "mt-0"
-            )}
-            onMediaOpen={onMediaOpen}
-            onMediaClose={onMediaClose}
-          />
-        )}
         {/* Conteneur de texte avec marker pour le calcul de position */}
         <div className="pr-4 pb-1 text-content-wrapper">
             {message.content ? (
