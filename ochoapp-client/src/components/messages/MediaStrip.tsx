@@ -31,7 +31,7 @@ export default function MediaStrip({
 
   if (isLoading) {
     return (
-      <div className={cn("flex gap-2 flex-wrap mt-2 max-sm:max-w-64", className)}>
+      <div className={cn("flex gap-2 flex-wrap mt-2 max-w-full max-sm:max-w-64", className)}>
         {[...Array(2)].map((_, i) => (
           <Skeleton key={i} className="size-32 max-sm:size-24 rounded-lg" />
         ))}
@@ -52,7 +52,7 @@ export default function MediaStrip({
     <>
       <div
         className={cn(
-          "flex gap-2 flex-wrap mt-2 max-sm:max-w-64",
+          "flex gap-2 flex-wrap max-w-full max-sm:max-w-64",
           className
         )}
       >

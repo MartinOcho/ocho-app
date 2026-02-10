@@ -215,7 +215,7 @@ export const MessageBubbleContent = ({
             attachments={message.attachments as MessageAttachment[]}
             className={cn(
               "media-strip-wrapper border-border",
-              isOwner ? "border-r-2" : "border-l-2"
+              isOwner ? "border-r-4 pr-1" : "border-l-4 pl-1"
             )}
             onMediaOpen={onMediaOpen}
             onMediaClose={onMediaClose}
