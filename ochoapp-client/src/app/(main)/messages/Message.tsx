@@ -243,7 +243,7 @@ export const MediaBubble = ({
                   className="text-blue-400 dark:text-blue-400"
                 />
               ) : (
-                <Check
+                <CheckCheck
                   size={14}
                   className="text-gray-400 dark:text-neutral-500"
                 />
@@ -430,7 +430,7 @@ export const MessageBubbleContent = ({
                   className="text-blue-400 dark:text-blue-400"
                 />
               ) : (
-                <Check
+                <CheckCheck
                   size={14}
                   className="text-gray-400 dark:text-neutral-500"
                 />
