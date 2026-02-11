@@ -69,7 +69,7 @@ export default function MediaStrip({
                   height={attachment.height || undefined}
                   src={attachment.url}
                   className={cn(
-                    "rounded-lg object-cover cursor-pointer",
+                    "rounded-lg object-cover cursor-pointer  bg-accent",
                     attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24",
                     `h-[${attachment.height}px] w-[${attachment.width}px}]`
                   )}
@@ -88,7 +88,7 @@ export default function MediaStrip({
                 src={attachment.url}
                 alt={`Attachment ${index + 1}`}
                 className={cn(
-                  "rounded-lg object-cover cursor-pointer",
+                  "rounded-lg object-cover cursor-pointer  bg-accent",
                   attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24",
                   `h-[${attachment.height}px] w-[${attachment.width}px}]`
                 )}
