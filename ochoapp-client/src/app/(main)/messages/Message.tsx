@@ -1094,8 +1094,10 @@ export default function Message({
                     </div>
                   )}
 
-                <div className="relative">
-                  {/* Afficher les médias comme bulle séparée si le message a du texte ET des médias */}
+                <div className={cn(
+                  "relative flex flex-col",
+                  isOwner ? "items-end" : "items-start",
+                )}>
                   {message.attachments &&
                     message.attachments.length > 0 &&
                     message.content &&
