@@ -215,7 +215,8 @@ export const MessageBubbleContent = ({
             attachments={message.attachments as MessageAttachment[]}
             className={cn(
               "media-strip-wrapper border-border",
-              isOwner ? "border-r-4 pr-1 justify-end" : "border-l-4 pl-1 justify-start"
+              isOwner ? "justify-end" : "justify-start",
+              !!message.content.trim() && (isOwner ? "border-r-4 pr-1" : "border-l-4 pl-1")
             )}
             onMediaOpen={onMediaOpen}
             onMediaClose={onMediaClose}
@@ -229,7 +230,8 @@ export const MessageBubbleContent = ({
           bubbleDesign,
           !message.content && "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
-          borderRadiusClass
+          borderRadiusClass, 
+          !message.content.trim() && message.attachments.length
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}
