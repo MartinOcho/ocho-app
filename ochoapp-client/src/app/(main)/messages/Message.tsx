@@ -222,6 +222,26 @@ export const MessageBubbleContent = ({
             onMediaClose={onMediaClose}
           />
         )}
+        {/* Heure et Status DANS la bulle */}
+        {createdAt && !(!message.content.trim() && message.attachments.length) && (
+          <div className={cn(
+              "absolute bottom-0 right-2.5 flex items-center gap-1 text-[10px]",
+              // Couleurs adaptées au nouveau contraste
+              isOwner ? "text-blue-100 dark:text-neutral-400" : "text-muted-foreground"
+          )}>
+             <time className="opacity-90">
+                <Time time={createdAt} clock />
+             </time>
+             {isOwner && !isClone && readStatus && (
+                <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
+                    {readStatus === 'read' 
+                        ? <CheckCheck size={14} className="text-cyan-200 dark:text-blue-400" /> 
+                        : <Check size={14} className="opacity-70" />
+                    }
+                </span>
+             )}
+          </div>
+        )}
       <div
         onClick={!isClone ? toggleCheck : undefined}
         onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
@@ -231,7 +251,7 @@ export const MessageBubbleContent = ({
           !message.content && "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
           borderRadiusClass, 
-          !message.content.trim() && message.attachments.length
+          !message.content.trim() && message.attachments.length && "hidden"
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}
