@@ -72,6 +72,22 @@ interface SentMessageState {
 // --- FONCTION UTILITAIRE DE CLUSTERING AVANCÉE ---
 const MAX_TIME_DIFF = 20 * 60 * 1000; // 20 minutes en millisecondes
 
+// Helper: Check if a message should be treated as a "non-clusterable" message
+// This includes:
+// 1. Media-only messages (no text)
+// 2. Messages with both text and media (media part is separate bubble)
+const shouldBreakCluster = (message: MessageData): boolean => {
+  if (message.type !== "CONTENT") return false;
+  
+  const hasAttachments = message.attachments && message.attachments.length > 0;
+  const hasText = message.content && message.content.trim() !== "";
+  
+  // Break cluster if:
+  // - Only has media (media-only tip)
+  // - Has both media and text (the text part doesn't cluster with text-only messages)
+  return hasAttachments;
+};
+
 function groupMessages(messages: MessageData[], limit: number = 5) {
   const groups: MessageData[][] = [];
   let currentGroup: MessageData[] = [];
@@ -101,14 +117,6 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
     const isContent = msg.type === "CONTENT" && newerMsg.type === "CONTENT";
     const isNotFull = currentGroup.length < limit;
     
-    // Helper: Check if a message is a "MediaTip" (media-only message without text content)
-    const isMediaTip = (message: MessageData): boolean => {
-      return message.type === "CONTENT" && 
-             (!message.content || message.content.trim() === "") &&
-             message.attachments &&
-             message.attachments.length > 0;
-    };
-    
     // Safety checks for dates
     const date1 = new Date(msg.createdAt);
     const date2 = new Date(newerMsg.createdAt);
@@ -121,12 +129,12 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
     const diffTime = Math.abs(date2.getTime() - date1.getTime());
     const isCloseInTime = diffTime < MAX_TIME_DIFF;
     
-    // If either message is a MediaTip, don't cluster them together
-    const currentIsTip = isMediaTip(msg);
-    const previousIsTip = isMediaTip(newerMsg);
-    const isTipInCluster = currentIsTip || previousIsTip;
+    // If either message breaks clustering rules, start a new cluster
+    const currentBreaks = shouldBreakCluster(msg);
+    const previousBreaks = shouldBreakCluster(newerMsg);
+    const shouldBreak = currentBreaks || previousBreaks;
 
-    if (isSameSender && isContent && isNotFull && isSameDay && isCloseInTime && !isTipInCluster) {
+    if (isSameSender && isContent && isNotFull && isSameDay && isCloseInTime && !shouldBreak) {
       currentGroup.push(msg);
     } else {
       groups.push(currentGroup);

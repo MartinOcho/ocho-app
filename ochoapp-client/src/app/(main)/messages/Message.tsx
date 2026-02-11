@@ -1,5 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import { RoomData, MessageData, ReadInfo, DeliveryInfo, MessageAttachment } from "@/lib/types";
+import { RoomData, MessageData, ReadInfo, DeliveryInfo, MessageAttachment, ReadUser } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import Linkify from "@/components/Linkify";
 import { MessageType } from "@prisma/client";
@@ -134,6 +134,63 @@ export function DeletionPlaceholder({
   );
 }
 
+// --- SOUS-COMPOSANT : BUBBLE DE MEDIAS (SANS BORDERS DE CLUSTERING) ---
+export const MediaBubble = ({
+  message,
+  isOwner,
+  onContextMenu,
+  onMediaOpen,
+  onMediaClose,
+  createdAt,
+  readStatus,
+  isClone = false,
+}: {
+  message: MessageData;
+  isOwner: boolean;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onMediaOpen?: () => void;
+  onMediaClose?: () => void;
+  createdAt?: Date;
+  readStatus?: 'read' | 'delivered';
+  isClone?: boolean;
+}) => {
+  // Media bubbles always have full rounded corners and no clustering effects
+  return (
+    <div className={cn("relative w-fit group/bubble flex flex-col gap-1", isOwner ? "items-end" : "items-start")}>
+      {message.attachments && !isClone && message.attachments.length > 0 && (
+        <MediaStrip 
+          attachments={message.attachments as MessageAttachment[]}
+          className={cn(
+            "media-strip-wrapper border-border rounded-3xl overflow-hidden",
+            isOwner ? "justify-end" : "justify-start"
+          )}
+          onMediaOpen={onMediaOpen}
+          onMediaClose={onMediaClose}
+        />
+      )}
+      {/* Time and status for media-only messages */}
+      {createdAt && !message.content.trim() && message.attachments.length && (
+        <div className={cn(
+            "absolute top-full right-2.5 flex items-center gap-1 text-[10px]",
+            isOwner ? "text-blue-100 dark:text-neutral-400" : "text-muted-foreground"
+        )}>
+           <time className="opacity-90">
+              <Time time={createdAt} clock />
+           </time>
+           {isOwner && !isClone && readStatus && (
+              <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
+                  {readStatus === 'read' 
+                      ? <CheckCheck size={14} className="text-blue-400 dark:text-blue-400" /> 
+                      : <Check size={14} className="text-gray-400 dark:text-neutral-500" />
+                  }
+              </span>
+           )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- SOUS-COMPOSANT : CONTENU DE LA BULLE (DESIGN V2) ---
 export const MessageBubbleContent = ({
   message,
@@ -151,6 +208,7 @@ export const MessageBubbleContent = ({
   readStatus,
   onMediaOpen,
   onMediaClose,
+  isMediaBubble = false,
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -167,7 +225,25 @@ export const MessageBubbleContent = ({
   readStatus?: 'read' | 'delivered';
   onMediaOpen?: () => void;
   onMediaClose?: () => void;
+  isMediaBubble?: boolean;
 }) => {
+  const { t } = useTranslation();
+  
+  // If this is a media-only message or media bubble without text, use MediaBubble component
+  if (isMediaBubble || (!message.content.trim() && message.attachments && message.attachments.length > 0)) {
+    return (
+      <MediaBubble
+        message={message}
+        isOwner={isOwner}
+        onContextMenu={onContextMenu}
+        onMediaOpen={onMediaOpen}
+        onMediaClose={onMediaClose}
+        createdAt={createdAt}
+        readStatus={readStatus}
+        isClone={isClone}
+      />
+    );
+  }
   
   // --- LOGIQUE BORDER RADIUS (Stacking) ---
   let borderRadiusClass = "";
@@ -210,37 +286,17 @@ export const MessageBubbleContent = ({
 
   return (
     <div className={cn("relative w-fit group/bubble flex flex-col gap-1", isClone && "h-full", isOwner ? "items-end" : "items-start")}>
-        {message.attachments && !isClone && message.attachments.length > 0 && (
+        {/* Afficher les médias seulement si pas de texte (media-only) */}
+        {message.attachments && !isClone && message.attachments.length > 0 && !message.content.trim() && (
           <MediaStrip 
             attachments={message.attachments as MessageAttachment[]}
             className={cn(
               "media-strip-wrapper border-border",
-              isOwner ? "justify-end" : "justify-start",
-              !!message.content.trim() && (isOwner ? "border-r-4 pr-1" : "border-l-4 pl-1")
+              isOwner ? "justify-end" : "justify-start"
             )}
             onMediaOpen={onMediaOpen}
             onMediaClose={onMediaClose}
           />
-        )}
-        {/* Heure et Status DANS la bulle */}
-        {createdAt && (!message.content.trim() && message.attachments.length) && (
-          <div className={cn(
-              "absolute top-full right-2.5 flex items-center gap-1 text-[10px]",
-              // Couleurs adaptées au nouveau contraste
-              isOwner ? "text-blue-100 dark:text-neutral-400" : "text-muted-foreground"
-          )}>
-             <time className="opacity-90">
-                <Time time={createdAt} clock />
-             </time>
-             {isOwner && !isClone && readStatus && (
-                <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
-                    {readStatus === 'read' 
-                        ? <CheckCheck size={14} className="text-cyan-200 dark:text-blue-400" /> 
-                        : <Check size={14} className="opacity-70" />
-                    }
-                </span>
-             )}
-          </div>
         )}
       <div
         onClick={!isClone ? toggleCheck : undefined}
@@ -278,10 +334,10 @@ export const MessageBubbleContent = ({
                 <Time time={createdAt} clock />
              </time>
              {isOwner && !isClone && readStatus && (
-                <span title={readStatus === 'read' ? "Lu" : "Distribué"}>
+                <span title={readStatus === 'read' ? t('read') : t('delivered')}>
                     {readStatus === 'read' 
-                        ? <CheckCheck size={14} className="text-cyan-200 dark:text-blue-400" /> 
-                        : <Check size={14} className="opacity-70" />
+                        ? <CheckCheck size={14} className="text-blue-400 dark:text-blue-400" /> 
+                        : <Check size={14} className="text-gray-400 dark:text-neutral-500" />
                     }
                 </span>
              )}
@@ -320,24 +376,26 @@ export default function Message({
     const clusterEl = messageRef.current?.closest('[data-message-cluster]') as HTMLElement | null;
     if (!clusterEl) return;
 
+    const datasetExt = clusterEl.dataset as Record<string, string>;
+
     if (isMediaOpen) {
       // sauvegarder l'état précédent
       try {
-        (clusterEl.dataset as any)._prevPosition = clusterEl.style.position || "";
-        (clusterEl.dataset as any)._prevZ = clusterEl.style.zIndex || "";
+        datasetExt._prevPosition = clusterEl.style.position || "";
+        datasetExt._prevZ = clusterEl.style.zIndex || "";
       } catch (e) {}
       if (!clusterEl.style.position) clusterEl.style.position = "relative";
       clusterEl.style.zIndex = "10000";
     } else {
       try {
-        const prevZ = (clusterEl.dataset as any)._prevZ;
-        const prevPosition = (clusterEl.dataset as any)._prevPosition;
+        const prevZ = datasetExt._prevZ;
+        const prevPosition = datasetExt._prevPosition;
         if (prevZ !== undefined) clusterEl.style.zIndex = prevZ;
         else clusterEl.style.zIndex = "";
         if (prevPosition !== undefined) clusterEl.style.position = prevPosition;
         else clusterEl.style.position = "";
-        delete (clusterEl.dataset as any)._prevZ;
-        delete (clusterEl.dataset as any)._prevPosition;
+        delete datasetExt._prevZ;
+        delete datasetExt._prevPosition;
       } catch (e) {}
     }
   }, [isMediaOpen]);
@@ -387,7 +445,9 @@ export default function Message({
         queryClient.setQueryData(reactionsQueryKey, data.reactions);
       }
     };
-    socket.on("message_reaction_update", handleReactionUpdate);
+    socket.on("message_reaction_update", (data: { messageId: string; reactions: ReactionData[] }) => {
+      handleReactionUpdate(data);
+    });
     return () => { socket.off("message_reaction_update", handleReactionUpdate); };
   }, [socket, messageId, queryClient, reactionsQueryKey]);
 
@@ -542,9 +602,9 @@ export default function Message({
     if (!isSender && !hasRead) {
       socket.emit("mark_message_read", { messageId, roomId });
     }
-    const handleReadUpdate = (data: { messageId: string; reads: any[] }) => {
+    const handleReadUpdate = (data: { messageId: string; reads: ReadUser[] }) => {
       if (data.messageId === messageId) {
-        queryClient.setQueryData(queryKey, { reads: data.reads });
+        queryClient.setQueryData<ReadInfo>(queryKey, { reads: data.reads });
       }
     };
     socket.on("message_read_update", handleReadUpdate);
@@ -553,9 +613,9 @@ export default function Message({
 
   // --- LISTENING TO DELIVERY UPDATES ---
   useEffect(() => {
-    const handleDeliveryUpdate = (data: { messageId: string; deliveries: any[] }) => {
+    const handleDeliveryUpdate = (data: { messageId: string; deliveries: ReadUser[] }) => {
       if (data.messageId === messageId) {
-        queryClient.setQueryData(deliveryQueryKey, { deliveries: data.deliveries });
+        queryClient.setQueryData<DeliveryInfo>(deliveryQueryKey, { deliveries: data.deliveries });
       }
     };
     if (!socket) return;
@@ -833,6 +893,24 @@ export default function Message({
                 )}
 
                 <div className="relative">
+                    {/* Afficher les médias comme bulle séparée si le message a du texte ET des médias */}
+                    {message.attachments && message.attachments.length > 0 && message.content && message.content.trim() && (
+                      <div
+                          className={cn("relative z-0 mb-1", activeOverlayRect ? "opacity-0" : "opacity-100")}
+                          onContextMenu={handleContextMenu}
+                      >
+                        <MediaBubble
+                            message={message}
+                            isOwner={isOwner}
+                            createdAt={new Date(message.createdAt)}
+                            readStatus={readStatus}
+                            onMediaOpen={() => setIsMediaOpen(true)}
+                            onMediaClose={() => setIsMediaOpen(false)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Bulle principale (texte ou média uniquement) */}
                     <div
                         className={cn("relative z-0", activeOverlayRect ? "opacity-0" : "opacity-100")}
                         onContextMenu={handleContextMenu}
