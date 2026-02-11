@@ -1,461 +1,291 @@
-import { MessageAttachment } from "@/lib/types";
-import { useEffect, useState, useRef, useCallback } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Download,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useActiveRoom } from "@/context/ChatContext";
 
-interface MediaCarouselProps {
-  attachments: MessageAttachment[];
-  initialIndex?: number;
-  onClose: () => void;
-}
+  import React, { useState, useEffect, useRef, useCallback } from "react";
+  import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+  import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
+  import { MessageAttachment } from "@/lib/types";
+  import { cn } from "@/lib/utils";
+  import { useActiveRoom } from "@/context/ChatContext";
 
-export default function MediaCarousel({
-  attachments,
-  initialIndex = 0,
-  onClose,
-}: MediaCarouselProps) {
-  const { setIsMediaFullscreen } = useActiveRoom();
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const filmstripRef = useRef<HTMLDivElement>(null);
-  const currentThumbnailRef = useRef<HTMLButtonElement>(null);
-  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  interface MediaCarouselProps {
+    attachments: MessageAttachment[];
+    initialIndex: number;
+    onClose: () => void;
+  }
 
-  // Wrapper pour fermer avec mise à jour du contexte
-  const handleCloseCarousel = useCallback(() => {
-    setIsMediaFullscreen(false);
-    onClose();
-  }, [onClose, setIsMediaFullscreen]);
+  export default function MediaCarousel({
+    attachments,
+    initialIndex,
+    onClose,
+  }: MediaCarouselProps) {
+    const { setIsMediaFullscreen } = useActiveRoom();
+    const [index, setIndex] = useState(Math.max(0, initialIndex));
+    const [direction, setDirection] = useState(0);
+    const [isZoomed, setIsZoomed] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const filmstripRef = useRef<HTMLDivElement>(null);
+    const currentThumbnailRef = useRef<HTMLButtonElement>(null);
 
-  // Mettre le état fullscreen au montage et nettoyer au démontage
-  useEffect(() => {
-    setIsMediaFullscreen(true);
-    return () => setIsMediaFullscreen(false);
-  }, [setIsMediaFullscreen]);
+    useEffect(() => {
+      setIsMediaFullscreen(true);
+      return () => setIsMediaFullscreen(false);
+    }, [setIsMediaFullscreen]);
 
-  // Reset zoom quand on change de média
-  useEffect(() => {
-    setZoomLevel(1);
-    setPanX(0);
-    setPanY(0);
-  }, [currentIndex]);
-
-  // Scroll la pellicule pour afficher le média courant
-  useEffect(() => {
-    if (currentThumbnailRef.current && filmstripRef.current) {
-      const thumbnail = currentThumbnailRef.current;
-      const filmstrip = filmstripRef.current;
-
-      const thumbnailLeft = thumbnail.offsetLeft;
-      const thumbnailRight = thumbnailLeft + thumbnail.offsetWidth;
-      const filmstripLeft = filmstrip.scrollLeft;
-      const filmstripRight = filmstripLeft + filmstrip.clientWidth;
-
-      if (thumbnailLeft < filmstripLeft) {
-        filmstrip.scrollLeft = thumbnailLeft - 10;
-      } else if (thumbnailRight > filmstripRight) {
-        filmstrip.scrollLeft = thumbnailRight - filmstrip.clientWidth + 10;
-      }
-    }
-  }, [currentIndex]);
-
-  const current = Array.isArray(attachments) ? attachments[currentIndex] : null;
-  const isFirstImage = currentIndex === 0;
-  const isLastImage = Array.isArray(attachments)
-    ? currentIndex === attachments.length - 1
-    : false;
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleCloseCarousel();
-      } else if (e.key === "ArrowLeft") {
-        goToPrevious();
-      } else if (e.key === "ArrowRight") {
-        goToNext();
-      } else if (e.key === "+") {
-        handleZoomIn();
-      } else if (e.key === "-") {
-        handleZoomOut();
-      } else if (e.key === "0") {
-        setZoomLevel(1);
-        setPanX(0);
-        setPanY(0);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex]);
-
-  // Mouse wheel zoom
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const new_zoom = e.deltaY > 0 ? zoomLevel - 0.1 : zoomLevel + 0.1;
-        setZoomLevel(Math.max(1, Math.min(3, new_zoom)));
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener("wheel", handleWheel, { passive: false });
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("wheel", handleWheel);
-      }
-    };
-  }, [zoomLevel]);
-
-  // Pan when zoomed (mouse)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (zoomLevel > 1) {
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - panX, y: e.clientY - panY });
-      }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && zoomLevel > 1) {
-        const newPanX = e.clientX - dragStart.x;
-        const newPanY = e.clientY - dragStart.y;
-        setPanX(newPanX);
-        setPanY(newPanY);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    container.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      container.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging, panX, panY, zoomLevel, dragStart]);
-
-  // Touch swipe and pan
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        time: Date.now(),
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") handleClose();
+        if (e.key === "ArrowLeft") paginate(-1);
+        if (e.key === "ArrowRight") paginate(1);
       };
-    };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [index]);
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (zoomLevel > 1) {
-        // Si zoomé: utiliser pour le pan
-        e.preventDefault();
-        const deltaX = e.touches[0].clientX - touchStartRef.current.x;
-        const deltaY = e.touches[0].clientY - touchStartRef.current.y;
-        setPanX(panX + deltaX);
-        setPanY(panY + deltaY);
-        touchStartRef.current.x = e.touches[0].clientX;
-        touchStartRef.current.y = e.touches[0].clientY;
+    // Scroll filmstrip to current thumbnail
+    useEffect(() => {
+      if (currentThumbnailRef.current && filmstripRef.current) {
+        const thumb = currentThumbnailRef.current;
+        const strip = filmstripRef.current;
+        const left = thumb.offsetLeft;
+        const right = left + thumb.offsetWidth;
+        const sLeft = strip.scrollLeft;
+        const sRight = sLeft + strip.clientWidth;
+        if (left < sLeft) strip.scrollLeft = left - 10;
+        else if (right > sRight) strip.scrollLeft = right - strip.clientWidth + 10;
       }
-    };
+    }, [index]);
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (zoomLevel <= 1) {
-        // Si pas zoomé: utiliser pour naviguer ou fermer
-        const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
-        const timeDiff = Date.now() - touchStartRef.current.time;
-        const isSwipe = Math.abs(deltaX) > 50 && timeDiff < 500;
+    const handleClose = useCallback(() => {
+      setIsMediaFullscreen(false);
+      onClose();
+    }, [onClose, setIsMediaFullscreen]);
 
-        if (isSwipe) {
-          if (deltaX > 0) {
-            // Swipe vers la droite
-            if (!isFirstImage) {
-              goToPrevious();
-            }
-          } else {
-            // Swipe vers la gauche
-            if (!isLastImage) {
-              goToNext();
-            }
+    const paginate = (dir: number) => {
+      if (isZoomed) {
+        setIsZoomed(false);
+        setTimeout(() => {
+          const ni = index + dir;
+          if (ni >= 0 && ni < attachments.length) {
+            setDirection(dir);
+            setIndex(ni);
           }
-        }
+        }, 200);
+        return;
+      }
+      const ni = index + dir;
+      if (ni >= 0 && ni < attachments.length) {
+        setDirection(dir);
+        setIndex(ni);
       }
     };
 
-    container.addEventListener("touchstart", handleTouchStart);
-    container.addEventListener("touchmove", handleTouchMove, {
-      passive: false,
-    });
-    container.addEventListener("touchend", handleTouchEnd);
-
-    return () => {
-      container.removeEventListener("touchstart", handleTouchStart);
-      container.removeEventListener("touchmove", handleTouchMove);
-      container.removeEventListener("touchend", handleTouchEnd);
+    const download = () => {
+      const current = attachments[index];
+      if (!current?.url) return;
+      const a = document.createElement("a");
+      a.href = current.url;
+      a.download = `media-${index}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     };
-  }, [zoomLevel, panX, panY, isFirstImage, isLastImage, handleCloseCarousel]);
 
-  const goToNext = () => {
-    if (!isLastImage) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  };
+    const current = attachments[index];
+    if (!current) return null;
 
-  const goToPrevious = () => {
-    if (!isFirstImage) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
-
-  const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(3, prev + 0.2));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel((prev) => Math.max(1, prev - 0.2));
-  };
-
-  const handleResetZoom = () => {
-    setZoomLevel(1);
-    setPanX(0);
-    setPanY(0);
-  };
-
-  const handleDownload = () => {
-    if (current?.url) {
-      const link = document.createElement("a");
-      link.href = current.url;
-      link.download = `media-${currentIndex}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  if (!current) return null;
-
-  const isVideo = current.type === "VIDEO";
-  const isImage = current.type === "IMAGE";
-
-  return (
-    <div
-      className="max-sm:max-w-dvw fixed inset-0 z-[9999999] flex flex-col bg-black/95 backdrop-blur-sm transition-transform duration-200 max-sm:h-screen max-sm:max-h-dvh max-sm:w-screen max-sm:translate-x-full"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleCloseCarousel();
-      }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {/* Header avec contrôles */}
-      <div className="flex flex-shrink-0 items-center justify-between border-b border-white/10 p-4">
-        <div className="flex items-center gap-2 text-sm text-white">
-          <span className="font-medium">
-            {currentIndex + 1} /{" "}
-            {Array.isArray(attachments) ? attachments.length : 0}
-          </span>
-          {current?.type && (
-            <span className="text-xs text-white/50">
-              {current.type === "VIDEO" ? "Vidéo" : "Image"}
-            </span>
-          )}
-          {zoomLevel > 1 && (
-            <span className="ml-2 text-xs text-white/50">
-              Zoom: {(zoomLevel * 100).toFixed(0)}%
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isImage && (
-            <>
-              <button
-                onClick={handleZoomIn}
-                disabled={zoomLevel >= 3}
-                className="rounded-lg p-2 transition-colors hover:bg-white/10 disabled:opacity-30"
-                title="Zoom avant (Ctrl + Souris)"
-              >
-                <ZoomIn size={20} className="text-white" />
-              </button>
-              <button
-                onClick={handleZoomOut}
-                disabled={zoomLevel <= 1}
-                className="rounded-lg p-2 transition-colors hover:bg-white/10 disabled:opacity-30"
-                title="Zoom arrière"
-              >
-                <ZoomOut size={20} className="text-white" />
-              </button>
-              {zoomLevel > 1 && (
-                <button
-                  onClick={handleResetZoom}
-                  className="rounded-lg px-2 py-1 text-xs transition-colors hover:bg-white/10"
-                  title="Réinitialiser le zoom"
-                >
-                  100%
-                </button>
-              )}
-            </>
-          )}
-          <button
-            onClick={handleDownload}
-            className="rounded-lg p-2 transition-colors hover:bg-white/10"
-            title="Télécharger"
-          >
-            <Download size={20} className="text-white" />
-          </button>
-          <button
-            onClick={handleCloseCarousel}
-            className="rounded-lg p-2 transition-colors hover:bg-white/10"
-            title="Fermer"
-          >
-            <X size={20} className="text-white" />
-          </button>
-        </div>
-      </div>
-
-      {/* Media Container - prend tout l'espace disponible */}
-      <div
-        ref={containerRef}
-        className={cn(
-          "relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden",
-          isDragging && "cursor-grabbing",
-          zoomLevel > 1 && !isDragging && "cursor-grab",
-        )}
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[9999999] flex flex-col bg-black/95 backdrop-blur-sm"
       >
-        <div
-          className="relative flex h-full w-full items-center justify-center"
-          style={{
-            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
-            transition: isDragging ? "none" : "transform 0.2s ease-out",
-          }}
-        >
-          {isVideo ? (
-            <video
-              src={current.url}
-              controls
-              className="pointer-events-auto h-full w-full object-contain max-sm:h-screen max-sm:w-screen"
-              autoPlay
-              onContextMenu={(e) => e.preventDefault()}
-            />
-          ) : isImage ? (
-            <img
-              src={current.url}
-              alt={`Media ${currentIndex + 1}`}
-              className="h-full w-full cursor-auto object-contain max-sm:h-screen max-sm:w-screen"
-              onContextMenu={(e) => e.preventDefault()}
-            />
-          ) : (
-            <div className="text-center text-white">
-              <p>Format non supporté</p>
-            </div>
-          )}
-        </div>
+        <div className="flex items-center justify-between p-3 border-b border-white/10">
+          <div className="flex items-center gap-3 text-white text-sm">
+            <span className="font-medium">{index + 1} / {attachments.length}</span>
+            {current?.type && <span className="text-white/50 text-xs">{current.type === 'VIDEO' ? 'Vidéo' : 'Image'}</span>}
+          </div>
 
-        {/* Navigation Flèches */}
-        {Array.isArray(attachments) && attachments.length > 1 && (
-          <>
-            <button
-              onClick={goToPrevious}
-              disabled={isFirstImage}
-              className={cn(
-                "absolute left-4 z-10 rounded-full p-3 transition-all",
-                isFirstImage
-                  ? "cursor-not-allowed bg-white/5 opacity-30"
-                  : "cursor-pointer opacity-70 hover:bg-white/20 hover:opacity-100",
-              )}
-              title="Image précédente (←)"
-            >
-              <ChevronLeft size={24} className="text-white" />
-            </button>
-
-            <button
-              onClick={goToNext}
-              disabled={isLastImage}
-              className={cn(
-                "absolute right-4 z-10 rounded-full p-3 transition-all",
-                isLastImage
-                  ? "cursor-not-allowed bg-white/5 opacity-30"
-                  : "cursor-pointer opacity-70 hover:bg-white/20 hover:opacity-100",
-              )}
-              title="Image suivante (→)"
-            >
-              <ChevronRight size={24} className="text-white" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Footer avec filmstrip/thumbnails scrollable - taille réduite */}
-      {Array.isArray(attachments) && attachments.length > 1 && (
-        <div className="flex-shrink-0 border-t border-white/10 bg-black/50 p-2">
-          <div
-            ref={filmstripRef}
-            className="flex gap-1.5 overflow-x-auto scroll-smooth pb-2"
-            style={{ scrollBehavior: "smooth" }}
-          >
-            {attachments.map((attachment, index) => (
-              <button
-                key={index}
-                ref={currentIndex === index ? currentThumbnailRef : null}
-                onClick={() => {
-                  setCurrentIndex(index);
-                }}
-                className={cn(
-                  "relative flex-shrink-0 overflow-hidden rounded-lg transition-all",
-                  currentIndex === index
-                    ? "scale-105 ring-2 ring-white/50"
-                    : "opacity-60 hover:opacity-100",
-                )}
-              >
-                {attachment.type === "VIDEO" ? (
-                  <>
-                    <video
-                      height={attachment.height || undefined}
-                      width={attachment.width || undefined}
-                      src={attachment.url}
-                      className="h-14 w-14 object-contain"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <div className="border-t-6 h-0 w-0 border-l-4 border-r-4 border-l-transparent border-r-transparent border-t-white/70 opacity-60"></div>
-                    </div>
-                  </>
-                ) : (
-                  <img
-                    height={attachment.height || undefined}
-                    width={attachment.width || undefined}
-                    src={attachment.url}
-                    alt={`Thumbnail ${index + 1}`}
-                    className="h-14 w-14 object-contain"
-                  />
-                )}
+          <div className="flex items-center gap-2">
+            {current.type !== 'VIDEO' && (
+              <button onClick={() => setIsZoomed((v) => !v)} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
+                {isZoomed ? <ZoomOut size={18} /> : <ZoomIn size={18} />}
               </button>
-            ))}
+            )}
+            <button onClick={download} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
+              <Download size={18} />
+            </button>
+            <button onClick={handleClose} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
+              <X size={18} />
+            </button>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
+
+        <div ref={wrapperRef} className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden">
+          {/* Left/Right nav */}
+          {index > 0 && (
+            <button onClick={() => paginate(-1)} className="absolute left-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20 hidden max-sm:block">
+              <ChevronLeft size={28} />
+            </button>
+          )}
+          {index < attachments.length - 1 && (
+            <button onClick={() => paginate(1)} className="absolute right-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20 hidden max-sm:block">
+              <ChevronRight size={28} />
+            </button>
+          )}
+
+          <AnimatePresence initial={false} custom={direction}>
+            <Slide
+              key={index}
+              attachment={current}
+              direction={direction}
+              paginate={paginate}
+              index={index}
+              total={attachments.length}
+              isZoomed={isZoomed}
+              setIsZoomed={setIsZoomed}
+              containerRef={wrapperRef}
+            />
+          </AnimatePresence>
+        </div>
+
+        {attachments.length > 1 && (
+          <div className="border-t border-white/10 bg-black/50 p-2 flex-shrink-0">
+            <div ref={filmstripRef} className="flex gap-1.5 overflow-x-auto pb-2 scroll-smooth">
+              {attachments.map((att, i) => (
+                <button
+                  key={i}
+                  ref={i === index ? currentThumbnailRef : null}
+                  onClick={() => { setIndex(i); setDirection(i > index ? 1 : -1); }}
+                  className={cn(
+                    "relative flex-shrink-0 rounded-lg overflow-hidden transition-all",
+                    i === index ? "ring-2 ring-white/50 scale-105" : "opacity-60 hover:opacity-100"
+                  )}
+                >
+                  {att.type === 'VIDEO' ? (
+                    <video src={att.url} className="w-14 h-14 object-contain" />
+                  ) : (
+                    <img src={att.url} alt={`thumb-${i}`} className="w-14 h-14 object-contain" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
+  function Slide({
+    attachment,
+    direction,
+    paginate,
+    index,
+    total,
+    isZoomed,
+    setIsZoomed,
+    containerRef,
+  }: {
+    attachment: MessageAttachment;
+    direction: number;
+    paginate: (dir: number) => void;
+    index: number;
+    total: number;
+    isZoomed: boolean;
+    setIsZoomed: (v: boolean) => void;
+    containerRef: React.RefObject<HTMLDivElement> | null;
+  }) {
+    const x = useMotionValue(0);
+    const scale = useMotionValue(1);
+
+    const variants = {
+      enter: (dir: number) => ({ zIndex: 0, x: dir > 0 ? 1000 : -1000, opacity: 0, scale: 0.9 }),
+      center: { zIndex: 2, x: 0, opacity: 1, scale: 1 },
+      exit: (dir: number) => ({ zIndex: 0, x: dir < 0 ? 1000 : -1000, opacity: 0, scale: 0.9 }),
+    };
+
+    const onDragEnd = (e: any, { offset, velocity }: any) => {
+      if (isZoomed) return;
+      const swipeConfidenceThreshold = 10000;
+      const swipePower = Math.abs(offset.x) * velocity.x;
+      if (swipePower < -swipeConfidenceThreshold) paginate(1);
+      else if (swipePower > swipeConfidenceThreshold) paginate(-1);
+    };
+
+    const initialPinchDistance = useRef<number | null>(null);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+      if (e.touches.length === 2) {
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        initialPinchDistance.current = d;
+      }
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+      if (e.touches.length === 2 && initialPinchDistance.current != null) {
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const delta = d - initialPinchDistance.current;
+        const newScale = Math.max(1, Math.min(4, scale.get() + delta * 0.01));
+        scale.set(newScale);
+        if (newScale > 1.1 && !isZoomed) setIsZoomed(true);
+        if (newScale <= 1.1 && isZoomed) setIsZoomed(false);
+        initialPinchDistance.current = d;
+      }
+    };
+
+    const onTouchEnd = () => {
+      initialPinchDistance.current = null;
+      if (scale.get() < 1.1) { setIsZoomed(false); scale.set(1); }
+    };
+
+    const handleDoubleTap = () => {
+      if (isZoomed) { setIsZoomed(false); scale.set(1); }
+      else { setIsZoomed(true); scale.set(2.5); }
+    };
+
+    useEffect(() => { if (isZoomed) scale.set(2.5); else scale.set(1); }, [isZoomed, scale]);
+
+    if (attachment.type === 'VIDEO') {
+      return (
+        <motion.div
+          className="w-full max-w-5xl px-4 flex justify-center"
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          custom={direction}
+          transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={onDragEnd}
+        >
+          <video src={attachment.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-lg shadow-2xl bg-black" />
+        </motion.div>
+      );
+    }
+
+    return (
+      <motion.div
+        className={cn('absolute w-full h-full flex items-center justify-center', isZoomed ? 'cursor-move' : 'cursor-grab active:cursor-grabbing')}
+        variants={variants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        custom={direction}
+        transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 }, scale: { duration: 0.4 } }}
+        drag={isZoomed ? true : 'x'}
+        dragConstraints={isZoomed && containerRef ? containerRef : { left: 0, right: 0 }}
+        dragElastic={isZoomed ? 0.05 : 0.2}
+        dragMomentum={isZoomed}
+        onDragEnd={onDragEnd}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onDoubleClick={handleDoubleTap}
+        style={{ x, scale, touchAction: 'none' }}
+      >
+        <img src={attachment.url} alt={`media-${index}`} draggable={false} className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl select-none" />
+      </motion.div>
+    );
+  }
+              
