@@ -294,8 +294,8 @@ export const MessageBubbleContent = ({
   isMediaBubble?: boolean;
 }) => {
   const { t } = useTranslation();
+  const {isMediaFullscreen} = useActiveRoom();
 
-  // If this is a media-only message or media bubble without text, use MediaBubble component
   if (
     isMediaBubble ||
     (!message.content.trim() &&
@@ -360,6 +360,7 @@ export const MessageBubbleContent = ({
         "group/bubble relative flex w-fit flex-col gap-1",
         isClone && "h-full",
         isOwner ? "items-end" : "items-start",
+        isMediaFullscreen && "invisible",
       )}
     >
       {/* Afficher les médias seulement si pas de texte (media-only) */}
@@ -471,6 +472,7 @@ export default function Message({
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMediaOpen, setIsMediaOpen] = useState(false);
+  const {isMediaFullscreen} = useActiveRoom();
 
   // Appliquer le z-index au cluster parent lorsque le media est ouvert
   useEffect(() => {
@@ -1172,6 +1174,7 @@ export default function Message({
                     className={cn(
                       "relative mr-1 mt-2 flex w-full",
                       isOwner ? "justify-end" : "justify-start",
+                      isMediaFullscreen && "invisible",
                     )}
                   >
                     <button
