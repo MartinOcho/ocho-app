@@ -123,12 +123,12 @@
         <div ref={wrapperRef} className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden">
           {/* Left/Right nav */}
           {index > 0 && (
-            <button onClick={() => paginate(-1)} className="absolute left-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20 hidden max-sm:block">
+            <button onClick={() => paginate(-1)} className="absolute left-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
               <ChevronLeft size={28} />
             </button>
           )}
           {index < attachments.length - 1 && (
-            <button onClick={() => paginate(1)} className="absolute right-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20 hidden max-sm:block">
+            <button onClick={() => paginate(1)} className="absolute right-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
               <ChevronRight size={28} />
             </button>
           )}
