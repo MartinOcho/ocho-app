@@ -210,7 +210,7 @@ export const MediaBubble = ({
         <MediaStrip
           attachments={message.attachments as MessageAttachment[]}
           className={cn(
-            "media-strip-wrapper overflow-hidden rounded-3xl border-border",
+            "media-strip-wrapper overflow-hidden border-border",
             isOwner ? "justify-end" : "justify-start",
           )}
           onMediaOpen={onMediaOpen}

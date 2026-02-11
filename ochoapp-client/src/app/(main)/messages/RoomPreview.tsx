@@ -15,6 +15,7 @@ import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
+import { Image as ImageIcon, Video as VideoIcon } from "lucide-react";
 
 interface RoomProps {
   room: RoomData;
@@ -156,6 +157,12 @@ export default function RoomPreview({
     reactedToMessage,
     reactedMemberMessage,
     messageYourself,
+    messageWithAttachment,
+    attachmentPhoto,
+    attachmentVideo,
+    attachmentPhotos,
+    attachmentVideos,
+    attachmentPhotoAndVideo,
     noPreview,
     canNoLongerInteract,
     noMessage,
@@ -336,6 +343,57 @@ export default function RoomPreview({
     }
   }
   const showUserPreview = room.isGroup || isSender;
+  
+  // Helper function to get attachment info with icon
+  const getAttachmentPreview = () => {
+    const attachments = messagePreview.attachments || [];
+    if (attachments.length === 0) return null;
+    
+    const imageCount = attachments.filter((a) => a.type === "IMAGE").length;
+    const videoCount = attachments.filter((a) => a.type === "VIDEO").length;
+    const hasContent = messagePreview.content?.trim().length > 0;
+    
+    let icon = null;
+    let label = "";
+    let displayType = "contentWithAttachment"; // "contentWithAttachment" or "attachmentOnly"
+    
+    // Determine icon
+    if (imageCount > 0 && videoCount === 0) {
+      icon = <ImageIcon size={16} className="flex-shrink-0" />;
+    } else if (videoCount > 0 && imageCount === 0) {
+      icon = <VideoIcon size={16} className="flex-shrink-0" />;
+    } else if (imageCount > 0 && videoCount > 0) {
+      icon = <ImageIcon size={16} className="flex-shrink-0" />;
+    }
+    
+    // Determine label and display type
+    if (!hasContent) {
+      displayType = "attachmentOnly";
+      
+      if (imageCount > 0 && videoCount === 0) {
+        if (imageCount === 1) {
+          label = attachmentPhoto;
+        } else {
+          label = attachmentPhotos.replace("[count]", imageCount.toString());
+        }
+      } else if (videoCount > 0 && imageCount === 0) {
+        if (videoCount === 1) {
+          label = attachmentVideo;
+        } else {
+          label = attachmentVideos.replace("[count]", videoCount.toString());
+        }
+      } else if (imageCount > 0 && videoCount > 0) {
+        label = attachmentPhotoAndVideo
+          .replace("[photoCount]", imageCount.toString())
+          .replace("[videoCount]", videoCount.toString());
+      }
+    }
+    
+    return { icon, label, displayType };
+  };
+  
+  const attachmentPreview = getAttachmentPreview();
+  
   const contentsTypes = {
     CREATE: room.isGroup
       ? messagePreview.sender?.id === loggedinUser.id
@@ -363,6 +421,22 @@ export default function RoomPreview({
   };
 
   let messagePreviewContent = contentsTypes[messageType];
+  let showIconBefore = false;
+  let showIconAfterSender = false;
+
+  // Check if message has attachments
+  if (messagePreview.attachments && messagePreview.attachments.length > 0 && attachmentPreview && messageType === "CONTENT") {
+    if (messagePreview.content?.trim().length > 0) {
+      // Has content + attachments: show content with icon before (icon will be added in JSX)
+      messagePreviewContent = contentsTypes.CONTENT;
+      showIconBefore = true;
+    } else {
+      // No content but has attachments: show sender + attachment label
+      const prefix = showUserPreview ? `${sender}: ` : "";
+      messagePreviewContent = prefix + attachmentPreview.label;
+      showIconAfterSender = true;
+    }
+  }
 
   if (currentMember?.type === "OLD" || currentMember?.type === "BANNED") {
     messagePreviewContent = canNoLongerInteract;
@@ -415,9 +489,14 @@ export default function RoomPreview({
             {verifiedCheck}
           </span>
           <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
+            {showIconBefore && attachmentPreview?.icon && (
+              <span className="flex-shrink-0 text-muted-foreground">
+                {attachmentPreview.icon}
+              </span>
+            )}
             <span
               className={cn(
-                "line-clamp-2 text-ellipsis break-all",
+                "line-clamp-2 text-ellipsis break-all flex items-center gap-1",
                 (messageType !== "CONTENT" || typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
@@ -425,7 +504,15 @@ export default function RoomPreview({
             >
               {typing.isTyping
                 ? typingText
-                : (messagePreviewContent &&
+                : showIconAfterSender && messagePreviewContent && messagePreviewContent.includes(": ")
+                  ? (
+                    <>
+                      {messagePreviewContent.substring(0, messagePreviewContent.indexOf(": ") + 2)}
+                      {attachmentPreview?.icon && <span className="flex-shrink-0 text-muted-foreground">{attachmentPreview.icon}</span>}
+                      {messagePreviewContent.substring(messagePreviewContent.indexOf(": ") + 2)}
+                    </>
+                  )
+                  : (messagePreviewContent &&
                     (messageType === "REACTION" ? (
                       <>
                         {messagePreviewContent.split("[r]")[0]}

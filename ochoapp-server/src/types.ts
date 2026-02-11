@@ -158,6 +158,18 @@ export function getMessageDataSelect() {
         lastSeen: true,
       },
     },
+    attachments: {
+      select: {
+        id: true,
+        type: true,
+        url: true,
+        publicId: true,
+        width: true,
+        height: true,
+        format: true,
+        resourceType: true,
+      },
+    },
     createdAt: true,
   } satisfies Prisma.MessageSelect;
 }
