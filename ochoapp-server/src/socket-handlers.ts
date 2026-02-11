@@ -10,7 +10,7 @@ import {
   SocketDeleteMessageEvent,
   SocketSendMessageEvent,
 } from "./types";
-import { getFormattedRooms, getMessageReads, getMessageReactions, getUnreadRoomsCount } from "./utils";
+import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 
 const prisma = new PrismaClient();
 
@@ -138,6 +138,49 @@ export async function handleMarkMessageRead(
   return {
     reads: updatedReads,
     unreadCount: newUnreadCount,
+  };
+}
+
+// --- HANDLE MARK MESSAGE DELIVERED ---
+export async function handleMarkMessageDelivered(
+  messageId: string,
+  roomId: string,
+  userId: string,
+) {
+  if (!roomId.startsWith("saved-")) {
+    const membership = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+    });
+
+    if (!membership || membership.type === "BANNED" || membership.leftAt) {
+      throw new Error("Non autorisé");
+    }
+  }
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+
+  if (!message) throw new Error("Message not found");
+
+  await prisma.delivery.upsert({
+    where: {
+      userId_messageId: {
+        userId: userId,
+        messageId,
+      },
+    },
+    create: {
+      userId: userId,
+      messageId,
+    },
+    update: {},
+  });
+
+  const updatedDeliveries = await getMessageDeliveries(messageId);
+
+  return {
+    deliveries: updatedDeliveries,
   };
 }
 

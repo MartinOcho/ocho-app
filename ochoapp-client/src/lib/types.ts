@@ -529,6 +529,10 @@ export interface ReadInfo {
   reads: ReadUser[];
 }
 
+export interface DeliveryInfo {
+  deliveries: ReadUser[];
+}
+
 export interface BookmarkInfo {
   isBookmarkedByUser: boolean;
 }

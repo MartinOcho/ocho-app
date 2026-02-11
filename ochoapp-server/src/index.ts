@@ -17,6 +17,7 @@ import {
   SocketSendMessageEvent,
   SocketStartChatEvent,
   SocketMarkMessageReadEvent,
+  SocketMarkMessageDeliveredEvent,
   SocketAddReactionEvent,
   SocketRemoveReactionEvent,
   SocketDeleteMessageEvent,
@@ -36,6 +37,7 @@ import {
 import {
   handleStartChat,
   handleMarkMessageRead,
+  handleMarkMessageDelivered,
   handleAddReaction,
   handleRemoveReaction,
   handleDeleteMessage,
@@ -367,6 +369,28 @@ io.on("connection", async (socket: Socket) => {
 
       } catch (error) {
         console.error("Erreur mark_message_read:", error);
+      }
+    }
+  );
+
+  socket.on(
+    "mark_message_delivered",
+    async (data: SocketMarkMessageDeliveredEvent) => {
+      const { messageId, roomId } = data;
+      try {
+        const { deliveries } = await handleMarkMessageDelivered(
+          messageId,
+          roomId,
+          userId,
+        );
+
+        io.to(roomId).emit("message_delivered_update", {
+          messageId,
+          deliveries,
+        });
+
+      } catch (error) {
+        console.error("Erreur mark_message_delivered:", error);
       }
     }
   );

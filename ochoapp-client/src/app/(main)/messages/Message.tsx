@@ -1,5 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import { RoomData, MessageData, ReadInfo, MessageAttachment } from "@/lib/types";
+import { RoomData, MessageData, ReadInfo, DeliveryInfo, MessageAttachment } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import Linkify from "@/components/Linkify";
 import { MessageType } from "@prisma/client";
@@ -518,12 +518,23 @@ export default function Message({
     throwOnError: false,
   });
 
+  // --- DELIVERY STATUS (LIVRAISON) ---
+  const deliveryQueryKey: QueryKey = ["message", "deliveries", message.id];
+  const { data: deliveryData } = useQuery({
+    queryKey: deliveryQueryKey,
+    queryFn: () => kyInstance.get(`/api/message/${messageId}/deliveries`, { throwHttpErrors: false }).json<DeliveryInfo>(),
+    staleTime: Infinity,
+    throwOnError: false,
+  });
+
   const reads = data?.reads ?? [];
+  const deliveries = deliveryData?.deliveries ?? [];
   const isSender = message.senderId === loggedUser?.id;
   const isRecipient = message.recipient?.id === loggedUser?.id;
 
   const hasBeenRead = reads.filter(r => r.id !== message.senderId).length > 0;
-  const readStatus = (hasBeenRead || roomId.startsWith('saved-')) ? 'read' : 'delivered';
+  const hasBeenDelivered = deliveries.filter(d => d.id !== message.senderId).length > 0;
+  const readStatus = (hasBeenRead || roomId.startsWith('saved-')) ? 'read' : (hasBeenDelivered ? 'delivered' : undefined);
 
   useEffect(() => {
     if (!socket || !loggedUser || !room) return;
@@ -539,6 +550,22 @@ export default function Message({
     socket.on("message_read_update", handleReadUpdate);
     return () => { socket.off("message_read_update", handleReadUpdate); };
   }, [socket, messageId, roomId, loggedUser, message.senderId, reads, queryClient, queryKey]);
+
+  // --- DELIVERY TRACKING ---
+  useEffect(() => {
+    if (!socket || !loggedUser || !room) return;
+    const hasDelivered = deliveries.some((d) => d.id === loggedUser.id);
+    if (!isSender && !hasDelivered) {
+      socket.emit("mark_message_delivered", { messageId, roomId });
+    }
+    const handleDeliveryUpdate = (data: { messageId: string; deliveries: any[] }) => {
+      if (data.messageId === messageId) {
+        queryClient.setQueryData(deliveryQueryKey, { deliveries: data.deliveries });
+      }
+    };
+    socket.on("message_delivered_update", handleDeliveryUpdate);
+    return () => { socket.off("message_delivered_update", handleDeliveryUpdate); };
+  }, [socket, messageId, roomId, loggedUser, message.senderId, deliveries, queryClient, deliveryQueryKey]);
 
   // --- GESTION DU CLIC DROIT AVEC CALCUL AJUSTÉ ---
   const handleContextMenu = (e: React.MouseEvent) => {

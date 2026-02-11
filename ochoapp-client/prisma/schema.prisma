@@ -49,6 +49,7 @@ model User {
 
   @@map("users")
   userPrivacies UserPrivacy[]
+  deliveries Delivery[]
 }
 model VerifiedUsers {
   id        String       @id @default(cuid())
@@ -188,7 +189,8 @@ model Message {
   reaction     Reaction?     @relation("Sender", fields: [reactionId], references: [id], onDelete: Cascade)
   reactionId   String?
   type         MessageType
-  reads        Read[]
+  reads        Read[]  
+  deliveries   Delivery[]  
   reactions    Reaction[]
   lastMessages LastMessage[]
   attachments  MessageAttachment[]
@@ -235,6 +237,19 @@ model Read {
 
   @@unique([userId, messageId])
   @@map("reads")
+}
+
+model Delivery {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  deliveredAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@map("deliveries")
 }
 
 model Reaction {

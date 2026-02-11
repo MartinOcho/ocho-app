@@ -360,6 +360,11 @@ export interface SocketMarkMessageReadEvent {
   roomId: string;
 }
 
+export interface SocketMarkMessageDeliveredEvent {
+  messageId: string;
+  roomId: string;
+}
+
 export interface SocketAddReactionEvent {
   messageId: string;
   roomId: string;
@@ -551,6 +556,10 @@ export interface ReadUser {
 }
 export interface ReadInfo {
   reads: ReadUser[];
+}
+
+export interface DeliveryInfo {
+  deliveries: ReadUser[];
 }
 
 export interface BookmarkInfo {

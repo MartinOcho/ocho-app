@@ -287,6 +287,29 @@ export async function getMessageReads(messageId: string) {
   return message.reads.map((read) => read.user);
 }
 
+export async function getMessageDeliveries(messageId: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: {
+      deliveries: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!message) return [];
+  return message.deliveries.map((delivery) => delivery.user);
+}
+
 export async function getFormattedRooms(
   userId: string,
   username: string,
