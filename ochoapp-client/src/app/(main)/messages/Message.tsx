@@ -779,6 +779,8 @@ export default function Message({
       messageId: string;
       deliveries: ReadUser[];
     }) => {
+      console.log(data);
+      
       if (data.messageId === messageId) {
         queryClient.setQueryData<DeliveryInfo>(deliveryQueryKey, {
           deliveries: data.deliveries,
