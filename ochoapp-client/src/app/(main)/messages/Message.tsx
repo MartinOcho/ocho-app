@@ -225,7 +225,7 @@ export const MessageBubbleContent = ({
         {/* Heure et Status DANS la bulle */}
         {createdAt && (!message.content.trim() && message.attachments.length) && (
           <div className={cn(
-              "absolute bottom-0 right-2.5 flex items-center gap-1 text-[10px]",
+              "absolute top-full right-2.5 flex items-center gap-1 text-[10px]",
               // Couleurs adaptées au nouveau contraste
               isOwner ? "text-blue-100 dark:text-neutral-400" : "text-muted-foreground"
           )}>
