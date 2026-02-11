@@ -101,6 +101,14 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
     const isContent = msg.type === "CONTENT" && newerMsg.type === "CONTENT";
     const isNotFull = currentGroup.length < limit;
     
+    // Helper: Check if a message is a "MediaTip" (media-only message without text content)
+    const isMediaTip = (message: MessageData): boolean => {
+      return message.type === "CONTENT" && 
+             (!message.content || message.content.trim() === "") &&
+             message.attachments &&
+             message.attachments.length > 0;
+    };
+    
     // Safety checks for dates
     const date1 = new Date(msg.createdAt);
     const date2 = new Date(newerMsg.createdAt);
@@ -112,11 +120,15 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 
     const diffTime = Math.abs(date2.getTime() - date1.getTime());
     const isCloseInTime = diffTime < MAX_TIME_DIFF;
+    
+    // If either message is a MediaTip, don't cluster them together
+    const currentIsTip = isMediaTip(msg);
+    const previousIsTip = isMediaTip(newerMsg);
+    const isTipInCluster = currentIsTip || previousIsTip;
 
-    if (isSameSender && isContent && isNotFull && isSameDay && isCloseInTime) {
+    if (isSameSender && isContent && isNotFull && isSameDay && isCloseInTime && !isTipInCluster) {
       currentGroup.push(msg);
     } else {
-      // On ferme le groupe actuel et on en commence un nouveau
       groups.push(currentGroup);
       currentGroup = [msg];
     }
