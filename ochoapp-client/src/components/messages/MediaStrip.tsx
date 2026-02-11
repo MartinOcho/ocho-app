@@ -111,7 +111,7 @@ export default function MediaStrip({
                 <video
                   src={attachments[MAX_VISIBLE_MEDIA].url}
                   className={cn(
-                    "rounded-lg object-cover cursor-pointer",
+                    "rounded-lg object-cover cursor-pointer bg-accent",
                     "size-32 max-sm:size-24",
                     `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
                   )}
@@ -128,7 +128,7 @@ export default function MediaStrip({
                 src={attachments[MAX_VISIBLE_MEDIA].url}
                 alt={`Attachment 4`}
                 className={cn(
-                  "rounded-lg object-cover cursor-pointer",
+                  "rounded-lg object-cover cursor-pointer bg-accent",
                   "size-32 max-sm:size-24",
                   `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
                 )}

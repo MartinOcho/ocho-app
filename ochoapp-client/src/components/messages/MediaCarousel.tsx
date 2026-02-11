@@ -188,20 +188,12 @@ export default function MediaCarousel({
         if (isSwipe) {
           if (deltaX > 0) {
             // Swipe vers la droite
-            if (isFirstImage) {
-              // À la première image: fermer le carrousel
-              handleCloseCarousel();
-            } else {
-              // Sinon: aller à l'image précédente
+            if (!isFirstImage) {
               goToPrevious();
             }
           } else {
             // Swipe vers la gauche
-            if (isLastImage) {
-              // À la dernière image: fermer le carrousel
-              handleCloseCarousel();
-            } else {
-              // Sinon: aller à l'image suivante
+            if (!isLastImage) {
               goToNext();
             }
           }
@@ -432,8 +424,10 @@ export default function MediaCarousel({
                 {attachment.type === "VIDEO" ? (
                   <>
                     <video
+                      height={attachment.height || undefined}
+                      width={attachment.width || undefined}
                       src={attachment.url}
-                      className="w-14 h-14 object-cover"
+                      className="w-14 h-14 object-contain"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                       <div className="w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-6 border-t-white/70 opacity-60"></div>
@@ -441,9 +435,11 @@ export default function MediaCarousel({
                   </>
                 ) : (
                   <img
+                    height={attachment.height || undefined}
+                    width={attachment.width || undefined}
                     src={attachment.url}
                     alt={`Thumbnail ${index + 1}`}
-                    className="w-14 h-14 object-cover"
+                    className="w-14 h-14 object-contain"
                   />
                 )}
               </button>
