@@ -52,7 +52,7 @@ export default function MediaStrip({
     <>
       <div
         className={cn(
-          "flex gap-2 flex-wrap w-fit max-w-full max-sm:max-w-64",
+          "grid gap-2 grid-cols-2 w-fit max-w-full max-sm:max-w-64",
           className
         )}
       >
