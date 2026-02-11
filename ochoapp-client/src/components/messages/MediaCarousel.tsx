@@ -157,14 +157,14 @@
                   ref={i === index ? currentThumbnailRef : null}
                   onClick={() => { setIndex(i); setDirection(i > index ? 1 : -1); }}
                   className={cn(
-                    "relative flex-shrink-0 rounded-lg overflow-hidden transition-all",
+                    "relative flex-shrink-0 rounded overflow-hidden transition-all",
                     i === index ? "ring-2 ring-white/50 scale-105" : "opacity-60 hover:opacity-100"
                   )}
                 >
                   {att.type === 'VIDEO' ? (
-                    <video src={att.url} className="w-10 h-10 object-contain" />
+                    <video src={att.url} className="w-10 h-10 object-cover" />
                   ) : (
-                    <img src={att.url} alt={`thumb-${i}`} className="w-10 h-10 object-contain" />
+                    <img src={att.url} alt={`thumb-${i}`} className="w-10 h-10 object-cover" />
                   )}
                 </button>
               ))}
@@ -259,7 +259,7 @@
           dragElastic={0.2}
           onDragEnd={onDragEnd}
         >
-          <video src={attachment.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-lg shadow-2xl bg-black" />
+          <video src={attachment.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-sm shadow-2xl bg-black object-contain" />
         </motion.div>
       );
     }
@@ -284,7 +284,7 @@
         onDoubleClick={handleDoubleTap}
         style={{ x, scale, touchAction: 'none' }}
       >
-        <img src={attachment.url} alt={`media-${index}`} draggable={false} className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl select-none" />
+        <img src={attachment.url} alt={`media-${index}`} draggable={false} className="max-h-[85vh] max-w-[90vw] object-contain rounded-sm shadow-2xl select-none" />
       </motion.div>
     );
   }
