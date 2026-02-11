@@ -3,7 +3,7 @@
 import { RoomFooterState, RoomFooterStateType } from "@/lib/types";
 import { MessageFormComponent } from "./MessageFormComponent";
 import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, Ban, Ghost, Lock, LogOut, Users } from "lucide-react";
+import { AlertCircle, AlertTriangle, Ban, ChevronUp, Ghost, Lock, LogOut, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -120,15 +120,20 @@ export function UnavailableFooter({
   }
 
   return (
-    <div className="relative flex w-full flex-1 select-none items-center justify-center gap-3 flex-wrap sm:flex-wrap-reverse">
+    <div className="relative flex w-full flex-1 select-none items-center justify-center gap-3 flex-col">
       {buttonLabel && (
+        <div className="flex flex-col items-center gap-2"> 
         <Button
-          size="sm"
           onClick={onButtonClick}
-          className={cn("flex-shrink-0", buttonColor && `bg-[${buttonColor}]`)}
+          className={cn("flex-shrink-0 rounded-full", buttonColor && `bg-[${buttonColor}]`)}
+          variant="destructive"
+          size="icon"
         >
-          {buttonLabel}
+          <ChevronUp/>
         </Button>
+        <div className="animate-bounce text-sm">{buttonLabel}</div>
+        </div>
+       
       )}
       <div className="flex items-center justify-center flex-1 gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 p-3 sm:px-5">
         {icon || <AlertTriangle className="h-5 w-5 text-destructive" />}
