@@ -11,6 +11,7 @@ import {
   SocketSendMessageEvent,
 } from "./types";
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
+import { Server } from "socket.io";
 
 const prisma = new PrismaClient();
 
@@ -537,6 +538,7 @@ export async function handleSendNormalMessage(
   data: SocketSendMessageEvent,
   userId: string,
   username: string,
+  io: Server,
 ) {
   const { content, roomId, type, recipientId, attachmentIds = [] } = data;
 
@@ -602,8 +604,9 @@ export async function handleSendNormalMessage(
 
   const activeMembers = await prisma.roomMember.findMany({
     where: { roomId, leftAt: null, type: { not: "BANNED" } },
-    include: { user: true },
   });
+
+  const deliveredUserIds: string[] = [];
 
   for (const member of activeMembers) {
     if (member.userId) {
@@ -617,8 +620,12 @@ export async function handleSendNormalMessage(
         update: { messageId: newMessage.id, createdAt: new Date() },
       });
 
-      // Mark message as delivered for this member only if they are online (except sender)
-      if (member.userId !== userId && member.user?.isOnline) {
+      // Mark message as delivered for online members (except sender)
+      // Check if user is connected via Socket.IO instead of BD to avoid latency
+      const userSocketRoom = io.sockets.adapter.rooms.get(member.userId);
+      const isUserOnline = userSocketRoom && userSocketRoom.size > 0;
+      
+      if (member.userId !== userId && isUserOnline) {
         await prisma.delivery.upsert({
           where: {
             userId_messageId: {
@@ -632,6 +639,7 @@ export async function handleSendNormalMessage(
           },
           update: {},
         });
+        deliveredUserIds.push(member.userId);
       }
     }
   }
@@ -658,5 +666,6 @@ export async function handleSendNormalMessage(
       sentAt: newMessage.createdAt,
     })),
     affectedUserIds,
+    deliveredUserIds,
   };
 }

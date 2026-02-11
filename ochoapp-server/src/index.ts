@@ -4,7 +4,7 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import { PrismaClient, Prisma } from "@prisma/client"; // Garder les types
+import { PrismaClient, Prisma, NotificationType } from "@prisma/client"; // Garder les types
 import prisma from "./prisma"; 
 import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
@@ -216,53 +216,6 @@ io.on("connection", async (socket: Socket) => {
   });
 
   socket.join(userId);
-
-  // --- MARK PENDING MESSAGES AS DELIVERED ---
-  // When user connects, mark all messages they're a member of but haven't received yet
-  try {
-    const userRooms = await prisma.roomMember.findMany({
-      where: { userId, leftAt: null, type: { not: "BANNED" } },
-      select: { roomId: true },
-    });
-
-    for (const room of userRooms) {
-      // Get all messages in this room that haven't been delivered to this user yet
-      const undeliveredMessages = await prisma.message.findMany({
-        where: {
-          roomId: room.roomId,
-          senderId: { not: userId }, // Not sent by this user
-          deliveries: {
-            none: {
-              userId, // This user hasn't received it yet
-            },
-          },
-        },
-        select: { id: true },
-      });
-
-      // Mark them all as delivered
-      if (undeliveredMessages.length > 0) {
-        await prisma.delivery.createMany({
-          data: undeliveredMessages.map((msg) => ({
-            userId,
-            messageId: msg.id,
-          })),
-          skipDuplicates: true,
-        });
-
-        // Emit delivery updates for each message to the room
-        for (const msg of undeliveredMessages) {
-          const updatedDeliveries = await getMessageDeliveries(msg.id);
-          io.to(room.roomId).emit("message_delivered_update", {
-            messageId: msg.id,
-            deliveries: updatedDeliveries,
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error marking pending messages as delivered:", error);
-  }
 
   groupManagment(io, socket, { userId, username, displayName, avatarUrl});
 
@@ -614,8 +567,8 @@ io.on("connection", async (socket: Socket) => {
           io.to(userId).emit("room_list_updated", updatedRooms);
         } else {
           // --- BLOC MESSAGES NORMAUX ---
-          const { newMessage, newRoom, galleryMedias, affectedUserIds } =
-            await handleSendNormalMessage(data, userId, username);
+          const { newMessage, newRoom, galleryMedias, affectedUserIds, deliveredUserIds } =
+            await handleSendNormalMessage(data, userId, username, io);
 
           socket.join(roomId);
 
@@ -638,6 +591,15 @@ io.on("connection", async (socket: Socket) => {
               roomId,
               medias: galleryMedias,
               tempId,
+            });
+          }
+
+          // Emit delivery update if any users are online and received the message
+          if (deliveredUserIds && deliveredUserIds.length > 0) {
+            const updatedDeliveries = await getMessageDeliveries(newMessage.id);
+            io.to(roomId).emit("message_delivered_update", {
+              messageId: newMessage.id,
+              deliveries: updatedDeliveries,
             });
           }
 
@@ -679,7 +641,7 @@ io.on("connection", async (socket: Socket) => {
   socket.on(
     "create_notification",
     async (data: {
-      type: any;
+      type: NotificationType;
       recipientId?: string;
       postId?: string;
       commentId?: string;
@@ -734,7 +696,7 @@ io.on("connection", async (socket: Socket) => {
   socket.on(
     "delete_notification",
     async (data: {
-      type: any;
+      type: NotificationType;
       recipientId?: string;
       postId?: string;
       commentId?: string;
