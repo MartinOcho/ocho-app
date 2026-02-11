@@ -65,7 +65,6 @@ export async function GET(
       // 1. Récupérer les infos de la room
       const roomData = await prisma.room.findUnique({
         where: { id: roomId },
-        select: { isGroup: true }, // On optimise en ne sélectionnant que le nécessaire
       });
 
       if (!roomData) {
@@ -74,10 +73,7 @@ export async function GET(
           { status: 404 },
         );
       }
-
-      // 2. SÉCURITÉ & LOGIQUE MEMBRE (Unifiée pour Groupes et DMs)
-      // On vérifie TOUJOURS si l'utilisateur est membre, même pour un DM.
-      // Cela empêche un utilisateur de lire les messages d'un DM dont il ne fait pas partie.
+      
       const member = await prisma.roomMember.findUnique({
         where: {
           roomId_userId: {
