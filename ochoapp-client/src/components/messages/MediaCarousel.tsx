@@ -150,7 +150,7 @@
 
         {attachments.length > 1 && (
           <div className="border-t border-white/10 bg-black/50 p-2 flex-shrink-0">
-            <div ref={filmstripRef} className="flex gap-1.5 overflow-x-auto pb-2 scroll-smooth">
+            <div ref={filmstripRef} className="flex gap-1.5 overflow-x-auto pb-2 p-1 scroll-smooth">
               {attachments.map((att, i) => (
                 <button
                   key={i}
@@ -162,9 +162,9 @@
                   )}
                 >
                   {att.type === 'VIDEO' ? (
-                    <video src={att.url} className="w-14 h-14 object-contain" />
+                    <video src={att.url} className="w-10 h-10 object-contain" />
                   ) : (
-                    <img src={att.url} alt={`thumb-${i}`} className="w-14 h-14 object-contain" />
+                    <img src={att.url} alt={`thumb-${i}`} className="w-10 h-10 object-contain" />
                   )}
                 </button>
               ))}
