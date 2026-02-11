@@ -409,6 +409,7 @@ export default function RoomHeader({
           className={cn(
             "sticky inset-0 z-40 flex justify-between max-sm:hidden",
             active && "px-4 py-3", 
+            isMediaFullscreen && "hidden",
           )}
         >
           <div
