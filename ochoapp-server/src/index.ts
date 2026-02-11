@@ -216,7 +216,45 @@ io.on("connection", async (socket: Socket) => {
 
   socket.join(userId);
 
-  groupManagment(io, socket, { userId, username, displayName, avatarUrl });
+  // --- MARK PENDING MESSAGES AS DELIVERED ---
+  // When user connects, mark all messages they're a member of but haven't received yet
+  try {
+    const userRooms = await prisma.roomMember.findMany({
+      where: { userId, leftAt: null, type: { not: "BANNED" } },
+      select: { roomId: true },
+    });
+
+    for (const room of userRooms) {
+      // Get all messages in this room that haven't been delivered to this user yet
+      const undeliveredMessages = await prisma.message.findMany({
+        where: {
+          roomId: room.roomId,
+          senderId: { not: userId }, // Not sent by this user
+          deliveries: {
+            none: {
+              userId, // This user hasn't received it yet
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      // Mark them all as delivered
+      if (undeliveredMessages.length > 0) {
+        await prisma.delivery.createMany({
+          data: undeliveredMessages.map((msg) => ({
+            userId,
+            messageId: msg.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error marking pending messages as delivered:", error);
+  }
+
+  groupManagment(io, socket, { userId, username, displayName, avatarUrl});
 
   socket.on(
     "start_chat",

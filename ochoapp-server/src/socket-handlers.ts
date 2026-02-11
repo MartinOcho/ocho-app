@@ -488,6 +488,14 @@ export async function handleSendSavedMessage(
       });
     }
 
+    // Mark saved message as delivered for the user (saved messages are always delivered)
+    await tx.delivery.create({
+      data: {
+        userId,
+        messageId: msg.id,
+      },
+    });
+
     return msg;
   });
 
@@ -608,6 +616,23 @@ export async function handleSendNormalMessage(
         },
         update: { messageId: newMessage.id, createdAt: new Date() },
       });
+
+      // Mark message as delivered for this member only if they are online (except sender)
+      if (member.userId !== userId && member.user?.isOnline) {
+        await prisma.delivery.upsert({
+          where: {
+            userId_messageId: {
+              userId: member.userId,
+              messageId: newMessage.id,
+            },
+          },
+          create: {
+            userId: member.userId,
+            messageId: newMessage.id,
+          },
+          update: {},
+        });
+      }
     }
   }
 

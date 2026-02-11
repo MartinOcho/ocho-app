@@ -551,21 +551,17 @@ export default function Message({
     return () => { socket.off("message_read_update", handleReadUpdate); };
   }, [socket, messageId, roomId, loggedUser, message.senderId, reads, queryClient, queryKey]);
 
-  // --- DELIVERY TRACKING ---
+  // --- LISTENING TO DELIVERY UPDATES ---
   useEffect(() => {
-    if (!socket || !loggedUser || !room) return;
-    const hasDelivered = deliveries.some((d) => d.id === loggedUser.id);
-    if (!isSender && !hasDelivered) {
-      socket.emit("mark_message_delivered", { messageId, roomId });
-    }
     const handleDeliveryUpdate = (data: { messageId: string; deliveries: any[] }) => {
       if (data.messageId === messageId) {
         queryClient.setQueryData(deliveryQueryKey, { deliveries: data.deliveries });
       }
     };
+    if (!socket) return;
     socket.on("message_delivered_update", handleDeliveryUpdate);
     return () => { socket.off("message_delivered_update", handleDeliveryUpdate); };
-  }, [socket, messageId, roomId, loggedUser, message.senderId, deliveries, queryClient, deliveryQueryKey]);
+  }, [socket, messageId, queryClient, deliveryQueryKey]);
 
   // --- GESTION DU CLIC DROIT AVEC CALCUL AJUSTÉ ---
   const handleContextMenu = (e: React.MouseEvent) => {

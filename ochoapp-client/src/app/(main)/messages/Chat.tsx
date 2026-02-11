@@ -466,6 +466,27 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     data?.pages?.flatMap((page) => page?.messages ?? []) || []
   ).filter((msg) => msg && msg.type !== "REACTION");
 
+  // --- HELPER: Check if user can receive messages ---
+  const canUserReceiveMessages = () => {
+    if (!room || !loggedUser) return false;
+    
+    // Pour les messages sauvegardés
+    if (room.id === `saved-${loggedUser.id}`) {
+      return true;
+    }
+
+    // Pour les groupe/room normales
+    const userMembership = room.members?.find((m) => m.userId === loggedUser.id);
+    if (!userMembership) return false;
+    
+    // Utilisateur banni ou a quitté
+    if (userMembership.type === "BANNED" || userMembership.leftAt) {
+      return false;
+    }
+
+    return true;
+  };
+
   // --- FILTRAGE LOCAL DES MESSAGES ---
   // On filtre si une recherche est active
   const filteredMessages = useMemo(() => {
