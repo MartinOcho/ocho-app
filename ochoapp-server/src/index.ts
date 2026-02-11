@@ -30,6 +30,7 @@ import {
   getFormattedRooms,
   getUnreadRoomsCount, 
   getUnreadMessagesCountPerRoom,
+  getMessageDeliveries,
   groupManagment,
   socketHandler,
   validateSession,
@@ -248,6 +249,15 @@ io.on("connection", async (socket: Socket) => {
           })),
           skipDuplicates: true,
         });
+
+        // Emit delivery updates for each message to the room
+        for (const msg of undeliveredMessages) {
+          const updatedDeliveries = await getMessageDeliveries(msg.id);
+          io.to(room.roomId).emit("message_delivered_update", {
+            messageId: msg.id,
+            deliveries: updatedDeliveries,
+          });
+        }
       }
     }
   } catch (error) {
