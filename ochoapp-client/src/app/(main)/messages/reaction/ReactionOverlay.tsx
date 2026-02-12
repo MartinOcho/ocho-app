@@ -107,7 +107,7 @@ export default function ReactionOverlay({
           transform: `translateY(${verticalOffset}px)`,
         }}
       >
-        <div className={cn("pointer-events-none z-20 h-fit w-full scale-100 origin-top-left flex", isOwner ? "justify-end" : "justify-start")}>
+        <div className={cn("relative pointer-events-none z-20 h-fit w-full scale-100 origin-top-left flex", isOwner ? "justify-end" : "justify-start")}>
           <MessageBubbleContent
             message={message}
             isOwner={isOwner}

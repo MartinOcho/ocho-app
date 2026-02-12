@@ -221,9 +221,9 @@ export const MediaBubble = ({
       {createdAt && !message.content.trim() && message.attachments.length && (
         <div
           className={cn(
-            "absolute right-2.5 top-full flex items-center gap-1 text-[10px]",
+            "absolute top-[calc(100%+4px)] flex items-center gap-1 text-[10px] px-2 rounded-lg bg-card/50 border-border border",
             isOwner
-              ? "text-blue-100 dark:text-neutral-400"
+              ? "text-blue-100 dark:text-neutral-400 right-2.5"
               : "text-muted-foreground",
           )}
         >
@@ -240,7 +240,7 @@ export const MediaBubble = ({
               ) : (readStatus === "read" ? (
                 <CheckCheck
                   size={14}
-                  className="text-blue-400 dark:text-blue-400"
+                  className="text-cyan-400 dark:text-cyan-600"
                 />
               ) : (
                 <CheckCheck
@@ -428,7 +428,7 @@ export const MessageBubbleContent = ({
               ) : (readStatus === "read" ? (
                 <CheckCheck
                   size={14}
-                  className="text-blue-400 dark:text-blue-400"
+                  className="text-cyan-400 dark:text-cyan-600"
                 />
               ) : (
                 <CheckCheck
@@ -1172,9 +1172,10 @@ export default function Message({
                 {room.isGroup && readers.length > 0 && isLastInCluster && (
                   <div
                     className={cn(
-                      "relative mr-1 mt-2 flex w-full",
+                      "relative flex w-full",
                       isOwner ? "justify-end" : "justify-start",
                       isMediaFullscreen && "invisible",
+                      message.attachments.length && !message.content.trim() && "pt-5"
                     )}
                   >
                     <button
@@ -1199,7 +1200,7 @@ export default function Message({
                       )}
                     </button>
                     {showReadDetails && (
-                      <div className="absolute bottom-6 right-0 z-30 min-w-[160px] rounded-xl border border-border bg-popover/95 p-2 shadow-xl backdrop-blur animate-in fade-in slide-in-from-bottom-2">
+                      <div className={cn("absolute bottom-6 z-30 min-w-[160px] rounded-xl border border-border bg-popover/95 p-2 shadow-xl backdrop-blur animate-in fade-in slide-in-from-bottom-2", isOwner && "right-0")}>
                         <h4 className="mb-2 border-b border-border pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                           {t("readBy") || "Lu par"}
                         </h4>
