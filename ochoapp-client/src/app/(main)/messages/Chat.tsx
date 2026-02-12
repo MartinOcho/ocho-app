@@ -174,6 +174,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   const { startNavigation: navigate } = useProgress();
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [messageInputExpanded, setMessageInputExpanded] = useState(true);
+  const [hasMessageContent, setHasMessageContent] = useState(false);
 
   // --- NOUVEAU : État pour le menu contextuel (Click Droit) ---
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -205,6 +206,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     setTypingUsers([]);
     setSearchQuery(""); // Reset search
     setContextMenuPos(null); // Reset menu contextuel
+    setHasMessageContent(false); // Reset message content
   }, [roomId]);
 
   // --- NOUVELLE : TRAITEMENT DES MESSAGES EN ATTENTE ---
@@ -846,6 +848,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             className={cn(
               "flex w-fit items-end gap-0 transition-all duration-75",
               !messageInputExpanded && "w-full gap-3",
+              hasMessageContent && "hidden",
             )}
           >
             <Button
@@ -887,7 +890,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
             }
           </div>
 
-          {/* Affichage du RoomFooter selon l'état */}
           {!!roomId && (
             <div className="z-20 flex-1" onClick={()=>!messageInputExpanded && setMessageInputExpanded(true)}>
               <RoomFooter
@@ -898,6 +900,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 onTypingStop={handleTypingStop}
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
+                onContentChange={setHasMessageContent}
               />
             </div>
           )}

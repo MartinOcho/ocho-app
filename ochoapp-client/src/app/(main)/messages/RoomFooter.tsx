@@ -21,6 +21,7 @@ interface RoomFooterProps {
   onDeleteConversation?: () => void;
   onFollowUser?: () => void;
   onViewGroupDetails?: () => void;
+  onContentChange?: (hasContent: boolean) => void;
 }
 
 export default function RoomFooter({
@@ -36,6 +37,7 @@ export default function RoomFooter({
   onDeleteConversation,
   onFollowUser,
   onViewGroupDetails,
+  onContentChange,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -52,6 +54,7 @@ export default function RoomFooter({
           onTypingStart={onTypingStart}
           onTypingStop={onTypingStop}
           canAttach={true}
+          onContentChange={onContentChange}
         />
       );
 

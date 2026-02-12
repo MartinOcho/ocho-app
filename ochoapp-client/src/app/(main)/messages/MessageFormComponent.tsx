@@ -1,7 +1,7 @@
 "use client";
 
 import { Send, X, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 // Nous n'utilisons plus kyInstance directement pour l'upload car fetch ne supporte pas l'upload progress
 // import kyInstance from "@/lib/ky"; 
 import { AttachmentType } from "@/lib/types";
@@ -29,6 +29,7 @@ interface MessageFormComponentProps {
   onTypingStart: () => void;
   onTypingStop: () => void;
   canAttach?: boolean;
+  onContentChange?: (hasContent: boolean) => void;
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -62,6 +63,7 @@ export function MessageFormComponent({
   onTypingStart,
   onTypingStop,
   canAttach = true,
+  onContentChange,
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -75,6 +77,18 @@ export function MessageFormComponent({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Track content changes for the parent
+  const handleContentChange = () => {
+    const hasContent = input.trim().length > 0 || attachments.length > 0;
+    onContentChange?.(hasContent);
+  };
+
+  // Call onContentChange whenever input or attachments change
+  useEffect(() => {
+    handleContentChange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, attachments]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
