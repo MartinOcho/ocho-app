@@ -212,6 +212,7 @@ export const MediaBubble = ({
           className={cn(
             "media-strip-wrapper overflow-hidden border-border",
             isOwner ? "justify-end" : "justify-start",
+            message.attachments.length === 1 && "grid-cols-1"
           )}
           onMediaOpen={onMediaOpen}
           onMediaClose={onMediaClose}
