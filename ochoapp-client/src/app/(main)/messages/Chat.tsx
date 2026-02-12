@@ -15,7 +15,6 @@ import {
   SocketReceiveMessageEvent,
   SocketTypingUpdateEvent,
   SocketMessageDeletedEvent,
-  MentionedUser,
 } from "@/lib/types";
 import Message, { TypingIndicator } from "./Message";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
@@ -68,7 +67,6 @@ interface SentMessageState {
   type: MessageType;
   status: "sending" | "error";
   attachmentIds?: string[];
-  mentionedUsers?: MentionedUser[];
 }
 
 // --- FONCTION UTILITAIRE DE CLUSTERING AVANCÉE ---
@@ -571,7 +569,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
     content: string,
     attachmentIds?: string[],
     attachments?: any[],
-    mentionedUsers?: MentionedUser[],
   ) => {
     if (!socket || !roomId) return;
 
@@ -584,14 +581,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
 
     const tempId = Math.random().toString(36).slice(2);
 
-    // Determine message type based on content and mentions
-    let messageType: MessageType = "CONTENT";
-    
-    // If there are mentions, send a MENTION type message
-    if (mentionedUsers && mentionedUsers.length > 0) {
-      messageType = "MENTION";
-    }
-
     // Only add to sentMessages if there's content (attachments-only messages go directly via socket)
     if (content.trim() || (attachmentIds && attachmentIds.length > 0)) {
       setSentMessages((prev) => [
@@ -600,30 +589,20 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
           tempId,
           content: content.trim(),
           roomId,
-          type: messageType,
+          type: "CONTENT",
           status: "sending",
           attachmentIds,
-          mentionedUsers,
         },
       ]);
     }
-
-    // Log for debugging
-    console.log("Sending message with mentions:", {
-      content: content.trim(),
-      mentionedUsers: mentionedUsers,
-      messageType,
-      attachmentCount: attachmentIds?.length || 0,
-    });
 
     // Emit socket event with mentions data
     socket.emit("send_message", {
       content: content.trim(),
       roomId,
-      type: messageType,
+      type: "CONTENT",
       tempId,
       attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : [],
-      mentionedUsers: mentionedUsers || [],
     });
   };
 
@@ -916,7 +895,6 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 onTypingStop={handleTypingStop}
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
-                onContentChange={setHasMessageContent}
               />
             </div>
           )}

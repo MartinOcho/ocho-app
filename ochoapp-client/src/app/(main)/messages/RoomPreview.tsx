@@ -407,7 +407,6 @@ export default function RoomPreview({
     NEWMEMBER: newMemberMsg,
     LEAVE: oldMemberMsg,
     BAN: oldMemberMsg,
-    MENTION: `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`,
     REACTION: isSender
       ? recipient?.id === loggedinUser.id
         ? youReactedToYourMessage.replace("[name]", sender || appUser)
@@ -493,12 +492,6 @@ export default function RoomPreview({
                 {attachmentPreview.icon}
               </span>
             )}
-            {/* Mention icon for MENTION type messages */}
-            {messageType === "MENTION" && (
-              <span className="flex-shrink-0 text-primary">
-                <AtSign className="h-4 w-4" />
-              </span>
-            )}
             <span
               className={cn(
                 "line-clamp-2 text-ellipsis break-all flex items-center gap-1",
@@ -527,7 +520,7 @@ export default function RoomPreview({
                         {messagePreviewContent.split("[r]")[1]}
                       </>
                     ) : /* Surbrillance dans le dernier message si c'est du texte */
-                    (messageType === "CONTENT" || messageType === "MENTION") ? (
+                    (messageType === "CONTENT") ? (
                       <HighlightText
                         text={messagePreviewContent}
                         highlight={highlight}

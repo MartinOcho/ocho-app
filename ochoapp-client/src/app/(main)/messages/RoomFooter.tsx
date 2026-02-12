@@ -1,6 +1,6 @@
 "use client";
 
-import { RoomFooterState, RoomFooterStateType, MentionedUser, LocalAttachment } from "@/lib/types";
+import { RoomFooterState, RoomFooterStateType } from "@/lib/types";
 import { MessageFormComponent } from "./MessageFormComponent";
 import { cn } from "@/lib/utils";
 import { AlertCircle, AlertTriangle, Ban, ChevronUp, Ghost, Lock, LogOut, Users } from "lucide-react";
@@ -10,7 +10,7 @@ import { useTranslation } from "@/context/LanguageContext";
 interface RoomFooterProps {
   state: RoomFooterState;
   roomId: string;
-  onMessageSend: (content: string, attachmentIds?: string[], attachments?: LocalAttachment[], mentionedUsers?: MentionedUser[]) => void;
+  onMessageSend: (content: string, attachmentIds?: string[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   messageInputExpanded: boolean;
@@ -21,7 +21,6 @@ interface RoomFooterProps {
   onDeleteConversation?: () => void;
   onFollowUser?: () => void;
   onViewGroupDetails?: () => void;
-  onContentChange?: (hasContent: boolean) => void;
 }
 
 export default function RoomFooter({
@@ -37,7 +36,6 @@ export default function RoomFooter({
   onDeleteConversation,
   onFollowUser,
   onViewGroupDetails,
-  onContentChange,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -54,7 +52,6 @@ export default function RoomFooter({
           onTypingStart={onTypingStart}
           onTypingStop={onTypingStop}
           canAttach={true}
-          onContentChange={onContentChange}
         />
       );
 

@@ -210,7 +210,6 @@ enum MessageType {
   CLEAR
   SAVED
   REACTION
-  MENTION
 }
 
 model LastMessage {
