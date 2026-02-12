@@ -426,6 +426,7 @@ export const MessageBubbleContent = ({
               isLastInCluster || isHovered || isTapped || showTimeIndicator
                 ? "opacity-100"
                 : "opacity-0 pointer-events-none",
+              isLastInCluster ? "right-2.5" : "right-0",
             )}
           >
             {isOwner && !isClone && readStatus && (
