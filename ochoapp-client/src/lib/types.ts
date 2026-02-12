@@ -320,6 +320,18 @@ export function getMessageDataInclude(loggedInUserId: string) {
         resourceType: true,
       },
     },
+    mentions: {
+      select: {
+        mentionedId: true,
+        mentionedUser: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+          },
+        },
+      },
+    },
   } satisfies Prisma.MessageInclude;
 }
 

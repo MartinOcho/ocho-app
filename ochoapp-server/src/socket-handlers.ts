@@ -11,7 +11,7 @@ import {
   SocketSendMessageEvent,
 } from "./types";
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
-import { parseMentions, validateMentions, createMessageMentions, createMentionSystemMessages } from "./mention-utils";
+import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
 import { Server } from "socket.io";
 
 const prisma = new PrismaClient();
@@ -651,6 +651,7 @@ export async function handleSendNormalMessage(
     .filter((id): id is string => id !== null);
 
   // --- HANDLE MENTIONS ---
+  // Process mentions as part of the message (treated as unread messages)
   if (type === "CONTENT" || type === "SAVED") {
     try {
       // Parse mentions from content
@@ -663,40 +664,9 @@ export async function handleSendNormalMessage(
           roomId
         );
 
-        // Create MessageMention records
+        // Create MessageMention records for display in message details
         if (validMentions.length > 0) {
           await createMessageMentions(newMessage.id, validMentions);
-
-          // Get sender info for the notification
-          const sender = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          });
-
-          // Emit mention notifications to mentioned users
-          for (const mention of validMentions) {
-            if (mention.userId !== userId) {
-              // Emit socket event for real-time notification
-              io.to(mention.userId).emit("mentioned_in_message", {
-                messageId: newMessage.id,
-                roomId,
-                sender,
-                content: content.substring(0, 100), // First 100 chars
-                mentionedUserId: mention.userId,
-                createdAt: newMessage.createdAt,
-              });
-
-              // Add to affected users for room updates
-              if (!affectedUserIds.includes(mention.userId)) {
-                affectedUserIds.push(mention.userId);
-              }
-            }
-          }
-
           console.log(`Created ${validMentions.length} message mentions`);
         }
       }
@@ -726,7 +696,6 @@ export async function handleSendNormalMessage(
     affectedUserIds,
     deliveredUserIds,
   };
-}
 }
 
 export async function markUndeliveredMessages(

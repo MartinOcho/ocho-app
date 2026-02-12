@@ -294,6 +294,12 @@ export default function RoomPreview({
   const recipientFirstName =
     messagePreview.recipient?.displayName.split(" ")[0] || appUser;
 
+  // Check if current user is mentioned in the last message
+  const isMentionedInLastMessage = 
+    messagePreview.type === "CONTENT" &&
+    Array.isArray((messagePreview as Record<string, any>).mentions) &&
+    (messagePreview as Record<string, any>).mentions.some((m: any) => m.mentionedId === loggedinUser.id);
+
   const sender = isSender
     ? you
     : room.isGroup
@@ -437,6 +443,12 @@ export default function RoomPreview({
   let messagePreviewContent = contentsTypes[messageType];
   let showIconBefore = false;
   let showIconAfterSender = false;
+  let mentionIndicator = false;
+
+  // If user is mentioned in CONTENT message, show mention indicator
+  if (isMentionedInLastMessage && !isSender) {
+    mentionIndicator = true;
+  }
 
   // Check if message has attachments
   if (messagePreview.attachments && messagePreview.attachments.length > 0 && attachmentPreview && messageType === "CONTENT") {
@@ -501,6 +513,11 @@ export default function RoomPreview({
             {verifiedCheck}
           </span>
           <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
+            {mentionIndicator && (
+              <span className="flex-shrink-0 text-primary font-bold">
+                <AtSign size={14} />
+              </span>
+            )}
             {showIconBefore && attachmentPreview?.icon && (
               <span className="flex-shrink-0 text-muted-foreground">
                 {attachmentPreview.icon}
