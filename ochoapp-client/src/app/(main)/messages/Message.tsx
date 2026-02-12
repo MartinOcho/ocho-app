@@ -221,7 +221,7 @@ export const MediaBubble = ({
       {createdAt && !message.content.trim() && message.attachments.length && (
         <div
           className={cn(
-            "absolute top-[calc(100%+4px)] flex items-center gap-1 text-[10px] px-2 rounded-lg bg-card/50 border-border border",
+            "relative flex items-center gap-1 text-[10px] px-2 rounded-lg bg-card/50 border-border border",
             isOwner
               ? "text-blue-100 dark:text-neutral-400 right-2.5"
               : "text-muted-foreground",
@@ -1153,6 +1153,7 @@ export default function Message({
                   <div
                     className={cn(
                       "absolute -bottom-3",
+                      message.attachments.length && !message.content.trim() && "bottom-0",
                       isOwner
                         ? "left-0 -translate-x-3"
                         : "right-0 translate-x-3",
@@ -1175,7 +1176,6 @@ export default function Message({
                       "relative flex w-full",
                       isOwner ? "justify-end" : "justify-start",
                       isMediaFullscreen && "invisible",
-                      message.attachments.length && !message.content.trim() && "pt-5"
                     )}
                   >
                     <button
