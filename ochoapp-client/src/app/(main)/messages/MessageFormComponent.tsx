@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from "react";
 // Nous n'utilisons plus kyInstance directement pour l'upload car fetch ne supporte pas l'upload progress
 // import kyInstance from "@/lib/ky"; 
 import { AttachmentType, MentionedUser, LocalAttachment } from "@/lib/types";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CircleProgress } from "@/components/ui/CircleProgress";
@@ -16,7 +15,7 @@ import { useMentions } from "@/hooks/useMentions";
 import { useQuery } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { RoomData } from "@/lib/types";
-import Linkify from "@/components/Linkify";
+import { EditableTextArea } from "@/components/messages/EditableTextArea";
 
 interface MessageFormComponentProps {
   expanded: boolean;
@@ -83,7 +82,7 @@ export function MessageFormComponent({
   const abortControllersRef = useRef<Record<string, () => void>>({});
   
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editableTextAreaRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -117,7 +116,37 @@ export function MessageFormComponent({
     setCursorPosition(newCursorPos);
     
     // Détect mention @
-    detectMentionStart(newValue, newCursorPos, textareaRef.current || undefined);
+    detectMentionStart(newValue, newCursorPos, e.currentTarget);
+
+    // Trigger typing start
+    onTypingStart?.();
+
+    // Debounce typing stop
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      onTypingStop?.();
+    }, 3000);
+  };
+
+  const handleInputChange = (newValue: string) => {
+    setInput(newValue);
+
+    // Get cursor position from contenteditable
+    const selection = window.getSelection();
+    let newCursorPos = newValue.length;
+
+    if (selection && editableTextAreaRef.current) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(editableTextAreaRef.current);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      newCursorPos = preCaretRange.toString().length;
+    }
+
+    setCursorPosition(newCursorPos);
+
+    // Détect mention @
+    detectMentionStart(newValue, newCursorPos, editableTextAreaRef.current || undefined);
 
     // Trigger typing start
     onTypingStart?.();
@@ -149,9 +178,9 @@ export function MessageFormComponent({
 
       const newCursorPos = beforeAt.length + mentionText.length + 1;
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        if (editableTextAreaRef.current) {
+          editableTextAreaRef.current.focus();
+          setCursorToPosition(editableTextAreaRef.current, newCursorPos);
         }
       }, 0);
       return;
@@ -172,11 +201,63 @@ export function MessageFormComponent({
     const newCursorPos = beforeAt.length + mentionText.length + 1;
     
     setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      if (editableTextAreaRef.current) {
+        editableTextAreaRef.current.focus();
+        setCursorToPosition(editableTextAreaRef.current, newCursorPos);
       }
     }, 0);
+  };
+
+  // Helper function to set cursor position in contenteditable
+  const setCursorToPosition = (element: HTMLElement, offset: number) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let currentOffset = 0;
+    for (const node of element.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const nodeLength = node.textContent?.length ?? 0;
+        if (currentOffset + nodeLength >= offset) {
+          const range = document.createRange();
+          range.setStart(node, Math.min(offset - currentOffset, nodeLength));
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return;
+        }
+        currentOffset += nodeLength;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const nodeLength = (node as HTMLElement).textContent?.length ?? 0;
+        if (currentOffset + nodeLength >= offset) {
+          // Try to position in a text node inside
+          const textNodes = getAllTextNodes(node as HTMLElement);
+          for (const textNode of textNodes) {
+            const textLength = textNode.textContent?.length ?? 0;
+            if (currentOffset + textLength >= offset) {
+              const range = document.createRange();
+              range.setStart(textNode, Math.min(offset - currentOffset, textLength));
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+              return;
+            }
+            currentOffset += textLength;
+          }
+        }
+        currentOffset += nodeLength;
+      }
+    }
+  };
+
+  // Helper function to get all text nodes
+  const getAllTextNodes = (element: HTMLElement): Text[] => {
+    const textNodes: Text[] = [];
+    const walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+    let node;
+    while ((node = walk.nextNode())) {
+      textNodes.push(node as Text);
+    }
+    return textNodes;
   };
 
   const handleBtnClick = () => {
@@ -409,7 +490,7 @@ export function MessageFormComponent({
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       if (input.trim()) {
@@ -539,25 +620,15 @@ export function MessageFormComponent({
             ))}
           </div>
         )}
-        {/* Aperçu du contenu linkifié */}
-        {input.trim() && expanded && (
-          <div className="mx-0.5 mb-1 max-h-20 overflow-y-auto rounded border border-border/40 bg-muted/30 px-2 py-1 text-sm text-foreground/70">
-            <Linkify className="break-words">
-              {input}
-            </Linkify>
-          </div>
-        )}
-        <Textarea
-          ref={textareaRef}
+        <EditableTextArea
+          ref={editableTextAreaRef}
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           placeholder={t("typeMessage")}
           className={cn(
-            "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
             expanded ? "relative w-full" : "invisible absolute w-0",
           )}
-          rows={1}
-          value={input}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
         />
         {/* Mention Overlay */}
         {mentionState.isActive && roomData && (

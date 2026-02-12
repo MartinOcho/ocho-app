@@ -25,7 +25,7 @@ export function useMentions() {
     (
       text: string,
       cursorPos: number,
-      textareaElement?: HTMLTextAreaElement
+      element?: HTMLElement
     ) => {
       // Find the @ symbol before cursor
       const textBeforeCursor = text.substring(0, cursorPos);
@@ -57,8 +57,8 @@ export function useMentions() {
       // Calculate position for overlay
       let position = { top: 0, left: 0 };
 
-      if (textareaElement) {
-        const textareaRect = textareaElement.getBoundingClientRect();
+      if (element) {
+        const elementRect = element.getBoundingClientRect();
         
         // Approximate position based on cursor
         const lineHeight = 24; // Approximate line height
@@ -68,8 +68,8 @@ export function useMentions() {
         const charInLine = lines[currentLine].length;
 
         position = {
-          top: textareaRect.top + currentLine * lineHeight + lineHeight + 10,
-          left: textareaRect.left + charInLine * charWidth + 10,
+          top: elementRect.top + currentLine * lineHeight + lineHeight + 10,
+          left: elementRect.left + charInLine * charWidth + 10,
         };
       }
 
