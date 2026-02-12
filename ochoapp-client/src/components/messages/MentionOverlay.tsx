@@ -31,7 +31,7 @@ export default function MentionOverlay({
   useEffect(() => {
     let filtered: MentionedUser[];
     
-    if (!searchQuery.trim()) {
+    if (searchQuery === "") {
       // Si la recherche est vide (juste après le @), montrer tous les membres
       filtered = roomMembers
         .filter((member) => {

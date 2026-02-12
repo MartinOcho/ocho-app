@@ -58,7 +58,7 @@ export const EditableTextArea = forwardRef<HTMLDivElement, EditableTextAreaProps
       // Clear the editor
       current.innerHTML = "";
 
-      if (!value.trim()) {
+      if (value.length === 0) {
         current.textContent = "";
         setIsUpdatingFromProp(false);
         return;
