@@ -115,8 +115,8 @@ export const EditableTextArea = forwardRef<HTMLDivElement, EditableTextAreaProps
         />
 
         {/* Placeholder */}
-        {!value && (
-          <div className="pointer-events-none absolute left-0.5 top-2 text-muted-foreground py-2 px-0.5">
+        {!value.length && (
+          <div className="pointer-events-none text-muted-foreground py-2 px-0.5">
             {placeholder}
           </div>
         )}
