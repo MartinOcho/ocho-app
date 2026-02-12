@@ -455,7 +455,8 @@ export const MessageBubbleContent = ({
       {createdAt && (
         <time className={cn(
           "text-[10px] text-muted-foreground transition-opacity duration-200 animate-appear-b",
-          isLastInCluster || isHovered || isTapped || showTimeIndicator ? "opacity-90" : "hidden"
+          (isLastInCluster || isHovered || isTapped || showTimeIndicator || isClone) ? "opacity-90" : "hidden",
+          (isClone || isLastInCluster) && (isOwner ? "pr-4" : "pl-4"),
         )}>
           <Time time={createdAt} clock />
         </time>
