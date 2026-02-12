@@ -392,7 +392,7 @@ export const MessageBubbleContent = ({
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}
-        <div className="text-content-wrapper pb-1 pr-4">
+        <div className="text-content-wrapper pr-2">
           {message.content ? (
             <HighlightText
               text={message.content}
@@ -409,10 +409,7 @@ export const MessageBubbleContent = ({
           <div
             className={cn(
               "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1",
-              // Couleurs adaptées au nouveau contraste
-              isOwner
-                ? "text-blue-100 dark:text-neutral-400"
-                : "text-muted-foreground",
+             
             )}
           >
             {isOwner && !isClone && readStatus && (
@@ -440,7 +437,7 @@ export const MessageBubbleContent = ({
         )}
       </div>
       {createdAt && (
-        <time className="opacity-90 text-[10px]">
+        <time className="opacity-90 text-[10px] text-muted-foreground">
           <Time time={createdAt} clock />
         </time>
       )}
