@@ -16,6 +16,7 @@ import { useMentions } from "@/hooks/useMentions";
 import { useQuery } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import { RoomData } from "@/lib/types";
+import Linkify from "@/components/Linkify";
 
 interface MessageFormComponentProps {
   expanded: boolean;
@@ -129,21 +130,51 @@ export function MessageFormComponent({
   };
 
   const handleSelectMention = (user: MentionedUser) => {
-    // Format mention as @[displayName](username)
-    const newContent = formatMention(input, user, cursorPosition);
-    setInput(newContent);
+    // Find the @ symbol that triggered the mention
+    const textBeforeCursor = input.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAtIndex === -1) {
+      // Fallback: just use last @ in input
+      const fallbackAtIndex = input.lastIndexOf("@");
+      if (fallbackAtIndex === -1) return;
+      
+      const beforeAt = input.substring(0, fallbackAtIndex);
+      const mentionText = `@[${user.displayName}](${user.username})`;
+      const newInput = `${beforeAt}${mentionText} `;
+      
+      setInput(newInput);
+      addMentionedUser(user);
+      clearMentionState();
+
+      const newCursorPos = beforeAt.length + mentionText.length + 1;
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+      return;
+    }
+
+    // Build the new text with the mention
+    const beforeAt = input.substring(0, lastAtIndex);
+    const afterMention = input.substring(cursorPosition);
+    const mentionText = `@[${user.displayName}](${user.username})`;
+    const newInput = `${beforeAt}${mentionText} ${afterMention}`;
+    
+    // Set new input
+    setInput(newInput);
     addMentionedUser(user);
     clearMentionState();
 
-    // Set cursor after mention
-    const mentionText = `@[${user.displayName}](${user.username}) `;
-    const newCursorPos = input.lastIndexOf("@") + mentionText.length;
+    // Calculate new cursor position (after the mention + space)
+    const newCursorPos = beforeAt.length + mentionText.length + 1;
     
     setTimeout(() => {
       if (textareaRef.current) {
-        textareaRef.current.selectionStart = newCursorPos;
-        textareaRef.current.selectionEnd = newCursorPos;
         textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
   };
@@ -506,6 +537,14 @@ export function MessageFormComponent({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {/* Aperçu du contenu linkifié */}
+        {input.trim() && expanded && (
+          <div className="mx-0.5 mb-1 max-h-20 overflow-y-auto rounded border border-border/40 bg-muted/30 px-2 py-1 text-sm text-foreground/70">
+            <Linkify className="break-words">
+              {input}
+            </Linkify>
           </div>
         )}
         <Textarea

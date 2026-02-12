@@ -29,42 +29,58 @@ export default function MentionOverlay({
 
   // Filter users based on search query
   useEffect(() => {
+    let filtered: MentionedUser[];
+    
     if (!searchQuery.trim()) {
-      setFilteredUsers([]);
-      return;
+      // Si la recherche est vide (juste après le @), montrer tous les membres
+      filtered = roomMembers
+        .filter((member) => {
+          if (currentUserId && member.userId === currentUserId) {
+            return false;
+          }
+          return member.user !== undefined;
+        })
+        .map((member) => ({
+          id: member.user?.id || "",
+          username: member.user?.username || "",
+          displayName: member.user?.displayName || "",
+          avatarUrl: member.user?.avatarUrl || "",
+        }))
+        .slice(0, 8);
+    } else {
+      // Filtrer par la requête de recherche
+      const query = searchQuery.toLowerCase();
+      filtered = roomMembers
+        .filter((member) => {
+          // Don't suggest the current user
+          if (currentUserId && member.userId === currentUserId) {
+            return false;
+          }
+          if (!member.user) return false;
+          return (
+            member.user.displayName.toLowerCase().includes(query) ||
+            member.user.username.toLowerCase().includes(query)
+          );
+        })
+        .sort((a, b) => {
+          if(!a.user || !b.user) return 0;
+          const aUsernameMatch = a.user.username.toLowerCase().startsWith(query);
+          const bUsernameMatch = b.user.username.toLowerCase().startsWith(query);
+          if (aUsernameMatch !== bUsernameMatch) return bUsernameMatch ? 1 : -1;
+          
+          // Then sort by displayName match
+          const aDisplayMatch = a.user.displayName.toLowerCase().startsWith(query);
+          const bDisplayMatch = b.user.displayName.toLowerCase().startsWith(query);
+          return bDisplayMatch ? 1 : -1;
+        })
+        .slice(0, 8) // Limit to 8 suggestions
+        .map((member) => ({
+          id: member.user?.id || "",
+          username: member.user?.username || "",
+          displayName: member.user?.displayName || "",
+          avatarUrl: member.user?.avatarUrl || "",
+        }));
     }
-
-    const query = searchQuery.toLowerCase();
-    const filtered:MentionedUser[] = roomMembers
-      .filter((member) => {
-        // Don't suggest the current user
-        if (currentUserId && member.userId === currentUserId) {
-          return false;
-        }
-        if (!member.user) return false;
-        return (
-          member.user.displayName.toLowerCase().includes(query) ||
-          member.user.username.toLowerCase().includes(query)
-        );
-      })
-      .sort((a, b) => {
-        if(!a.user || !b.user) return 0;
-        const aUsernameMatch = a.user.username.toLowerCase().startsWith(query);
-        const bUsernameMatch = b.user.username.toLowerCase().startsWith(query);
-        if (aUsernameMatch !== bUsernameMatch) return bUsernameMatch ? 1 : -1;
-        
-        // Then sort by displayName match
-        const aDisplayMatch = a.user.displayName.toLowerCase().startsWith(query);
-        const bDisplayMatch = b.user.displayName.toLowerCase().startsWith(query);
-        return bDisplayMatch ? 1 : -1;
-      })
-      .slice(0, 8) // Limit to 8 suggestions
-      .map((member) => ({
-        id: member.user?.id || "",
-        username: member.user?.username || "",
-        displayName: member.user?.displayName || "",
-        avatarUrl: member.user?.avatarUrl || "",
-      }));
 
     setFilteredUsers(filtered);
     setHighlightedIndex(0);

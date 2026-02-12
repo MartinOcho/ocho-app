@@ -103,6 +103,8 @@ export default function RoomHeader({
 
   const [activeTab, setActiveTab] = useState<"info" | "media">("info");
 
+  useGalleryQuery({ roomId, enabled: !!roomId });
+
   const {
     group,
     groupChat,
