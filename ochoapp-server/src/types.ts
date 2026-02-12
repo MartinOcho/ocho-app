@@ -351,6 +351,12 @@ export interface SocketGalleryUpdatedEvent {
   medias: GalleryMedia[];
 }
 
+export interface MentionedUser {
+  id: string;
+  username: string;
+  displayName: string;
+}
+
 export interface SocketSendMessageEvent {
   content: string;
   roomId: string;
@@ -358,6 +364,7 @@ export interface SocketSendMessageEvent {
   tempId?: string;
   attachmentIds?: string[];
   recipientId?: string;
+  mentionedUsers?: MentionedUser[];
 }
 
 export interface SocketStartChatEvent {

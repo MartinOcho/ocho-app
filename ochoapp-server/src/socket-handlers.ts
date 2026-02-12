@@ -540,7 +540,7 @@ export async function handleSendNormalMessage(
   username: string,
   io: Server,
 ) {
-  const { content, roomId, type, recipientId, attachmentIds = [] } = data;
+  const { content, roomId, type, recipientId, attachmentIds = [], mentionedUsers = [] } = data;
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
@@ -642,6 +642,30 @@ export async function handleSendNormalMessage(
         deliveredUserIds.push(member.userId);
       }
     }
+  }
+
+  // Handle mentions: create MENTION messages for each mentioned user
+  for (const mentionedUser of mentionedUsers) {
+    const mentionMessage = await prisma.message.create({
+      data: {
+        content,
+        roomId,
+        senderId: userId,
+        recipientId: mentionedUser.id,
+        type: "MENTION",
+      },
+    });
+
+    // Update lastMessage for the mentioned user to show mention notification in room preview
+    await prisma.lastMessage.upsert({
+      where: { userId_roomId: { userId: mentionedUser.id, roomId } },
+      create: {
+        userId: mentionedUser.id,
+        roomId,
+        messageId: mentionMessage.id,
+      },
+      update: { messageId: mentionMessage.id, createdAt: new Date() },
+    });
   }
 
   const affectedUserIds = activeMembers

@@ -531,9 +531,6 @@ export function MessageFormComponent({
             currentUserId={undefined}
           />
         )}
-            currentUserId={useActiveRoom().user?.id}
-          />
-        )}
       </div>
       <Button
         size={!expanded ? "icon" : "default"}
