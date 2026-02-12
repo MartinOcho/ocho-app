@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
+import { LinkifyTextarea } from "./LinkifyTextarea"; 
 
 interface RoomMember {
   userId?: string | null;
@@ -22,9 +22,8 @@ interface MentionInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  maxRows?: number;
-  minRows?: number;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  minHeight?: number;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
 }
 
 interface MentionSuggestion {
@@ -41,19 +40,19 @@ export default function MentionInput({
   placeholder = "",
   className,
   disabled = false,
-  maxRows = 10,
-  minRows = 1,
+  minHeight = 80,
   onKeyDown: onKeyDownProp,
 }: MentionInputProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [cursorPosition, setCursorPosition] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null); // Ref vers la div conteneur
+  const editorRef = useRef<HTMLDivElement>(null);    // Ref vers l'éditeur (div contenteditable)
+  
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<MentionSuggestion[]>([]);
   const [currentMentionQuery, setCurrentMentionQuery] = useState("");
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
-  // Extraire les suggestions des membres filtrés
+  // Extraire les suggestions
   const memberSuggestions: MentionSuggestion[] = React.useMemo(() => {
     return members
       .filter((m) => m.user && m.userId)
@@ -65,97 +64,111 @@ export default function MentionInput({
       }));
   }, [members]);
 
-  // Mettre à jour la position du curseur
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    const newCursorPos = e.target.selectionStart;
-    
-    onChange(newValue);
-    setCursorPosition(newCursorPos);
+  // Fonction utilitaire pour obtenir la position du curseur dans une div contentEditable
+  const getCaretIndex = (element: HTMLElement) => {
+    let position = 0;
+    const isSupported = typeof window.getSelection !== "undefined";
+    if (isSupported) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount !== 0) {
+        const range = selection.getRangeAt(0);
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        position = preCaretRange.toString().length;
+      }
+    }
+    return position;
+  };
 
-    // Déterminer si l'utilisateur tape une mention
-    detectMention(newValue, newCursorPos);
+  const handleInputChange = (newValue: string) => {
+    onChange(newValue);
+    
+    // On attend le prochain tick pour que le DOM soit à jour si nécessaire
+    requestAnimationFrame(() => {
+        if (!editorRef.current) return;
+        const caretPos = getCaretIndex(editorRef.current);
+        detectMention(newValue, caretPos);
+    });
   };
 
   const detectMention = (text: string, cursorPos: number) => {
-    // Chercher le dernier @ avant le curseur
     const textBeforeCursor = text.substring(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
     if (lastAtIndex === -1) {
-      setShowMentionSuggestions(false);
-      setMentionStartIndex(-1);
+      closeSuggestions();
       return;
     }
 
-    // Vérifier que le @ n'est pas dans une mention déjà formatée
-    // Format : @[name](userId)
-    const mentionRegex = /@\[[^\]]*\]\([^)]*\)/g;
-    let match;
-    let isInMention = false;
-
-    while ((match = mentionRegex.exec(text)) !== null) {
-      if (lastAtIndex >= match.index && lastAtIndex < match.index + match[0].length) {
-        isInMention = true;
-        break;
-      }
-    }
-
-    if (isInMention) {
-      setShowMentionSuggestions(false);
-      return;
-    }
-
-    // Obtenir le texte après le @
+    // Vérifier si le @ est déjà dans une structure de mention existante (optionnel, 
+    // mais le regex complexe est souvent overkill ici si on veut juste de la réactivité)
+    
+    // Texte après le @
     const query = textBeforeCursor.substring(lastAtIndex + 1);
 
-    // Vérifier si c'est du texte continu (alphanumériques, underscore, tirets, espaces)
-    // Stopper si on rencontre un caractère spécial (sauf espace)
-    if (!/^[a-zA-Z0-9_-\s]*$/.test(query)) {
-      setShowMentionSuggestions(false);
+    // Regex permissif : lettres, chiffres, underscores, espaces (pour prénoms composés)
+    if (!/^[a-zA-Z0-9_\-\s]*$/.test(query)) {
+      closeSuggestions();
       return;
     }
 
-    // Filtrer les suggestions
     const filtered = memberSuggestions.filter(
       (member) =>
         member.displayName.toLowerCase().includes(query.toLowerCase().trim()) ||
         member.username.toLowerCase().includes(query.toLowerCase().trim())
     );
 
-    setMentionStartIndex(lastAtIndex);
-    setCurrentMentionQuery(query);
-    setFilteredSuggestions(filtered);
-    setSuggestionIndex(0);
-    setShowMentionSuggestions(filtered.length > 0 && query.trim().length > 0);
+    if (filtered.length > 0) {
+        setMentionStartIndex(lastAtIndex);
+        setCurrentMentionQuery(query);
+        setFilteredSuggestions(filtered);
+        setSuggestionIndex(0);
+        setShowMentionSuggestions(true);
+    } else {
+        closeSuggestions();
+    }
+  };
+
+  const closeSuggestions = () => {
+    setShowMentionSuggestions(false);
+    setMentionStartIndex(-1);
+    setFilteredSuggestions([]);
   };
 
   const insertMention = (member: MentionSuggestion) => {
-    if (mentionStartIndex === -1) return;
+    if (mentionStartIndex === -1 || !editorRef.current) return;
 
+    // Attention: value contient le texte brut
     const beforeMention = value.substring(0, mentionStartIndex);
+    // On coupe après la requête (longueur du query + 1 pour le '@')
     const afterMention = value.substring(mentionStartIndex + currentMentionQuery.length + 1);
 
-    // Insérer au format @[displayName](userId)
-    const newValue = `${beforeMention}@[${member.displayName}](${member.userId}) ${afterMention}`;
+    const mentionText = `@[${member.displayName}](${member.userId}) `;
+    const newValue = `${beforeMention}${mentionText}${afterMention}`;
+
     onChange(newValue);
+    closeSuggestions();
 
-    setShowMentionSuggestions(false);
-    setMentionStartIndex(-1);
-    setCurrentMentionQuery("");
-    setSuggestionIndex(0);
-
-    // Décaler le curseur après la mention
+    // Restaurer le focus et placer le curseur après la mention
+    // Note: C'est complexe avec contentEditable car React va re-rendre le HTML
+    // Le composant LinkifyTextarea gère le rendu HTML
     setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPos = beforeMention.length + `@[${member.displayName}](${member.userId}) `.length;
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
-        textareaRef.current.focus();
-      }
-    }, 0);
+        if (editorRef.current) {
+            editorRef.current.focus();
+            // Tenter de placer le curseur à la fin (simplification)
+            // Pour une vraie gestion fine, il faudrait un gestionnaire de Range complexe
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(editorRef.current);
+            range.collapse(false); // false = fin
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+        }
+    }, 10);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (showMentionSuggestions && filteredSuggestions.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -170,9 +183,7 @@ export default function MentionInput({
         insertMention(filteredSuggestions[suggestionIndex]);
       } else if (e.key === "Escape") {
         e.preventDefault();
-        setShowMentionSuggestions(false);
-      } else {
-        onKeyDownProp?.(e);
+        closeSuggestions();
       }
     } else {
       onKeyDownProp?.(e);
@@ -180,37 +191,34 @@ export default function MentionInput({
   };
 
   return (
-    <div className="relative">
-      <Textarea
-        ref={textareaRef}
+    <div className="relative" ref={containerRef}>
+      <LinkifyTextarea
+        ref={editorRef}
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={cn(
-          "resize-none",
-          className
-        )}
         disabled={disabled}
-        rows={minRows}
+        minHeight={minHeight}
+        className={className}
       />
 
-      {/* Popover des suggestions */}
       {showMentionSuggestions && filteredSuggestions.length > 0 && (
-        <div
-          className="absolute bottom-full left-0 w-full mb-1 bg-popover border border-input rounded-md shadow-lg z-50"
-        >
-          <div className="max-h-[300px] overflow-y-auto">
+        <div className="absolute bottom-full left-0 w-64 mb-1 bg-popover border border-input rounded-md shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          <div className="max-h-[200px] overflow-y-auto p-1">
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/30">
+                Suggestions
+            </div>
             {filteredSuggestions.map((suggestion, index) => (
               <button
                 key={suggestion.userId}
                 onClick={() => insertMention(suggestion)}
                 onMouseEnter={() => setSuggestionIndex(index)}
                 className={cn(
-                  "w-full flex items-center gap-2 px-3 py-2 text-left transition-colors",
+                  "w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm text-sm transition-colors",
                   index === suggestionIndex 
-                    ? "bg-accent" 
-                    : "hover:bg-accent/50"
+                    ? "bg-accent text-accent-foreground" 
+                    : "text-popover-foreground hover:bg-muted"
                 )}
               >
                 <UserAvatar
@@ -218,8 +226,8 @@ export default function MentionInput({
                   size={24}
                   userId={suggestion.userId}
                 />
-                <div className="flex flex-col min-w-0">
-                  <span className="font-medium text-sm truncate">
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="font-medium truncate">
                     {suggestion.displayName}
                   </span>
                   <span className="text-xs text-muted-foreground truncate">
