@@ -456,7 +456,7 @@ export default function RoomHeader({
                         !isScrolled && "line-clamp-3",
                       )}
                     >
-                      {chatName}
+                      {isSaved ? you : chatName}
                     </span>
                     {verifiedCheck}
                   </span>
@@ -471,7 +471,7 @@ export default function RoomHeader({
                         !isScrolled && "line-clamp-3",
                       )}
                     >
-                      {chatName}
+                      {isSaved ? you : chatName}
                     </span>
                     {verifiedCheck}
                   </span>
@@ -572,7 +572,7 @@ export default function RoomHeader({
                           !isScrolled && "line-clamp-3",
                         )}
                       >
-                        {chatName}
+                        {isSaved ? you : chatName}
                       </span>
                       {verifiedCheck}
                     </span>
@@ -592,7 +592,7 @@ export default function RoomHeader({
                           !isScrolled && "line-clamp-3",
                         )}
                       >
-                        {chatName}
+                        {isSaved ? you : chatName}
                       </span>
                       {verifiedCheck}
                     </span>
