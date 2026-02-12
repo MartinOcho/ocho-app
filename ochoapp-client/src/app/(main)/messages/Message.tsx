@@ -275,6 +275,7 @@ export const MessageBubbleContent = ({
   onMediaOpen,
   onMediaClose,
   isMediaBubble = false,
+  showTimeIndicator = false,
 }: {
   message: MessageData;
   isOwner: boolean;
@@ -292,9 +293,16 @@ export const MessageBubbleContent = ({
   onMediaOpen?: () => void;
   onMediaClose?: () => void;
   isMediaBubble?: boolean;
+  showTimeIndicator?: boolean;
 }) => {
   const { t } = useTranslation();
   const {isMediaFullscreen} = useActiveRoom();
+  const [isHovered, setIsHovered] = useState(false);
+  const [isTapped, setIsTapped] = useState(false);
+
+  const handleTap = () => {
+    setIsTapped(!isTapped);
+  };
 
   if (
     isMediaBubble ||
@@ -362,6 +370,9 @@ export const MessageBubbleContent = ({
         isOwner ? "items-end" : "items-start",
         isMediaFullscreen && "invisible",
       )}
+      onMouseEnter={() => !isClone && setIsHovered(true)}
+      onMouseLeave={() => !isClone && setIsHovered(false)}
+      onClick={() => !isClone && handleTap()}
     >
       {/* Afficher les médias seulement si pas de texte (media-only) */}
       {message.attachments &&
@@ -379,7 +390,10 @@ export const MessageBubbleContent = ({
           />
         )}
       <div
-        onClick={!isClone ? toggleCheck : undefined}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isClone) toggleCheck?.();
+        }}
         onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
         className={cn(
           "relative w-fit border px-5 py-2 text-sm leading-relaxed transition-all duration-200 md:text-base",
@@ -404,40 +418,45 @@ export const MessageBubbleContent = ({
           )}
         </div>
 
-        {/* Heure et Status DANS la bulle */}
+        {/* Heure et Status DANS la bulle - visible seulement si dernier du cluster ou hover ou menu ouvert ou tap mobile */}
         {createdAt && (
           <div
             className={cn(
-              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1",
-             
+              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1 transition-opacity duration-200",
+              isLastInCluster || isHovered || isTapped || showTimeIndicator
+                ? "opacity-100"
+                : "opacity-0 pointer-events-none",
             )}
           >
             {isOwner && !isClone && readStatus && (
-            <span title={readStatus === "sent" ? t("sent") : (readStatus === "read" ? t("read") : t("delivered"))}>
-              {readStatus == "sent"?  (
-                <Check
-                  size={14}
-                  className="text-gray-400 dark:text-neutral-500"
-                />
-              ) : (readStatus === "read" ? (
-                <CheckCheck
-                  size={14}
-                  className="text-cyan-400 dark:text-cyan-600"
-                />
-              ) : (
-                <CheckCheck
-                  size={14}
-                  className="text-gray-400 dark:text-neutral-500"
-                />
-              ))}
-              {}
-            </span>
-          )}
+              <span title={readStatus === "sent" ? t("sent") : (readStatus === "read" ? t("read") : t("delivered"))}>
+                {readStatus == "sent"?  (
+                  <Check
+                    size={14}
+                    className="text-gray-400 dark:text-neutral-500"
+                  />
+                ) : (readStatus === "read" ? (
+                  <CheckCheck
+                    size={14}
+                    className="text-cyan-400 dark:text-cyan-600"
+                  />
+                ) : (
+                  <CheckCheck
+                    size={14}
+                    className="text-gray-400 dark:text-neutral-500"
+                  />
+                ))}
+                {}
+              </span>
+            )}
           </div>
         )}
       </div>
       {createdAt && (
-        <time className="opacity-90 text-[10px] text-muted-foreground">
+        <time className={cn(
+          "text-[10px] text-muted-foreground transition-opacity duration-200 animate-appear-b",
+          isLastInCluster || isHovered || isTapped || showTimeIndicator ? "opacity-90" : "hidden"
+        )}>
           <Time time={createdAt} clock />
         </time>
       )}
@@ -1146,6 +1165,7 @@ export default function Message({
                       readStatus={readStatus}
                       onMediaOpen={() => setIsMediaOpen(true)}
                       onMediaClose={() => setIsMediaOpen(false)}
+                      showTimeIndicator={!!activeOverlayRect || !!activeDetailsRect}
                     />
                   </div>
 
