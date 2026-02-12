@@ -541,7 +541,7 @@ function MediaPreview({
       </Zoomable>
     );
   }
-  return <p className="text-destructive">Format media non supporté</p>;
+  return <p className="text-destructive">{t("unsupportedMediaFormat")}</p>;
 }
 interface FullscreenButtonProps {
   isFullscreen: boolean;

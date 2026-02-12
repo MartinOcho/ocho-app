@@ -2,12 +2,14 @@ import { cn } from "@/lib/utils";
 import { Input, InputProps } from "./ui/input"
 import React, { useState } from "react"
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "@/context/LanguageContext";
 
 
 
 
 const PasswordInput = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, ...props }, ref) => {
+        const { t } = useTranslation();
         const [showPassword, setShowPassword] = useState(false);
 
         return (
@@ -20,7 +22,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, InputProps>(
                 <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    title={showPassword ? t("hidePassword") : t("showPassword")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 transform text-muted-foreground"
                 >{
                         showPassword ? (<EyeOff className="size-5" />) : (<Eye className="size-5" />)

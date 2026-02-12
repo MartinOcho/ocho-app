@@ -13,6 +13,7 @@ import {
   isValidGalleryMedia,
   validateGalleryMedias,
 } from "@/lib/validation-types";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface MediaGalleryProps {
   roomId: string;
@@ -35,6 +36,7 @@ export default function MediaGallery({
   onLoadMore,
   queryClient,
 }: MediaGalleryProps) {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [displayedMedias, setDisplayedMedias] = useState<GalleryMedia[]>(medias);
   const [showMore, setShowMore] = useState(false);
@@ -278,7 +280,7 @@ export default function MediaGallery({
           <div className="mt-4 space-y-3 border-t border-border pt-3">
             {displayedMedias.length > visibleMedias.length && !hasNextPage && !showMore && (
               <p className="text-xs text-muted-foreground text-center">
-                Affichage de {visibleMedias.length} sur {displayedMedias.length} médias
+                {t("mediaDisplayCount").replace("[current]", String(visibleMedias.length)).replace("[total]", String(displayedMedias.length))}
               </p>
             )}
             {hasNextPage ? (
@@ -291,12 +293,12 @@ export default function MediaGallery({
                 {isFetchingNextPage ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    Chargement des anciens médias...
+                    {t("loadingOldMedias")}
                   </>
                 ) : (
                   <>
                     <ChevronDown size={16} />
-                    Afficher les médias plus anciens
+                    {t("showOlderMedias")}
                   </>
                 )}
               </button>

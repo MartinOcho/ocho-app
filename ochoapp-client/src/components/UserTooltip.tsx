@@ -18,6 +18,7 @@ import { Button } from "./ui/button";
 import { UserCircle2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface UserTooltipProps extends PropsWithChildren {
   user: UserData;
@@ -29,6 +30,7 @@ export default function UserTooltip({
   user,
   verified,
 }: UserTooltipProps) {
+  const { t } = useTranslation();
   const { user: loggedInUser } = useSession();
 
   const followerState: FollowerInfo = {
@@ -111,7 +113,7 @@ export default function UserTooltip({
               variant="outline"
               className="flex w-full justify-center gap-3"
             >
-              <UserCircle2 size={24} /> Afficher le profil
+              <UserCircle2 size={24} /> {t("showProfile")}
             </Button>
           </OchoLink>
         </div>

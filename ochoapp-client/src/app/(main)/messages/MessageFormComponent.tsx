@@ -122,7 +122,7 @@ export function MessageFormComponent({
     if (!canAttach) return;
     const currentCount = attachments.filter((a) => !a.isUploading).length;
     if (currentCount >= 5) {
-      alert("Limite de 5 médias par message atteinte");
+      alert(t("mediaLimitReached"));
       return;
     }
     fileInputRef.current?.click();
@@ -204,7 +204,7 @@ export function MessageFormComponent({
     const maxNewFiles = Math.min(files.length, maxTotal - currentCount);
 
     if (maxNewFiles <= 0) {
-      alert("Limite de 5 médias par message atteinte");
+      alert(t("mediaLimitReached"));
       return;
     }
 

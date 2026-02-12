@@ -627,11 +627,11 @@ export default function RoomHeader({
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="info" className="flex items-center gap-2">
                 <Info size={16} />
-                <span>Infos</span>
+                <span>{t("infos")}</span>
               </TabsTrigger>
               <TabsTrigger value="media" className="flex items-center gap-2">
                 <Images size={16} />
-                <span>Médias</span>
+                <span>{t("medias")}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -689,7 +689,7 @@ export default function RoomHeader({
                         className="text-inherit"
                       >
                         <Button variant="outline" className="flex gap-1">
-                          <UserCircle2 /> {viewProfile}
+                          <UserCircle2 /> {t("viewProfile")}
                         </Button>
                       </OchoLink>
                     ) : null}
@@ -699,7 +699,7 @@ export default function RoomHeader({
                   {room.isGroup ? (
                     <>
                       {room.description ? (
-                        <p className="whitespace-pre-line break-words px-4 py-2 text-center">
+                        <p className="whitespace-pre-line break-words px-4 py-2">
                           {room.description}
                         </p>
                       ) : loggedinMember?.type === "ADMIN" ||
@@ -708,20 +708,16 @@ export default function RoomHeader({
                           <Button
                             variant="link"
                             className="py-0"
-                            title={addDescription}
+                            title={t("addDescription")}
                             onClick={() => {
                               setDialogFocus("description");
                               setShowDialog(true);
                             }}
                           >
-                            {addDescription}
+                            {t("addDescription")}
                           </Button>
                         </div>
-                      ) : (
-                        <p className="px-4 text-center text-muted-foreground">
-                          {noDescription}
-                        </p>
-                      )}
+                      ) : null}
                     </>
                   ) : (
                     !!otherUser?.bio && (
@@ -804,7 +800,7 @@ export default function RoomHeader({
                       {loggedinMember?.type !== "OLD" &&
                         !!oldMembers.length && (
                           <>
-                            <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`Anciens membres (${oldMembers.length})`}</li>
+                            <li className="select-none px-4 text-xs font-bold text-muted-foreground">{`${t("oldMembers")} (${oldMembers.length})`}</li>
                             {oldMembers.map((member, key) => {
                               if (!member?.user) return null;
                               const user: UserData = member.user;
@@ -823,7 +819,7 @@ export default function RoomHeader({
                         loggedinMember?.type === "OWNER") &&
                         !!bannedMembers.length && (
                           <>
-                            <li className="select-none px-4 text-xs font-bold text-destructive">{`Membres suspendus (${bannedMembers.length})`}</li>
+                            <li className="select-none px-4 text-xs font-bold text-destructive">{`${t("bannedMembers")} (${bannedMembers.length})`}</li>
                             {bannedMembers.map((member, key) => {
                               if (!member?.user) return null;
                               const user: UserData = member.user;
@@ -873,7 +869,7 @@ export default function RoomHeader({
 
             <TabsContent
               value="media"
-              className="flex flex-1 flex-col gap-3 overflow-y-auto max-sm:pb-16"
+              className="flex flex-1 flex-col gap-3 overflow-y-auto max-sm:pb-20"
             >
               {roomId && <MediaGalleryContainer roomId={roomId} />}
             </TabsContent>
@@ -1170,12 +1166,12 @@ export function GroupUserPopover({
             <>
               {isBanned && (
                 <RestoreMemberButton memberId={user.id} room={room}>
-                  <PlusCircle size={24} /> Retirer la suspention
+                  <PlusCircle size={24} /> {t("removeBan")}
                 </RestoreMemberButton>
               )}
               {isOld && (
                 <RestoreMemberButton memberId={user.id} room={room}>
-                  <PlusCircle size={24} /> Reintegrer
+                  <PlusCircle size={24} /> {t("reintegrate")}
                 </RestoreMemberButton>
               )}
             </>

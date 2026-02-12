@@ -3,6 +3,7 @@
 import { MessageAttachment } from "@/lib/types";
 import { useState } from "react";
 import { Play } from "lucide-react";
+import { useTranslation } from "@/context/LanguageContext";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,7 @@ export default function MediaStrip({
   onMediaOpen,
   onMediaClose,
 }: MediaStripProps) {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   
   // Afficher 3 images complètes + la 4ème avec overlay badge
@@ -139,7 +141,7 @@ export default function MediaStrip({
             {remainingCount > 1 && (<div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
               <div className="text-center">
                 <div className="text-2xl font-bold text-white">+{remainingCount}</div>
-                <div className="text-xs text-white/80">voir plus</div>
+                <div className="text-xs text-white/80">{t("seeMore")}</div>
               </div>
             </div>)}
           </button>
