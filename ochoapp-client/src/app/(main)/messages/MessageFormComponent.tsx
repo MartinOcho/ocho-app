@@ -1,35 +1,31 @@
 "use client";
 
-import { Send, X, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
+import { Send, X, Video, File as FileIcon, Loader2, Paperclip, AtSign } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 // Nous n'utilisons plus kyInstance directement pour l'upload car fetch ne supporte pas l'upload progress
 // import kyInstance from "@/lib/ky"; 
-import { AttachmentType } from "@/lib/types";
+import { AttachmentType, MentionedUser, LocalAttachment } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CircleProgress } from "@/components/ui/CircleProgress";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
-
-interface LocalAttachment {
-  id: string; 
-  attachmentId?: string; 
-  fileName?: string;
-  type: AttachmentType;
-  previewUrl?: string;
-  url?: string;
-  isUploading: boolean;
-}
+import MentionOverlay from "@/components/messages/MentionOverlay";
+import { useMentions } from "@/hooks/useMentions";
+import { useQuery } from "@tanstack/react-query";
+import kyInstance from "@/lib/ky";
+import { RoomData } from "@/lib/types";
 
 interface MessageFormComponentProps {
   expanded: boolean;
   onExpanded: (expanded: boolean) => void;
-  onSubmit: (content: string, attachmentIds?: string[], attachments?: LocalAttachment[]) => void;
+  onSubmit: (content: string, attachmentIds?: string[], attachments?: LocalAttachment[], mentionedUsers?: MentionedUser[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   canAttach?: boolean;
   onContentChange?: (hasContent: boolean) => void;
+  roomId?: string;
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -64,19 +60,41 @@ export function MessageFormComponent({
   onTypingStop,
   canAttach = true,
   onContentChange,
+  roomId,
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  
+  // Mentions
+  const {
+    mentionState,
+    mentionedUsers,
+    detectMentionStart,
+    formatMention,
+    addMentionedUser,
+    clearMentionState,
+  } = useMentions();
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
   const abortControllersRef = useRef<Record<string, () => void>>({});
   
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Fetch room data to get members for mention overlay
+  const { data: roomData } = useQuery({
+    queryKey: ["room", "data", roomId],
+    queryFn: () =>
+      kyInstance.get(`/api/rooms/${roomId}/chat-data`).json<RoomData>(),
+    enabled: !!roomId,
+    staleTime: Infinity,
+  });
 
   // Track content changes for the parent
   const handleContentChange = () => {
@@ -91,7 +109,14 @@ export function MessageFormComponent({
   }, [input, attachments]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
+    const newValue = e.target.value;
+    const newCursorPos = e.currentTarget.selectionStart;
+    
+    setInput(newValue);
+    setCursorPosition(newCursorPos);
+    
+    // Détect mention @
+    detectMentionStart(newValue, newCursorPos, textareaRef.current || undefined);
 
     // Trigger typing start
     onTypingStart?.();
@@ -103,6 +128,26 @@ export function MessageFormComponent({
     }, 3000);
   };
 
+  const handleSelectMention = (user: MentionedUser) => {
+    // Format mention as @[displayName](username)
+    const newContent = formatMention(input, user, cursorPosition);
+    setInput(newContent);
+    addMentionedUser(user);
+    clearMentionState();
+
+    // Set cursor after mention
+    const mentionText = `@[${user.displayName}](${user.username}) `;
+    const newCursorPos = input.lastIndexOf("@") + mentionText.length;
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = newCursorPos;
+        textareaRef.current.selectionEnd = newCursorPos;
+        textareaRef.current.focus();
+      }
+    }, 0);
+  };
+
   const handleBtnClick = () => {
     if (!expanded) {
       onExpanded(true);
@@ -111,9 +156,15 @@ export function MessageFormComponent({
       const uploadedAttachments = attachments.filter((a) => !a.isUploading && a.attachmentId);
       const uploadedAttachmentIds = uploadedAttachments.map((a) => a.attachmentId!);
 
-      onSubmit(input, uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined, uploadedAttachments.length > 0 ? uploadedAttachments : undefined);
+      onSubmit(
+        input, 
+        uploadedAttachmentIds.length > 0 ? uploadedAttachmentIds : undefined, 
+        uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+        mentionedUsers.length > 0 ? mentionedUsers : undefined
+      );
       setInput("");
       setAttachments([]);
+      clearMentionState();
       onTypingStop?.();
     }
   };
@@ -458,6 +509,7 @@ export function MessageFormComponent({
           </div>
         )}
         <Textarea
+          ref={textareaRef}
           placeholder={t("typeMessage")}
           className={cn(
             "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
@@ -468,6 +520,20 @@ export function MessageFormComponent({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />
+        {/* Mention Overlay */}
+        {mentionState.isActive && roomData && (
+          <MentionOverlay
+            visible={mentionState.isActive}
+            searchQuery={mentionState.searchQuery}
+            position={mentionState.position}
+            roomMembers={roomData.members || []}
+            onSelectMention={handleSelectMention}
+            currentUserId={undefined}
+          />
+        )}
+            currentUserId={useActiveRoom().user?.id}
+          />
+        )}
       </div>
       <Button
         size={!expanded ? "icon" : "default"}

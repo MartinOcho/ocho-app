@@ -3,6 +3,7 @@ import React from "react";
 import OchoLink from "@/components/ui/OchoLink";
 import UserLinkWithTooltip from "./UserLinkWithTooltip";
 import { cn } from "@/lib/utils";
+import { AtSign } from "lucide-react";
 
 interface LinkifyProps {
   children: React.ReactNode;
@@ -12,11 +13,13 @@ interface LinkifyProps {
 
 export default function Linkify({ children, className }: LinkifyProps) {
   return (
-    <LinkifyHashtag className={className}>
-      <LinkifyUsername className={className}>
-        <LinkifyUrl className={className}>{children}</LinkifyUrl>
-      </LinkifyUsername>
-    </LinkifyHashtag>
+    <LinkifyMention className={className}>
+      <LinkifyHashtag className={className}>
+        <LinkifyUsername className={className}>
+          <LinkifyUrl className={className}>{children}</LinkifyUrl>
+        </LinkifyUsername>
+      </LinkifyHashtag>
+    </LinkifyMention>
   );
 }
 
@@ -28,10 +31,50 @@ function LinkifyUrl({ children, className }: LinkifyProps) {
   );
 }
 
+// Handle @[displayName](username) format for message mentions
+function LinkifyMention({ children, className }: LinkifyProps) {
+  return (
+    <LinkIt
+      regex={/@\[([^\]]+)\]\(([^)]+)\)/}
+      component={(match, key) => {
+        // match = "@[displayName](username)"
+        // Extract displayName and username using regex
+        const mentionMatch = match.match(/@\[([^\]]+)\]\(([^)]+)\)/);
+        if (!mentionMatch) return <span key={key}>{match}</span>;
+
+        const displayName = mentionMatch[1];
+        const username = mentionMatch[2];
+
+        return (
+          <span
+            key={key}
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors",
+              className
+            )}
+            title={username}
+          >
+            <AtSign className="h-3 w-3" />
+            <UserLinkWithTooltip
+              username={username}
+              onFind={async (user) => {}}
+              className="hover:underline font-medium text-xs"
+            >
+              {displayName}
+            </UserLinkWithTooltip>
+          </span>
+        );
+      }}
+    >
+      {children}
+    </LinkIt>
+  );
+}
+
 function LinkifyUsername({ children, postId, className }: LinkifyProps) {
   return (
     <LinkIt
-      regex={/(?<!https?:\/\/\S*)@([a-zA-Z0-9_-]+)/}
+      regex={/(?<!https?:\/\/\S*)(?<!@\[)@([a-zA-Z0-9_-]+)(?!\])/}
       component={(match, key) => {
         return (
           <UserLinkWithTooltip

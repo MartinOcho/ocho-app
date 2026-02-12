@@ -1,6 +1,6 @@
 "use client";
 
-import { RoomFooterState, RoomFooterStateType } from "@/lib/types";
+import { RoomFooterState, RoomFooterStateType, MentionedUser, LocalAttachment } from "@/lib/types";
 import { MessageFormComponent } from "./MessageFormComponent";
 import { cn } from "@/lib/utils";
 import { AlertCircle, AlertTriangle, Ban, ChevronUp, Ghost, Lock, LogOut, Users } from "lucide-react";
@@ -10,7 +10,7 @@ import { useTranslation } from "@/context/LanguageContext";
 interface RoomFooterProps {
   state: RoomFooterState;
   roomId: string;
-  onMessageSend: (content: string, attachmentIds?: string[]) => void;
+  onMessageSend: (content: string, attachmentIds?: string[], attachments?: LocalAttachment[], mentionedUsers?: MentionedUser[]) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   messageInputExpanded: boolean;

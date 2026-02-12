@@ -46,6 +46,31 @@ export type SearchFilter =
   | "verified-users"
   | "unrelated-users";
 
+// Types pour les mentions dans les messages
+export interface MentionedUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export interface MessageMention {
+  displayName: string;
+  username: string;
+  userId: string;
+}
+
+// Type pour les pièces jointes locales (avant upload)
+export interface LocalAttachment {
+  id: string;
+  attachmentId?: string;
+  fileName?: string;
+  type: AttachmentType;
+  previewUrl?: string;
+  url?: string;
+  isUploading: boolean;
+}
+
 export function getUserDataSelect(
   loggedInUserId: string,
   username: string | undefined = undefined,

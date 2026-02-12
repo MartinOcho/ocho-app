@@ -15,7 +15,7 @@ import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
-import { Image as ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Image as ImageIcon, Video as VideoIcon, AtSign } from "lucide-react";
 
 interface RoomProps {
   room: RoomData;
@@ -407,6 +407,7 @@ export default function RoomPreview({
     NEWMEMBER: newMemberMsg,
     LEAVE: oldMemberMsg,
     BAN: oldMemberMsg,
+    MENTION: `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`,
     REACTION: isSender
       ? recipient?.id === loggedinUser.id
         ? youReactedToYourMessage.replace("[name]", sender || appUser)
@@ -494,6 +495,12 @@ export default function RoomPreview({
                 {attachmentPreview.icon}
               </span>
             )}
+            {/* Mention icon for MENTION type messages */}
+            {messageType === "MENTION" && (
+              <span className="flex-shrink-0 text-primary">
+                <AtSign className="h-4 w-4" />
+              </span>
+            )}
             <span
               className={cn(
                 "line-clamp-2 text-ellipsis break-all flex items-center gap-1",
@@ -522,7 +529,7 @@ export default function RoomPreview({
                         {messagePreviewContent.split("[r]")[1]}
                       </>
                     ) : /* Surbrillance dans le dernier message si c'est du texte */
-                    messageType === "CONTENT" ? (
+                    (messageType === "CONTENT" || messageType === "MENTION") ? (
                       <HighlightText
                         text={messagePreviewContent}
                         highlight={highlight}
