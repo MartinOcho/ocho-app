@@ -408,16 +408,13 @@ export const MessageBubbleContent = ({
         {createdAt && (
           <div
             className={cn(
-              "absolute bottom-0 right-2.5 flex items-center gap-1 text-[10px]",
+              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1 text-[10px]",
               // Couleurs adaptées au nouveau contraste
               isOwner
                 ? "text-blue-100 dark:text-neutral-400"
                 : "text-muted-foreground",
             )}
           >
-            <time className="opacity-90">
-              <Time time={createdAt} clock />
-            </time>
             {isOwner && !isClone && readStatus && (
             <span title={readStatus === "sent" ? t("sent") : (readStatus === "read" ? t("read") : t("delivered"))}>
               {readStatus == "sent"?  (
@@ -442,6 +439,11 @@ export const MessageBubbleContent = ({
           </div>
         )}
       </div>
+      {createdAt && (
+        <time className="opacity-90">
+          <Time time={createdAt} clock />
+        </time>
+      )}
     </div>
   );
 };
