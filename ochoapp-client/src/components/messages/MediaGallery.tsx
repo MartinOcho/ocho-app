@@ -194,7 +194,7 @@ export default function MediaGallery({
     return (
       <div className={cn("p-3 border-t border-border", className)}>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Galerie
+          {t("gallery")}
         </h4>
         <div className="grid grid-cols-3 gap-2">
           {[...Array(6)].map((_, i) => (
@@ -209,7 +209,7 @@ export default function MediaGallery({
     return (
       <div className={cn("p-3 border-t border-border", className)}>
         <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-          Galerie
+          {t("gallery")}
         </h4>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Images
@@ -217,7 +217,7 @@ export default function MediaGallery({
             className="text-muted-foreground/50 mb-2"
           />
           <p className="text-sm text-muted-foreground">
-            Aucun média partagé
+            {t("noMediaShared")}
           </p>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function MediaGallery({
     <>
       <div className={cn("p-3 border-t border-border", className)}>
         <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
-          Galerie
+          {t("gallery")}
         </h4>
         <div className="grid grid-cols-3 gap-2">
           {visibleMedias.map((media) => {

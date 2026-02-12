@@ -429,6 +429,8 @@ export const english = {
   hidePassword: "Hide password",
   showProfile: "Show profile",
   seeMore: "See more",
+  gallery: "Gallery",
+  noMediaShared: "No media shared",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -874,6 +876,8 @@ export const french: Vocabulary = {
   hidePassword: "Masquer le mot de passe",
   showProfile: "Afficher le profil",
   seeMore: "Voir plus",
+  gallery: "Galerie",
+  noMediaShared: "Aucun média partagé",
 };
 
 export const vocabulary = {

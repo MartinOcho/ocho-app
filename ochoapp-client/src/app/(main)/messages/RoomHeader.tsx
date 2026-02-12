@@ -721,7 +721,7 @@ export default function RoomHeader({
                     </>
                   ) : (
                     !!otherUser?.bio && (
-                      <p className="whitespace-pre-line break-words px-4 py-2 text-center">
+                      <p className="whitespace-pre-line break-words px-4 py-2 w-full">
                         {otherUser.bio}
                       </p>
                     )
