@@ -46,6 +46,7 @@ model User {
   relevanceScore PostUserScore[]
   oldUserData    OldUserData[]
   searches       SearchHistory[]
+  mentionedInMessages MessageMention[] @relation("MentionedInMessage")
 
   @@map("users")
   userPrivacies UserPrivacy[]
@@ -194,6 +195,7 @@ model Message {
   reactions    Reaction[]
   lastMessages LastMessage[]
   attachments  MessageAttachment[]
+  mentions     MessageMention[]
   createdAt    DateTime      @default(now())
 
   @@index([roomId, createdAt]) // Optimisation performance
@@ -210,6 +212,7 @@ enum MessageType {
   CLEAR
   SAVED
   REACTION
+  MENTION
 }
 
 model LastMessage {
@@ -265,6 +268,21 @@ model Reaction {
 
   @@unique([userId, messageId])
   @@map("reactions")
+}
+
+model MessageMention {
+  id           String  @id @default(cuid())
+  messageId    String
+  message      Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedId  String
+  mentionedUser User   @relation("MentionedInMessage", fields: [mentionedId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+
+  @@unique([messageId, mentionedId])
+  @@index([messageId])
+  @@index([mentionedId])
+  @@map("message_mentions")
 }
 
 model Post {

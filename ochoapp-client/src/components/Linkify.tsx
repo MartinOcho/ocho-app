@@ -31,19 +31,19 @@ function LinkifyUrl({ children, className }: LinkifyProps) {
   );
 }
 
-// Handle @[displayName](username) format for message mentions
+// Handle @[displayName](userId) format for message mentions
 function LinkifyMention({ children, className }: LinkifyProps) {
   return (
     <LinkIt
       regex={/@\[([^\]]+)\]\(([^)]+)\)/}
       component={(match, key) => {
-        // match = "@[displayName](username)"
-        // Extract displayName and username using regex
+        // match = "@[displayName](userId)"
+        // Extract displayName and userId using regex
         const mentionMatch = match.match(/@\[([^\]]+)\]\(([^)]+)\)/);
         if (!mentionMatch) return <span key={key}>{match}</span>;
 
         const displayName = mentionMatch[1];
-        const username = mentionMatch[2];
+        const userId = mentionMatch[2];
 
         return (
           <span
@@ -52,11 +52,11 @@ function LinkifyMention({ children, className }: LinkifyProps) {
               "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors",
               className
             )}
-            title={username}
+            title={displayName}
           >
             <AtSign className="h-3 w-3" />
             <UserLinkWithTooltip
-              username={username}
+              userId={userId}
               onFind={async (user) => {}}
               className="hover:underline font-medium text-xs"
             >

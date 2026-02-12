@@ -156,6 +156,9 @@ export default function RoomPreview({
     youReactedToMessage,
     reactedToMessage,
     reactedMemberMessage,
+    mentionedYou,
+    youMentioned,
+    messageMention,
     messageYourself,
     messageWithAttachment,
     attachmentPhoto,
@@ -416,6 +419,17 @@ export default function RoomPreview({
       : recipient?.id === loggedinUser.id
         ? reactedToMessage.replace("[name]", sender || appUser)
         : reactedMemberMessage
+            .replace("[name]", sender || appUser)
+            .replace("[member]", recipientFirstName || appUser),
+    MENTION: isSender
+      ? recipient?.id === loggedinUser.id
+        ? youMentioned.replace("[member]", recipientFirstName || appUser)
+        : messageMention
+            .replace("[name]", sender || appUser)
+            .replace("[member]", recipientFirstName || appUser)
+      : recipient?.id === loggedinUser.id
+        ? mentionedYou.replace("[name]", sender || appUser)
+        : messageMention
             .replace("[name]", sender || appUser)
             .replace("[member]", recipientFirstName || appUser),
   };

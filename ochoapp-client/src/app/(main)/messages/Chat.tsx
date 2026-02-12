@@ -895,6 +895,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
                 onTypingStop={handleTypingStop}
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
+                members={room?.members}
               />
             </div>
           )}

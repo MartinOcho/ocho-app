@@ -11,7 +11,8 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { cn } from "@/lib/utils";
 
 interface UserLinkWithTooltipProps extends PropsWithChildren {
-  username: string;
+  username?: string;
+  userId?: string;
   onFind?: (user: UserData)=> void;
   postId?: string;
   className?: string;
@@ -20,12 +21,19 @@ interface UserLinkWithTooltipProps extends PropsWithChildren {
 export default function UserLinkWithTooltip({
   children,
   username,
+  userId,
   postId,
   onFind,
   className
 }: UserLinkWithTooltipProps) {
   const [useDialog, setUseDialog] = useState(false);
   const { user } = useSession();
+
+  // Determine query key and endpoint based on available ID
+  const queryKey = userId ? ["user-data", userId] : ["user-data", username];
+  const endpoint = userId 
+    ? `/api/users/${userId}`
+    : `/api/users/username/${username}`;
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,9 +49,9 @@ export default function UserLinkWithTooltip({
   }, []);
   
   const { data } = useQuery({
-    queryKey: ["user-data", username],
+    queryKey,
     queryFn: () =>
-      kyInstance.get(`/api/users/username/${username}`, {
+      kyInstance.get(endpoint, {
         searchParams: postId ? { postId } : undefined,
       }).json<UserData>(),
     retry(failureCount, error) {
@@ -53,12 +61,17 @@ export default function UserLinkWithTooltip({
       return failureCount < 3;
     },
     staleTime: Infinity,
+    enabled: !!(userId || username), // Only fetch if we have an ID
   });
 
   if (!data) {
+    const profileUrl = userId 
+      ? `/users/${userId}` 
+      : `/users/${username}`;
+    
     return (
       <OchoLink
-        href={`/users/${username}`}
+        href={profileUrl}
         className={className}
       >
         {children}
@@ -73,7 +86,7 @@ export default function UserLinkWithTooltip({
       {
         useDialog ? (<span className={cn("text-primary hover:underline", className)}>{children}</span>) : (
         <OchoLink
-          href={`/users/${username}`}
+          href={`/users/${data.username}`}
           className={className}
         >
           {children}

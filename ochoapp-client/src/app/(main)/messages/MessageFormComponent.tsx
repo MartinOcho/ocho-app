@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { CircleProgress } from "@/components/ui/CircleProgress";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
+import MentionInput from "@/components/MentionInput";
 
 interface LocalAttachment {
   id: string; 
@@ -20,6 +21,16 @@ interface LocalAttachment {
   isUploading: boolean;
 }
 
+interface RoomMember {
+  userId?: string | null;
+  user?: {
+    id: string;
+    displayName: string;
+    username: string;
+    avatarUrl?: string | null;
+  } | null;
+}
+
 interface MessageFormComponentProps {
   expanded: boolean;
   onExpanded: (expanded: boolean) => void;
@@ -27,6 +38,7 @@ interface MessageFormComponentProps {
   onTypingStart: () => void;
   onTypingStop: () => void;
   canAttach?: boolean;
+  members?: RoomMember[];
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -60,6 +72,7 @@ export function MessageFormComponent({
   onTypingStart,
   onTypingStop,
   canAttach = true,
+  members = [],
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -74,8 +87,8 @@ export function MessageFormComponent({
   const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
+  const handleChange = (value: string) => {
+    setInput(value);
 
     // Trigger typing start
     onTypingStart?.();
@@ -441,16 +454,19 @@ export function MessageFormComponent({
             ))}
           </div>
         )}
-        <Textarea
+        <MentionInput
           placeholder={t("typeMessage")}
           className={cn(
             "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
             expanded ? "relative w-full" : "invisible absolute w-0",
           )}
-          rows={1}
+          minRows={1}
+          maxRows={10}
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          members={members}
+          disabled={false}
         />
       </div>
       <Button

@@ -7,6 +7,16 @@ import { AlertCircle, AlertTriangle, Ban, ChevronUp, Ghost, Lock, LogOut, Users 
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/context/LanguageContext";
 
+interface RoomMember {
+  userId?: string | null;
+  user?: {
+    id: string;
+    displayName: string;
+    username: string;
+    avatarUrl?: string | null;
+  } | null;
+}
+
 interface RoomFooterProps {
   state: RoomFooterState;
   roomId: string;
@@ -15,6 +25,7 @@ interface RoomFooterProps {
   onTypingStop: () => void;
   messageInputExpanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  members?: RoomMember[];
   // Optional callbacks for button actions
   onContactSupport?: () => void;
   onContactAdmin?: () => void;
@@ -31,6 +42,7 @@ export default function RoomFooter({
   onTypingStop,
   messageInputExpanded,
   onExpandedChange,
+  members = [],
   onContactSupport,
   onContactAdmin,
   onDeleteConversation,
@@ -52,6 +64,7 @@ export default function RoomFooter({
           onTypingStart={onTypingStart}
           onTypingStop={onTypingStop}
           canAttach={true}
+          members={members}
         />
       );
 
