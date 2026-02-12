@@ -223,7 +223,7 @@ export const MediaBubble = ({
           className={cn(
             "relative flex items-center gap-1 text-[10px] px-2 rounded-lg bg-card/50 border-border border",
             isOwner
-              ? "text-blue-100 dark:text-neutral-400 right-2.5"
+              ? "text-blue-100 dark:text-neutral-400 right-0"
               : "text-muted-foreground",
           )}
         >
