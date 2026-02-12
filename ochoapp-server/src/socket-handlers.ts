@@ -714,14 +714,6 @@ export async function markUndeliveredMessages(
       if (!socketsInRoom) continue;
 
       for (const message of room.messages) {
-        // Vérifier si le sender est en ligne
-        const sender = await prisma.user.findUnique({
-          where: { id: message.senderId || "" },
-          select: { isOnline: true },
-        });
-
-        if (!sender?.isOnline) continue;
-
         // Vérifier si le sender est dans la room (via les sockets)
         const senderInRoom = Array.from(socketsInRoom).some((socketId) => {
           const socket = io.sockets.sockets.get(socketId);
