@@ -669,3 +669,94 @@ export async function handleSendNormalMessage(
     deliveredUserIds,
   };
 }
+
+export async function markUndeliveredMessages(
+  userId: string,
+  io: Server,
+): Promise<void> {
+  try {
+    // Récupérer toutes les rooms de l'utilisateur
+    const rooms = await prisma.room.findMany({
+      where: {
+        members: {
+          some: {
+            AND: [
+              { userId },
+              { type: { not: "BANNED" } },
+              { leftAt: null },
+            ],
+          },
+        },
+      },
+      select: {
+        id: true,
+        messages: {
+          where: {
+            type: { not: "CREATE" },
+            deliveries: {
+              none: { userId },
+            },
+          },
+          select: {
+            id: true,
+            senderId: true,
+            roomId: true,
+          },
+        },
+      },
+    });
+
+    // Pour chaque room et ses messages non livrés
+    for (const room of rooms) {
+      if (room.messages.length === 0) continue;
+
+      const socketsInRoom = io.sockets.adapter.rooms.get(room.id);
+      if (!socketsInRoom) continue;
+
+      for (const message of room.messages) {
+        // Vérifier si le sender est en ligne
+        const sender = await prisma.user.findUnique({
+          where: { id: message.senderId || "" },
+          select: { isOnline: true },
+        });
+
+        if (!sender?.isOnline) continue;
+
+        // Vérifier si le sender est dans la room (via les sockets)
+        const senderInRoom = Array.from(socketsInRoom).some((socketId) => {
+          const socket = io.sockets.sockets.get(socketId);
+          return socket?.data?.user?.id === message.senderId;
+        });
+
+        if (senderInRoom) {
+          // Marquer le message comme livré
+          await prisma.delivery.upsert({
+            where: {
+              userId_messageId: {
+                userId,
+                messageId: message.id,
+              },
+            },
+            create: {
+              userId,
+              messageId: message.id,
+            },
+            update: {},
+          });
+
+          // Notifier le sender que le message est livré
+          const updatedDeliveries = await getMessageDeliveries(message.id);
+          io.to(room.id).emit("message_delivered_update", {
+            messageId: message.id,
+            deliveries: updatedDeliveries,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Erreur markUndeliveredMessages lors de la connexion:",
+      error
+    );
+  }
+}

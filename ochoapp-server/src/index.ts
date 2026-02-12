@@ -44,6 +44,7 @@ import {
   handleDeleteMessage,
   handleSendSavedMessage,
   handleSendNormalMessage,
+  markUndeliveredMessages,
 } from "./socket-handlers";
 
 dotenv.config();
@@ -218,6 +219,8 @@ io.on("connection", async (socket: Socket) => {
   socket.join(userId);
 
   groupManagment(io, socket, { userId, username, displayName, avatarUrl});
+
+  await markUndeliveredMessages(userId, io);
 
   socket.on(
     "start_chat",
