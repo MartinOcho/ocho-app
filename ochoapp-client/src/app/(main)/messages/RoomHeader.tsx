@@ -57,11 +57,15 @@ interface ChatHeaderProps {
 }
 
 function NotificationsBadge() {
-    const { messagesUnread } = useSocket();;
-  
-    const unreadCount = typeof messagesUnread === "number" ? messagesUnread : 0;
-    if (!unreadCount || unreadCount <= 0) return null
-    return <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-primary text-white">{unreadCount}</div>
+  const { messagesUnread } = useSocket();
+
+  const unreadCount = typeof messagesUnread === "number" ? messagesUnread : 0;
+  if (!unreadCount || unreadCount <= 0) return null;
+  return (
+    <div className="flex items-center rounded-2xl bg-primary p-1 px-2 text-xs text-white">
+      {unreadCount}
+    </div>
+  );
 }
 
 export default function RoomHeader({
@@ -91,7 +95,7 @@ export default function RoomHeader({
 
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   const isTransitioningRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -164,14 +168,14 @@ export default function RoomHeader({
   useEffect(() => {
     setRoom(normalizedInitialRoom);
   }, [normalizedInitialRoom]);
-  
+
   useEffect(() => {
     const element = scrollRef.current;
     if (!element) return;
 
     const handleScroll = () => {
       const currentScrollY = element.scrollTop;
-      
+
       if (currentScrollY <= 0) {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         isTransitioningRef.current = false;
@@ -185,22 +189,22 @@ export default function RoomHeader({
         if (!isScrolled) setIsScrolled(true);
         return;
       }
-      
+
       // 3. Logique standard avec délai pour la zone intermédiaire (entre 0 et 60px)
       if (isTransitioningRef.current) return;
 
       let shouldBeScrolled = isScrolled;
-      
+
       if (!isScrolled && currentScrollY > 20) {
         shouldBeScrolled = true;
       } else if (isScrolled && currentScrollY < 10) {
         shouldBeScrolled = false;
       }
-      
+
       if (shouldBeScrolled !== isScrolled) {
         setIsScrolled(shouldBeScrolled);
         isTransitioningRef.current = true;
-        
+
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
           isTransitioningRef.current = false;
@@ -252,7 +256,7 @@ export default function RoomHeader({
   const aMember = addAMember.match(/-(.*?)-/)?.[1] || "a member";
   const addAM = addAMember.replace(/-.*?-/, "");
 
-  const isSaved = room.id === `saved-${loggedUser.id}`;
+  const isSaved = room.id.startsWith(`saved`);
 
   const emptyUser: UserData = {
     id: "",
@@ -282,12 +286,10 @@ export default function RoomHeader({
   const activeStatus = onlineStatus[userId || ""];
   !activeStatus && checkUserStatus(userId || "");
 
-  const expiresAt = isSaved
-    ? otherUser?.verified?.[0]?.expiresAt
-    : otherUser?.verified?.[0]?.expiresAt;
+  const expiresAt = otherUser?.verified?.[0]?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
 
-  const expired = canExpire && expiresAt ? new Date() < expiresAt : false;
+  const expired = canExpire && expiresAt && new Date() < expiresAt;
 
   const isVerified =
     (isSaved ? !!otherUser?.verified[0] : !!otherUser?.verified[0]) &&
@@ -304,7 +306,7 @@ export default function RoomHeader({
   const chatName = !!room?.name?.trim()
     ? room.name
     : (isSaved
-        ? loggedUser.displayName + ` (${you})`
+        ? you
         : room?.members?.filter(
             (member) => member.userId !== loggedUser.id,
           )?.[0]?.user?.displayName) || (room.isGroup ? groupChat : appUser);
@@ -313,7 +315,7 @@ export default function RoomHeader({
   );
   const isWeekAgo = weekAgo.getTime() >= new Date().getTime();
 
-  const size = active ? (isScrolled ? 40 : 120) : 40; 
+  const size = active ? (isScrolled ? 40 : 120) : 40;
 
   const safeMembers = Array.isArray(room?.members) ? room.members : [];
 
@@ -346,7 +348,7 @@ export default function RoomHeader({
     ...owner,
     ...admins,
     ...filteredMembers3,
-  ].filter(Boolean); 
+  ].filter(Boolean);
   const allMembers = (mergedMembers || [])
     .filter((member) => member?.type !== "OLD")
     .filter((member) => member?.type !== "BANNED");
@@ -360,7 +362,6 @@ export default function RoomHeader({
 
   const firstPage = (allMembers || []).slice(0, 10);
   const lastPage = (allMembers || []).slice(10, (allMembers || []).length);
-
 
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
@@ -394,9 +395,9 @@ export default function RoomHeader({
 
   return (
     <div
-      ref={scrollRef} 
+      ref={scrollRef}
       className={cn(
-        "z-50 transition-all duration-300", 
+        "z-50 transition-all duration-300",
         active
           ? "absolute inset-0 flex h-full w-full items-start overflow-y-auto bg-card px-4 py-3 max-sm:bg-background sm:rounded-e-3xl"
           : "relative flex w-full flex-1 items-center gap-2 max-sm:absolute max-sm:left-0 max-sm:right-0 max-sm:top-0 max-sm:bg-none max-sm:px-4 max-sm:py-3",
@@ -408,7 +409,7 @@ export default function RoomHeader({
         <div
           className={cn(
             "sticky inset-0 z-40 flex justify-between max-sm:hidden",
-            active && "px-4 py-3", 
+            active && "px-4 py-3",
             isMediaFullscreen && "hidden",
           )}
         >
@@ -421,7 +422,7 @@ export default function RoomHeader({
           >
             <X size={35} />
           </div>
-          
+
           <div
             className={cn(
               "transition-width *:transition-width flex w-full cursor-pointer items-center gap-2 max-sm:hidden",
@@ -445,11 +446,16 @@ export default function RoomHeader({
                 className="transition-all *:transition-all"
               />
             )}
-            <div className="flex-1 flex items-center gap-2">
+            <div className="flex flex-1 items-center gap-2">
               {room.isGroup ? (
                 <div>
                   <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
+                    <span
+                      className={cn(
+                        "line-clamp-1 text-ellipsis",
+                        !isScrolled && "line-clamp-3",
+                      )}
+                    >
                       {chatName}
                     </span>
                     {verifiedCheck}
@@ -459,7 +465,12 @@ export default function RoomHeader({
               ) : (
                 <div>
                   <span className="flex items-center gap-1 text-xl font-bold">
-                    <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
+                    <span
+                      className={cn(
+                        "line-clamp-1 text-ellipsis",
+                        !isScrolled && "line-clamp-3",
+                      )}
+                    >
                       {chatName}
                     </span>
                     {verifiedCheck}
@@ -486,10 +497,10 @@ export default function RoomHeader({
             </div>
           </div>
         </div>
-        
+
         <div
           className={cn(
-            `group/head flex items-center gap-2 transition-all sticky top-0 z-50`, // Toujours sticky et Z-index élevé
+            `group/head sticky top-0 z-50 flex items-center gap-2 transition-all`, // Toujours sticky et Z-index élevé
             active ? "cursor-default flex-col p-3" : "flex-1 cursor-pointer",
             isMediaFullscreen && "hidden",
           )}
@@ -497,32 +508,32 @@ export default function RoomHeader({
         >
           <div
             className={cn(
-              "flex w-full items-center gap-2 px-0 py-0 sm:hidden transition-all duration-300 ease-in-out", // Transition douce
+              "flex w-full items-center gap-2 px-0 py-0 transition-all duration-300 ease-in-out sm:hidden", // Transition douce
               !active && "max-sm:flex",
             )}
           >
             <div
               className={cn(
                 "flex cursor-pointer items-center rounded-3xl border transition-all duration-300",
-                "backdrop-blur-md shadow-lg xl:w-fit",
-                active && !isScrolled 
-                   ? "bg-background/80 absolute top-2 left-2 z-[60]"
-                   : "bg-card/30 relative",
+                "shadow-lg backdrop-blur-md xl:w-fit",
+                active && !isScrolled
+                  ? "absolute left-2 top-2 z-[60] bg-background/80"
+                  : "relative bg-card/30",
                 active && isScrolled && "p-2",
-                !active && "bg-card/30 p-2" 
+                !active && "bg-card/30 p-2",
               )}
               title="Fermer la discussion"
               onClick={backHandler}
             >
               <ChevronLeft size={28} className="sm:hidden" />
-              {!active && <NotificationsBadge/>}
+              {!active && <NotificationsBadge />}
             </div>
 
             <div
               className={cn(
                 "relative z-40 flex flex-1 cursor-pointer items-center gap-2 rounded-[4rem] border p-2 transition-all duration-300 xl:w-fit",
-                active && !isScrolled 
-                  ? "flex-col border-none bg-transparent shadow-none backdrop-blur-none mt-10"
+                active && !isScrolled
+                  ? "mt-10 flex-col border-none bg-transparent shadow-none backdrop-blur-none"
                   : "bg-card/30 shadow-lg backdrop-blur-md",
               )}
             >
@@ -540,11 +551,27 @@ export default function RoomHeader({
                   className="transition-all duration-300 *:transition-all"
                 />
               )}
-              <div className={cn("flex-1 transition-all duration-300", active && !isScrolled ? "text-center items-center flex flex-col" : "")}>
+              <div
+                className={cn(
+                  "flex-1 transition-all duration-300",
+                  active && !isScrolled
+                    ? "flex flex-col items-center text-center"
+                    : "",
+                )}
+              >
                 {room.isGroup ? (
                   <div>
-                    <span className={cn("flex items-center gap-0.5 text-xl font-bold")}>
-                      <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
+                    <span
+                      className={cn(
+                        "flex items-center gap-0.5 text-xl font-bold",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "line-clamp-1 text-ellipsis",
+                          !isScrolled && "line-clamp-3",
+                        )}
+                      >
                         {chatName}
                       </span>
                       {verifiedCheck}
@@ -553,8 +580,18 @@ export default function RoomHeader({
                   </div>
                 ) : (
                   <div>
-                    <span className={cn("flex items-center gap-1 text-xl font-bold", active && !isScrolled && "justify-center")}>
-                      <span className={cn("line-clamp-1 text-ellipsis", !isScrolled && "line-clamp-3")}>
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-xl font-bold",
+                        active && !isScrolled && "justify-center",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "line-clamp-1 text-ellipsis",
+                          !isScrolled && "line-clamp-3",
+                        )}
+                      >
                         {chatName}
                       </span>
                       {verifiedCheck}
@@ -610,7 +647,7 @@ export default function RoomHeader({
                         {loggedinMember?.type !== "OLD" && (
                           <AddMemberDialog
                             room={room}
-                            className="sm:max-w-52 flex-1"
+                            className="flex-1 sm:max-w-52"
                           >
                             <Button
                               variant="outline"
@@ -633,20 +670,20 @@ export default function RoomHeader({
                               setShowDialog(open);
                               open === false && setDialogFocus(null);
                             }}
-                            className="sm:max-w-52 flex-1"
+                            className="flex-1 sm:max-w-52"
                             focus={dialogFocus}
                           >
                             <Button
                               variant="outline"
                               className="flex h-fit w-full flex-col gap-2"
                             >
-                              <Settings2/>
+                              <Settings2 />
                               <span>{settings}</span>
                             </Button>
                           </GroupChatSettingsDialog>
                         )}
                       </div>
-                    ) : (otherUser?.username ?(
+                    ) : otherUser?.username ? (
                       <OchoLink
                         href={`/users/${otherUser?.username}`}
                         className="text-inherit"
@@ -655,7 +692,7 @@ export default function RoomHeader({
                           <UserCircle2 /> {viewProfile}
                         </Button>
                       </OchoLink>
-                    ): null)}
+                    ) : null}
                   </div>
                 )}
                 <Linkify>
