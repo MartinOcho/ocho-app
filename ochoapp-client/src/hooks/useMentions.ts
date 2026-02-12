@@ -1,156 +1,106 @@
-import { useCallback, useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { MentionedUser } from "@/lib/types";
-
-export const MENTION_PATTERN = /@\[([^\]]+)\]\(([^)]+)\)/g;
-export const MENTION_AT_PATTERN = /@/;
 
 interface MentionState {
   isActive: boolean;
   searchQuery: string;
   position: { top: number; left: number };
-  cursorPosition: number;
+  triggerIndex: number | null; // Position de l'index du '@' dans la chaîne globale
 }
 
+const initialState: MentionState = {
+  isActive: false,
+  searchQuery: "",
+  position: { top: 0, left: 0 },
+  triggerIndex: null,
+};
+
 export function useMentions() {
-  const [mentionState, setMentionState] = useState<MentionState>({
-    isActive: false,
-    searchQuery: "",
-    position: { top: 0, left: 0 },
-    cursorPosition: 0,
-  });
+  const [mentionState, setMentionState] = useState<MentionState>(initialState);
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
 
-  // Detect @ symbol in text and extract search query
+  // Détecte si le curseur est positionné après un déclencheur '@'
   const detectMentionStart = useCallback(
     (
       text: string,
       cursorPos: number,
-      element?: HTMLElement
+      element?: HTMLElement // L'élément contentEditable ou input pour calculer la position
     ) => {
-      // Find the @ symbol before cursor
-      const textBeforeCursor = text.substring(0, cursorPos);
-      const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+      // 1. Obtenir le texte jusqu'au curseur
+      const textUpToCursor = text.slice(0, cursorPos);
 
-      if (lastAtIndex === -1) {
-        setMentionState((prev) => ({ ...prev, isActive: false }));
-        return;
-      }
+      // 2. Regex pour trouver le dernier '@' qui est soit au début, soit précédé d'un espace
+      // On cherche un '@' suivi de caractères alphanumériques (la recherche)
+      const mentionRegex = /(?:\s|^)(@)(\w*)$/;
+      const match = textUpToCursor.match(mentionRegex);
 
-      // Check if @ is preceded by a space or is at the start
-      const isValidStart =
-        lastAtIndex === 0 || /\s/.test(text[lastAtIndex - 1]);
+      if (match) {
+        // match[1] est le '@', match[2] est la requête (ex: 'dav')
+        const query = match[2];
+        const lastAtPos = textUpToCursor.lastIndexOf("@");
 
-      if (!isValidStart) {
-        setMentionState((prev) => ({ ...prev, isActive: false }));
-        return;
-      }
-
-      // Extract search query between @ and cursor
-      const searchQuery = text.substring(lastAtIndex + 1, cursorPos);
-
-      // Stop search if user types space or special characters that indicate end of mention
-      if (/[\s\n]/.test(searchQuery)) {
-        setMentionState((prev) => ({ ...prev, isActive: false }));
-        return;
-      }
-
-      // Calculate position for overlay
-      let position = { top: 0, left: 0 };
-
-      if (element) {
-        const elementRect = element.getBoundingClientRect();
+        // 3. Calculer la position visuelle pour l'overlay
+        let position = { top: 0, left: 0 };
         
-        // Approximate position based on cursor
-        const lineHeight = 24; // Approximate line height
-        const charWidth = 8; // Approximate char width
-        const lines = text.substring(0, cursorPos).split("\n");
-        const currentLine = lines.length - 1;
-        const charInLine = lines[currentLine].length;
+        if (typeof window !== "undefined" && element) {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0).cloneRange();
+            // On essaie de positionner sur le curseur
+            const rect = range.getBoundingClientRect();
+            
+            // Si rect est vide (parfois le cas sur curseur vide), on fallback sur l'élément
+            if (rect.width === 0 && rect.height === 0) {
+               const elRect = element.getBoundingClientRect();
+               position = {
+                  top: elRect.top - 310, // Au-dessus (hauteur approx overlay)
+                  left: elRect.left + 20
+               };
+            } else {
+              // Positionner au-dessus du curseur (300px est la max-height de l'overlay)
+              position = {
+                top: rect.top - 10, // Un peu au-dessus du curseur
+                left: rect.left,
+              };
+            }
+          }
+        }
 
-        position = {
-          top: elementRect.top + currentLine * lineHeight + lineHeight + 10,
-          left: elementRect.left + charInLine * charWidth + 10,
-        };
+        setMentionState({
+          isActive: true,
+          searchQuery: query,
+          position,
+          triggerIndex: lastAtPos,
+        });
+      } else {
+        setMentionState((prev) => (prev.isActive ? initialState : prev));
       }
-
-      setMentionState({
-        isActive: true,
-        searchQuery,
-        position,
-        cursorPosition: lastAtIndex + 1,
-      });
     },
     []
   );
 
-  // Format mention as @[displayName](username)
-  const formatMention = useCallback(
-    (text: string, user: MentionedUser, cursorPos: number): string => {
-      // Find the @ symbol
-      const textBeforeCursor = text.substring(0, cursorPos);
-      const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+  const clearMentionState = useCallback(() => {
+    setMentionState(initialState);
+  }, []);
 
-      if (lastAtIndex === -1) return text;
-
-      const beforeAt = text.substring(0, lastAtIndex);
-      const afterCursor = text.substring(cursorPos);
-
-      return `${beforeAt}@[${user.displayName}](${user.username}) ${afterCursor}`;
-    },
-    []
-  );
-
-  // Add mentioned user to list
   const addMentionedUser = useCallback((user: MentionedUser) => {
     setMentionedUsers((prev) => {
-      // Avoid duplicates
-      if (prev.some((u) => u.id === user.id)) {
-        return prev;
-      }
+      if (prev.find((u) => u.id === user.id)) return prev;
       return [...prev, user];
     });
   }, []);
 
-  // Remove mentioned user
-  const removeMentionedUser = useCallback((userId: string) => {
-    setMentionedUsers((prev) => prev.filter((u) => u.id !== userId));
-  }, []);
-
-  // Extract mentioned users from formatted text
-  const extractMentionsFromText = useCallback((text: string): MentionedUser[] => {
-    const mentions: MentionedUser[] = [];
-    let match;
-
-    while ((match = MENTION_PATTERN.exec(text)) !== null) {
-      mentions.push({
-        id: "", // Will be filled when extracting from content
-        displayName: match[1],
-        username: match[2],
-      });
-    }
-
-    return mentions;
-  }, []);
-
-  // Clear mention state
-  const clearMentionState = useCallback(() => {
-    setMentionState({
-      isActive: false,
-      searchQuery: "",
-      position: { top: 0, left: 0 },
-      cursorPosition: 0,
-    });
-    setMentionedUsers([]);
-  }, []);
+  const formatMention = (user: MentionedUser) => {
+    return `@[${user.displayName}](${user.username})`;
+  };
 
   return {
     mentionState,
     mentionedUsers,
     detectMentionStart,
-    formatMention,
-    addMentionedUser,
-    removeMentionedUser,
-    extractMentionsFromText,
     clearMentionState,
+    addMentionedUser,
+    formatMention,
+    setMentionedUsers, // Utile pour reset lors de l'envoi
   };
 }

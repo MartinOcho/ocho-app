@@ -451,9 +451,7 @@ export default function RoomPreview({
     navigate("/messages/chat");
   };
 
-  const chatName = isSaved
-    ? savedMessages
-    : room.name ||
+  const chatName = room.name ||
       `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
       (room.isGroup ? groupChat : appUser);
 
