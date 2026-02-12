@@ -408,7 +408,7 @@ export const MessageBubbleContent = ({
         {createdAt && (
           <div
             className={cn(
-              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1 text-[10px]",
+              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1",
               // Couleurs adaptées au nouveau contraste
               isOwner
                 ? "text-blue-100 dark:text-neutral-400"
@@ -440,7 +440,7 @@ export const MessageBubbleContent = ({
         )}
       </div>
       {createdAt && (
-        <time className="opacity-90">
+        <time className="opacity-90 text-[10px]">
           <Time time={createdAt} clock />
         </time>
       )}
