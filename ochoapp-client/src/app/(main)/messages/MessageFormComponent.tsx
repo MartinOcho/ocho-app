@@ -499,6 +499,27 @@ export function MessageFormComponent({
     }
   };
 
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // After a key is released, recalc the text and cursor position and detect mention start
+    const el = editableTextAreaRef.current;
+    if (!el) return;
+
+    const text = el.textContent || "";
+    const selection = window.getSelection();
+    let cursorPos = text.length;
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(el);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      cursorPos = preCaretRange.toString().length;
+    }
+
+    setCursorPosition(cursorPos);
+    // Trigger mention detection
+    detectMentionStart(text, cursorPos, el);
+  };
+
   const canSend = () => {
     const hasUploading = attachments.some((a) => a.isUploading);
     const hasContent = input.trim().length > 0;
@@ -625,6 +646,7 @@ export function MessageFormComponent({
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onKeyUpProp={handleKeyUp}
           placeholder={t("typeMessage")}
           className={cn(
             expanded ? "relative w-full" : "invisible absolute w-0",

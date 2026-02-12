@@ -9,6 +9,7 @@ interface EditableTextAreaProps {
   value: string;
   onChange: (value: string) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onKeyUpProp?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -24,6 +25,7 @@ export const EditableTextArea = forwardRef<HTMLDivElement, EditableTextAreaProps
       value,
       onChange,
       onKeyDown,
+      onKeyUpProp,
       placeholder,
       className,
       disabled = false,
@@ -100,6 +102,7 @@ export const EditableTextArea = forwardRef<HTMLDivElement, EditableTextAreaProps
           contentEditable={!disabled}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onKeyUp={onKeyUpProp}
           onMouseDown={handleMouseDown}
           suppressContentEditableWarning
           className={cn(
@@ -116,7 +119,7 @@ export const EditableTextArea = forwardRef<HTMLDivElement, EditableTextAreaProps
 
         {/* Placeholder */}
         {!value.length && (
-          <div className="pointer-events-none text-muted-foreground py-2 px-0.5">
+          <div className="absolute inset-0 pointer-events-none text-muted-foreground py-2 px-0.5">
             {placeholder}
           </div>
         )}
