@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
-import { LinkifyTextarea } from "./LinkifyTextarea"; 
+import { LinkifyTextarea } from "./LinkifyTextarea";
 
 interface RoomMember {
   userId?: string | null;
@@ -43,16 +43,17 @@ export default function MentionInput({
   minHeight = 80,
   onKeyDown: onKeyDownProp,
 }: MentionInputProps) {
-  const containerRef = useRef<HTMLDivElement>(null); // Ref vers la div conteneur
-  const editorRef = useRef<HTMLDivElement>(null);    // Ref vers l'éditeur (div contenteditable)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<MentionSuggestion[]>([]);
   const [currentMentionQuery, setCurrentMentionQuery] = useState("");
-  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  
+  // Note: On stocke maintenant l'index dans le texte BRUT
+  const [mentionStartRawIndex, setMentionStartRawIndex] = useState(-1);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
 
-  // Extraire les suggestions
   const memberSuggestions: MentionSuggestion[] = React.useMemo(() => {
     return members
       .filter((m) => m.user && m.userId)
@@ -64,50 +65,134 @@ export default function MentionInput({
       }));
   }, [members]);
 
-  // Fonction utilitaire pour obtenir la position du curseur dans une div contentEditable
-  const getCaretIndex = (element: HTMLElement) => {
-    let position = 0;
-    const isSupported = typeof window.getSelection !== "undefined";
-    if (isSupported) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount !== 0) {
-        const range = selection.getRangeAt(0);
-        const preCaretRange = range.cloneRange();
-        preCaretRange.selectNodeContents(element);
-        preCaretRange.setEnd(range.endContainer, range.endOffset);
-        position = preCaretRange.toString().length;
+  const getRawTextBeforeCaret = (root: HTMLElement): string => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return "";
+    
+    const range = selection.getRangeAt(0);
+    // Si le curseur n'est pas dans notre éditeur, on renvoie vide
+    if (!root.contains(range.startContainer)) return "";
+
+    // On crée un range qui représente la position du curseur
+    const caretRange = range.cloneRange();
+    caretRange.collapse(true);
+
+    let raw = "";
+    let stopTraversal = false;
+
+    // Fonction récursive pour parcourir le DOM comme le fait LinkifyTextarea
+    const traverse = (node: Node) => {
+      if (stopTraversal) return;
+
+      // Créer un range pour le noeud actuel pour comparer sa position avec le curseur
+      const nodeRange = document.createRange();
+      nodeRange.selectNode(node);
+
+      // Si le noeud est entièrement APRÈS le curseur, on arrête tout
+      const compareStart = caretRange.compareBoundaryPoints(Range.START_TO_START, nodeRange);
+      if (compareStart <= 0) {
+        // Le curseur est au début ou avant ce noeud (sauf si on est DANS ce noeud, géré plus bas)
+        // Cas spécial : si on est DANS un noeud texte, compareBoundaryPoints peut être trompeur,
+        // donc on gère le "Text Node" spécifiquement plus bas.
       }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        // Vérifier si le curseur est À L'INTÉRIEUR de ce noeud texte
+        if (node === range.startContainer) {
+          // On prend le texte jusqu'à l'offset du curseur
+          raw += (node.textContent || "").substring(0, range.startOffset);
+          stopTraversal = true; // On a atteint le curseur exact !
+          return;
+        } else if (caretRange.compareBoundaryPoints(Range.START_TO_START, nodeRange) > 0) {
+          // Le curseur est après ce noeud texte complet
+          raw += node.textContent || "";
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+
+        // Si c'est une MENTION existante (on la traite comme un bloc atomique)
+        if (el.dataset.mentionId) {
+          // Si le curseur est après cette mention (cas normal)
+          // On reconstruit le format brut de la mention
+          if (caretRange.compareBoundaryPoints(Range.START_TO_START, nodeRange) > 0) {
+             raw += `@[${el.dataset.mentionName}](${el.dataset.mentionId})`;
+          }
+          // Si le curseur est avant, on ne fait rien.
+          // Note : On n'entre pas dans les enfants d'une mention
+          return;
+        }
+
+        // Si c'est un BR
+        if (el.tagName === "BR") {
+           if (caretRange.compareBoundaryPoints(Range.START_TO_START, nodeRange) > 0) {
+              raw += "\n";
+           }
+           return;
+        }
+
+        // Si c'est une DIV (comportement newline des navigateurs)
+        // On doit traverser ses enfants
+        const childNodes = Array.from(node.childNodes);
+        childNodes.forEach(child => traverse(child));
+        
+        // Ajouter le saut de ligne de fin de DIV si nécessaire (comme dans LinkifyTextarea)
+        // Seulement si on a parcouru le div entier sans s'arrêter au curseur
+        if (!stopTraversal && el.tagName === "DIV") {
+           // Vérification simplifiée pour éviter double newline en fin
+           raw += "\n";
+        }
+      }
+    };
+
+    // Lancer la traversée
+    Array.from(root.childNodes).forEach(child => traverse(child));
+
+    // Petit nettoyage final si on a un newline en trop à la fin (similaire à LinkifyTextarea)
+    if (raw.endsWith("\n") && raw.length > 1 && !stopTraversal) {
+       // Cette condition est délicate car "stopTraversal" signifie qu'on est au milieu.
+       // Ici, on retourne le brut partiel, donc on garde tel quel.
     }
-    return position;
+    
+    return raw;
   };
 
   const handleInputChange = (newValue: string) => {
     onChange(newValue);
     
-    // On attend le prochain tick pour que le DOM soit à jour si nécessaire
+    // Détection asynchrone pour laisser le temps au DOM de se mettre à jour
     requestAnimationFrame(() => {
         if (!editorRef.current) return;
-        const caretPos = getCaretIndex(editorRef.current);
-        detectMention(newValue, caretPos);
+        
+        // 1. On récupère le texte BRUT qui précède le curseur
+        const rawTextBeforeCursor = getRawTextBeforeCaret(editorRef.current);
+        
+        // 2. On détecte la mention sur ce texte brut
+        detectMention(rawTextBeforeCursor);
     });
   };
 
-  const detectMention = (text: string, cursorPos: number) => {
-    const textBeforeCursor = text.substring(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+  const detectMention = (rawTextBeforeCursor: string) => {
+    // On cherche le dernier @ dans le texte brut jusqu'au curseur
+    const lastAtIndex = rawTextBeforeCursor.lastIndexOf("@");
 
     if (lastAtIndex === -1) {
       closeSuggestions();
       return;
     }
 
-    // Vérifier si le @ est déjà dans une structure de mention existante (optionnel, 
-    // mais le regex complexe est souvent overkill ici si on veut juste de la réactivité)
-    
-    // Texte après le @
-    const query = textBeforeCursor.substring(lastAtIndex + 1);
+    // Le texte après le dernier @ (la requête)
+    const query = rawTextBeforeCursor.substring(lastAtIndex + 1);
 
-    // Regex permissif : lettres, chiffres, underscores, espaces (pour prénoms composés)
+    // Validation : pas d'espaces multiples, caractères autorisés
+    // Note : rawTextBeforeCursor peut contenir des newlines (\n), il faut s'assurer
+    // que le @ n'est pas sur une ligne précédente éloignée.
+    // Une façon simple est de vérifier s'il y a un saut de ligne dans la query
+    if (query.includes("\n")) {
+        closeSuggestions();
+        return;
+    }
+
+    // Regex pour valider les caractères du nom d'utilisateur
     if (!/^[a-zA-Z0-9_\-\s]*$/.test(query)) {
       closeSuggestions();
       return;
@@ -120,7 +205,8 @@ export default function MentionInput({
     );
 
     if (filtered.length > 0) {
-        setMentionStartIndex(lastAtIndex);
+        // lastAtIndex est maintenant un index correct dans la chaîne VALUE (Brute)
+        setMentionStartRawIndex(lastAtIndex);
         setCurrentMentionQuery(query);
         setFilteredSuggestions(filtered);
         setSuggestionIndex(0);
@@ -132,17 +218,20 @@ export default function MentionInput({
 
   const closeSuggestions = () => {
     setShowMentionSuggestions(false);
-    setMentionStartIndex(-1);
+    setMentionStartRawIndex(-1);
     setFilteredSuggestions([]);
   };
 
   const insertMention = (member: MentionSuggestion) => {
-    if (mentionStartIndex === -1 || !editorRef.current) return;
+    if (mentionStartRawIndex === -1 || !editorRef.current) return;
 
-    // Attention: value contient le texte brut
-    const beforeMention = value.substring(0, mentionStartIndex);
-    // On coupe après la requête (longueur du query + 1 pour le '@')
-    const afterMention = value.substring(mentionStartIndex + currentMentionQuery.length + 1);
+    // Ici, tout est plus simple car on travaille uniquement avec des index bruts
+    const beforeMention = value.substring(0, mentionStartRawIndex);
+    
+    // On calcule la fin de la mention en se basant sur la longueur de la query actuelle
+    // +1 pour le caractère '@'
+    const endOfMentionIndex = mentionStartRawIndex + currentMentionQuery.length + 1;
+    const afterMention = value.substring(endOfMentionIndex);
 
     const mentionText = `@[${member.displayName}](${member.userId}) `;
     const newValue = `${beforeMention}${mentionText}${afterMention}`;
@@ -150,18 +239,17 @@ export default function MentionInput({
     onChange(newValue);
     closeSuggestions();
 
-    // Restaurer le focus et placer le curseur après la mention
-    // Note: C'est complexe avec contentEditable car React va re-rendre le HTML
-    // Le composant LinkifyTextarea gère le rendu HTML
+    // Replacer le focus
     setTimeout(() => {
         if (editorRef.current) {
             editorRef.current.focus();
-            // Tenter de placer le curseur à la fin (simplification)
-            // Pour une vraie gestion fine, il faudrait un gestionnaire de Range complexe
+            // Placer le curseur à la fin est une solution de repli acceptable
+            // Idéalement, on utiliserait une librairie de gestion de sélection,
+            // mais c'est complexe à implémenter parfaitement sans libs externes.
             const range = document.createRange();
             const selection = window.getSelection();
             range.selectNodeContents(editorRef.current);
-            range.collapse(false); // false = fin
+            range.collapse(false); 
             selection?.removeAllRanges();
             selection?.addRange(range);
         }
