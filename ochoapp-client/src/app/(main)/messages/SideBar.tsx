@@ -338,7 +338,6 @@ export default function SideBar({
               className={cn("max-w-full rounded-3xl pe-16 transition-all")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
             />
             {!!searchQuery.length && (
               <X
