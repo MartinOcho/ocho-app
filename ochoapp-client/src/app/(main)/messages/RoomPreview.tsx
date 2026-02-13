@@ -284,6 +284,9 @@ export default function RoomPreview({
     type: "CLEAR",
     createdAt: Date.now(),
   };
+
+  console.log(messagePreview);
+  
   
 
   let messageType: MessageType = messagePreview?.type;
@@ -473,8 +476,6 @@ export default function RoomPreview({
     messagePreviewContent = canNoLongerInteract;
     messageType = "CLEAR";
   }
-
-  const now = Date.now();
 
   const select = async () => {
     onSelect();
