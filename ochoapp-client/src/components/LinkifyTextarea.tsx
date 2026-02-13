@@ -37,9 +37,7 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       html = html.replace(
         /@\[([^\]]+)\]\(([^)]+)\)/g,
         (match, name, id) => {
-          return `<span class="inline-block bg-primary/10 rounded-sm text-primary whitespace-pre-wrap">
-            <span class="font-semibold">@${name}</span>
-          </span>`;
+          return `<span class="inline-block bg-primary/10 rounded-sm text-primary whitespace-pre-wrap font-semibold">@${name}</span>`;
         }
       );
 
