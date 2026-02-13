@@ -1191,6 +1191,7 @@ export default function Message({
                       !activeOverlayRect && !activeDetailsRect
                         ? "pointer-events-auto z-0"
                         : "pointer-events-none z-50 opacity-0",
+                      isMediaFullscreen && "invisible",
                     )}
                   >
                     <ReactionList
