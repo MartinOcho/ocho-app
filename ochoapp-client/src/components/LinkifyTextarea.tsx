@@ -1,7 +1,16 @@
-import React, { useRef, useLayoutEffect, useState, useCallback, useEffect } from "react";
+"use client";
+
+import React, {
+  useRef,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { cn } from "@/lib/utils";
 
-interface LinkifyTextareaProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange"> {
+interface LinkifyTextareaProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange"> {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -13,21 +22,69 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
   ({ value, onChange, placeholder, className, disabled, minHeight = 80, ...props }, ref) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
-    
+
     // Pour éviter les mises à jour en boucle (boucle infinie de rendu)
     const isTypingRef = useRef(false);
 
+    // ---------- 0. Helpers pour sauvegarde/restauration du caret (offset global) ----------
+    const getCaretOffset = useCallback((): number => {
+      const sel = window.getSelection();
+      if (!sel || !sel.anchorNode) return 0;
+
+      let offset = sel.anchorOffset;
+      let node: Node | null = sel.anchorNode;
+
+      // remonter jusqu'à editorRef en accumulant la longueur des précédents siblings
+      while (node && node !== editorRef.current) {
+        while (node.previousSibling) {
+          node = node.previousSibling;
+          offset += node.textContent?.length ?? 0;
+        }
+        node = node.parentNode;
+      }
+
+      return offset;
+    }, []);
+
+    const setCaretOffset = useCallback((targetOffset: number) => {
+      const root = editorRef.current;
+      if (!root) return;
+
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let curOffset = 0;
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        const len = node.textContent?.length ?? 0;
+        if (curOffset + len >= targetOffset) {
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.setStart(node, Math.max(0, targetOffset - curOffset));
+          range.collapse(true);
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+          return;
+        }
+        curOffset += len;
+        node = walker.nextNode();
+      }
+
+      // Si on n'a pas trouvé (offset en fin), positionner à la fin
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(root);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }, []);
+
     // --- 1. CONVERSION DATA -> HTML (Pour l'affichage) ---
     const rawToHtml = useCallback((text: string) => {
-      if (!text) return '<br class="ProseMirror-trailingBreak">'; 
+      if (!text) return '<br class="ProseMirror-trailingBreak">';
 
-      let html = text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-      // Transformation des Mentions : @[Display](id) -> HTML Span
-      // Note: contentEditable="false" rend l'élément "atomique" (on ne peut pas éditer l'intérieur)
+      // Transformation des Mentions : @[Display](id) -> HTML Span (global)
       html = html.replace(
         /@\[([^\]]+)\]\(([^)]+)\)/g,
         (match, name, id) => {
@@ -36,52 +93,62 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       );
 
       // Hashtags (Simple styling)
-      html = html.replace(
-        /(?<!\w)#(\w+)/g,
-        '<span class="text-blue-500 font-medium">#$1</span>'
-      );
+      html = html.replace(/(?<!\w)#(\w+)/g, '<span class="text-blue-500 font-medium">#$1</span>');
 
       // URLs
-      html = html.replace(
-        /(https?:\/\/[^\s]+)/g,
-        '<span class="text-blue-500 underline decoration-blue-500/30">$1</span>'
-      );
-      
+      html = html.replace(/(https?:\/\/[^\s]+)/g, '<span class="text-blue-500 underline decoration-blue-500/30">$1</span>');
+
       return html.replace(/\n/g, "<br/>");
     }, []);
 
     // --- 2. CONVERSION HTML -> DATA (Pour le onChange) ---
     const htmlToRaw = useCallback((container: HTMLElement) => {
-        let raw = "";
-        
-        const traverse = (node: Node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                raw += node.textContent;
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-                const el = node as HTMLElement;
-                
-                // Si c'est une mention (détectée via dataset)
-                if (el.dataset.mentionId) {
-                    raw += `@[${el.dataset.mentionName}](${el.dataset.mentionId})`;
-                    return; // On n'entre pas dans les enfants de la mention
-                }
+      let raw = "";
 
-                if (el.tagName === "BR") {
-                    raw += "\n";
-                } else if (el.tagName === "DIV" && raw.length > 0) {
-                    // Les div sont souvent utilisés par les navigateurs pour les nouvelles lignes
-                    raw += "\n"; 
-                    el.childNodes.forEach(traverse);
-                } else {
-                    el.childNodes.forEach(traverse);
-                }
-            }
-        };
+      const traverse = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          raw += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const el = node as HTMLElement;
 
-        container.childNodes.forEach(traverse);
-        return raw;
+          // Si c'est une mention (détectée via dataset)
+          if (el.dataset.mentionId) {
+            raw += `@[${el.dataset.mentionName}](${el.dataset.mentionId})`;
+            return; // On n'entre pas dans les enfants de la mention (atomique)
+          }
+
+          // BR => newline
+          if (el.tagName === "BR") {
+            raw += "\n";
+            return;
+          }
+
+          // DIV: certains navigateurs insèrent des DIV pour lignes
+          if (el.tagName === "DIV") {
+            // si DIV a des enfants, on itère puis ajoute un newline s'il n'est pas le dernier
+            el.childNodes.forEach(traverse);
+            // ajout d'un newline seulement si ce n'est pas la fin du container
+            raw += "\n";
+            return;
+          }
+
+          // Pour les autres éléments, on descend
+          el.childNodes.forEach(traverse);
+        }
+      };
+
+      container.childNodes.forEach(traverse);
+
+      // éliminer éventuel newline terminal ajouté par DIV final
+      if (raw.endsWith("\n") && raw.length > 1) {
+        // garder un newline s'il n'y avait que newline initial (sécurité)
+        // sinon supprimer le dernier newline ajouté artificiellement
+        // (on ne veut pas systématiquement un newline en fin)
+        raw = raw.replace(/\n$/, "");
+      }
+
+      return raw;
     }, []);
-
 
     // --- 3. SYNCHRONISATION INITIALE & EXTERNE ---
     useLayoutEffect(() => {
@@ -96,103 +163,139 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
     // Quand la prop `value` change depuis l'extérieur (ex: chargement initial ou reset)
     // On ne met à jour le HTML que si on n'est pas en train de taper pour éviter de faire sauter le curseur
     useEffect(() => {
-        if (!editorRef.current) return;
-        
-        // On compare la valeur actuelle générée depuis le HTML avec la nouvelle value
-        const currentRaw = htmlToRaw(editorRef.current);
-        
-        if (currentRaw !== value && !isTypingRef.current) {
-             editorRef.current.innerHTML = rawToHtml(value);
-        }
-        // Si c'est juste un changement de formatage mais même contenu textuel, on peut ignorer
-        // ou gérer plus finement, mais ici on priorise la stabilité du curseur.
-    }, [value, htmlToRaw, rawToHtml]);
+      if (!editorRef.current) return;
 
+      const editor = editorRef.current;
+      const currentRaw = htmlToRaw(editor);
+
+      if (currentRaw !== value && !isTypingRef.current) {
+        // Sauvegarde caret
+        const caret = getCaretOffset();
+
+        // Mettre à jour le HTML
+        editor.innerHTML = rawToHtml(value);
+
+        // Restaurer caret de façon asynchrone
+        requestAnimationFrame(() => {
+          setCaretOffset(caret);
+        });
+      }
+      // Si c'est juste un changement de formatage mais même contenu textuel, on peut ignorer
+    }, [value, htmlToRaw, rawToHtml, getCaretOffset, setCaretOffset]);
 
     // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS ---
-
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
       isTypingRef.current = true;
-      const newRawValue = htmlToRaw(e.currentTarget);
+      const newRawValue = htmlToRaw(e.currentTarget as HTMLElement);
       onChange(newRawValue);
-      
+
       // Petit hack pour reset le flag de typing après un court délai
-      // Cela permet aux mises à jour externes de reprendre si l'utilisateur s'arrête
       setTimeout(() => {
-          isTypingRef.current = false;
-      }, 100);
+        isTypingRef.current = false;
+      }, 120);
+    };
+
+    // Cherche le noeud élément précédent utile (saute les text nodes vides / whitespace)
+    const findPreviousSiblingNonEmpty = (node: Node | null): Node | null => {
+      let prev = node?.previousSibling ?? null;
+      while (prev) {
+        // si élément mention return
+        if (prev.nodeType === Node.ELEMENT_NODE) return prev;
+        // si text non vide return
+        if (prev.nodeType === Node.TEXT_NODE && (prev.textContent ?? "").length > 0) return prev;
+        prev = prev.previousSibling;
+      }
+      return null;
     };
 
     // LOGIQUE SPÉCIALE BACKSPACE
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === 'Backspace') {
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0) return;
-            
-            const range = selection.getRangeAt(0);
+      if (e.key === "Backspace") {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
 
-            // On cherche si on est JUSTE APRÈS une mention
-            let prevNode: Node | null = null;
+        const range = selection.getRangeAt(0);
 
-            // Cas 1 : Le curseur est au début d'un noeud texte, il faut regarder le noeud précédent dans le DOM
-            if (range.startContainer.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
-                prevNode = range.startContainer.previousSibling;
-            } 
-            // Cas 2 : Le curseur est dans l'élément parent, on regarde l'enfant à l'index offset-1
-            else if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
-                const childNodes = range.startContainer.childNodes;
-                if (range.startOffset > 0) {
-                    prevNode = childNodes[range.startOffset - 1];
-                }
+        // On veut détecter si le curseur est immédiatement après une mention.
+        // Cas pris en charge :
+        // - cursor dans un TEXT_NODE à offset 0 => regarder previousSibling (ou plus loin si whitespace)
+        // - cursor dans ELEMENT_NODE => childNodes[offset-1]
+        // - si égal selection collapsed et startOffset === 0 on descend la logique
+
+        let prevNode: Node | null = null;
+
+        if (range.collapsed) {
+          if (range.startContainer.nodeType === Node.TEXT_NODE) {
+            if (range.startOffset === 0) {
+              // le texte commence ici, vérifier previous sibling(s)
+              prevNode = findPreviousSiblingNonEmpty(range.startContainer);
+            } else {
+              // offset > 0 => on est dans un texte, supprimer caractère normal
+              prevNode = null;
             }
-
-            // Vérification si le noeud précédent est notre span mention
-            if (prevNode && prevNode.nodeType === Node.ELEMENT_NODE) {
-                const el = prevNode as HTMLElement;
-                if (el.dataset.mentionId) {
-                    // C'EST UNE MENTION !
-                    e.preventDefault(); // On empêche la suppression standard (qui supprimerait tout le bloc)
-
-                    // 1. On crée un noeud texte avec "@"
-                    const atTextNode = document.createTextNode("@");
-                    
-                    // 2. On remplace la mention par le "@"
-                    el.parentNode?.replaceChild(atTextNode, el);
-
-                    // 3. On place le curseur APRÈS le "@"
-                    const newRange = document.createRange();
-                    newRange.setStartAfter(atTextNode);
-                    newRange.setEndAfter(atTextNode);
-                    selection.removeAllRanges();
-                    selection.addRange(newRange);
-
-                    // 4. On déclenche manuellement le onChange car on a modifié le DOM programmatiquement
-                    if (editorRef.current) {
-                        const newRawValue = htmlToRaw(editorRef.current);
-                        onChange(newRawValue);
-                    }
-                }
+          } else if (range.startContainer.nodeType === Node.ELEMENT_NODE) {
+            const parent = range.startContainer as HTMLElement;
+            const idx = range.startOffset;
+            if (idx > 0) {
+              // enfant précédent potentiellement une mention
+              prevNode = parent.childNodes[idx - 1];
+              // si text node vide, essayer de remonter pour trouver element mention
+              if (prevNode && prevNode.nodeType === Node.TEXT_NODE && (prevNode.textContent ?? "").trim() === "") {
+                prevNode = findPreviousSiblingNonEmpty(prevNode);
+              }
+            } else {
+              // startOffset === 0 : regarder previous siblings du parent (ex: caret au début d'une ligne)
+              prevNode = findPreviousSiblingNonEmpty(parent);
             }
+          }
         }
+
+        // Vérification si le noeud précédent est notre span mention
+        if (prevNode && prevNode.nodeType === Node.ELEMENT_NODE) {
+          const el = prevNode as HTMLElement;
+          if (el.dataset.mentionId) {
+            // C'EST UNE MENTION !
+            e.preventDefault(); // On empêche la suppression standard (qui supprimerait tout le bloc)
+
+            // 1. On crée un noeud texte avec "@"
+            const atTextNode = document.createTextNode("@");
+
+            // 2. On remplace la mention par le "@"
+            el.parentNode?.replaceChild(atTextNode, el);
+
+            // 3. On place le curseur APRÈS le "@"
+            const newRange = document.createRange();
+            newRange.setStartAfter(atTextNode);
+            newRange.collapse(true);
+
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+
+            // 4. On déclenche manuellement le onChange car on a modifié le DOM programmatiquement
+            if (editorRef.current) {
+              const newRawValue = htmlToRaw(editorRef.current);
+              onChange(newRawValue);
+            }
+          }
+        }
+      }
     };
 
     const handleBlur = () => {
-        setIsFocused(false);
-        isTypingRef.current = false;
-        // Optionnel : Re-formater proprement au blur pour être sûr que tout est clean
-        if (editorRef.current) {
-            // Attention : ceci peut faire sauter la sélection si on re-focus immédiatement
-            // editorRef.current.innerHTML = rawToHtml(value); 
-        }
+      setIsFocused(false);
+      isTypingRef.current = false;
+      // Optionnel : reformat sur blur si tu veux
+      // if (editorRef.current) editorRef.current.innerHTML = rawToHtml(value);
     };
 
     return (
-      <div className={cn(
+      <div
+        className={cn(
           "relative flex w-full resize-none overflow-hidden overflow-y-auto rounded-sm border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           `min-h-[${minHeight}px]`,
-          className,
-        )}>
-        
+          className
+        )}
+      >
         {/* Placeholder simulé (affiché seulement si raw value est vide) */}
         {!value && (
           <div className="absolute inset-0 py-2 text-muted-foreground pointer-events-none select-none text-sm z-0">
