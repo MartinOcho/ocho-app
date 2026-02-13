@@ -97,7 +97,7 @@
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999999] flex flex-col bg-black/95 backdrop-blur-sm max-sm:w-screen max-sm:max-w-[100vw] max-sm:min-w-[100vw] max-sm:translate-x-[100vw]"
+        className="fixed inset-0 z-[9999999] flex flex-col bg-black/95 backdrop-blur-sm max-sm:w-screen max-sm:max-w-[100vw] max-sm:min-w-[100vw]"
       >
         <div className="flex items-center justify-between p-3 border-b border-white/10">
           <div className="flex items-center gap-3 text-white text-sm">

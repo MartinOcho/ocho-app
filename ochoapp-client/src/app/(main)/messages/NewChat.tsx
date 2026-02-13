@@ -248,8 +248,8 @@ export default function NewChat({
         <div className="relative flex w-full flex-1 select-none overflow-y-auto overflow-x-hidden">
           <ul
             className={cn(
-              "relative flex min-w-full translate-x-0 flex-col gap-1 transition-all",
-              isGroup && "-translate-x-full",
+              "relative flex min-w-full ml-0 flex-col gap-1 transition-all",
+              isGroup && "-ml-[100vw]",
             )}
           >
             <li
@@ -334,8 +334,8 @@ export default function NewChat({
           </ul>
           <ul
             className={cn(
-              "relative flex min-w-full flex-1 translate-x-0 flex-col gap-1 overflow-y-auto transition-all",
-              isGroup && "-translate-x-full",
+              "relative flex min-w-full flex-1 ml-0 flex-col gap-1 overflow-y-auto transition-all",
+              isGroup && "-ml-[100vw]",
             )}
           >
             <li className="cursor-pointer p-3 px-4">
