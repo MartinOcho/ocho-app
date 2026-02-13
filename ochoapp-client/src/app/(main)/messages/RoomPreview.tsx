@@ -483,15 +483,16 @@ export default function RoomPreview({
       `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
       (room.isGroup ? groupChat : appUser);
 
+  // Convert mentions in title from @[DisplayName](userId) to @DisplayName
+  const titleContent = messagePreviewContent?.replace("[r]", messagePreview.content) || noMessage;
+  const titleContentWithMentions = titleContent.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
+
   return (
     <li
       key={room.id}
       className={`cursor-pointer p-2 ${active && "bg-accent/50"}`}
       onClick={select}
-      title={
-        messagePreviewContent?.replace("[r]", messagePreview.content) ||
-        noMessage
-      }
+      title={titleContentWithMentions}
     >
       <div className="flex items-center gap-2">
         {room.isGroup ? (
