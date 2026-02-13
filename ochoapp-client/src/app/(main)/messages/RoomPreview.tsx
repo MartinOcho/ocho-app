@@ -284,6 +284,8 @@ export default function RoomPreview({
     type: "CLEAR",
     createdAt: Date.now(),
   };
+  console.log(messagePreview);
+  
 
   let messageType: MessageType = messagePreview?.type;
   const isSender = messagePreview.sender?.id === loggedinUser.id;
