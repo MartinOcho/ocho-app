@@ -53,13 +53,15 @@ function HighlightText({
   text,
   highlight,
   isOwner,
+  mentions,
 }: {
   text: string;
   highlight?: string;
   isOwner: boolean;
+  mentions?: Array<{ userId: string; username: string; displayName: string }>;
 }) {
   if (!highlight || !highlight.trim()) {
-    return <Linkify className={cn("text-inherit")}>{text}</Linkify>;
+    return <Linkify className={cn("text-inherit")} mentions={mentions}>{text}</Linkify>;
   }
 
   const safeHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -73,10 +75,10 @@ function HighlightText({
             key={i}
             className="h-fit rounded-[4px] border border-yellow-500/50 bg-yellow-400/50 p-0 px-[1px] leading-none text-foreground dark:text-white"
           >
-            <Linkify>{part}</Linkify>
+            <Linkify mentions={mentions}>{part}</Linkify>
           </span>
         ) : (
-          <Linkify key={i} className={cn("text-inherit")}>
+          <Linkify key={i} className={cn("text-inherit")} mentions={mentions}>
             {part}
           </Linkify>
         ),
@@ -413,6 +415,13 @@ export const MessageBubbleContent = ({
               text={message.content}
               highlight={highlight}
               isOwner={isOwner}
+              mentions={
+                message.mentions?.map((m: any) => ({
+                  userId: m.mentionedId,
+                  username: m.mentionedUser?.username,
+                  displayName: m.mentionedUser?.displayName,
+                })) || []
+              }
             />
           ) : (
             <span className="italic">{unavailableMessage}</span>

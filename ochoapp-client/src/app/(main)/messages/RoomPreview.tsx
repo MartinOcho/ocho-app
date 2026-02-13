@@ -16,6 +16,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
 import { Image as ImageIcon, Video as VideoIcon, AtSign } from "lucide-react";
+import Linkify from "@/components/Linkify";
 
 interface RoomProps {
   room: RoomData;
@@ -27,12 +28,14 @@ interface RoomProps {
 function HighlightText({
   text,
   highlight,
+  mentions,
 }: {
   text: string;
   highlight?: string;
+  mentions?: Array<{ userId: string; username: string; displayName: string }>;
 }) {
   if (!highlight || !highlight.trim()) {
-    return <>{text}</>;
+    return <Linkify mentions={mentions}>{text}</Linkify>;
   }
   
   const safeHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -46,10 +49,10 @@ function HighlightText({
             key={i}
             className="h-fit rounded border border-amber-500 bg-amber-500/50 p-0 px-[1px] leading-none"
           >
-            {part}
+            <Linkify mentions={mentions}>{part}</Linkify>
           </span>
         ) : (
-          part
+          <Linkify key={i} mentions={mentions}>{part}</Linkify>
         ),
       )}
     </>
@@ -555,6 +558,13 @@ export default function RoomPreview({
                       <HighlightText
                         text={messagePreviewContent}
                         highlight={highlight}
+                        mentions={
+                          (messagePreview as any)?.mentions?.map((m: any) => ({
+                            userId: m.mentionedId,
+                            username: m.mentionedUser?.username,
+                            displayName: m.mentionedUser?.displayName,
+                          })) || []
+                        }
                       />
                     ) : (
                       messagePreviewContent

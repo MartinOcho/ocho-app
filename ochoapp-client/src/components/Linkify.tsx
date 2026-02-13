@@ -9,11 +9,12 @@ interface LinkifyProps {
   children: React.ReactNode;
   className?: string;
   postId?: string;
+  mentions?: Array<{ userId: string; username: string; displayName: string }>;
 }
 
-export default function Linkify({ children, className }: LinkifyProps) {
+export default function Linkify({ children, className, mentions }: LinkifyProps) {
   return (
-    <LinkifyMention className={className}>
+    <LinkifyMention mentions={mentions} className={className}>
       <LinkifyHashtag className={className}>
         <LinkifyUsername className={className}>
           <LinkifyUrl className={className}>{children}</LinkifyUrl>
@@ -32,7 +33,13 @@ function LinkifyUrl({ children, className }: LinkifyProps) {
 }
 
 // Handle @[displayName](userId) format for message mentions
-function LinkifyMention({ children, className }: LinkifyProps) {
+function LinkifyMention({ children, className, mentions }: LinkifyProps) {
+  // Create a map of userId -> username for quick lookup
+  const usernameMap = mentions?.reduce((acc, m) => {
+    acc[m.userId] = m.username;
+    return acc;
+  }, {} as Record<string, string>) || {};
+
   return (
     <LinkIt
       regex={/@\[([^\]]+)\]\(([^)]+)\)/}
@@ -44,6 +51,7 @@ function LinkifyMention({ children, className }: LinkifyProps) {
 
         const displayName = mentionMatch[1];
         const userId = mentionMatch[2];
+        const username = usernameMap[userId];
 
         return (
           <span
@@ -56,7 +64,7 @@ function LinkifyMention({ children, className }: LinkifyProps) {
           >
             <AtSign className="h-3 w-3" />
             <UserLinkWithTooltip
-              userId={userId}
+              username={username}
               onFind={async (user) => {}}
               className="hover:underline font-medium text-xs"
             >

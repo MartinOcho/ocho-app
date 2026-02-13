@@ -298,7 +298,7 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       >
         {/* Placeholder simulé (affiché seulement si raw value est vide) */}
         {!value && (
-          <div className="absolute inset-0 py-2 text-muted-foreground pointer-events-none select-none text-sm z-0">
+          <div className="absolute inset-0 left-1 py-2 text-muted-foreground pointer-events-none select-none text-sm z-0">
             {placeholder}
           </div>
         )}
