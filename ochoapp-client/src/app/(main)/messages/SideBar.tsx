@@ -8,6 +8,7 @@ import { useActiveRoom } from "@/context/ChatContext";
 import {
   Frown,
   Loader2,
+  MessageCirclePlus,
   MessageSquare,
   RefreshCw,
   Search,
@@ -320,50 +321,40 @@ export default function SideBar({
       <div className="flex h-[60px] items-center justify-between p-4 text-lg font-bold shadow-sm max-sm:bg-card/50">
         <span>{chats}</span>
         <div className="flex items-center gap-2">
-          {/* Bouton pour ouvrir la recherche sur mobile/desktop dans le header */}
-          <span
-            className="cursor-pointer hover:text-primary"
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            title={search}
-          >
-            {isSearchOpen ? <X size={22} /> : <Search size={22} />}
-          </span>
           <span
             className="cursor-pointer hover:text-primary max-sm:hidden"
             title={startNewChat}
             onClick={onNewChat}
           >
-            <SquarePen />
+            <MessageCirclePlus />
           </span>
         </div>
       </div>
-      {isSearchOpen && (
-        <ul className="sticky top-0 z-50 bg-card/30 p-2 py-1.5 sm:bg-background/50">
-          <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
-            <div className="relative w-full">
-              <Input
-                placeholder={search}
-                className={cn("max-w-full rounded-3xl pe-16 transition-all")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
+      <ul className="sticky top-0 z-50 bg-card/30 p-2 py-1.5 sm:bg-background/50">
+        <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
+          <div className="relative w-full">
+            <Input
+              placeholder={search}
+              className={cn("max-w-full rounded-3xl pe-16 transition-all")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+            {!!searchQuery.length && (
+              <X
+                onClick={() => setSearchQuery("")}
+                className="absolute right-10 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground"
               />
-              {!!searchQuery.length && (
-                <X
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-10 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground"
-                />
+            )}
+            <SearchIcon
+              size={40}
+              className={cn(
+                "absolute right-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground",
               )}
-              <SearchIcon
-                size={40}
-                className={cn(
-                  "absolute right-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground",
-                )}
-              />
-            </div>
-          </li>
-        </ul>
-      )}
+            />
+          </div>
+        </li>
+      </ul>
       <InfiniteScrollContainer
         className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
         onBottomReached={() => {
@@ -460,19 +451,13 @@ export default function SideBar({
         )}
       </InfiniteScrollContainer>
 
-      <div className={cn("fixed bottom-24 right-5 flex gap-2 sm:absolute", activeRoomId && "max-sm:-translate-x-[100vw]")}>
-        <div
-          className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-muted shadow-md hover:bg-muted-foreground hover:shadow-lg hover:shadow-muted-foreground/30 dark:bg-muted dark:text-muted-foreground sm:hidden"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          <Search />
-        </div>
+      <div className={cn("fixed bottom-24 right-5 flex gap-2 sm:hidden", activeRoomId && "max-sm:-translate-x-[100vw]")}>
         <div
           className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
           onClick={onNewChat}
           title={startNewChat}
         >
-          <SquarePen />
+          <MessageCirclePlus />
         </div>
       </div>
     </div>
