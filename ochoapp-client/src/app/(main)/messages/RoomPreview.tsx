@@ -284,7 +284,6 @@ export default function RoomPreview({
     type: "CLEAR",
     createdAt: Date.now(),
   };
-  console.log(messagePreview);
   
 
   let messageType: MessageType = messagePreview?.type;
@@ -418,14 +417,8 @@ export default function RoomPreview({
             .replace("[name]", sender || appUser)
             .replace("[member]", recipientFirstName || appUser))
 
-  const mentionContent = isSender
-      ? recipient?.id === loggedinUser.id
-        ? youMentioned.replace("[member]", recipientFirstName || appUser)
-        : messageMention
-            .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser)
-      : recipient?.id === loggedinUser.id
-        ? mentionedYou.replace("[name]", sender || appUser)
+  const mentionContent = isSender ? youMentioned.replace("[member]", recipientFirstName || appUser)
+        : isRecipient ? mentionedYou.replace("[name]", sender || appUser)
         : messageMention
             .replace("[name]", sender || appUser)
             .replace("[member]", recipientFirstName || appUser)
