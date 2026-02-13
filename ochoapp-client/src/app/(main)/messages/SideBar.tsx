@@ -99,6 +99,11 @@ export default function SideBar({
     queryFn: () => kyInstance.get("/api/room-list").json<RoomData[]>(),
     staleTime: Infinity, // 5 minutes de cache
   });
+if (httpRooms) {
+  console.log(httpRooms);
+  
+}
+  
 
   // --- SYNCHRONISATION HTTP -> STATE LOCAL ---
   useEffect(() => {
