@@ -22,9 +22,7 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
         ref.current = editorRef.current;
       }
     }, [ref]);
-
-    // Fonction de coloration syntaxique "VS Code style"
-    // On garde le texte brut mais on wrap les parties spéciales dans des spans
+    
     const highlightSyntax = (text: string) => {
       if (!text) return '<br class="ProseMirror-trailingBreak">'; // Hack pour le placeholder
 
@@ -39,7 +37,7 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       html = html.replace(
         /@\[([^\]]+)\]\(([^)]+)\)/g,
         (match, name, id) => {
-          return `<span class="inline-block bg-primary/10 rounded-sm text-primary mx-0.5 whitespace-pre-wrap">
+          return `<span class="inline-block bg-primary/10 rounded-sm text-primary whitespace-pre-wrap">
             <span class="font-semibold">@${name}</span>
           </span>`;
         }
@@ -61,14 +59,20 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       return html.replace(/\n/g, "<br/>");
     };
 
-    // Synchronisation Value -> HTML
-    // On ne met à jour le HTML que si la valeur a changé "de l'extérieur" pour ne pas casser le curseur
     useLayoutEffect(() => {
       if (editorRef.current && editorRef.current.innerText !== value) {
-        // Sauvegarde simple de la position (si focus) - imparfait pour modification complexe externe mais ok pour reset
         editorRef.current.innerHTML = highlightSyntax(value);
       }
     }, [value]);
+
+    const adjustHeight = React.useCallback(() => {
+      const textarea = editorRef.current;
+      if (textarea) {
+        textarea.style.height = "auto"; // Réinitialise temporairement la hauteur
+        const newHeight = Math.max(textarea.scrollHeight, minHeight); // Calcule la nouvelle hauteur
+        textarea.style.height = `${newHeight}px`; // Applique la nouvelle hauteur
+      }
+    }, [minHeight]);
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
       const text = e.currentTarget.innerText;
@@ -83,10 +87,14 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
     };
 
     return (
-      <div className={cn("relative w-full group", className)}>
+      <div className={cn(
+          "relative flex w-full resize-none overflow-hidden overflow-y-auto rounded-sm border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          `min-h-[${minHeight}px]`,
+          className,
+        )}>
         {/* Placeholder simulé */}
         {!value && (
-          <div className="absolute top-3 left-3 text-muted-foreground pointer-events-none select-none text-sm">
+          <div className="absolute inset-0 text-muted-foreground pointer-events-none select-none text-sm">
             {placeholder}
           </div>
         )}
@@ -98,26 +106,13 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
           onFocus={() => setIsFocused(true)}
           onBlur={handleBlur}
           className={cn(
-            "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            "whitespace-pre-wrap break-words overflow-y-auto",
-            "empty:before:content-['\\200b']", // Fix height collapse
+            "outline-none whitespace-pre-wrap break-words w-full h-full min-h-full min-w-full cursor-text overflow-hidden overflow-y-auto",
             disabled && "cursor-not-allowed opacity-50"
           )}
-          style={{ 
-            minHeight: minHeight,
-            maxHeight: "300px",
-            outline: "none" // On gère le ring via Tailwind
-          }}
           role="textbox"
           aria-multiline="true"
           {...props}
         />
-        
-        {/* Indicateur visuel pour l'utilisateur */}
-        <div className="absolute bottom-1 right-2 text-[10px] text-muted-foreground opacity-50 pointer-events-none">
-            {isFocused ? "Mode Édition" : "Mode Visuel"}
-        </div>
       </div>
     );
   }
