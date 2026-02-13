@@ -334,8 +334,8 @@ export default function NewChat({
           </ul>
           <ul
             className={cn(
-              "relative flex min-w-full flex-1 ml-0 flex-col gap-1 overflow-y-auto transition-all",
-              isGroup && "-ml-[100vw]",
+              "relative flex min-w-full flex-1 translate-x-0 flex-col gap-1 overflow-y-auto transition-all",
+              isGroup && "-ml-[100%]",
             )}
           >
             <li className="cursor-pointer p-3 px-4">
