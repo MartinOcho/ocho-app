@@ -199,6 +199,7 @@ export default function MentionInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
+        minHeight={minHeight}
         className={className}
       />
 
