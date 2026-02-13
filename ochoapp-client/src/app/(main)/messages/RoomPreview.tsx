@@ -521,7 +521,7 @@ export default function RoomPreview({
           </span>
           <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
             {mentionIndicator && (
-              <span className="flex-shrink-0 text-yellow-500 font-bold">
+              <span className={cn("flex-shrink-0 text-inherit font-bold", unreadCount && "text-yellow-500")}>
                 <AtSign size={14} />
               </span>
             )}
