@@ -424,7 +424,7 @@ export default function RoomPreview({
             .replace("[member]", recipientFirstName || appUser)
   const textContent = `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`
 
-  const defaultContent = isMentionedInLastMessage ? mentionContent : textContent
+  const defaultContent = isMentionedInLastMessage && unreadCount ? mentionContent : textContent
   
   const attachmentPreview = getAttachmentPreview();
   
