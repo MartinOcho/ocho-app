@@ -451,7 +451,7 @@ export default function SideBar({
         )}
       </InfiniteScrollContainer>
 
-      <div className={cn("fixed bottom-24 right-5 flex gap-2 sm:hidden", activeRoomId && "max-sm:-ml-[100vw]")}>
+      <div className={cn("absolute bottom-5 right-5 flex gap-2 sm:hidden", activeRoomId && "max-sm:-ml-[100vw]")}>
         <div
           className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
           onClick={onNewChat}
