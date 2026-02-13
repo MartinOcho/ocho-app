@@ -66,7 +66,7 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
             <UserLinkWithTooltip
               username={username}
               onFind={async (user) => {}}
-              className="hover:underline font-medium text-xs"
+              className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors"
             >
               {displayName}
             </UserLinkWithTooltip>
