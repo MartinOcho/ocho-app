@@ -287,6 +287,7 @@ export default function RoomPreview({
 
   let messageType: MessageType = messagePreview?.type;
   const isSender = messagePreview.sender?.id === loggedinUser.id;
+  const isRecipient = messagePreview.recipient?.id === loggedinUser.id;
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
@@ -294,8 +295,7 @@ export default function RoomPreview({
   const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
   const senderFirstName =
     messagePreview.sender?.displayName.split(" ")[0] || appUser;
-  const recipientFirstName =
-    messagePreview.recipient?.displayName.split(" ")[0] || appUser;
+  const recipientFirstName = isRecipient ? you : (messagePreview.recipient?.displayName.split(" ")[0] || appUser);
 
   // Check if current user is mentioned in the last message
   const isMentionedInLastMessage = 
