@@ -32,7 +32,7 @@ function HighlightText({
   highlight?: string;
 }) {
   // Convert mentions from @[DisplayName](userId) format to @DisplayName plain text
-  const textWithMentionsConverted = text.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
+  const textWithMentionsConverted = text.replace(/\n/g, " ").replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
 
   if (!highlight || !highlight.trim()) {
     return <>{textWithMentionsConverted}</>;
@@ -485,7 +485,7 @@ export default function RoomPreview({
 
   // Convert mentions in title from @[DisplayName](userId) to @DisplayName
   const titleContent = messagePreviewContent?.replace("[r]", messagePreview.content) || noMessage;
-  const titleContentWithMentions = titleContent.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
+  const titleContentWithMentions = titleContent.replace(/\n/g, " ").replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
 
   return (
     <li
@@ -508,8 +508,9 @@ export default function RoomPreview({
         <div className="flex-1 overflow-hidden">
           <span
             className={cn(
-              "block truncate font-semibold",
+              "block truncate",
               isVerified && "flex items-center",
+              (unreadCount && !typing.isTyping) && "font-semibold",
             )}
           >
             {/* Surbrillance dans le nom */}

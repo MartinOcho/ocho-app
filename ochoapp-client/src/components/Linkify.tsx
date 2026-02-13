@@ -57,12 +57,12 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
           <span
             key={key}
             className={cn(
-              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors",
+              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors",
               className
             )}
             title={displayName}
           >
-            <AtSign className="h-3 w-3" />
+            <AtSign className="h-3 w-3 text-inherit" />
             <UserLinkWithTooltip
               username={username}
               onFind={async (user) => {}}
