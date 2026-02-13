@@ -55,7 +55,7 @@ export default function Messages() {
     }
   };
   return (
-    <div className="flex h-full flex-col sm:rounded-2xl bg-card/50 shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen">
+    <div className="flex h-full flex-col sm:rounded-2xl bg-card/50 shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen overflow-hidden">
       {!isConnected && !isConnecting && (
         <div className="flex w-full flex-none items-center justify-between bg-destructive/10 px-4 py-2 text-sm text-destructive dark:bg-destructive/20">
           <div className="flex items-center gap-2">

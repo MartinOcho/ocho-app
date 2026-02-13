@@ -14,7 +14,6 @@ export default function SetNavigation({navPage} : SetNavigationProps) {
     const {setCurrentNavigation} = useNavigation();
     useEffect(()=>{
         setCurrentNavigation(navPage)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     },[])
    return <span className="hidden"></span>
 };

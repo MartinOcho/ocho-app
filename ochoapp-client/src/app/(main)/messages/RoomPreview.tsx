@@ -403,23 +403,8 @@ export default function RoomPreview({
     
     return { icon, label, displayType };
   };
-  
-  const attachmentPreview = getAttachmentPreview();
-  
-  const contentsTypes = {
-    CREATE: room.isGroup
-      ? messagePreview.sender?.id === loggedinUser.id
-        ? youCreatedGroup.replace("[name]", sender || appUser)
-        : createdGroup.replace("[name]", sender || appUser)
-      : canChatWithYou.replace("[name]", otherUserFirstName || appUser),
-    CONTENT: `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`,
-    CLEAR: noPreview,
-    DELETE: deletedChat,
-    SAVED: messageYourself,
-    NEWMEMBER: newMemberMsg,
-    LEAVE: oldMemberMsg,
-    BAN: oldMemberMsg,
-    REACTION: isSender
+
+  const reactionContent = (isSender
       ? recipient?.id === loggedinUser.id
         ? youReactedToYourMessage.replace("[name]", sender || appUser)
         : youReactedToMessage
@@ -429,8 +414,9 @@ export default function RoomPreview({
         ? reactedToMessage.replace("[name]", sender || appUser)
         : reactedMemberMessage
             .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser),
-    MENTION: isSender
+            .replace("[member]", recipientFirstName || appUser))
+
+  const mentionContent = isSender
       ? recipient?.id === loggedinUser.id
         ? youMentioned.replace("[member]", recipientFirstName || appUser)
         : messageMention
@@ -440,7 +426,28 @@ export default function RoomPreview({
         ? mentionedYou.replace("[name]", sender || appUser)
         : messageMention
             .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser),
+            .replace("[member]", recipientFirstName || appUser)
+  const textContent = `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`
+
+  const defaultContent = isMentionedInLastMessage ? mentionContent : textContent
+  
+  const attachmentPreview = getAttachmentPreview();
+  
+  const contentsTypes = {
+    CREATE: room.isGroup
+      ? messagePreview.sender?.id === loggedinUser.id
+        ? youCreatedGroup.replace("[name]", sender || appUser)
+        : createdGroup.replace("[name]", sender || appUser)
+      : canChatWithYou.replace("[name]", otherUserFirstName || appUser),
+    CONTENT: defaultContent,
+    CLEAR: noPreview,
+    DELETE: deletedChat,
+    SAVED: messageYourself,
+    NEWMEMBER: newMemberMsg,
+    LEAVE: oldMemberMsg,
+    BAN: oldMemberMsg,
+    REACTION: reactionContent,
+    MENTION: mentionContent,
   };
 
   let messagePreviewContent = contentsTypes[messageType];
@@ -519,7 +526,7 @@ export default function RoomPreview({
           </span>
           <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
             {mentionIndicator && (
-              <span className="flex-shrink-0 text-primary font-bold">
+              <span className="flex-shrink-0 text-yellow-500 font-bold">
                 <AtSign size={14} />
               </span>
             )}
