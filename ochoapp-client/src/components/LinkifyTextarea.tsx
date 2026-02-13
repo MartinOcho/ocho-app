@@ -188,14 +188,14 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
 
     return (
       <div className={cn(
-          "relative flex w-full resize-none overflow-hidden overflow-y-auto rounded-sm border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          "relative flex w-full resize-none overflow-hidden overflow-y-auto rounded-sm border border-input bg-background px-3 py-2 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           `min-h-[${minHeight}px]`,
           className,
         )}>
         
         {/* Placeholder simulé (affiché seulement si raw value est vide) */}
         {!value && (
-          <div className="absolute inset-0 px-3 py-2 text-muted-foreground pointer-events-none select-none text-sm z-0">
+          <div className="absolute inset-0 py-2 text-muted-foreground pointer-events-none select-none text-sm z-0">
             {placeholder}
           </div>
         )}
