@@ -10,6 +10,7 @@ import { CircleProgress } from "@/components/ui/CircleProgress";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 import MentionInput from "@/components/MentionInput";
+import { toast } from "@/components/ui/use-toast";
 
 interface LocalAttachment {
   id: string; 
@@ -119,7 +120,7 @@ export function MessageFormComponent({
     if (!canAttach) return;
     const currentCount = attachments.filter((a) => !a.isUploading).length;
     if (currentCount >= 5) {
-      alert("Limite de 5 médias par message atteinte");
+       toast({description: "Limite de 5 médias par message atteinte", variant: "destructive"});
       return;
     }
     fileInputRef.current?.click();
@@ -201,7 +202,7 @@ export function MessageFormComponent({
     const maxNewFiles = Math.min(files.length, maxTotal - currentCount);
 
     if (maxNewFiles <= 0) {
-      alert("Limite de 5 médias par message atteinte");
+      toast({description: "Limite de 5 médias par message atteinte", variant: "destructive"});
       return;
     }
 
@@ -230,7 +231,7 @@ export function MessageFormComponent({
     }
 
     if (errors.length > 0) {
-      alert(errors.join("\n"));
+      toast({description: errors.join("\n"), variant: "destructive"});
     }
 
     if (validFiles.length === 0) return;
@@ -282,7 +283,7 @@ export function MessageFormComponent({
         if (errorMessage !== "Upload cancelled") {
           console.error(`Erreur upload ${fileName}:`, err);
           const friendlyMessage = getFriendlyErrorMessage(err);
-          alert(`Échec pour ${fileName}: ${friendlyMessage}`);
+          toast({description: `Échec pour ${fileName}: ${friendlyMessage}`});
         }
 
         // Suppression de l'attachement échoué ou annulé de l'UI

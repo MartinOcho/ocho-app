@@ -162,7 +162,7 @@ function DateHeader({ date }: { date: Date | string }) {
   );
 }
 
-export default function Chat({ roomId, initialData, onClose }: ChatProps) {
+export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const { t } = useTranslation();
   const { socket, isConnected, retryConnection, getPendingMessages } =
     useSocket();

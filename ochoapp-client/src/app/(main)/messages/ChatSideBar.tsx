@@ -41,7 +41,7 @@ interface RoomListPayload {
   nextCursor?: string | null;
 }
 
-export default function SideBar({
+export default function ChatSideBar({
   activeRoom,
   selectedRoomId,
   onRoomSelect,

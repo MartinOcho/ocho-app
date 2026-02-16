@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "../SessionProvider";
-import SideBar from "./ChatSideBar";
+import ChatSideBar from "./ChatSideBar";
 import { RoomData } from "@/lib/types";
-import Chat from "./ChatRoom";
+import ChatRoom from "./ChatRoom";
 import { useActiveRoom } from "@/context/ChatContext";
 import NewChat from "./NewChat";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,7 @@ export default function Messages() {
         )}
       >
         <div className="h-full w-screen min-w-60 max-sm:min-w-[100vw] sm:w-1/3 sm:border-r-2">
-          <SideBar
+          <ChatSideBar
             onRoomSelect={handleRoomSelect}
             activeRoom={(room) => setSelectedRoom(room)}
             selectedRoomId={selectedRoomId}
@@ -113,7 +113,7 @@ export default function Messages() {
               <p className="text-muted-foreground">{selectChatToStart}</p>
             </div>
           )}
-          <Chat
+          <ChatRoom
             roomId={activeRoomId || selectedRoomId}
             initialData={selectedRoom}
             onClose={() => {
