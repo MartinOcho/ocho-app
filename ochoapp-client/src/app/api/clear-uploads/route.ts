@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import cloudinary from "@/lib/cloudinary";
 import fs from "fs";
 import path from "path";
 import { UTApi } from "uploadthing/server";
@@ -64,6 +65,44 @@ export async function GET(req: Request) {
       where: {
         id: {
           in: unusedMedia.map((m) => m.id),
+        },
+      },
+    });
+
+    // Rechercher les pièces jointes de messages inutilisées
+    const unusedMessageAttachments = await prisma.messageAttachment.findMany({
+      where: {
+        messageId: null,
+        ...(process.env.NODE_ENV === "production"
+          ? {
+              createdAt: {
+                lte: new Date(Date.now() - 24 * 3600 * 1000), // 1 jour
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        publicId: true,
+      },
+    });
+
+    // Supprimer les fichiers des pièces jointes de Cloudinary
+    for (const attachment of unusedMessageAttachments) {
+      if (attachment.publicId) {
+        try {
+          await cloudinary.uploader.destroy(attachment.publicId);
+        } catch (error) {
+          console.error(`Error deleting Cloudinary file ${attachment.publicId}:`, error);
+        }
+      }
+    }
+
+    // Supprimer les entrées de la base de données
+    await prisma.messageAttachment.deleteMany({
+      where: {
+        id: {
+          in: unusedMessageAttachments.map((a) => a.id),
         },
       },
     });
