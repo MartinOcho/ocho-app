@@ -253,7 +253,23 @@ export default function RoomPreview({
         displayName: savedMessages,
       };
 
-  const otherUser: UserData | null = isSaved
+  const messagePreview = room?.messages[0] || {
+    id: "",
+    content: "",
+    senderId: null,
+    sender: null,
+    roomId: room.id,
+    type: "CLEAR",
+    createdAt: Date.now(),
+  };
+  // Check if current user is mentioned in the last message
+  const isMentionedInLastMessage = 
+    messagePreview.type === "CONTENT" &&
+    Array.isArray((messagePreview as Record<string, any>).mentions) &&
+    (messagePreview as Record<string, any>).mentions.some((m: any) => m.mentionedId === loggedinUser.id);
+
+
+  const otherUser: UserData | null = (isSaved || isMentionedInLastMessage)
     ? currentUser
     : room?.members?.filter((member) => member.userId !== loggedinUser.id)[0]
         .user;
@@ -274,18 +290,6 @@ export default function RoomPreview({
   const verifiedCheck = isVerified ? (
     <Verified type={verifiedType} prompt={false} />
   ) : null;
-
-  const messagePreview = room?.messages[0] || {
-    id: "",
-    content: "",
-    senderId: null,
-    sender: null,
-    roomId: room.id,
-    type: "CLEAR",
-    createdAt: Date.now(),
-  };
-
-  console.log(messagePreview);
   
   
 
@@ -300,12 +304,6 @@ export default function RoomPreview({
   const senderFirstName =
     messagePreview.sender?.displayName.split(" ")[0] || appUser;
   const recipientFirstName = isRecipient ? you : (messagePreview.recipient?.displayName.split(" ")[0] || appUser);
-
-  // Check if current user is mentioned in the last message
-  const isMentionedInLastMessage = 
-    messagePreview.type === "CONTENT" &&
-    Array.isArray((messagePreview as Record<string, any>).mentions) &&
-    (messagePreview as Record<string, any>).mentions.some((m: any) => m.mentionedId === loggedinUser.id);
 
   const sender = isSender
     ? you

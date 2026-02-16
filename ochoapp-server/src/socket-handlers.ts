@@ -551,6 +551,24 @@ export async function handleSendNormalMessage(
     throw new Error("Non autorisé");
   }
 
+  // Récupérer les infos de la room pour déterminer si c'est un DM
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { members: true },
+  });
+
+  if (!room) throw new Error("Room not found");
+
+  // Calculer le recipientId pour les messages directs (1v1)
+  let calculatedRecipientId = recipientId;
+  if (!room.isGroup && type === "CONTENT") {
+    // Pour un DM: trouver l'autre utilisateur
+    const otherMember = room.members.find(m => m.userId && m.userId !== userId);
+    if (otherMember?.userId) {
+      calculatedRecipientId = otherMember.userId;
+    }
+  }
+
   const { createdMessage, roomData } = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const msg = await tx.message.create({
@@ -559,7 +577,7 @@ export async function handleSendNormalMessage(
           roomId,
           senderId: userId,
           type,
-          recipientId,
+          recipientId: calculatedRecipientId,
         },
       });
       
