@@ -174,6 +174,7 @@ export default function RoomPreview({
     noMessage,
     deletedChat,
     savedMessages,
+    unreadMessages,
     isTyping,
     userTyping,
     twoUsersTyping,
@@ -446,18 +447,20 @@ export default function RoomPreview({
     MENTION: mentionContent,
   };
 
-  let messagePreviewContent = contentsTypes[messageType];
+  let messagePreviewContent = unreadCount > 1 
+    ? unreadMessages.replace("[count]", unreadCount.toString())
+    : contentsTypes[messageType];
   let showIconBefore = false;
   let showIconAfterSender = false;
   let mentionIndicator = false;
 
-  // If user is mentioned in CONTENT message, show mention indicator
-  if (isMentionedInLastMessage && !isSender) {
+  // If user is mentioned in CONTENT message, show mention indicator (only when not showing unread count)
+  if (isMentionedInLastMessage && !isSender && unreadCount <= 1) {
     mentionIndicator = true;
   }
 
-  // Check if message has attachments
-  if (messagePreview.attachments && messagePreview.attachments.length > 0 && attachmentPreview && messageType === "CONTENT") {
+  // Check if message has attachments (only when not showing unread count)
+  if (unreadCount <= 1 && messagePreview.attachments && messagePreview.attachments.length > 0 && attachmentPreview && messageType === "CONTENT") {
     if (messagePreview.content?.trim().length > 0) {
       // Has content + attachments: show content with icon before (icon will be added in JSX)
       messagePreviewContent = contentsTypes.CONTENT;
