@@ -1,7 +1,7 @@
 "use client";
 
 import { Send, X, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AttachmentType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ interface MessageFormComponentProps {
   onTypingStop: () => void;
   canAttach?: boolean;
   members?: RoomMember[];
+  onValidityChange?: (isValid: boolean) => void;
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -74,6 +75,7 @@ export function MessageFormComponent({
   onTypingStop,
   canAttach = true,
   members = [],
+  onValidityChange,
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -87,6 +89,11 @@ export function MessageFormComponent({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Notifier le parent chaque fois que la validité change
+  useEffect(() => {
+    onValidityChange?.(canSend());
+  }, [input, attachments, onValidityChange]);
 
   const handleChange = (value: string) => {
     setInput(value);

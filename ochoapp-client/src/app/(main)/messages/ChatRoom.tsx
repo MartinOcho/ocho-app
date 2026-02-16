@@ -175,6 +175,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [messageInputExpanded, setMessageInputExpanded] = useState(true);
   const [hasMessageContent, setHasMessageContent] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   // --- NOUVEAU : État pour le menu contextuel (Click Droit) ---
   const [contextMenuPos, setContextMenuPos] = useState<{
@@ -206,7 +207,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
     setTypingUsers([]);
     setSearchQuery(""); // Reset search
     setContextMenuPos(null); // Reset menu contextuel
-    setHasMessageContent(false); // Reset message content
+    setIsFormValid(false);
   }, [roomId]);
 
   // --- NOUVELLE : TRAITEMENT DES MESSAGES EN ATTENTE ---
@@ -843,7 +844,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
             className={cn(
               "flex w-fit items-end gap-0 transition-all duration-75",
               !messageInputExpanded && "w-full gap-3",
-              hasMessageContent && "hidden",
+              isFormValid && "hidden",
             )}
           >
             <Button
@@ -896,6 +897,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 messageInputExpanded={messageInputExpanded}
                 onExpandedChange={setMessageInputExpanded}
                 members={room?.members}
+                onValidityChange={setIsFormValid}
               />
             </div>
           )}

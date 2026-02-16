@@ -32,6 +32,7 @@ interface RoomFooterProps {
   onDeleteConversation?: () => void;
   onFollowUser?: () => void;
   onViewGroupDetails?: () => void;
+  onValidityChange?: (isValid: boolean) => void;
 }
 
 export default function RoomFooter({
@@ -48,6 +49,7 @@ export default function RoomFooter({
   onDeleteConversation,
   onFollowUser,
   onViewGroupDetails,
+  onValidityChange,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -65,6 +67,7 @@ export default function RoomFooter({
           onTypingStop={onTypingStop}
           canAttach={true}
           members={members}
+          onValidityChange={onValidityChange}
         />
       );
 
