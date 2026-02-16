@@ -357,6 +357,7 @@ export function MessageFormComponent({
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*"
+        maxLength={5}
         multiple
         className="hidden"
         onChange={handleFiles}

@@ -146,12 +146,10 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       };
 
       container.childNodes.forEach(traverse);
-
-      // éliminer éventuel newline terminal ajouté par DIV final
+      if (raw === "\n") {
+        return "";
+      }
       if (raw.endsWith("\n") && raw.length > 1) {
-        // garder un newline s'il n'y avait que newline initial (sécurité)
-        // sinon supprimer le dernier newline ajouté artificiellement
-        // (on ne veut pas systématiquement un newline en fin)
         raw = raw.replace(/\n$/, "");
       }
 
