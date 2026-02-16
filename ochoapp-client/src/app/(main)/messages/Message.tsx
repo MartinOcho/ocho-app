@@ -569,7 +569,7 @@ export default function Message({
     queryKey: reactionsQueryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/message/${messageId}/reactions`)
+        .get(`/api/messages/${messageId}/reactions`)
         .json<ReactionData[]>(),
     staleTime: Infinity,
   });
@@ -743,7 +743,7 @@ export default function Message({
     queryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/message/${messageId}/reads`, { throwHttpErrors: false })
+        .get(`/api/messages/${messageId}/reads`, { throwHttpErrors: false })
         .json<ReadInfo>(),
     staleTime: Infinity,
     throwOnError: false,
@@ -755,7 +755,7 @@ export default function Message({
     queryKey: deliveryQueryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/message/${messageId}/deliveries`, { throwHttpErrors: false })
+        .get(`/api/messages/${messageId}/deliveries`, { throwHttpErrors: false })
         .json<DeliveryInfo>(),
     staleTime: Infinity,
     throwOnError: false,

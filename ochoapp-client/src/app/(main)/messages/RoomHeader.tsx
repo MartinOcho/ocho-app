@@ -135,7 +135,7 @@ export default function RoomHeader({
   const { data, status, error } = useQuery({
     queryKey,
     queryFn: () =>
-      kyInstance.get(`/api/rooms/${roomId}/room-header`).json<RoomData>(),
+      kyInstance.get(`/api/messages/rooms/${roomId}/header`).json<RoomData>(),
     staleTime: Infinity,
   });
 

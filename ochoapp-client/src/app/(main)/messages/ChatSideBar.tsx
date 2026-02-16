@@ -96,8 +96,8 @@ export default function SideBar({
     refetch: refetchHttp,
   } = useQuery({
     queryKey: queryKey,
-    queryFn: () => kyInstance.get("/api/room-list").json<RoomData[]>(),
-    staleTime: Infinity, // 5 minutes de cache
+    queryFn: () => kyInstance.get("/api/messages/rooms/").json<RoomData[]>(),
+    staleTime: Infinity,
   });
 if (httpRooms) {
   console.log(httpRooms);

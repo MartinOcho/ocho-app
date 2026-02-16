@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "../SessionProvider";
-import SideBar from "./SideBar";
+import SideBar from "./ChatSideBar";
 import { RoomData } from "@/lib/types";
-import Chat from "./Chat";
+import Chat from "./ChatRoom";
 import { useActiveRoom } from "@/context/ChatContext";
 import NewChat from "./NewChat";
 import { cn } from "@/lib/utils";

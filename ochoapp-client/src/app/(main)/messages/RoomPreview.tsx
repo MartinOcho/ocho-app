@@ -230,7 +230,7 @@ export default function RoomPreview({
     queryKey,
     queryFn: () =>
       kyInstance
-        .get(`/api/rooms/${room.id}/unread-count`)
+        .get(`/api/messages/rooms/${room.id}/unread-count`)
         .json<NotificationCountInfo>(),
     initialData: { unreadCount: 0 },
   });

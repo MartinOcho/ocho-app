@@ -182,7 +182,7 @@ export default function SocketProvider({
           })
           .catch(() => {}),
         kyInstance
-          .get("/api/rooms/unread-count")
+          .get("/api/messages/unread-count")
           .json()
           .then((d: any) => {
             if (!isComponentUnmounted && typeof d?.unreadCount === "number") {

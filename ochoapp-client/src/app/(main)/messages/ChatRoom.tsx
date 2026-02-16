@@ -431,7 +431,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
   } = useQuery({
     queryKey: ["room", "data", roomId],
     queryFn: () =>
-      kyInstance.get(`/api/rooms/${roomId}/chat-data`).json<RoomData>(),
+      kyInstance.get(`/api/messages/rooms/${roomId}/`).json<RoomData>(),
     initialData,
     staleTime: Infinity,
     throwOnError: false,
@@ -460,7 +460,7 @@ export default function Chat({ roomId, initialData, onClose }: ChatProps) {
       queryFn: ({ pageParam }) =>
         kyInstance
           .get(
-            `/api/rooms/${roomId}/messages`,
+            `/api/messages/rooms/${roomId}/messages`,
             pageParam ? { searchParams: { cursor: pageParam } } : {},
           )
           .json<MessagesSection>(),

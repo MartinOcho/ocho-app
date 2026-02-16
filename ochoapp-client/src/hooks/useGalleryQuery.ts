@@ -13,7 +13,7 @@ export function useGalleryQuery({ roomId, enabled = true }: UseGalleryQueryProps
     queryFn: ({ pageParam }) =>
       kyInstance
         .get(
-          `/api/rooms/${roomId}/gallery/medias`,
+          `/api/messages/rooms/${roomId}/gallery/medias`,
           pageParam ? { searchParams: { cursor: pageParam } } : {},
         )
         .json<GalleryMediasSection>(),
