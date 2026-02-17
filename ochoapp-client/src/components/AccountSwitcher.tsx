@@ -8,7 +8,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuItem,
 } from "./ui/dropdown-menu";
-import { LogIn, Plus } from "lucide-react";
+import { ArrowRightLeftIcon, LogIn, Plus } from "lucide-react";
 import { StoredAccount, getStoredAccounts } from "@/lib/account-switcher";
 import UserAvatar from "./UserAvatar";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,7 +51,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
-        <LogIn className="mr-2 size-4" />
+        <ArrowRightLeftIcon className="mr-2 size-4" />
         {t("switchAccount")}
       </DropdownMenuSubTrigger>
       <DropdownMenuPortal>
@@ -79,7 +79,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
               </div>
             </DropdownMenuItem>
           ))}
-          <OchoLink href="/login" className="text-inherit">
+          <OchoLink href="/login?switching=true" className="text-inherit">
             <DropdownMenuItem className="flex items-center gap-2 text-primary">
               <Plus className="size-4" />
               <span>{t("addAccount")}</span>

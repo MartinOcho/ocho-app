@@ -7,12 +7,16 @@ import { LanguageProvider } from "@/context/LanguageContext";
 
 export default async function Layout({
   children,
+  searchParams,
 }: {
   children: React.ReactNode;
+  searchParams: Promise<{ switching?: string }>;
 }) {
   const { user } = await validateRequest();
+  const params = await searchParams;
+  const isSwitching = params.switching === "true";
 
-  if (user) redirect("/");
+  if (user && !isSwitching) redirect("/");
   return (
     <ProgressProvider>
       <EmptySession>

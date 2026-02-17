@@ -10,7 +10,13 @@ export async function generateMetadata() {
     title: signup,
   };
 }
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ switching?: string }>;
+}) {
+  const params = await searchParams;
+  const switchingParam = params.switching ? `?switching=${params.switching}` : "";
   const {
     welcomeIntro,
     you: youText,
@@ -38,7 +44,7 @@ export default async function Page() {
           <div className="text-center">
             {alreadyHave}{" "}
             <OchoLink
-              href="/login"
+              href={`/login${switchingParam}`}
             >
               {signIn}
             </OchoLink>
