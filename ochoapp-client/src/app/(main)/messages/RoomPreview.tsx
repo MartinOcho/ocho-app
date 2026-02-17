@@ -1,7 +1,12 @@
 "use client";
 
 import UserAvatar from "@/components/UserAvatar";
-import { RoomData, NotificationCountInfo, UserData, SocketTypingUpdateEvent } from "@/lib/types";
+import {
+  RoomData,
+  NotificationCountInfo,
+  UserData,
+  SocketTypingUpdateEvent,
+} from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
 import { MessageType, VerifiedType } from "@prisma/client";
@@ -32,14 +37,18 @@ function HighlightText({
   highlight?: string;
 }) {
   // Convert mentions from @[DisplayName](userId) format to @DisplayName plain text
-  const textWithMentionsConverted = text.replace(/\n/g, " ").replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
+  const textWithMentionsConverted = text
+    .replace(/\n/g, " ")
+    .replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
 
   if (!highlight || !highlight.trim()) {
     return <>{textWithMentionsConverted}</>;
   }
-  
+
   const safeHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const parts = textWithMentionsConverted.split(new RegExp(`(${safeHighlight})`, "gi"));
+  const parts = textWithMentionsConverted.split(
+    new RegExp(`(${safeHighlight})`, "gi"),
+  );
 
   return (
     <>
@@ -77,34 +86,42 @@ export default function RoomPreview({
     }[];
   }>({ isTyping: false, typingUsers: [] });
 
- 
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const handleRoomUnreadCount = (data: { roomId: string; unreadCount: number }) => {
+    const handleRoomUnreadCount = (data: {
+      roomId: string;
+      unreadCount: number;
+    }) => {
       if (data.roomId === room.id) {
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
-          { unreadCount: data.unreadCount }
+          { unreadCount: data.unreadCount },
         );
       }
     };
-    const handleReceiveMessage = (data: { roomId: string; newMessage: any }) => {
-      if (data.roomId === room.id && data.newMessage.senderId !== loggedinUser?.id) {
+    const handleReceiveMessage = (data: {
+      roomId: string;
+      newMessage: any;
+    }) => {
+      if (
+        data.roomId === room.id &&
+        data.newMessage.senderId !== loggedinUser?.id
+      ) {
         queryClient.setQueryData<NotificationCountInfo>(
           ["room", "unread", room.id],
           (oldData) => ({
-            unreadCount: (oldData?.unreadCount || 0) + 1
-          })
+            unreadCount: (oldData?.unreadCount || 0) + 1,
+          }),
         );
       }
     };
-    
+
     socket.on("room_unread_count_update", handleRoomUnreadCount);
     socket.on("receive_message", handleReceiveMessage);
-    
+
     return () => {
       socket.off("room_unread_count_update", handleRoomUnreadCount);
       socket.off("receive_message", handleReceiveMessage);
@@ -115,20 +132,18 @@ export default function RoomPreview({
     if (!socket || !isConnected || !room.id) return;
 
     const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
-      
-      const isTyping = !!data.typingUsers
-      .filter((u) => u.id !== loggedinUser?.id)
-      .filter((u) => u.displayName !== undefined).length;
       if (data.roomId === room.id) {
-        setTyping({
-          isTyping,
-          typingUsers: data.typingUsers
-            .filter((u) => u.id !== loggedinUser?.id),
-        });
-      if (isTyping) {
-        console.log(typing);
-        console.log(data.typingUsers.filter((u) => u.id !== loggedinUser?.id));
-      }
+        const isTyping = !!data.typingUsers.filter((u) => u.id !== loggedinUser?.id).length;
+        const dataTypingUsers = data.typingUsers.filter(u => u.id !== loggedinUser?.id)
+        const typing = { isTyping, typingUsers: dataTypingUsers };
+        setTyping(typing);
+     
+        if (isTyping) {
+          console.log(typing);
+          console.log(
+            data.typingUsers.filter((u) => u.id !== loggedinUser?.id),
+          );
+        }
       }
     };
 
@@ -266,16 +281,18 @@ export default function RoomPreview({
     createdAt: Date.now(),
   };
   // Check if current user is mentioned in the last message
-  const isMentionedInLastMessage = 
+  const isMentionedInLastMessage =
     messagePreview.type === "CONTENT" &&
     Array.isArray((messagePreview as Record<string, any>).mentions) &&
-    (messagePreview as Record<string, any>).mentions.some((m: any) => m.mentionedId === loggedinUser.id);
+    (messagePreview as Record<string, any>).mentions.some(
+      (m: any) => m.mentionedId === loggedinUser.id,
+    );
 
-
-  const otherUser: UserData | null = (isSaved || isMentionedInLastMessage)
-    ? currentUser
-    : room?.members?.filter((member) => member.userId !== loggedinUser.id)[0]
-        .user;
+  const otherUser: UserData | null =
+    isSaved || isMentionedInLastMessage
+      ? currentUser
+      : room?.members?.filter((member) => member.userId !== loggedinUser.id)[0]
+          .user;
 
   const expiresAt = otherUser?.verified?.[0]?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
@@ -293,12 +310,12 @@ export default function RoomPreview({
   const verifiedCheck = isVerified ? (
     <Verified type={verifiedType} prompt={false} />
   ) : null;
-  
-  
 
   let messageType: MessageType = messagePreview?.type;
   const isSender = messagePreview.sender?.id === loggedinUser.id;
-  const isRecipient = (isMentionedInLastMessage || messagePreview.recipient?.id === loggedinUser.id);
+  const isRecipient =
+    isMentionedInLastMessage ||
+    messagePreview.recipient?.id === loggedinUser.id;
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
@@ -306,7 +323,9 @@ export default function RoomPreview({
   const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
   const senderFirstName =
     messagePreview.sender?.displayName.split(" ")[0] || appUser;
-  const recipientFirstName = isRecipient ? you : (messagePreview.recipient?.displayName.split(" ")[0] || appUser);
+  const recipientFirstName = isRecipient
+    ? you
+    : messagePreview.recipient?.displayName.split(" ")[0] || appUser;
 
   const sender = isSender
     ? you
@@ -360,20 +379,20 @@ export default function RoomPreview({
     }
   }
   const showUserPreview = room.isGroup || isSender;
-  
+
   // Helper function to get attachment info with icon
   const getAttachmentPreview = () => {
     const attachments = messagePreview.attachments || [];
     if (attachments.length === 0) return null;
-    
+
     const imageCount = attachments.filter((a) => a.type === "IMAGE").length;
     const videoCount = attachments.filter((a) => a.type === "VIDEO").length;
     const hasContent = messagePreview.content?.trim().length > 0;
-    
+
     let icon = null;
     let label = "";
     let displayType = "contentWithAttachment"; // "contentWithAttachment" or "attachmentOnly"
-    
+
     // Determine icon
     if (imageCount > 0 && videoCount === 0) {
       icon = <ImageIcon size={16} className="flex-shrink-0" />;
@@ -382,11 +401,11 @@ export default function RoomPreview({
     } else if (imageCount > 0 && videoCount > 0) {
       icon = <ImageIcon size={16} className="flex-shrink-0" />;
     }
-    
+
     // Determine label and display type
     if (!hasContent) {
       displayType = "attachmentOnly";
-      
+
       if (imageCount > 0 && videoCount === 0) {
         if (imageCount === 1) {
           label = attachmentPhoto;
@@ -405,33 +424,36 @@ export default function RoomPreview({
           .replace("[videoCount]", videoCount.toString());
       }
     }
-    
+
     return { icon, label, displayType };
   };
 
-  const reactionContent = (isSender
-      ? recipient?.id === loggedinUser.id
-        ? youReactedToYourMessage.replace("[name]", sender || appUser)
-        : youReactedToMessage
-            .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser)
-      : recipient?.id === loggedinUser.id
-        ? reactedToMessage.replace("[name]", sender || appUser)
-        : reactedMemberMessage
-            .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser))
+  const reactionContent = isSender
+    ? recipient?.id === loggedinUser.id
+      ? youReactedToYourMessage.replace("[name]", sender || appUser)
+      : youReactedToMessage
+          .replace("[name]", sender || appUser)
+          .replace("[member]", recipientFirstName || appUser)
+    : recipient?.id === loggedinUser.id
+      ? reactedToMessage.replace("[name]", sender || appUser)
+      : reactedMemberMessage
+          .replace("[name]", sender || appUser)
+          .replace("[member]", recipientFirstName || appUser);
 
-  const mentionContent = isSender ? youMentioned.replace("[member]", recipientFirstName || appUser)
-        : isRecipient ? mentionedYou.replace("[name]", sender || appUser)
-        : messageMention
-            .replace("[name]", sender || appUser)
-            .replace("[member]", recipientFirstName || appUser)
-  const textContent = `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`
+  const mentionContent = isSender
+    ? youMentioned.replace("[member]", recipientFirstName || appUser)
+    : isRecipient
+      ? mentionedYou.replace("[name]", sender || appUser)
+      : messageMention
+          .replace("[name]", sender || appUser)
+          .replace("[member]", recipientFirstName || appUser);
+  const textContent = `${showUserPreview ? sender || appUser : ""}${showUserPreview ? ": " : ""}${messagePreview.content.length > 100 ? messagePreview.content.slice(0, 100) : messagePreview.content}`;
 
-  const defaultContent = isMentionedInLastMessage && unreadCount ? mentionContent : textContent
-  
+  const defaultContent =
+    isMentionedInLastMessage && unreadCount ? mentionContent : textContent;
+
   const attachmentPreview = getAttachmentPreview();
-  
+
   const contentsTypes = {
     CREATE: room.isGroup
       ? messagePreview.sender?.id === loggedinUser.id
@@ -449,9 +471,10 @@ export default function RoomPreview({
     MENTION: mentionContent,
   };
 
-  let messagePreviewContent = unreadCount > 1 
-    ? unreadMessages.replace("[count]", unreadCount.toString())
-    : contentsTypes[messageType];
+  let messagePreviewContent =
+    unreadCount > 1
+      ? unreadMessages.replace("[count]", unreadCount.toString())
+      : contentsTypes[messageType];
   let showIconBefore = false;
   let showIconAfterSender = false;
   let mentionIndicator = false;
@@ -462,7 +485,13 @@ export default function RoomPreview({
   }
 
   // Check if message has attachments (only when not showing unread count)
-  if (unreadCount <= 1 && messagePreview.attachments && messagePreview.attachments.length > 0 && attachmentPreview && messageType === "CONTENT") {
+  if (
+    unreadCount <= 1 &&
+    messagePreview.attachments &&
+    messagePreview.attachments.length > 0 &&
+    attachmentPreview &&
+    messageType === "CONTENT"
+  ) {
     if (messagePreview.content?.trim().length > 0) {
       // Has content + attachments: show content with icon before (icon will be added in JSX)
       messagePreviewContent = contentsTypes.CONTENT;
@@ -485,13 +514,17 @@ export default function RoomPreview({
     navigate("/messages/chat");
   };
 
-  const chatName = room.name ||
-      `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
-      (room.isGroup ? groupChat : appUser);
+  const chatName =
+    room.name ||
+    `${otherUser?.displayName || appUser} ${isSaved ? `(${you})` : ""}` ||
+    (room.isGroup ? groupChat : appUser);
 
   // Convert mentions in title from @[DisplayName](userId) to @DisplayName
-  const titleContent = messagePreviewContent?.replace("[r]", messagePreview.content) || noMessage;
-  const titleContentWithMentions = titleContent.replace(/\n/g, " ").replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
+  const titleContent =
+    messagePreviewContent?.replace("[r]", messagePreview.content) || noMessage;
+  const titleContentWithMentions = titleContent
+    .replace(/\n/g, " ")
+    .replace(/@\[([^\]]+)\]\(([^)]+)\)/g, "@$1");
 
   return (
     <li
@@ -516,14 +549,19 @@ export default function RoomPreview({
             className={cn(
               "block truncate",
               isVerified && "flex items-center",
-              (unreadCount && !typing.isTyping) && "font-semibold",
+              unreadCount && !typing.isTyping && "font-semibold",
             )}
           >
             {/* Surbrillance dans le nom */}
             <HighlightText text={chatName} highlight={highlight} />
             {verifiedCheck}
           </span>
-          <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
+          <div
+            className={cn(
+              "flex w-full items-center gap-1 text-sm text-muted-foreground",
+              unreadCount && !typing.isTyping && "font-semibold text-primary",
+            )}
+          >
             {showIconBefore && attachmentPreview?.icon && (
               <span className="flex-shrink-0 text-muted-foreground">
                 {attachmentPreview.icon}
@@ -531,41 +569,52 @@ export default function RoomPreview({
             )}
             <span
               className={cn(
-                "line-clamp-2 text-ellipsis break-all flex items-center gap-1",
+                "line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
                 (messageType !== "CONTENT" || typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
               )}
             >
-              {typing.isTyping
-                ? typingText
-                : showIconAfterSender && messagePreviewContent && messagePreviewContent.includes(": ")
-                  ? (
+              {typing.isTyping ? (
+                typingText
+              ) : showIconAfterSender &&
+                messagePreviewContent &&
+                messagePreviewContent.includes(": ") ? (
+                <>
+                  {messagePreviewContent.substring(
+                    0,
+                    messagePreviewContent.indexOf(": ") + 2,
+                  )}
+                  {attachmentPreview?.icon && (
+                    <span className="flex-shrink-0 text-muted-foreground">
+                      {attachmentPreview.icon}
+                    </span>
+                  )}
+                  {messagePreviewContent.substring(
+                    messagePreviewContent.indexOf(": ") + 2,
+                  )}
+                </>
+              ) : (
+                (messagePreviewContent &&
+                  (messageType === "REACTION" ? (
                     <>
-                      {messagePreviewContent.substring(0, messagePreviewContent.indexOf(": ") + 2)}
-                      {attachmentPreview?.icon && <span className="flex-shrink-0 text-muted-foreground">{attachmentPreview.icon}</span>}
-                      {messagePreviewContent.substring(messagePreviewContent.indexOf(": ") + 2)}
+                      {messagePreviewContent.split("[r]")[0]}
+                      <span className="font-emoji">
+                        {messagePreview.content}
+                      </span>
+                      {messagePreviewContent.split("[r]")[1]}
                     </>
-                  )
-                  : (messagePreviewContent &&
-                    (messageType === "REACTION" ? (
-                      <>
-                        {messagePreviewContent.split("[r]")[0]}
-                        <span className="font-emoji">
-                          {messagePreview.content}
-                        </span>
-                        {messagePreviewContent.split("[r]")[1]}
-                      </>
-                    ) : /* Surbrillance dans le dernier message si c'est du texte */
-                    (messageType === "CONTENT") ? (
-                      <HighlightText
-                        text={messagePreviewContent}
-                        highlight={highlight}
-                      />
-                    ) : (
-                      messagePreviewContent
-                    ))) ||
-                  noMessage}
+                  ) : /* Surbrillance dans le dernier message si c'est du texte */
+                  messageType === "CONTENT" ? (
+                    <HighlightText
+                      text={messagePreviewContent}
+                      highlight={highlight}
+                    />
+                  ) : (
+                    messagePreviewContent
+                  ))) ||
+                noMessage
+              )}
             </span>
             {!typing.isTyping && (
               <>
@@ -579,12 +628,19 @@ export default function RoomPreview({
         </div>
         {!!unreadCount && (
           <div className="flex flex-col items-center justify-between gap-2">
-          {mentionIndicator && (
-              <span className={cn("flex-shrink-0 text-inherit font-bold", unreadCount && "text-primary")}>
+            {mentionIndicator && (
+              <span
+                className={cn(
+                  "flex-shrink-0 font-bold text-inherit",
+                  unreadCount && "text-primary",
+                )}
+              >
                 <AtSign size={14} />
               </span>
             )}
-          <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-primary text-white"><FormattedInt number={unreadCount} /></div>
+            <div className="flex items-center rounded-2xl bg-primary p-1 px-2 text-xs text-white">
+              <FormattedInt number={unreadCount} />
+            </div>
           </div>
         )}
       </div>
