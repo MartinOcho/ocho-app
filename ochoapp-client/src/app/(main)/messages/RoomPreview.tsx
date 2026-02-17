@@ -1,7 +1,7 @@
 "use client";
 
 import UserAvatar from "@/components/UserAvatar";
-import { RoomData, NotificationCountInfo, UserData } from "@/lib/types";
+import { RoomData, NotificationCountInfo, UserData, SocketTypingUpdateEvent } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
 import { MessageType, VerifiedType } from "@prisma/client";
@@ -117,10 +117,7 @@ export default function RoomPreview({
     if (!socket || !isConnected || !room.id) return;
     socket.on(
       "typing_update",
-      (data: {
-        roomId: string;
-        typingUsers: { id: string; displayName: string; avatarUrl: string }[];
-      }) => {
+      (data: SocketTypingUpdateEvent) => {
         console.log(data);
         
         const isTyping = !!data.typingUsers
