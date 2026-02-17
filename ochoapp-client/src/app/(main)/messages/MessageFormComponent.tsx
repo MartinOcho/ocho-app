@@ -49,7 +49,7 @@ const getFriendlyErrorMessage = (error: unknown): string => {
   
   const msg = (error as Error).message || "";
 
-  if (msg === "Upload cancelled") return "Upload annulé"; // Cas spécial pour ne pas alarmer
+  if (msg === "Upload cancelled") return "Vous avez annulé l'envoi du fichier."; 
   if (msg.includes("Network Error") || msg.includes("Failed to fetch")) {
     return "Problème de connexion. Veuillez vérifier votre internet.";
   }
@@ -133,8 +133,6 @@ export function MessageFormComponent({
     fileInputRef.current?.click();
   };
 
-  // Fonction d'upload native avec XMLHttpRequest pour le suivi réel de la progression
-  // Ajout du paramètre onCancelSetup pour enregistrer la fonction d'annulation
   const uploadToCloudinary = async (
     file: File, 
     onProgress?: (progress: number) => void,
@@ -255,9 +253,7 @@ export function MessageFormComponent({
     });
 
     setAttachments((prev) => [...prev, ...newAttachments]);
-
-    // Démarrage des uploads en PARALLÈLE (au lieu de séquentiel)
-    // On utilise map au lieu d'une boucle for await pour ne pas bloquer
+    
     validFiles.forEach(async (file, index) => {
       const fileName = file.name;
       const localId = newAttachments[index].id;
@@ -313,14 +309,11 @@ export function MessageFormComponent({
   };
 
   const removeAttachment = (localId: string) => {
-    // Si un upload est en cours pour cet ID, on l'annule via le contrôleur
     if (abortControllersRef.current[localId]) {
-      abortControllersRef.current[localId](); // Ceci déclenche xhr.abort()
+      abortControllersRef.current[localId]();
       delete abortControllersRef.current[localId];
     }
-
-    // Le reste du nettoyage se fera dans le bloc catch/finally de handleFiles
-    // Mais on update l'UI immédiatement pour la réactivité si ce n'était pas en upload
+    
     setAttachments((prev) => prev.filter((a) => a.id !== localId));
     setUploadProgress((prev) => {
       const copy = { ...prev };

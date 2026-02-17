@@ -5,7 +5,7 @@ import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
 import { PrismaClient, Prisma, NotificationType } from "@prisma/client"; // Garder les types
-import prisma from "./prisma"; 
+import prisma from "./prisma";
 import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
@@ -28,7 +28,7 @@ import {
 } from "./types";
 import {
   getFormattedRooms,
-  getUnreadRoomsCount, 
+  getUnreadRoomsCount,
   getUnreadMessagesCountPerRoom,
   getMessageDeliveries,
   groupManagment,
@@ -69,8 +69,8 @@ const corsOptions = {
       return callback(null, true);
     }
     const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
-    const normalizedAllowed = allowedOrigins.map(url => 
-      url.toLowerCase().replace(/\/$/, "")
+    const normalizedAllowed = allowedOrigins.map((url) =>
+      url.toLowerCase().replace(/\/$/, ""),
     );
     if (normalizedAllowed.includes(normalizedOrigin)) {
       callback(null, true);
@@ -84,8 +84,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '200mb' }));
-app.use(express.urlencoded({ limit: '200mb', extended: true }));
+app.use(express.json({ limit: "200mb" }));
+app.use(express.urlencoded({ limit: "200mb", extended: true }));
 app.use(cookieParser());
 
 cloudinary.config({
@@ -94,7 +94,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello from the server" });
@@ -104,15 +107,24 @@ app.post("/api/cloudinary/proxy-upload", async (req, res) => {
   try {
     const body = req.body || {};
     const file = body.file;
-    if (!file) return res.status(400).json({ success: false, error: "No file provided" });
+    if (!file)
+      return res
+        .status(400)
+        .json({ success: false, error: "No file provided" });
 
-    const uploadResult = await cloudinary.uploader.upload(file, { resource_type: 'auto' });
+    const uploadResult = await cloudinary.uploader.upload(file, {
+      resource_type: "auto",
+    });
 
-    const attachmentType = uploadResult.resource_type && String(uploadResult.resource_type).startsWith("video")
-      ? "VIDEO"
-      : (uploadResult.resource_type === "image" || (uploadResult.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
-        ? "IMAGE"
-        : "DOCUMENT");
+    const attachmentType =
+      uploadResult.resource_type &&
+      String(uploadResult.resource_type).startsWith("video")
+        ? "VIDEO"
+        : uploadResult.resource_type === "image" ||
+            (uploadResult.secure_url &&
+              /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
+          ? "IMAGE"
+          : "DOCUMENT";
 
     const messageAttachment = await prisma.messageAttachment.create({
       data: {
@@ -126,53 +138,89 @@ app.post("/api/cloudinary/proxy-upload", async (req, res) => {
       },
     });
 
-    return res.json({ success: true, attachmentId: messageAttachment.id, result: uploadResult });
+    return res.json({
+      success: true,
+      attachmentId: messageAttachment.id,
+      result: uploadResult,
+    });
   } catch (err) {
-    console.error('Proxy upload error', err);
-    return res.status(500).json({ success: false, error: 'Upload failed', details: err instanceof Error ? err.message : undefined });
+    console.error("Proxy upload error", err);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
   }
 });
 
-app.post("/api/cloudinary/proxy-upload-multipart", upload.single("file"), async (req, res) => {
-  try {
-    const file = (req as any).file;
-    if (!file || !file.buffer) return res.status(400).json({ success: false, error: "No file provided" });
+app.post(
+  "/api/cloudinary/proxy-upload-multipart",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res
+          .status(400)
+          .json({ success: false, error: "No file provided" });
 
-    const streamUpload = (buffer: Buffer) =>
-      new Promise<any>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ resource_type: 'auto' }, (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<any>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            },
+          );
+          stream.end(buffer);
         });
-        stream.end(buffer);
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const attachmentType =
+        uploadResult.resource_type &&
+        String(uploadResult.resource_type).startsWith("video")
+          ? "VIDEO"
+          : uploadResult.resource_type === "image" ||
+              (uploadResult.secure_url &&
+                /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(
+                  uploadResult.secure_url,
+                ))
+            ? "IMAGE"
+            : "DOCUMENT";
+
+      const messageAttachment = await prisma.messageAttachment.create({
+        data: {
+          type: attachmentType,
+          url: uploadResult.secure_url || uploadResult.url || "",
+          publicId: uploadResult.public_id || null,
+          width: uploadResult.width || null,
+          height: uploadResult.height || null,
+          format: uploadResult.format || null,
+          resourceType: uploadResult.resource_type || null,
+        },
       });
 
-    const uploadResult = await streamUpload(file.buffer);
-
-    const attachmentType = uploadResult.resource_type && String(uploadResult.resource_type).startsWith("video")
-      ? "VIDEO"
-      : (uploadResult.resource_type === "image" || (uploadResult.secure_url && /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
-        ? "IMAGE"
-        : "DOCUMENT");
-
-    const messageAttachment = await prisma.messageAttachment.create({
-      data: {
-        type: attachmentType,
-        url: uploadResult.secure_url || uploadResult.url || "",
-        publicId: uploadResult.public_id || null,
-        width: uploadResult.width || null,
-        height: uploadResult.height || null,
-        format: uploadResult.format || null,
-        resourceType: uploadResult.resource_type || null,
-      },
-    });
-
-    return res.json({ success: true, attachmentId: messageAttachment.id, result: uploadResult });
-  } catch (err) {
-    console.error('Proxy multipart upload error', err);
-    return res.status(500).json({ success: false, error: 'Upload failed', details: err instanceof Error ? err.message : undefined });
-  }
-});
+      return res.json({
+        success: true,
+        attachmentId: messageAttachment.id,
+        result: uploadResult,
+      });
+    } catch (err) {
+      console.error("Proxy multipart upload error", err);
+      return res
+        .status(500)
+        .json({
+          success: false,
+          error: "Upload failed",
+          details: err instanceof Error ? err.message : undefined,
+        });
+    }
+  },
+);
 app.post("/api/auth/session", validateSession);
 
 interface TypingUser {
@@ -189,8 +237,8 @@ const io = new Server(server, {
         return callback(null, true);
       }
       const normalizedOrigin = origin.toLowerCase().replace(/\/$/, "");
-      const normalizedAllowed = allowedOrigins.map(url => 
-        url.toLowerCase().replace(/\/$/, "")
+      const normalizedAllowed = allowedOrigins.map((url) =>
+        url.toLowerCase().replace(/\/$/, ""),
       );
       if (normalizedAllowed.includes(normalizedOrigin)) {
         callback(null, true);
@@ -218,36 +266,33 @@ io.on("connection", async (socket: Socket) => {
 
   socket.join(userId);
 
-  groupManagment(io, socket, { userId, username, displayName, avatarUrl});
+  groupManagment(io, socket, { userId, username, displayName, avatarUrl });
 
   await markUndeliveredMessages(userId, io);
 
-  socket.on(
-    "start_chat",
-    async (data: SocketStartChatEvent) => {
-      try {
-        const result = await handleStartChat(data, userId);
-        
-        if ("newRoom" in result) {
-          // Nouvelle room créée
-          const { newRoom, otherMemberIds } = result;
-          socket.join(newRoom.id);
+  socket.on("start_chat", async (data: SocketStartChatEvent) => {
+    try {
+      const result = await handleStartChat(data, userId);
 
-          otherMemberIds.forEach((memberId) => {
-            io.to(memberId).emit("new_room_created", newRoom);
-          });
+      if ("newRoom" in result) {
+        // Nouvelle room créée
+        const { newRoom, otherMemberIds } = result;
+        socket.join(newRoom.id);
 
-          socket.emit("room_ready", newRoom);
-        } else {
-          // Room existante
-          socket.emit("room_ready", result);
-        }
-      } catch (error) {
-        console.error("Erreur start_chat:", error);
-        socket.emit("error_message", "Impossible de créer la discussion.");
+        otherMemberIds.forEach((memberId) => {
+          io.to(memberId).emit("new_room_created", newRoom);
+        });
+
+        socket.emit("room_ready", newRoom);
+      } else {
+        // Room existante
+        socket.emit("room_ready", result);
       }
+    } catch (error) {
+      console.error("Erreur start_chat:", error);
+      socket.emit("error_message", "Impossible de créer la discussion.");
     }
-  );
+  });
 
   socket.on("get_rooms", async (data: SocketGetRoomsEvent): Promise<void> => {
     const { cursor } = data;
@@ -265,8 +310,8 @@ io.on("connection", async (socket: Socket) => {
       chalk.yellow(
         socket.data.user.username || userId,
         "Tente de rejoindre le salon:",
-        roomId
-      )
+        roomId,
+      ),
     );
 
     if (roomId === "saved-" + userId) {
@@ -275,8 +320,8 @@ io.on("connection", async (socket: Socket) => {
         chalk.green(
           socket.data.user.username || userId,
           "a rejoins le salon:",
-          roomId
-        )
+          roomId,
+        ),
       );
       return;
     }
@@ -291,8 +336,8 @@ io.on("connection", async (socket: Socket) => {
         chalk.green(
           socket.data.user.username || userId,
           "a rejoins le salon:",
-          roomId
-        )
+          roomId,
+        ),
       );
     }
   });
@@ -300,7 +345,7 @@ io.on("connection", async (socket: Socket) => {
   socket.on("leave_room", (roomId: string) => {
     socket.leave(roomId);
     console.log(
-      chalk.gray(`${displayName} a quitté le salon (socket): ${roomId}`)
+      chalk.gray(`${displayName} a quitté le salon (socket): ${roomId}`),
     );
   });
 
@@ -334,48 +379,45 @@ io.on("connection", async (socket: Socket) => {
         typingUsersByRoom.delete(roomId);
       }
       const typingList = Array.from(roomTyping?.values() || []).filter(
-        (u) => u.id !== userId
+        (u) => u.id !== userId,
       );
-      io
-        .to(roomId)
-        .emit("typing_update", { roomId, typingUsers: typingList });
+      io.to(roomId).emit("typing_update", { roomId, typingUsers: typingList });
     }
   });
 
-  socket.on(
-    "mark_message_read",
-    async (data: SocketMarkMessageReadEvent) => {
-      const { messageId, roomId } = data;
-      try {
-        const { reads, unreadCount } = await handleMarkMessageRead(
-          messageId,
-          roomId,
-          userId,
-        );
+  socket.on("mark_message_read", async (data: SocketMarkMessageReadEvent) => {
+    const { messageId, roomId } = data;
+    try {
+      const { reads, unreadCount } = await handleMarkMessageRead(
+        messageId,
+        roomId,
+        userId,
+      );
 
-        io.to(roomId).emit("message_read_update", {
-          messageId,
-          reads,
-        });
+      io.to(roomId).emit("message_read_update", {
+        messageId,
+        reads,
+      });
 
-        // 1. Mise à jour GLOBAL (badge app/navbar)
-        io.to(userId).emit("rooms_unreads_update", {
-          unreadCount, // Total des salons non lus
-        });
-        
-        // 2. Mise à jour SPÉCIFIQUE AU SALON (badge room)
-        const currentRoomUnreadCount = await getUnreadMessagesCountPerRoom(userId, roomId);
-        
-        io.to(userId).emit("room_unread_count_update", {
-           roomId,
-           unreadCount: currentRoomUnreadCount
-        });
+      // 1. Mise à jour GLOBAL (badge app/navbar)
+      io.to(userId).emit("rooms_unreads_update", {
+        unreadCount, // Total des salons non lus
+      });
 
-      } catch (error) {
-        console.error("Erreur mark_message_read:", error);
-      }
+      // 2. Mise à jour SPÉCIFIQUE AU SALON (badge room)
+      const currentRoomUnreadCount = await getUnreadMessagesCountPerRoom(
+        userId,
+        roomId,
+      );
+
+      io.to(userId).emit("room_unread_count_update", {
+        roomId,
+        unreadCount: currentRoomUnreadCount,
+      });
+    } catch (error) {
+      console.error("Erreur mark_message_read:", error);
     }
-  );
+  });
 
   socket.on(
     "mark_message_delivered",
@@ -392,254 +434,264 @@ io.on("connection", async (socket: Socket) => {
           messageId,
           deliveries,
         });
-
       } catch (error) {
         console.error("Erreur mark_message_delivered:", error);
       }
-    }
+    },
   );
 
-  socket.on(
-    "add_reaction",
-    async (data: SocketAddReactionEvent) => {
-      try {
-        const { reactions, affectedUserIds, senderUsername } =
-          await handleAddReaction(data, userId, username);
+  socket.on("add_reaction", async (data: SocketAddReactionEvent) => {
+    try {
+      const { reactions, affectedUserIds, senderUsername } =
+        await handleAddReaction(data, userId, username);
 
-        io.to(data.roomId).emit("message_reaction_update", {
-          messageId: data.messageId,
-          reactions,
+      io.to(data.roomId).emit("message_reaction_update", {
+        messageId: data.messageId,
+        reactions,
+      });
+
+      // Emet la mise à jour des rooms pour les utilisateurs affectés
+      for (const affectedId of affectedUserIds) {
+        const user = await prisma.user.findUnique({
+          where: { id: affectedId },
+          select: { username: true },
         });
-
-        // Emet la mise à jour des rooms pour les utilisateurs affectés
-        for (const affectedId of affectedUserIds) {
-          const user = await prisma.user.findUnique({
-            where: { id: affectedId },
-            select: { username: true },
-          });
-          if (user) {
-            const updatedRooms = await getFormattedRooms(affectedId, user.username);
-            io.to(affectedId).emit("room_list_updated", updatedRooms);
-          }
+        if (user) {
+          const updatedRooms = await getFormattedRooms(
+            affectedId,
+            user.username,
+          );
+          io.to(affectedId).emit("room_list_updated", updatedRooms);
         }
-      } catch (error) {
-        console.error("Erreur add_reaction:", error);
-        socket.emit("error", { message: "Impossible d'ajouter la réaction" });
       }
+    } catch (error) {
+      console.error("Erreur add_reaction:", error);
+      socket.emit("error", { message: "Impossible d'ajouter la réaction" });
     }
-  );
+  });
 
-  socket.on(
-    "remove_reaction",
-    async (data: SocketRemoveReactionEvent) => {
-      try {
-        const { reactions, affectedUserIds, senderUsername } =
-          await handleRemoveReaction(data, userId, username);
+  socket.on("remove_reaction", async (data: SocketRemoveReactionEvent) => {
+    try {
+      const { reactions, affectedUserIds, senderUsername } =
+        await handleRemoveReaction(data, userId, username);
 
-        io.to(data.roomId).emit("message_reaction_update", {
-          messageId: data.messageId,
-          reactions,
+      io.to(data.roomId).emit("message_reaction_update", {
+        messageId: data.messageId,
+        reactions,
+      });
+
+      // Emet la mise à jour des rooms pour les utilisateurs affectés
+      for (const affectedId of affectedUserIds) {
+        const user = await prisma.user.findUnique({
+          where: { id: affectedId },
+          select: { username: true },
         });
-
-        // Emet la mise à jour des rooms pour les utilisateurs affectés
-        for (const affectedId of affectedUserIds) {
-          const user = await prisma.user.findUnique({
-            where: { id: affectedId },
-            select: { username: true },
-          });
-          if (user) {
-            const updatedRooms = await getFormattedRooms(affectedId, user.username);
-            io.to(affectedId).emit("room_list_updated", updatedRooms);
-          }
+        if (user) {
+          const updatedRooms = await getFormattedRooms(
+            affectedId,
+            user.username,
+          );
+          io.to(affectedId).emit("room_list_updated", updatedRooms);
         }
-      } catch (error) {
-        console.error("Erreur remove_reaction:", error);
-        socket.emit("error", {
-          message: "Impossible de supprimer la réaction",
-        });
       }
+    } catch (error) {
+      console.error("Erreur remove_reaction:", error);
+      socket.emit("error", {
+        message: "Impossible de supprimer la réaction",
+      });
     }
-  );
-  socket.on(
-    "delete_message",
-    async (data: SocketDeleteMessageEvent) => {
-      try {
-        const { isSavedRoom, attachmentIds, affectedUserIds } = await handleDeleteMessage(
-          data,
-          userId,
-          username,
-        );
+  });
+  socket.on("delete_message", async (data: SocketDeleteMessageEvent) => {
+    try {
+      const { isSavedRoom, attachmentIds, affectedUserIds } =
+        await handleDeleteMessage(data, userId, username);
 
-        io.to(data.roomId).emit("message_deleted", {
+      io.to(data.roomId).emit("message_deleted", {
+        messageId: data.messageId,
+        roomId: data.roomId,
+      });
+
+      if (attachmentIds.length > 0) {
+        io.to(data.roomId).emit("gallery_deleted", {
+          roomId: data.roomId,
+          attachmentIds,
+        });
+
+        if (isSavedRoom) {
+          socket.emit("gallery_deleted", {
+            roomId: data.roomId,
+            attachmentIds,
+          });
+        }
+      }
+
+      if (isSavedRoom) {
+        socket.emit("message_deleted", {
           messageId: data.messageId,
           roomId: data.roomId,
         });
 
-        if (attachmentIds.length > 0) {
-          io.to(data.roomId).emit("gallery_deleted", {
-            roomId: data.roomId,
-            attachmentIds,
+        const updatedRooms = await getFormattedRooms(userId, username);
+        io.to(userId).emit("room_list_updated", updatedRooms);
+      } else {
+        // Emet la mise à jour des rooms et des unreads pour les membres affectés
+        for (const affectedId of affectedUserIds) {
+          const user = await prisma.user.findUnique({
+            where: { id: affectedId },
+            select: { username: true },
           });
+          if (user) {
+            const updatedRooms = await getFormattedRooms(
+              affectedId,
+              user.username,
+            );
+            const newGlobalUnreadCount = await getUnreadRoomsCount(affectedId);
+            const newRoomUnreadCount = await getUnreadMessagesCountPerRoom(
+              affectedId,
+              data.roomId,
+            );
 
-          if (isSavedRoom) {
-            socket.emit("gallery_deleted", {
+            io.to(affectedId).emit("room_list_updated", updatedRooms);
+
+            // 1. Mise à jour GLOBAL (Badge Navbar/Menu)
+            io.to(affectedId).emit("rooms_unreads_update", {
+              unreadCount: newGlobalUnreadCount,
+            });
+
+            // 2. Mise à jour SPÉCIFIQUE (Badge Salon)
+            io.to(affectedId).emit("room_unread_count_update", {
               roomId: data.roomId,
-              attachmentIds,
+              unreadCount: newRoomUnreadCount,
             });
           }
         }
-
-        if (isSavedRoom) {
-          socket.emit("message_deleted", {
-            messageId: data.messageId,
-            roomId: data.roomId,
-          });
-
-          const updatedRooms = await getFormattedRooms(userId, username);
-          io.to(userId).emit("room_list_updated", updatedRooms);
-        } else {
-          // Emet la mise à jour des rooms et des unreads pour les membres affectés
-          for (const affectedId of affectedUserIds) {
-            const user = await prisma.user.findUnique({
-              where: { id: affectedId },
-              select: { username: true },
-            });
-            if (user) {
-              const updatedRooms = await getFormattedRooms(affectedId, user.username);
-              const newGlobalUnreadCount = await getUnreadRoomsCount(affectedId);
-              const newRoomUnreadCount = await getUnreadMessagesCountPerRoom(affectedId, data.roomId);
-              
-              io.to(affectedId).emit("room_list_updated", updatedRooms);
-              
-              // 1. Mise à jour GLOBAL (Badge Navbar/Menu)
-              io.to(affectedId).emit("rooms_unreads_update", { 
-                unreadCount: newGlobalUnreadCount,
-              });
-
-              // 2. Mise à jour SPÉCIFIQUE (Badge Salon)
-              io.to(affectedId).emit("room_unread_count_update", {
-                roomId: data.roomId,
-                unreadCount: newRoomUnreadCount
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Erreur delete_message:", error);
-        socket.emit("error", { message: "Impossible de supprimer le message" });
       }
+    } catch (error) {
+      console.error("Erreur delete_message:", error);
+      socket.emit("error", { message: "Impossible de supprimer le message" });
     }
-  );
+  });
 
-  socket.on(
-    "send_message",
-    async (data: SocketSendMessageEvent) => {
-      const { tempId, roomId } = data;
+  socket.on("send_message", async (data: SocketSendMessageEvent) => {
+    const { tempId, roomId } = data;
 
-      console.log(chalk.blue("Envoi du message:", data.content));
-      console.log(chalk.blue("Attachments:", data.attachmentIds));
+    console.log(chalk.blue("Envoi du message:", data.content));
+    console.log(chalk.blue("Attachments:", data.attachmentIds));
 
-      try {
-        const isSavedMessage = roomId === `saved-${userId}`;
+    try {
+      const isSavedMessage = roomId === `saved-${userId}`;
 
-        if (isSavedMessage) {
-          // --- BLOC MESSAGES SAUVEGARDÉS ---
-          const { newMessage, galleryMedias } = await handleSendSavedMessage(data, userId);
+      if (isSavedMessage) {
+        // --- BLOC MESSAGES SAUVEGARDÉS ---
+        const { newMessage, galleryMedias } = await handleSendSavedMessage(
+          data,
+          userId,
+        );
 
-          socket.join(roomId);
+        socket.join(roomId);
 
-          io.to(roomId).emit("receive_message", { newMessage, roomId, tempId });
-          socket.emit("receive_message", { newMessage, roomId, tempId });
+        io.to(roomId).emit("receive_message", { newMessage, roomId, tempId });
+        socket.emit("receive_message", { newMessage, roomId, tempId });
 
-          // Émettre la mise à jour galerie
-          if (galleryMedias && galleryMedias.length > 0) {
-            io.to(roomId).emit("gallery_updated", {
-              roomId,
-              medias: galleryMedias,
-              tempId,
-            });
-
-            socket.emit("gallery_updated", {
-              roomId,
-              medias: galleryMedias,
-              tempId,
-            });
-          }
-
-          const updatedRooms = await getFormattedRooms(userId, username);
-          io.to(userId).emit("room_list_updated", updatedRooms);
-        } else {
-          // --- BLOC MESSAGES NORMAUX ---
-          const { newMessage, newRoom, galleryMedias, affectedUserIds, deliveredUserIds } =
-            await handleSendNormalMessage(data, userId, username, io);
-
-          socket.join(roomId);
-
-          io.to(roomId).emit("receive_message", {
-            newMessage,
+        // Émettre la mise à jour galerie
+        if (galleryMedias && galleryMedias.length > 0) {
+          io.to(roomId).emit("gallery_updated", {
             roomId,
-            newRoom,
+            medias: galleryMedias,
             tempId,
           });
 
-          // Envoyer la mise à jour galerie
-          if (galleryMedias && galleryMedias.length > 0) {
-            io.to(roomId).emit("gallery_updated", {
-              roomId,
-              medias: galleryMedias,
-              tempId,
-            });
+          socket.emit("gallery_updated", {
+            roomId,
+            medias: galleryMedias,
+            tempId,
+          });
+        }
 
-            socket.emit("gallery_updated", {
-              roomId,
-              medias: galleryMedias,
-              tempId,
-            });
-          }
+        const updatedRooms = await getFormattedRooms(userId, username);
+        io.to(userId).emit("room_list_updated", updatedRooms);
+      } else {
+        // --- BLOC MESSAGES NORMAUX ---
+        const {
+          newMessage,
+          newRoom,
+          galleryMedias,
+          affectedUserIds,
+          deliveredUserIds,
+        } = await handleSendNormalMessage(data, userId, username, io);
 
-          // Emit delivery update if any users are online and received the message
-          if (deliveredUserIds && deliveredUserIds.length > 0) {
-            const updatedDeliveries = await getMessageDeliveries(newMessage.id);
-            io.to(roomId).emit("message_delivered_update", {
-              messageId: newMessage.id,
-              deliveries: updatedDeliveries,
-            });
-          }
+        socket.join(roomId);
 
-          // Émettre la mise à jour des rooms pour les membres affectés
-          for (const affectedId of affectedUserIds) {
-            const user = await prisma.user.findUnique({
-              where: { id: affectedId },
-              select: { username: true },
-            });
-            if (user) {
-              const updatedRooms = await getFormattedRooms(affectedId, user.username);
-              io.to(affectedId).emit("room_list_updated", updatedRooms);
+        io.to(roomId).emit("receive_message", {
+          newMessage,
+          roomId,
+          newRoom,
+          tempId,
+        });
 
-              if (affectedId !== userId) {
-                const globalUnreadCount = await getUnreadRoomsCount(affectedId);
-                const roomUnreadCount = await getUnreadMessagesCountPerRoom(affectedId, roomId);
+        // Envoyer la mise à jour galerie
+        if (galleryMedias && galleryMedias.length > 0) {
+          io.to(roomId).emit("gallery_updated", {
+            roomId,
+            medias: galleryMedias,
+            tempId,
+          });
 
-                // 1. Mise à jour GLOBAL (Badge Navbar/Menu : nombre de salons avec non-lus)
-                io.to(affectedId).emit("rooms_unreads_update", { 
-                  unreadCount: globalUnreadCount,
-                });
+          socket.emit("gallery_updated", {
+            roomId,
+            medias: galleryMedias,
+            tempId,
+          });
+        }
 
-                // 2. Mise à jour SPÉCIFIQUE (Badge Salon : nombre de messages non-lus dans CE salon)
-                io.to(affectedId).emit("room_unread_count_update", { 
-                  roomId: roomId,
-                  unreadCount: roomUnreadCount
-                });
-              }
+        // Emit delivery update if any users are online and received the message
+        if (deliveredUserIds && deliveredUserIds.length > 0) {
+          const updatedDeliveries = await getMessageDeliveries(newMessage.id);
+          io.to(roomId).emit("message_delivered_update", {
+            messageId: newMessage.id,
+            deliveries: updatedDeliveries,
+          });
+        }
+
+        // Émettre la mise à jour des rooms pour les membres affectés
+        for (const affectedId of affectedUserIds) {
+          const user = await prisma.user.findUnique({
+            where: { id: affectedId },
+            select: { username: true },
+          });
+          if (user) {
+            const updatedRooms = await getFormattedRooms(
+              affectedId,
+              user.username,
+            );
+            io.to(affectedId).emit("room_list_updated", updatedRooms);
+
+            if (affectedId !== userId) {
+              const globalUnreadCount = await getUnreadRoomsCount(affectedId);
+              const roomUnreadCount = await getUnreadMessagesCountPerRoom(
+                affectedId,
+                roomId,
+              );
+
+              // 1. Mise à jour GLOBAL (Badge Navbar/Menu : nombre de salons avec non-lus)
+              io.to(affectedId).emit("rooms_unreads_update", {
+                unreadCount: globalUnreadCount,
+              });
+
+              // 2. Mise à jour SPÉCIFIQUE (Badge Salon : nombre de messages non-lus dans CE salon)
+              io.to(affectedId).emit("room_unread_count_update", {
+                roomId: roomId,
+                unreadCount: roomUnreadCount,
+              });
             }
           }
         }
-      } catch (error) {
-        console.error("Erreur send_message:", error);
-        socket.emit("error", { message: "Erreur lors de l'envoi" });
       }
+    } catch (error) {
+      console.error("Erreur send_message:", error);
+      socket.emit("error", { message: "Erreur lors de l'envoi" });
     }
-  );
+  });
 
   socket.on(
     "create_notification",
@@ -652,7 +704,7 @@ io.on("connection", async (socket: Socket) => {
       try {
         const { type, recipientId, postId, commentId } = data;
         if (!recipientId || !type) return;
-        if (userId === recipientId) return; 
+        if (userId === recipientId) return;
 
         const notification = await prisma.notification.create({
           data: {
@@ -693,7 +745,7 @@ io.on("connection", async (socket: Socket) => {
       } catch (e) {
         console.error("Erreur create_notification socket:", e);
       }
-    }
+    },
   );
 
   socket.on(
@@ -719,17 +771,23 @@ io.on("connection", async (socket: Socket) => {
         });
 
         if (deleteResult.count > 0) {
-          io.to(recipientId).emit("notification_deleted", { type, postId, commentId });
+          io.to(recipientId).emit("notification_deleted", {
+            type,
+            postId,
+            commentId,
+          });
 
           const unreadCount = await prisma.notification.count({
             where: { recipientId, read: false },
           });
-          io.to(recipientId).emit("notifications_unread_update", { unreadCount });
+          io.to(recipientId).emit("notifications_unread_update", {
+            unreadCount,
+          });
         }
       } catch (e) {
         console.error("Erreur delete_notification socket:", e);
       }
-    }
+    },
   );
 
   socket.on("check_user_status", async (data: SocketCheckUserStatusEvent) => {
@@ -766,7 +824,7 @@ io.on("connection", async (socket: Socket) => {
       isOnline: false,
       lastSeen: lastSeen,
     });
-    
+
     typingUsersByRoom.forEach((typingUsers, room) => {
       typingUsers.delete(userId);
       io.to(room).emit("typing_stop", { roomId: room });

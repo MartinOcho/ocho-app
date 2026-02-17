@@ -215,13 +215,6 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
         if (!selection || selection.rangeCount === 0) return;
 
         const range = selection.getRangeAt(0);
-
-        // On veut détecter si le curseur est immédiatement après une mention.
-        // Cas pris en charge :
-        // - cursor dans un TEXT_NODE à offset 0 => regarder previousSibling (ou plus loin si whitespace)
-        // - cursor dans ELEMENT_NODE => childNodes[offset-1]
-        // - si égal selection collapsed et startOffset === 0 on descend la logique
-
         let prevNode: Node | null = null;
 
         if (range.collapsed) {
