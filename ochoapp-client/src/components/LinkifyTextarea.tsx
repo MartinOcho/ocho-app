@@ -172,18 +172,15 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       
 
       if (currentRaw !== value && !isTypingRef.current) {
-        // Sauvegarde caret
+        
         const caret = getCaretOffset();
-
-        // Mettre à jour le HTML
+        
         editor.innerHTML = rawToHtml(value);
-
-        // Restaurer caret de façon asynchrone
+        
         requestAnimationFrame(() => {
           setCaretOffset(caret);
         });
       }
-      // Si c'est juste un changement de formatage mais même contenu textuel, on peut ignorer
     }, [value, htmlToRaw, rawToHtml, getCaretOffset, setCaretOffset]);
 
     // --- 4. GESTIONNAIRES D'ÉVÉNEMENTS ---

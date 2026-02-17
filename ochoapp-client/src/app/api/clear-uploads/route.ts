@@ -87,6 +87,9 @@ export async function GET(req: Request) {
       },
     });
 
+    console.log(unusedMessageAttachments);
+    
+
     // Supprimer les fichiers des pièces jointes de Cloudinary
     for (const attachment of unusedMessageAttachments) {
       if (attachment.publicId) {
