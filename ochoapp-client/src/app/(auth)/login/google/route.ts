@@ -18,14 +18,14 @@ export async function GET() {
         path: "/",
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 600,
+        maxAge: 900, // 15 minutes au lieu de 10
         sameSite: "lax",
     });
     cookieCall.set("code_verifier", codeVerifier, {
         path: "/",
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 600,
+        maxAge: 900, // 15 minutes au lieu de 10
         sameSite: "lax",
     });
     

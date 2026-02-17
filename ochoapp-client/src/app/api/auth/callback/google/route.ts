@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
     if (
         !code || !state || !storedState || !storedCodeVerifier || state !== storedState
     ) {
+        // Nettoyer les cookies avant de retourner l'erreur
+        cookieCall.delete("state");
+        cookieCall.delete("code_verifier");
         return new Response(null, { status: 400 })
     }
 
@@ -48,6 +51,10 @@ export async function GET(req: NextRequest) {
                 sessionCookie.value,
                 sessionCookie.attributes
             )
+
+            // Nettoyer les cookies OAuth
+            cookieCall.delete("state");
+            cookieCall.delete("code_verifier");
 
             // Set custom cookie indicating third-party auth
             cookieCall.set("third_party_auth", "google", {
@@ -123,6 +130,10 @@ export async function GET(req: NextRequest) {
             sessionCookie.attributes,
         );
 
+        // Nettoyer les cookies OAuth
+        cookieCall.delete("state");
+        cookieCall.delete("code_verifier");
+
         // Set custom cookie indicating third-party auth
         cookieCall.set("third_party_auth", "google", {
             httpOnly: true,
@@ -139,6 +150,10 @@ export async function GET(req: NextRequest) {
         })
     } catch (error) {
         console.error(error);
+
+        // Nettoyer les cookies en cas d'erreur
+        cookieCall.delete("state");
+        cookieCall.delete("code_verifier");
 
         if (error instanceof OAuth2RequestError) {
             return new Response(null, {

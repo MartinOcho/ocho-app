@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
   if (!code || !state || !storedState || state !== storedState) {
     console.log(code, state, storedState);
 
+    // Nettoyer les cookies avant de retourner l'erreur
+    cookieCall.delete("state");
+
     return new Response(null, { status: 400 });
   }
 
@@ -51,6 +54,9 @@ export async function GET(req: NextRequest) {
         sessionCookie.value,
         sessionCookie.attributes,
       );
+
+      // Nettoyer les cookies OAuth
+      cookieCall.delete("state");
 
       // Set custom cookie indicating third-party auth
       cookieCall.set("third_party_auth", "github", {
@@ -159,6 +165,9 @@ export async function GET(req: NextRequest) {
       sessionCookie.attributes,
     );
 
+    // Nettoyer les cookies OAuth
+    cookieCall.delete("state");
+
     // Set custom cookie indicating third-party auth
     cookieCall.set("third_party_auth", "github", {
       httpOnly: true,
@@ -175,6 +184,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error(error);
+
+    // Nettoyer les cookies en cas d'erreur
+    cookieCall.delete("state");
 
     if (error instanceof OAuth2RequestError) {
       return new Response(null, {
