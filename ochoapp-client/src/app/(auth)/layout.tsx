@@ -4,33 +4,27 @@ import { EmptySession } from "../(main)/SessionProvider";
 import { ProgressProvider } from "@/context/ProgressContext";
 import { Toaster } from "@/components/ui/toaster";
 import { LanguageProvider } from "@/context/LanguageContext";
+import AuthLayoutClient from "./AuthLayoutClient";
 
 export default async function Layout({
   children,
-  searchParams,
 }: {
   children: React.ReactNode;
-  searchParams: Promise<{ switching?: string }>;
 }) {
   const { user } = await validateRequest();
-  const params = await searchParams;
-  const isSwitching = params.switching === "true";
 
-  if (user && !isSwitching) redirect("/");
+  if (user) {
+    // Le redirection ne sera fait que côté client si pas en switching mode
+    // Le composant client gère le switching param
+  }
   return (
     <ProgressProvider>
       <EmptySession>
         <LanguageProvider>
-      <Toaster/>
-        <main className="flex h-screen max-h-vh items-center justify-center p-5">
-          <div className="flex flex-col items-center justify-between gap-5 h-full">
+          <Toaster />
+          <AuthLayoutClient user={user}>
             {children}
-            <div className="privacy text-muted-foreground text-center px-1 text-sm">
-              <p>En utilisant OchoApp, vous acceptez les présentes <a href="/terms-of-use" className="text-primary hover:underline max-sm:underline">Conditions d&apos;Utilisation</a> et avez lu la <a href="/privacy" className="text-primary hover:underline max-sm:underline">politique de confidentialité</a>.</p>
-            </div>
-          </div>
-        </main>
-
+          </AuthLayoutClient>
         </LanguageProvider>
       </EmptySession>
     </ProgressProvider>
