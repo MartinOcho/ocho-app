@@ -4,6 +4,8 @@ import { verify } from "@node-rs/argon2";
 import { lucia } from "@/auth";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { deleteOldSessionsForAccountOnDevice } from "@/lib/session-utils";
+import { detectGeoLocationFromIP } from "@/lib/geolocation-utils";
 import {
   ApiResponse,
   User,
@@ -83,6 +85,7 @@ export async function POST(req: NextRequest) {
     const deviceId = req.headers.get("X-Device-ID");
     const deviceTypeHeader = req.headers.get("X-Device-Type");
     const deviceModel = req.headers.get("X-Device-Model");
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
 
     // Vérifier la présence des en-têtes essentiels
     if (!deviceId || !deviceTypeHeader) {
@@ -92,6 +95,9 @@ export async function POST(req: NextRequest) {
         name: "missing_device_headers",
       });
     }
+
+    // Récupérer la géolocalisation basée sur l'IP
+    const geoLocation = await detectGeoLocationFromIP(ip, req.headers as any);
 
     // Vérifier si l'appareil existe déjà ou le créer
     let device = await prisma.device.findUnique({
@@ -105,9 +111,25 @@ export async function POST(req: NextRequest) {
           deviceId: deviceId,
           type: (deviceTypeHeader as DeviceType) || "UNKNOWN",
           model: deviceModel || "Unknown Model",
+          ip: ip,
+          location: geoLocation.city && geoLocation.countryCode 
+            ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+            : geoLocation.countryCode || null,
         },
       });
       console.log("Nouvel appareil enregistré:", device);
+    } else {
+      // Mettre à jour l'IP et la localisation à chaque appel
+      device = await prisma.device.update({
+        where: { deviceId: deviceId },
+        data: {
+          ip: ip,
+          location: geoLocation.city && geoLocation.countryCode 
+            ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+            : geoLocation.countryCode || device.location,
+          updatedAt: new Date(),
+        },
+      });
     }
 
     // Associer la session au device
@@ -116,6 +138,13 @@ export async function POST(req: NextRequest) {
       data: { deviceId: deviceId },
     });
     console.log("Session associée au device:", session.id);
+
+    // Supprimer les anciennes sessions de ce compte sur ce device
+    await deleteOldSessionsForAccountOnDevice(
+      existingUser.id,
+      deviceId,
+      session.id,
+    );
 
     const userVerifiedData = userData.verified?.[0];
     const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;

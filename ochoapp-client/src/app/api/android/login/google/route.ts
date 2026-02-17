@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "@/app/(mobile)/android/auth";
 import { generateId, generateIdFromEntropySize } from "lucia";
 import { slugify } from "@/lib/utils";
+import { deleteOldSessionsForAccountOnDevice } from "@/lib/session-utils";
+import { detectGeoLocationFromIP } from "@/lib/geolocation-utils";
+import { DeviceType } from "../../utils/dTypes";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -41,6 +44,10 @@ export async function GET(req: NextRequest) {
 
     console.log(googleUser);
     
+
+    const deviceId = req.headers.get("X-Device-ID");
+    const deviceTypeHeader = req.headers.get("X-Device-Type");
+    const deviceModel = req.headers.get("X-Device-Model");
 
     const existingUser = await prisma.user.findUnique({
       where: { googleId: googleUser.id },
@@ -80,6 +87,57 @@ export async function GET(req: NextRequest) {
         sessionCookie.value,
         sessionCookie.attributes,
       );
+
+      // Gestion du device pour Android
+      if (deviceId && deviceTypeHeader) {
+        const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        const geoLocation = await detectGeoLocationFromIP(ip, req.headers as any);
+
+        let device = await prisma.device.findUnique({
+          where: { deviceId: deviceId },
+        });
+
+        if (!device) {
+          device = await prisma.device.create({
+            data: {
+              deviceId: deviceId,
+              type: (deviceTypeHeader as DeviceType) || "UNKNOWN",
+              model: deviceModel || "Unknown Model",
+              ip: ip,
+              location: geoLocation.city && geoLocation.countryCode 
+                ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+                : geoLocation.countryCode || null,
+            },
+          });
+          console.log("Nouvel appareil enregistré:", device);
+        } else {
+          // Mettre à jour l'IP et la localisation à chaque appel
+          device = await prisma.device.update({
+            where: { deviceId: deviceId },
+            data: {
+              ip: ip,
+              location: geoLocation.city && geoLocation.countryCode 
+                ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+                : geoLocation.countryCode || device.location,
+              updatedAt: new Date(),
+            },
+          });
+        }
+
+        // Associer la session au device
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { deviceId: deviceId },
+        });
+        console.log("Session associée au device:", session.id);
+
+        // Supprimer les anciennes sessions de ce compte sur ce device
+        await deleteOldSessionsForAccountOnDevice(
+          existingUser.id,
+          deviceId,
+          session.id,
+        );
+      }
 
       return new Response(null, {
         status: 302,
@@ -142,6 +200,53 @@ export async function GET(req: NextRequest) {
       sessionCookie.value,
       sessionCookie.attributes,
     );
+
+    // Gestion du device pour Android
+    if (deviceId && deviceTypeHeader) {
+      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+      const geoLocation = await detectGeoLocationFromIP(ip, req.headers as any);
+
+      let device = await prisma.device.findUnique({
+        where: { deviceId: deviceId },
+      });
+
+      if (!device) {
+        device = await prisma.device.create({
+          data: {
+            deviceId: deviceId,
+            type: (deviceTypeHeader as DeviceType) || "UNKNOWN",
+            model: deviceModel || "Unknown Model",
+            ip: ip,
+            location: geoLocation.city && geoLocation.countryCode 
+              ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+              : geoLocation.countryCode || null,
+          },
+        });
+        console.log("Nouvel appareil enregistré:", device);
+      } else {
+        // Mettre à jour l'IP et la localisation à chaque appel
+        device = await prisma.device.update({
+          where: { deviceId: deviceId },
+          data: {
+            ip: ip,
+            location: geoLocation.city && geoLocation.countryCode 
+              ? `${geoLocation.city}, ${geoLocation.countryCode}` 
+              : geoLocation.countryCode || device.location,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      // Associer la session au device
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { deviceId: deviceId },
+      });
+      console.log("Session associée au device:", session.id);
+
+      // Supprimer les anciennes sessions de ce compte sur ce device
+      await deleteOldSessionsForAccountOnDevice(userId, deviceId, session.id);
+    }
 
     return new Response(null, {
       status: 302,
