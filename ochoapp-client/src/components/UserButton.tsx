@@ -88,6 +88,7 @@ export default function UserButton({ className }: UserButtonProps) {
         <DropdownMenuLabel className="max-sm:max-w-36">
           {loggedIn} @{user.username}
         </DropdownMenuLabel>
+        <AccountSwitcher currentUserId={user.id} />
         <DropdownMenuSeparator />
         <OchoLink href={`/users/${user.username}`} className="text-inherit">
           <DropdownMenuItem>
@@ -168,9 +169,6 @@ export default function UserButton({ className }: UserButtonProps) {
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
-        <DropdownMenuSeparator />
-        <AccountSwitcher currentUserId={user.id} />
-        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="hover:bg-destructive/20">
           <LogoutDialog />
         </DropdownMenuItem>
