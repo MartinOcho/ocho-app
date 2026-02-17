@@ -123,8 +123,7 @@ export default function RoomPreview({
         setTyping({
           isTyping,
           typingUsers: data.typingUsers
-            .filter((u) => u.id !== loggedinUser?.id)
-            .filter((u) => u.displayName !== undefined),
+            .filter((u) => u.id !== loggedinUser?.id),
         });
       if (isTyping) {
         console.log(typing);
