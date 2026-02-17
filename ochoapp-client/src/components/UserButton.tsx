@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
+import AccountSwitcher from "./AccountSwitcher";
 import { Language, VocabularyKey, VocabularyObject } from "@/lib/vocabulary";
 import { useLanguage, useTranslation } from "@/context/LanguageContext";
 import US from "./flags/US";
@@ -167,6 +168,8 @@ export default function UserButton({ className }: UserButtonProps) {
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <AccountSwitcher currentUserId={user.id} />
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="hover:bg-destructive/20">
           <LogoutDialog />

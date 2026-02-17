@@ -30,4 +30,33 @@ export async function logout(){
     )
 
     return redirect("/login")
+}
+
+export async function switchAccount(sessionId: string) {
+    const cookieCall = await cookies();
+    
+    if (!sessionId) {
+        throw new Error("Session ID invalide");
+    }
+
+    // Valider que la session existe
+    const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: { user: true }
+    });
+
+    if (!session) {
+        throw new Error("Session non trouvée");
+    }
+
+    // Créer le cookie de session pour basculer vers ce compte
+    const sessionCookie = lucia.createSessionCookie(sessionId);
+
+    cookieCall.set(
+        sessionCookie.name,
+        sessionCookie.value,
+        sessionCookie.attributes
+    );
+
+    return { success: true, userId: session.userId };
 } 
