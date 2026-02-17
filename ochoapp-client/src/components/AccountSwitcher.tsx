@@ -33,10 +33,6 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
     setAccounts(storedAccounts);
   }, [currentUserId]);
 
-  if (accounts.length === 0) {
-    return null;
-  }
-
   const handleSwitchAccount = async (account: StoredAccount) => {
     try {
       setIsLoading(true);
