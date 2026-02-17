@@ -36,20 +36,8 @@ export async function GET(request: Request) {
 
     // Si ce device n'existe pas pour cette session, le créer
     if (!existingDevice) {
-      // Vérifier d'abord s'il y a un autre device avec ce deviceId
-      // qui appartiendrait à une session différente du même user
-      const deviceWithSameId = await prisma.device.findFirst({
-        where: {
-          deviceId: deviceId,
-          session: {
-            userId: user.id,
-          },
-        },
-      });
-
-      // Créer le nouvel enregistrement device
-      // Les anciens devices sont automatiquement supprimés via la cascade
-      // quand la session courante est supprimée
+      // Créer le nouvel enregistrement device pour cette session
+      // Cela associe la session active au deviceId (même ou nouveau)
       await prisma.device.create({
         data: {
           sessionId: session.id,
@@ -60,15 +48,17 @@ export async function GET(request: Request) {
       });
     }
 
-    // Retourner le deviceId (sans le set dans le cookie car le client le gère)
-    return NextResponse.json(
-      { deviceId },
-      {
-        headers: {
-          "Set-Cookie": `X-Device-ID=${deviceId}; Path=/; Max-Age=${60 * 60 * 24 * 365}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
-        },
-      }
-    );
+    // Sauvegarder le deviceId dans un cookie HTTP-Only persistant
+    // (remplace l'ancien cookie s'il existe)
+    cookiesStore.set("X-Device-ID", deviceId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365, // 1 an
+      path: "/",
+    });
+
+    return NextResponse.json({ deviceId });
   } catch (error) {
     console.error("Erreur lors de la gestion du deviceId:", error);
     return NextResponse.json(

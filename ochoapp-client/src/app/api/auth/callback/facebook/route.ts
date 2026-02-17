@@ -12,6 +12,7 @@ import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
     const code = req.nextUrl.searchParams.get("code");
+        const cookieCall = await cookies();
 
     if (!code) {
         return new Response(null, { status: 400 });
@@ -36,7 +37,6 @@ export async function GET(req: NextRequest) {
             where: { facebookId: facebookUser.id },
         });
 
-        const cookieCall = await cookies();
 
         if (existingUser) {
             const session = await lucia.createSession(existingUser.id, {});
