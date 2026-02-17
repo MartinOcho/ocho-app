@@ -62,13 +62,12 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
             )}
             title={displayName}
           >
-            <AtSign className="h-3 w-3 text-inherit text-[#ee6e05] dark:text-primary " />
             <UserLinkWithTooltip
               username={username}
               onFind={async (user) => {}}
-              className="text-[#ee6e05] dark:text-primary font-semibold"
+              className="text-cyan-400 dark:text-primary font-semibold"
             >
-              {displayName}
+              @{displayName}
             </UserLinkWithTooltip>
           </span>
         );

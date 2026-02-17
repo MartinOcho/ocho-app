@@ -127,6 +127,7 @@ export default function RoomPreview({
         });
       if (isTyping) {
         console.log(typing);
+        console.log(data.typingUsers);
       }
       }
     };
