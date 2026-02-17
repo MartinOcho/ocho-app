@@ -323,7 +323,7 @@ io.on("connection", async (socket: Socket) => {
 
     const typingUsers = Array.from(roomTyping.values());
 
-    socket.to(roomId).emit("typing_update", { roomId, typingUsers });
+    io.to(roomId).emit("typing_update", { roomId, typingUsers });
   });
 
   socket.on("typing_stop", (roomId: string) => {
@@ -336,7 +336,7 @@ io.on("connection", async (socket: Socket) => {
       const typingList = Array.from(roomTyping?.values() || []).filter(
         (u) => u.id !== userId
       );
-      socket
+      io
         .to(roomId)
         .emit("typing_update", { roomId, typingUsers: typingList });
     }
