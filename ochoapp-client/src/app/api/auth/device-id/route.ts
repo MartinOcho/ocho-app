@@ -25,7 +25,8 @@ export async function GET(request: Request) {
       deviceId = uuidv4();
     }
 
-    // Vérifier ou créer un device pour cette session
+    // Vérifier si un device avec le même deviceId + sessionId existe déjà
+    // Cette combinaison doit être unique
     const existingDevice = await prisma.device.findFirst({
       where: {
         sessionId: session.id,
@@ -33,8 +34,22 @@ export async function GET(request: Request) {
       },
     });
 
+    // Si ce device n'existe pas pour cette session, le créer
     if (!existingDevice) {
-      // Créer un nouveau device en base
+      // Vérifier d'abord s'il y a un autre device avec ce deviceId
+      // qui appartiendrait à une session différente du même user
+      const deviceWithSameId = await prisma.device.findFirst({
+        where: {
+          deviceId: deviceId,
+          session: {
+            userId: user.id,
+          },
+        },
+      });
+
+      // Créer le nouvel enregistrement device
+      // Les anciens devices sont automatiquement supprimés via la cascade
+      // quand la session courante est supprimée
       await prisma.device.create({
         data: {
           sessionId: session.id,
