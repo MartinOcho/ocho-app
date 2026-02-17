@@ -501,8 +501,10 @@ export default function RoomPreview({
   }
 
   if (currentMember?.type === "OLD" || currentMember?.type === "BANNED") {
-    messagePreviewContent = canNoLongerInteract;
-    messageType = "CLEAR";
+    if (!messagePreview) {
+      messagePreviewContent = canNoLongerInteract;
+      messageType = "CLEAR";
+    }
   }
 
   const select = async () => {

@@ -328,7 +328,7 @@ export default function ChatSideBar({
           </span>
         </div>
       </div>
-      <ul className="sticky top-0 z-50 bg-card/30 p-2 py-1.5 sm:bg-background/50">
+      <ul className="sticky top-0 bg-card/30 p-2 py-1.5 sm:bg-background/50">
         <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
           <div className="relative w-full">
             <Input
