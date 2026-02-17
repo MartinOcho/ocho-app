@@ -59,4 +59,104 @@ export async function switchAccount(sessionId: string) {
     );
 
     return { success: true, userId: session.userId };
-} 
+}
+
+export async function getAvailableAccounts() {
+    const { user, session } = await validateRequest();
+    
+    if (!user || !session) {
+        throw new Error("Non authentifié");
+    }
+
+    // Récupérer toutes les sessions de cet utilisateur
+    const sessions = await prisma.session.findMany({
+        where: {
+            userId: user.id,
+        },
+        select: {
+            id: true,
+            expiresAt: true,
+            devices: {
+                select: {
+                    type: true,
+                }
+            }
+        },
+        orderBy: {
+            expiresAt: "desc",
+        }
+    });
+
+    // Mapper pour créer les comptes disponibles avec les infos utilisateur
+    return {
+        currentUser: {
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+        },
+        accounts: sessions.map((sess) => ({
+            sessionId: sess.id,
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            expiresAt: sess.expiresAt,
+            isCurrent: sess.id === session.id,
+            deviceCount: sess.devices.length,
+        })),
+    };
+}
+
+export async function logoutSpecificSession(sessionId: string) {
+    const { user, session } = await validateRequest();
+    
+    if (!user || !session) {
+        throw new Error("Non authentifié");
+    }
+
+    if (!sessionId) {
+        throw new Error("Session ID invalide");
+    }
+
+    // Empêcher de déconnecter sa propre session via cette route
+    if (sessionId === session.id) {
+        throw new Error("Vous devez utiliser la page de déconnexion sélective");
+    }
+
+    // Vérifier que la session appartient bien à l'utilisateur
+    const sessionToDelete = await prisma.session.findUnique({
+        where: { id: sessionId },
+    });
+
+    if (!sessionToDelete || sessionToDelete.userId !== user.id) {
+        throw new Error("Session non trouvée");
+    }
+
+    // Supprimer la session
+    await prisma.session.delete({
+        where: { id: sessionId },
+    });
+
+    return { success: true, message: "Compte déconnecté" };
+}
+
+export async function logoutAllOtherSessions() {
+    const { user, session } = await validateRequest();
+    
+    if (!user || !session) {
+        throw new Error("Non authentifié");
+    }
+
+    // Déconnecter toutes les sessions sauf la session courante
+    await prisma.session.deleteMany({
+        where: {
+            userId: user.id,
+            id: {
+                not: session.id,
+            },
+        },
+    });
+
+    return { success: true, message: "Tous les autres comptes ont été déconnectés" };
+}

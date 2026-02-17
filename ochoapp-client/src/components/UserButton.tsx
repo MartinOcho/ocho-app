@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "@/app/(main)/SessionProvider";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -186,6 +187,30 @@ export function LogoutDialog({
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [hasMultipleAccounts, setHasMultipleAccounts] = useState(false);
+
+  // Vérifier s'il y a plusieurs comptes
+  useEffect(() => {
+    const checkMultipleAccounts = async () => {
+      try {
+        const response = await fetch("/api/auth/sessions", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // S'il y a plus d'une session, il y a plusieurs comptes
+          setHasMultipleAccounts(data.sessions.length > 1);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification des comptes:", error);
+      }
+    };
+
+    checkMultipleAccounts();
+  }, []);
+
   // create mutation to logout user
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -221,19 +246,30 @@ export function LogoutDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t("logout")}</DialogTitle>
-          <DialogDescription>{t("logoutDescription")}</DialogDescription>
+          <DialogDescription>
+            {hasMultipleAccounts
+              ? t("logoutMultipleDescription") || "Vous avez plusieurs comptes connectés. Que voulez-vous faire ?"
+              : t("logoutDescription")}
+          </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
           <DialogClose asChild disabled={isPending}>
             <Button variant="outline">{t("cancel")}</Button>
           </DialogClose>
-            <LoadingButton
-              variant="destructive"
-              onClick={() => mutate()}
-              loading={isPending}
-            >
-              {t("logout")}
-            </LoadingButton>
+          {hasMultipleAccounts && (
+            <OchoLink href="/logout-accounts" className="text-inherit">
+              <Button variant="secondary" disabled={isPending}>
+                {t("manageAccounts") || "Gérer les comptes"}
+              </Button>
+            </OchoLink>
+          )}
+          <LoadingButton
+            variant="destructive"
+            onClick={() => mutate()}
+            loading={isPending}
+          >
+            {t("logout")}
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
