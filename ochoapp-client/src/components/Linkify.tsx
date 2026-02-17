@@ -57,7 +57,7 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
           <span
             key={key}
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 bg-cyan-400 hover:bg-cyan-800/20 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors",
+              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 bg-cyan-400 hover:bg-cyan-600 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors",
               className
             )}
             title={displayName}
