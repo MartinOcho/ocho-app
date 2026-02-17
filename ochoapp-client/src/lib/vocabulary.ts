@@ -348,7 +348,7 @@ export const english = {
     "Verified badge accounts have been authenticated. These can be paid subscribers or notable people/brands.",
   // New translations for untranslated strings
   isTyping: "is typing...",
-  userTyping: "OchoApp User is typing...",
+  userTyping: "[name] is typing...",
   andOthersTyping: "and [count] others are typing...",
   twoUsersTyping: "[name] and [name] are typing...",
   threeUsersTyping: "[name], [name] and [name] are typing...",
@@ -797,7 +797,7 @@ export const french: Vocabulary = {
     "Les comptes avec un badge Vérifié ont été authentifiés. Il peut s’agir de personnes payant un abonnement ou de personnes ou de marques notables.",
   // New translations for untranslated strings
   isTyping: "écrit...",
-  userTyping: "Utilisateur OchoApp écrit...",
+  userTyping: "[name] écrit...",
   andOthersTyping: "et [count] autres écrivent...",
   twoUsersTyping: "[name] et [name] écrivent...",
   threeUsersTyping: "[name], [name] et [name] écrivent...",

@@ -57,7 +57,7 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
           <span
             key={key}
             className={cn(
-              "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 bg-cyan-800 text-cyan-500 hover:bg-cyan-800/20 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors",
+              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 bg-cyan-400 hover:bg-cyan-800/20 dark:bg-primary/10 dark:text-primary dark:hover:bg-primary/20 transition-colors",
               className
             )}
             title={displayName}
@@ -65,7 +65,7 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
             <UserLinkWithTooltip
               username={username}
               onFind={async (user) => {}}
-              className="text-cyan-400 dark:text-primary font-semibold"
+              className="text-primary font-semibold"
             >
               @{displayName}
             </UserLinkWithTooltip>

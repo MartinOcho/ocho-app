@@ -137,13 +137,6 @@ export default function RoomPreview({
         const dataTypingUsers = data.typingUsers.filter(u => u.id !== loggedinUser?.id)
         const typing = { isTyping, typingUsers: dataTypingUsers };
         setTyping(typing);
-     
-        if (isTyping) {
-          console.log(typing);
-          console.log(
-            data.typingUsers.filter((u) => u.id !== loggedinUser?.id),
-          );
-        }
       }
     };
 
@@ -203,7 +196,10 @@ export default function RoomPreview({
     ? !room.isGroup
       ? isTyping
       : typing.typingUsers.length === 1
-        ? userTyping
+        ? userTyping.replace(
+                "[name]",
+                typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+              )
         : typing.typingUsers.length === 2
           ? twoUsersTyping
               .replace(
