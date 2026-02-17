@@ -348,6 +348,8 @@ export default function RoomPreview({
       }
     }
     if (messageType === "LEAVE") {
+      console.log(messagePreview);
+      
       oldMemberMsg = memberLeft.replace("[name]", memberName);
       if (room?.messages[0].sender) {
         room?.messages[0].sender.id === loggedinUser.id
