@@ -68,7 +68,7 @@ export async function getAvailableAccounts() {
         throw new Error("Non authentifié");
     }
 
-    // Récupérer toutes les sessions de cet utilisateur
+    // Récupérer toutes les sessions de cet utilisateur avec leurs devices
     const sessions = await prisma.session.findMany({
         where: {
             userId: user.id,
@@ -76,7 +76,8 @@ export async function getAvailableAccounts() {
         select: {
             id: true,
             expiresAt: true,
-            devices: {
+            deviceId: true,
+            device: {
                 select: {
                     type: true,
                 }
@@ -103,7 +104,7 @@ export async function getAvailableAccounts() {
             avatarUrl: user.avatarUrl,
             expiresAt: sess.expiresAt,
             isCurrent: sess.id === session.id,
-            deviceCount: sess.devices.length,
+            deviceCount: 1, // Chaque session correspond à un device
         })),
     };
 }

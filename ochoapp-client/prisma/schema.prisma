@@ -74,14 +74,16 @@ model OldUserData {
   @@map("old_user_data")
 }
 
-model Session {
-  id        String   @id
-  userId    String
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  devices   Device[]
-
-  @@map("sessions")
+model Device {
+  id        String     @id @default(cuid())
+  deviceId  String     @unique  
+  type      DeviceType @default(UNKNOWN)
+  model     String?
+  ip        String?
+  location  String?
+  sessions  Session[]  
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 enum DeviceType {
@@ -92,19 +94,15 @@ enum DeviceType {
   UNKNOWN
 }
 
-model Device {
-  id        String     @id @default(cuid())
-  sessionId String
-  session   Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  deviceId  String
-  type      DeviceType @default(UNKNOWN)
-  model     String?
-  logged    Boolean    @default(true)
-  ip        String?
-  location  String?
-  createdAt DateTime   @default(now())
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId  String   // Référence au Device via son deviceId unique
+  device    Device   @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
 
-  @@unique([sessionId, deviceId])
+  @@map("sessions")
 }
 
 model AuthCode {

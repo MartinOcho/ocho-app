@@ -13,39 +13,32 @@ export async function GET(request: Request) {
       );
     }
 
-    // Récupérer les devices de la session courante
+    // Récupérer le deviceId de la session courante
     const currentSession = await prisma.session.findUnique({
       where: { id: session.id },
       select: {
-        id: true,
-        devices: {
-          select: {
-            deviceId: true,
-          },
-        },
+        deviceId: true,
       },
     });
 
-    if (!currentSession) {
-      return NextResponse.json(
-        { error: "Session non trouvée" },
-        { status: 404 }
-      );
+    if (!currentSession || !currentSession.deviceId) {
+      return NextResponse.json({
+        sessions: [],
+        currentSession: {
+          sessionId: session.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+        },
+      });
     }
 
-    // Récupérer les deviceIds du device courant
-    const currentDeviceIds = currentSession.devices.map((d) => d.deviceId);
-
-    // Récupérer SEULEMENT les other sessions du MÊME device (excluant la session courante)
+    // Récupérer SEULEMENT les autres sessions du MÊME device (excluant la session courante)
     const otherSessions = await prisma.session.findMany({
       where: {
         userId: user.id,
         id: { not: session.id }, // Exclure la session courante
-        devices: {
-          some: {
-            deviceId: { in: currentDeviceIds }, // Seulement les sessions du même device
-          },
-        },
+        deviceId: currentSession.deviceId, // Seulement les sessions du même device
       },
       select: {
         id: true,

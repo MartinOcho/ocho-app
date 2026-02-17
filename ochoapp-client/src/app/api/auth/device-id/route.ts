@@ -25,22 +25,15 @@ export async function GET(request: Request) {
       deviceId = uuidv4();
     }
 
-    // Vérifier si un device avec le même deviceId + sessionId existe déjà
-    // Cette combinaison doit être unique
-    const existingDevice = await prisma.device.findFirst({
-      where: {
-        sessionId: session.id,
-        deviceId: deviceId,
-      },
+    // Vérifier si un Device avec ce deviceId existe déjà
+    let device = await prisma.device.findUnique({
+      where: { deviceId: deviceId },
     });
 
-    // Si ce device n'existe pas pour cette session, le créer
-    if (!existingDevice) {
-      // Créer le nouvel enregistrement device pour cette session
-      // Cela associe la session active au deviceId (même ou nouveau)
-      await prisma.device.create({
+    // Si le device n'existe pas, le créer
+    if (!device) {
+      device = await prisma.device.create({
         data: {
-          sessionId: session.id,
           deviceId: deviceId,
           type: "WEB",
           ip: request.headers.get("x-forwarded-for") || "unknown",
@@ -48,8 +41,21 @@ export async function GET(request: Request) {
       });
     }
 
+    // Vérifier si cette session est déjà associée à ce device
+    const currentSession = await prisma.session.findUnique({
+      where: { id: session.id },
+      select: { deviceId: true },
+    });
+
+    // Si la session n'est pas encore associée au device, la mettre à jour
+    if (currentSession?.deviceId !== deviceId) {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { deviceId: deviceId },
+      });
+    }
+
     // Sauvegarder le deviceId dans un cookie HTTP-Only persistant
-    // (remplace l'ancien cookie s'il existe)
     cookiesStore.set("X-Device-ID", deviceId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

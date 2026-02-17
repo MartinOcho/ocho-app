@@ -53,14 +53,17 @@ export async function getCurrentUser():Promise<{user: User | null; message: stri
     if (!deviceId || !deviceTypeHeader) {
       return {user:null, message: "Pas d'en-têtes d'appareil trouvés." };
     }
-    const device = await prisma.device.findFirst({
+
+    // 3. Vérifier que le device existe et que la session est associée au device
+    const device = await prisma.device.findUnique({
       where: {
         deviceId
       },
     });
-    const isDeviceLoggedIn = device?.logged;
-    if (!isDeviceLoggedIn) {
-      return {user:null, message: "Appareil non autorisé." };
+    
+    // Vérifier que la session appartient au device
+    if (!device || session.deviceId !== deviceId) {
+      return {user:null, message: "Appareil non autorisé ou session invalide." };
     }
      const userVerifiedData = session.user.verified?.[0];
     const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;

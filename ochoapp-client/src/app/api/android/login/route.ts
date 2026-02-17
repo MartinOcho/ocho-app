@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Vérifier si l'appareil existe déjà
-    let device = await prisma.device.findFirst({
+    // Vérifier si l'appareil existe déjà ou le créer
+    let device = await prisma.device.findUnique({
       where: { deviceId: deviceId },
     });
 
@@ -102,21 +102,20 @@ export async function POST(req: NextRequest) {
       // Si l'appareil n'existe pas, le créer
       device = await prisma.device.create({
         data: {
-          sessionId: session.id,
           deviceId: deviceId,
           type: (deviceTypeHeader as DeviceType) || "UNKNOWN",
           model: deviceModel || "Unknown Model",
         },
       });
       console.log("Nouvel appareil enregistré:", device);
-    } else {
-      // Si l'appareil existe, mettre à jour sa session pour la nouvelle connexion
-      device = await prisma.device.update({
-        where: { id: device.id },
-        data: { sessionId: session.id, logged: true },
-      });
-      console.log("Appareil existant mis à jour:", device);
     }
+
+    // Associer la session au device
+    await prisma.session.update({
+      where: { id: session.id },
+      data: { deviceId: deviceId },
+    });
+    console.log("Session associée au device:", session.id);
 
     const userVerifiedData = userData.verified?.[0];
     const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
