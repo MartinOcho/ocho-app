@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -78,7 +78,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
         {t("switchAccount")}
       </DropdownMenuSubTrigger>
       <DropdownMenuPortal>
-        <DropdownMenuSubContent className="min-w-52">
+        <DropdownMenuSubContent className="min-w-36 max-sm:max-w-36">
           {/* État de chargement */}
           {isLoading ? (
             <DropdownMenuItem disabled className="text-xs text-muted-foreground">
