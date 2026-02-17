@@ -77,9 +77,7 @@ export default function RoomPreview({
     }[];
   }>({ isTyping: false, typingUsers: [] });
 
-  console.log(typing);
-  
-
+ 
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -117,11 +115,13 @@ export default function RoomPreview({
     if (!socket || !isConnected || !room.id) return;
 
     const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
-      console.log(data);
       
       const isTyping = !!data.typingUsers
-        .filter((u) => u.id !== loggedinUser?.id)
-        .filter((u) => u.displayName !== undefined).length;
+      .filter((u) => u.id !== loggedinUser?.id)
+      .filter((u) => u.displayName !== undefined).length;
+      if (isTyping) {
+        console.log(data);
+      }
       if (data.roomId === room.id) {
         setTyping({
           isTyping,

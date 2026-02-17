@@ -324,8 +324,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
     };
 
     const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
-      console.log(data);
-      
       if (data.roomId === roomId && Array.isArray(data.typingUsers)) {
         setTypingUsers(data.typingUsers.filter((u) => u.id !== loggedUser?.id));
       }
