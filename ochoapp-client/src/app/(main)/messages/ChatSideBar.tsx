@@ -1,4 +1,4 @@
-import { RoomData, SocketTypingUpdateEvent } from "@/lib/types";
+import { RoomData } from "@/lib/types";
 import RoomPreview from "./RoomPreview";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import { useSession } from "../SessionProvider";
@@ -65,7 +65,6 @@ export default function ChatSideBar({
   // --- SOCKET & STATE ---
   const { socket, isConnected, retryConnection } = useSocket();
   const [rooms, setRooms] = useState<RoomData[]>([]);
-  const [typingUsersByRoom, setTypingUsersByRoom] = useState<Record<string, { id: string; displayName: string; avatarUrl: string }[]>>({});
 
   // --- RECHERCHE LOCALE ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -282,24 +281,6 @@ if (httpRooms) {
     }
   }, [rooms, status, socket]);
 
-  // --- GESTION CENTRALISÉE DU TYPING UPDATE ---
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
-      setTypingUsersByRoom((prev) => ({
-        ...prev,
-        [data.roomId]: data.typingUsers.filter((u) => u.id !== loggedinUser.id),
-      }));
-    };
-
-    socket.on("typing_update", handleTypingUpdate);
-
-    return () => {
-      socket.off("typing_update", handleTypingUpdate);
-    };
-  }, [socket, isConnected, loggedinUser.id]);
-
   function handleRoomSelect(room: RoomData) {
     onCloseChat();
     onRoomSelect(room.id);
@@ -458,8 +439,7 @@ if (httpRooms) {
                 room={room}
                 active={selectedRoomId === room.id}
                 onSelect={() => handleRoomSelect(room)}
-                highlight={searchQuery}
-                typingUsers={typingUsersByRoom[room.id] || []}
+                highlight={searchQuery} // On passe le terme de recherche
               />
             ))}
           </ul>
