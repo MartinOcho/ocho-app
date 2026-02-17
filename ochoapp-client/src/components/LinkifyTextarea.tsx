@@ -103,12 +103,12 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
 
     // --- 2. CONVERSION HTML -> DATA (Pour le onChange) ---
     const htmlToRaw = useCallback((container: HTMLElement) => {
-      // Cas spécial : si le contenu est juste la <br> par défaut (espace vide)
-      if (container.childNodes.length === 1 && container.childNodes[0].nodeType === Node.ELEMENT_NODE) {
-        const el = container.childNodes[0] as HTMLElement;
-        if (el.tagName === "BR" && el.className.includes("ProseMirror-trailingBreak")) {
-          return "";
-        }
+       if (
+        container.childNodes.length === 1 &&
+        container.childNodes[0].nodeType === Node.ELEMENT_NODE &&
+        (container.childNodes[0] as HTMLElement).tagName.toLocaleLowerCase() === "br"
+      ) {
+        return "";
       }
 
       let raw = "";
@@ -146,9 +146,6 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       };
 
       container.childNodes.forEach(traverse);
-      if (raw === "\n") {
-        return "";
-      }
       if (raw.endsWith("\n") && raw.length > 1) {
         raw = raw.replace(/\n$/, "");
       }
