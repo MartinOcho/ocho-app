@@ -32,11 +32,8 @@ export async function GET(request: Request) {
         },
       });
     }
-
-    // Récupérer SEULEMENT les autres sessions du MÊME device (excluant la session courante)
     const otherSessions = await prisma.session.findMany({
       where: {
-        userId: user.id,
         id: { not: session.id }, // Exclure la session courante
         deviceId: currentSession.deviceId, // Seulement les sessions du même device
       },
