@@ -275,13 +275,14 @@ export default function RoomPreview({
     roomId: room.id,
     type: "CLEAR",
     createdAt: Date.now(),
+    mentions: [],
   };
   // Check if current user is mentioned in the last message
   const isMentionedInLastMessage =
     messagePreview.type === "CONTENT" &&
-    Array.isArray((messagePreview as Record<string, any>).mentions) &&
-    (messagePreview as Record<string, any>).mentions.some(
-      (m: any) => m.mentionedId === loggedinUser.id,
+    Array.isArray((messagePreview).mentions) &&
+    (messagePreview).mentions.some(
+      (m) => m.mentionedId === loggedinUser.id,
     );
 
   const otherUser: UserData | null =
@@ -315,6 +316,7 @@ export default function RoomPreview({
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
+  const hasLeft = messageType === "LEAVE" && !messagePreview.sender && isRecipient;
 
   const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
   const senderFirstName =
@@ -356,7 +358,7 @@ export default function RoomPreview({
           ? (oldMemberMsg = youRemovedMember.replace("[name]", memberName))
           : (oldMemberMsg =
               recipient.id === loggedinUser.id
-                ? removedYou.replace("[name]", sender || appUser)
+                ? removedYou.replace("[name]", sender || appUser) 
                 : removedMember
                     .replace("[name]", sender || appUser)
                     .replace("[member]", memberName));

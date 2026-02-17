@@ -190,6 +190,19 @@ export function getMessageDataSelect() {
         resourceType: true,
       },
     },
+    mentions: {
+      select: {
+        mentionedId: true,
+        mentionedUser: {
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+          },
+        },
+        messageId: true,
+      }
+    },
     createdAt: true,
   } satisfies Prisma.MessageSelect;
 }
