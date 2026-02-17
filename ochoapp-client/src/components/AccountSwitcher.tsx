@@ -9,22 +9,19 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
-import { ArrowRightLeftIcon, LogIn, Plus, Settings } from "lucide-react";
+import { ArrowRightLeftIcon, Plus, Settings } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import { useQueryClient } from "@tanstack/react-query";
 import { switchAccount } from "@/app/(auth)/actions";
 import OchoLink from "./ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
 
-interface Account {
+interface SessionAccount {
   sessionId: string;
-  userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
-  isCurrent: boolean;
   expiresAt: Date;
-  deviceCount: number;
 }
 
 interface AccountSwitcherProps {
@@ -32,14 +29,14 @@ interface AccountSwitcherProps {
 }
 
 export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [sessions, setSessions] = useState<SessionAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSwitching, setIsSwitching] = useState(false);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
   useEffect(() => {
-    const loadAccounts = async () => {
+    const loadSessions = async () => {
       try {
         setIsLoading(true);
         const response = await fetch("/api/auth/sessions", {
@@ -49,38 +46,23 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
 
         if (response.ok) {
           const data = await response.json();
-          // Filtrer pour ne pas montrer le compte courant
-          const otherAccounts = data.sessions.filter(
-            (sess: any) => !sess.isCurrent
-          ).map((sess: any) => {
-            const user = data.user;
-            return {
-              sessionId: sess.sessionId,
-              userId: user.id,
-              username: user.username,
-              displayName: user.displayName,
-              avatarUrl: user.avatarUrl,
-              isCurrent: sess.isCurrent,
-              expiresAt: new Date(sess.expiresAt),
-              deviceCount: sess.deviceCount,
-            };
-          });
-          setAccounts(otherAccounts);
+          // data.sessions contient les autres sessions du même device
+          setSessions(data.sessions || []);
         }
       } catch (error) {
-        console.error("Erreur lors du chargement des comptes:", error);
+        console.error("Erreur lors du chargement des sessions:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadAccounts();
+    loadSessions();
   }, [currentUserId]);
 
-  const handleSwitchAccount = async (account: Account) => {
+  const handleSwitchAccount = async (sessionId: string) => {
     try {
       setIsSwitching(true);
-      await switchAccount(account.sessionId);
+      await switchAccount(sessionId);
       // Invalider les queries pour rafraîchir les données
       queryClient.invalidateQueries();
       // Recharger la page pour mettre à jour la session
@@ -92,7 +74,8 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
     }
   };
 
-  if (isLoading || accounts.length === 0) {
+  // Si aucune autre session n'est disponible sur ce device
+  if (isLoading || sessions.length === 0) {
     return (
       <OchoLink href="/login?switching=true" className="text-inherit">
         <DropdownMenuItem className="flex items-center gap-2 text-primary">
@@ -112,15 +95,15 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
         </DropdownMenuSubTrigger>
         <DropdownMenuPortal>
           <DropdownMenuSubContent className="min-w-52">
-            {accounts.map((account) => (
+            {sessions.map((account) => (
               <DropdownMenuItem
                 key={account.sessionId}
-                onClick={() => handleSwitchAccount(account)}
+                onClick={() => handleSwitchAccount(account.sessionId)}
                 disabled={isSwitching}
                 className="flex items-center gap-2"
               >
                 <UserAvatar
-                  userId={account.userId}
+                  userId={account.sessionId}
                   avatarUrl={account.avatarUrl}
                   size={24}
                   hideBadge={true}
@@ -139,7 +122,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
             <DropdownMenuSeparator />
             
             {/* Lien vers la gestion des comptes */}
-            {accounts.length > 0 && (
+            {sessions.length > 0 && (
               <OchoLink href="/logout-accounts" className="text-inherit">
                 <DropdownMenuItem className="flex items-center gap-2">
                   <Settings className="size-4" />

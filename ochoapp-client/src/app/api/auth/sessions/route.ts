@@ -2,7 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { user, session } = await validateRequest();
 
@@ -13,18 +13,48 @@ export async function GET() {
       );
     }
 
-    // Récupérer toutes les sessions actives de cet utilisateur
-    const sessions = await prisma.session.findMany({
+    // Récupérer les devices de la session courante
+    const currentSession = await prisma.session.findUnique({
+      where: { id: session.id },
+      select: {
+        id: true,
+        devices: {
+          select: {
+            deviceId: true,
+          },
+        },
+      },
+    });
+
+    if (!currentSession) {
+      return NextResponse.json(
+        { error: "Session non trouvée" },
+        { status: 404 }
+      );
+    }
+
+    // Récupérer les deviceIds du device courant
+    const currentDeviceIds = currentSession.devices.map((d) => d.deviceId);
+
+    // Récupérer SEULEMENT les other sessions du MÊME device (excluant la session courante)
+    const otherSessions = await prisma.session.findMany({
       where: {
         userId: user.id,
+        id: { not: session.id }, // Exclure la session courante
+        devices: {
+          some: {
+            deviceId: { in: currentDeviceIds }, // Seulement les sessions du même device
+          },
+        },
       },
       select: {
         id: true,
         expiresAt: true,
-        devices: {
+        user: {
           select: {
-            type: true,
-            deviceId: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
           },
         },
       },
@@ -33,19 +63,16 @@ export async function GET() {
       },
     });
 
-    // Enrichir avec les infos de l'utilisateur et indiquer la session courante
-    const enrichedSessions = sessions.map((sess) => ({
-      sessionId: sess.id,
-      expiresAt: sess.expiresAt,
-      devices: sess.devices,
-      isCurrent: sess.id === session.id,
-      deviceCount: sess.devices.length,
-    }));
-
     return NextResponse.json({
-      sessions: enrichedSessions,
-      user: {
-        id: user.id,
+      sessions: otherSessions.map((sess) => ({
+        sessionId: sess.id,
+        username: sess.user.username,
+        displayName: sess.user.displayName,
+        avatarUrl: sess.user.avatarUrl,
+        expiresAt: sess.expiresAt,
+      })),
+      currentSession: {
+        sessionId: session.id,
         username: user.username,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
