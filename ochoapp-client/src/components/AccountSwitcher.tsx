@@ -32,6 +32,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
   const [sessions, setSessions] = useState<SessionAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -39,6 +40,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
     const loadSessions = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const response = await fetch("/api/auth/sessions", {
           method: "GET",
           credentials: "include",
@@ -48,9 +50,13 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
           const data = await response.json();
           // data.sessions contient les autres sessions du même device
           setSessions(data.sessions || []);
+        } else {
+          console.error("Erreur:", response.status);
+          setError("Erreur lors du chargement des sessions");
         }
       } catch (error) {
         console.error("Erreur lors du chargement des sessions:", error);
+        setError("Erreur réseau");
       } finally {
         setIsLoading(false);
       }
@@ -69,33 +75,33 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
       window.location.reload();
     } catch (error) {
       console.error("Erreur lors du changement de compte:", error);
-    } finally {
       setIsSwitching(false);
     }
   };
 
-  // Si aucune autre session n'est disponible sur ce device
-  if (isLoading || sessions.length === 0) {
-    return (
-      <OchoLink href="/login?switching=true" className="text-inherit">
-        <DropdownMenuItem className="flex items-center gap-2 text-primary">
-          <Plus className="size-4" />
-          <span>{t("addAccount")}</span>
-        </DropdownMenuItem>
-      </OchoLink>
-    );
-  }
-
   return (
-    <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>
-          <ArrowRightLeftIcon className="mr-2 size-4" />
-          {t("switchAccount")}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuPortal>
-          <DropdownMenuSubContent className="min-w-52">
-            {sessions.map((account) => (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <ArrowRightLeftIcon className="mr-2 size-4" />
+        {t("switchAccount")}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuSubContent className="min-w-52">
+          {/* État de chargement */}
+          {isLoading ? (
+            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+              {t("loading") || "Chargement..."}
+            </DropdownMenuItem>
+          ) : error ? (
+            <DropdownMenuItem disabled className="text-xs text-destructive">
+              {error}
+            </DropdownMenuItem>
+          ) : sessions.length === 0 ? (
+            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+              {t("noOtherSessions") || "Aucun autre compte"}
+            </DropdownMenuItem>
+          ) : (
+            sessions.map((account) => (
               <DropdownMenuItem
                 key={account.sessionId}
                 onClick={() => handleSwitchAccount(account.sessionId)}
@@ -117,30 +123,30 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
                   </span>
                 </div>
               </DropdownMenuItem>
-            ))}
-            
-            <DropdownMenuSeparator />
-            
-            {/* Lien vers la gestion des comptes */}
-            {sessions.length > 0 && (
-              <OchoLink href="/logout-accounts" className="text-inherit">
-                <DropdownMenuItem className="flex items-center gap-2">
-                  <Settings className="size-4" />
-                  <span>{t("manageAccounts") || "Gérer les comptes"}</span>
-                </DropdownMenuItem>
-              </OchoLink>
-            )}
+            ))
+          )}
 
-            <OchoLink href="/login?switching=true" className="text-inherit">
-              <DropdownMenuItem className="flex items-center gap-2 text-primary">
-                <Plus className="size-4" />
-                <span>{t("addAccount")}</span>
+          {sessions.length > 0 && <DropdownMenuSeparator />}
+
+          {/* Lien vers la gestion des comptes */}
+          {sessions.length > 0 && (
+            <OchoLink href="/logout-accounts" className="text-inherit">
+              <DropdownMenuItem className="flex items-center gap-2">
+                <Settings className="size-4" />
+                <span>{t("manageAccounts") || "Gérer les comptes"}</span>
               </DropdownMenuItem>
             </OchoLink>
-          </DropdownMenuSubContent>
-        </DropdownMenuPortal>
-      </DropdownMenuSub>
-    </>
+          )}
+
+          <OchoLink href="/login?switching=true" className="text-inherit">
+            <DropdownMenuItem className="flex items-center gap-2 text-primary">
+              <Plus className="size-4" />
+              <span>{t("addAccount")}</span>
+            </DropdownMenuItem>
+          </OchoLink>
+        </DropdownMenuSubContent>
+      </DropdownMenuPortal>
+    </DropdownMenuSub>
   );
 }
 
