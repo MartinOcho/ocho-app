@@ -42,6 +42,7 @@ export async function GET(request: Request) {
         expiresAt: true,
         user: {
           select: {
+            id: true,
             username: true,
             displayName: true,
             avatarUrl: true,
@@ -56,6 +57,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       sessions: otherSessions.map((sess) => ({
         sessionId: sess.id,
+        userId: sess.user.id,
         username: sess.user.username,
         displayName: sess.user.displayName,
         avatarUrl: sess.user.avatarUrl,
@@ -63,6 +65,7 @@ export async function GET(request: Request) {
       })),
       currentSession: {
         sessionId: session.id,
+        userId: user.id,
         username: user.username,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
