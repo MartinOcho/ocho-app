@@ -99,8 +99,8 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceId  String   // Référence au Device via son deviceId unique
-  device    Device   @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
+  deviceId  String?  // Référence au Device via son deviceId unique
+  device    Device?  @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
 
   @@map("sessions")
 }
