@@ -522,11 +522,6 @@ export default function RoomPreview({
             {verifiedCheck}
           </span>
           <div className={cn("flex w-full items-center gap-1 text-sm text-muted-foreground", (unreadCount && !typing.isTyping) && "font-semibold text-primary",)}>
-            {mentionIndicator && (
-              <span className={cn("flex-shrink-0 text-inherit font-bold", unreadCount && "text-yellow-500")}>
-                <AtSign size={14} />
-              </span>
-            )}
             {showIconBefore && attachmentPreview?.icon && (
               <span className="flex-shrink-0 text-muted-foreground">
                 {attachmentPreview.icon}
@@ -581,7 +576,14 @@ export default function RoomPreview({
           </div>
         </div>
         {!!unreadCount && (
+          <div className="flex flex-col items-center justify-between gap-2">
+          {mentionIndicator && (
+              <span className={cn("flex-shrink-0 text-inherit font-bold", unreadCount && "text-primary")}>
+                <AtSign size={14} />
+              </span>
+            )}
           <div className="flex items-center rounded-2xl p-1 px-2 text-xs bg-primary text-white"><FormattedInt number={unreadCount} /></div>
+          </div>
         )}
       </div>
     </li>
