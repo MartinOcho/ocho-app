@@ -1,5 +1,4 @@
 import { validateRequest } from "@/auth";
-import { redirect } from "next/navigation";
 import { EmptySession } from "../(main)/SessionProvider";
 import { ProgressProvider } from "@/context/ProgressContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,11 +11,6 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const { user } = await validateRequest();
-
-  if (user) {
-    // Le redirection ne sera fait que côté client si pas en switching mode
-    // Le composant client gère le switching param
-  }
   return (
     <ProgressProvider>
       <EmptySession>
