@@ -119,9 +119,6 @@ export default function RoomPreview({
       const isTyping = !!data.typingUsers
       .filter((u) => u.id !== loggedinUser?.id)
       .filter((u) => u.displayName !== undefined).length;
-      if (isTyping) {
-        console.log(data);
-      }
       if (data.roomId === room.id) {
         setTyping({
           isTyping,
@@ -129,6 +126,9 @@ export default function RoomPreview({
             .filter((u) => u.id !== loggedinUser?.id)
             .filter((u) => u.displayName !== undefined),
         });
+      if (isTyping) {
+        console.log(typing);
+      }
       }
     };
 

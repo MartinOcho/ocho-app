@@ -99,12 +99,7 @@ export default function ChatSideBar({
     queryFn: () => kyInstance.get("/api/messages/rooms/").json<RoomData[]>(),
     staleTime: Infinity,
   });
-if (httpRooms) {
-  console.log(httpRooms);
   
-}
-  
-
   // --- SYNCHRONISATION HTTP -> STATE LOCAL ---
   useEffect(() => {
     if (httpRooms) {
@@ -187,8 +182,6 @@ if (httpRooms) {
     // Handler 1: Mise à jour via LISTE (envoi/suppression message)
     // Le backend renvoie { rooms: RoomData[], nextCursor: ... }
     const handleRoomListUpdate = (payload: RoomListPayload) => {
-      console.log("Socket: room_list_updated", payload);
-
       setRooms((prev) => {
         // Les rooms renvoyées par le backend sont déjà triées (les plus récentes en premier)
         const newTopRooms = payload.rooms;
