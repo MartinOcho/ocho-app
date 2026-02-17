@@ -9,13 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
-import { ArrowRightLeftIcon, Plus, Settings, Check } from "lucide-react";
+import { ArrowRightLeftIcon, Plus, Settings, Check, Loader2 } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { switchAccount } from "@/app/(auth)/actions";
 import OchoLink from "./ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
+import { useToast } from "./ui/use-toast";
 
 interface SessionAccount {
   sessionId: string;
@@ -62,9 +63,11 @@ async function fetchSessions(): Promise<SessionsResponse> {
 
 export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps) {
   const [isSwitching, setIsSwitching] = useState(false);
+  const [switchingSessionId, setSwitchingSessionId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const router = useRouter();
+  const { toast } = useToast();
 
   // Utiliser React Query avec cache de 5 minutes
   const { data, isLoading, error, refetch } = useQuery({
@@ -79,17 +82,36 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
   const sessions = data?.sessions || [];
   const currentSession = data?.currentSession;
 
-  const handleSwitchAccount = async (sessionId: string) => {
+  const handleSwitchAccount = async (sessionId: string, displayName: string) => {
     try {
       setIsSwitching(true);
+      setSwitchingSessionId(sessionId);
+      
       await switchAccount(sessionId);
+      
+      // Afficher un toast de confirmation
+      toast({
+        title: t("accountSwitched") || "Compte changé",
+        description: `Passage à ${displayName}...`,
+      });
+      
       // Invalider les queries et recharger les données
       await queryClient.invalidateQueries({ queryKey: ["user-sessions"] });
+      
+      // Attendre un peu pour que le refresh se termine
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Utiliser router.refresh() pour une meilleure intégration Next.js
       router.refresh();
     } catch (error) {
       console.error("Erreur lors du changement de compte:", error);
+      toast({
+        title: t("error") || "Erreur",
+        description: t("switchAccountError") || "Impossible de changer de compte",
+        variant: "destructive",
+      });
       setIsSwitching(false);
+      setSwitchingSessionId(null);
     }
   };
 
@@ -154,7 +176,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
                 sessions.map((account) => (
                   <DropdownMenuItem
                     key={account.sessionId}
-                    onClick={() => handleSwitchAccount(account.sessionId)}
+                    onClick={() => handleSwitchAccount(account.sessionId, account.displayName)}
                     disabled={isSwitching}
                     className="flex items-center gap-2"
                   >
@@ -172,6 +194,9 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
                         @{account.username}
                       </span>
                     </div>
+                    {switchingSessionId === account.sessionId && (
+                      <Loader2 className="size-4 animate-spin text-primary flex-shrink-0" />
+                    )}
                   </DropdownMenuItem>
                 ))
               )}

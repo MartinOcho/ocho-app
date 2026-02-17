@@ -1,5 +1,6 @@
 export const english = {
   welcomeIntro: "A place where even -you- can find a friend.",
+  error: "Error",
   login: "Login",
   signup: "Sign Up",
   orContinueWith: "Or continue with",
@@ -37,6 +38,8 @@ export const english = {
   logoutError: "Failed to log out. Please try again.",
   logoutMultipleDescription: "You have multiple accounts connected. What would you like to do?",
   switchAccount: "Switch account",
+  accountSwitched: "Account switched",
+  switchAccountError: "Failed to switch account. Please try again.",
   addAccount: "Add account",
   manageAccounts: "Manage accounts",
   currentSession: "Current session",
@@ -452,6 +455,7 @@ export const english = {
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
   welcomeIntro: "Un endroit où même -vous- pouvez trouver un ami.",
+  error: "Erreur",
   login: "Connexion",
   signup: "Inscription",
   orContinueWith: "Ou continuer avec",
@@ -489,6 +493,8 @@ export const french: Vocabulary = {
   logoutError: "Une erreur s'est produite lors de la tentative de déconnexion.",
   logoutMultipleDescription: "Vous avez plusieurs comptes connectés. Que voulez-vous faire ?",
   switchAccount: "Changer de compte",
+  accountSwitched: "Compte changé",
+  switchAccountError: "Impossible de changer de compte. Veuillez réessayer.",
   addAccount: "Ajouter un compte",
   manageAccounts: "Gérer les comptes",
   currentSession: "Session actuelle",
