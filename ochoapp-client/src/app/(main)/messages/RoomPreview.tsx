@@ -22,6 +22,7 @@ interface RoomProps {
   active: boolean;
   onSelect: () => void;
   highlight?: string; // Prop pour la recherche
+  typingUsers?: { id: string; displayName: string; avatarUrl: string }[]; // Typing users reçus du parent
 }
 
 function HighlightText({
@@ -64,6 +65,7 @@ export default function RoomPreview({
   active,
   onSelect,
   highlight,
+  typingUsers = [],
 }: RoomProps) {
   const { t } = useTranslation();
   const { user: loggedinUser } = useSession();
@@ -76,8 +78,13 @@ export default function RoomPreview({
       avatarUrl: string;
     }[];
   }>({ isTyping: false, typingUsers: [] });
-
-  console.log(typing);
+  useEffect(() => {
+    const isTyping = !!typingUsers?.filter((u) => u.displayName !== undefined).length;
+    setTyping({
+      isTyping,
+      typingUsers: typingUsers?.filter((u) => u.displayName !== undefined) || [],
+    });
+  }, [typingUsers]);
   
 
   const queryClient = useQueryClient();
@@ -112,31 +119,6 @@ export default function RoomPreview({
       socket.off("receive_message", handleReceiveMessage);
     };
   }, [socket, isConnected, room.id, queryClient, loggedinUser?.id]);
-
-  useEffect(() => {
-    if (!socket || !isConnected || !room.id) return;
-    socket.on(
-      "typing_update",
-      (data: SocketTypingUpdateEvent) => {
-        console.log(data);
-        
-        const isTyping = !!data.typingUsers
-          .filter((u) => u.id !== loggedinUser?.id)
-          .filter((u) => u.displayName !== undefined).length;
-        if (data.roomId === room.id) {
-          setTyping({
-            isTyping,
-            typingUsers: data.typingUsers
-              .filter((u) => u.id !== loggedinUser?.id)
-              .filter((u) => u.displayName !== undefined),
-          });
-        }
-      },
-    );
-    return () => {
-      socket.off("typing_update");
-    };
-  }, [socket, isConnected, room.id, loggedinUser?.id]);
 
   const {
     appUser,
