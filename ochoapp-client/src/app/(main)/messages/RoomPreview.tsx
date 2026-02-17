@@ -77,6 +77,9 @@ export default function RoomPreview({
     }[];
   }>({ isTyping: false, typingUsers: [] });
 
+  console.log(typing);
+  
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -118,6 +121,8 @@ export default function RoomPreview({
         roomId: string;
         typingUsers: { id: string; displayName: string; avatarUrl: string }[];
       }) => {
+        console.log(data);
+        
         const isTyping = !!data.typingUsers
           .filter((u) => u.id !== loggedinUser?.id)
           .filter((u) => u.displayName !== undefined).length;
@@ -296,7 +301,7 @@ export default function RoomPreview({
 
   let messageType: MessageType = messagePreview?.type;
   const isSender = messagePreview.sender?.id === loggedinUser.id;
-  const isRecipient = messagePreview.recipient?.id === loggedinUser.id;
+  const isRecipient = (isMentionedInLastMessage || messagePreview.recipient?.id === loggedinUser.id);
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
