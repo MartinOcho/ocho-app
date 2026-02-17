@@ -101,7 +101,6 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       return html.replace(/\n/g, "<br/>");
     }, []);
 
-    // --- 2. CONVERSION HTML -> DATA (Pour le onChange) ---
     const htmlToRaw = useCallback((container: HTMLElement) => {
        if (
         container.childNodes.length === 1 &&
@@ -163,13 +162,14 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
       }
     }, [ref]);
 
-    // Quand la prop `value` change depuis l'extérieur (ex: chargement initial ou reset)
-    // On ne met à jour le HTML que si on n'est pas en train de taper pour éviter de faire sauter le curseur
+   
     useEffect(() => {
       if (!editorRef.current) return;
 
       const editor = editorRef.current;
       const currentRaw = htmlToRaw(editor);
+      console.log(currentRaw);
+      
 
       if (currentRaw !== value && !isTypingRef.current) {
         // Sauvegarde caret
@@ -233,7 +233,6 @@ export const LinkifyTextarea = React.forwardRef<HTMLDivElement, LinkifyTextareaP
               // le texte commence ici, vérifier previous sibling(s)
               prevNode = findPreviousSiblingNonEmpty(range.startContainer);
             } else {
-              // offset > 0 => on est dans un texte, supprimer caractère normal
               prevNode = null;
             }
           } else if (range.startContainer.nodeType === Node.ELEMENT_NODE) {

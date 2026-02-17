@@ -32,9 +32,7 @@ function LinkifyUrl({ children, className }: LinkifyProps) {
   );
 }
 
-// Handle @[displayName](userId) format for message mentions
 function LinkifyMention({ children, className, mentions }: LinkifyProps) {
-  // Create a map of userId -> username for quick lookup
   const usernameMap = mentions?.reduce((acc, m) => {
     acc[m.userId] = m.username;
     return acc;
@@ -44,8 +42,6 @@ function LinkifyMention({ children, className, mentions }: LinkifyProps) {
     <LinkIt
       regex={/@\[([^\]]+)\]\(([^)]+)\)/}
       component={(match, key) => {
-        // match = "@[displayName](userId)"
-        // Extract displayName and userId using regex
         const mentionMatch = match.match(/@\[([^\]]+)\]\(([^)]+)\)/);
         if (!mentionMatch) return <span key={key}>{match}</span>;
 
