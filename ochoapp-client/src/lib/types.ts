@@ -200,7 +200,6 @@ export function getMessageDataSelect() {
             username: true,
           },
         },
-        messageId: true,
       }
     },
     createdAt: true,
