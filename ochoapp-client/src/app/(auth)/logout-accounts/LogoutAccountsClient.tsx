@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface Account {
   sessionId: string;
@@ -26,7 +27,6 @@ interface Account {
   avatarUrl: string | null;
   expiresAt: Date;
   isCurrent: boolean;
-  deviceCount: number;
 }
 
 export default function LogoutAccountsClient() {
@@ -62,7 +62,7 @@ export default function LogoutAccountsClient() {
       setAccounts((prev) => prev.filter((acc) => acc.sessionId !== sessionId));
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
-      alert("Erreur lors de la déconnexion du compte");
+      toast({description: "Erreur lors de la déconnexion du compte", variant: "destructive"});
     } finally {
       setLoggingOutId(null);
     }
@@ -81,7 +81,7 @@ export default function LogoutAccountsClient() {
       setAccounts((prev) => prev.filter((acc) => acc.isCurrent));
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
-      alert("Erreur lors de la déconnexion des comptes");
+      toast({description: "Erreur lors de la déconnexion des comptes", variant: "destructive"});
     } finally {
       setLoggingOutId(null);
     }
@@ -121,9 +121,6 @@ export default function LogoutAccountsClient() {
               <div>
                 <p className="font-medium">{currentAccount.displayName}</p>
                 <p className="text-sm text-muted-foreground">@{currentAccount.username}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {currentAccount.deviceCount} {currentAccount.deviceCount === 1 ? "appareil" : "appareils"}
-                </p>
               </div>
             </div>
             <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
@@ -154,9 +151,6 @@ export default function LogoutAccountsClient() {
                   <div>
                     <p className="font-medium">{account.displayName}</p>
                     <p className="text-sm text-muted-foreground">@{account.username}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {account.deviceCount} {account.deviceCount === 1 ? "appareil" : "appareils"}
-                    </p>
                   </div>
                 </div>
                 <LoadingButton

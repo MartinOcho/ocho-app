@@ -1,163 +1,183 @@
-"use server"
+"use server";
 
-import { lucia, validateRequest } from "@/auth"
+import { lucia, validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export async function logout(){
-    const {session} = await validateRequest()
- 
-    if (!session) {
-        throw new Error("Action non autorisée");
-    }
-    await prisma.session.deleteMany({
-        where: {
-            id: session.id
-        }
-    })
+export async function logout() {
+  const { session } = await validateRequest();
 
-    await lucia.invalidateSession(session.id);
+  if (!session) {
+    throw new Error("Action non autorisée");
+  }
+  await prisma.session.deleteMany({
+    where: {
+      id: session.id,
+    },
+  });
 
-    const sessionCookie = lucia.createBlankSessionCookie();
+  await lucia.invalidateSession(session.id);
 
-    const cookieCall = await cookies()
+  const sessionCookie = lucia.createBlankSessionCookie();
 
-    cookieCall.set(
-        sessionCookie.name,
-        sessionCookie.value,
-        sessionCookie.attributes
-    )
+  const cookieCall = await cookies();
 
-    return redirect("/login")
+  cookieCall.set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes,
+  );
+
+  return redirect("/login");
 }
 
 export async function switchAccount(sessionId: string) {
-    const cookieCall = await cookies();
-    
-    if (!sessionId) {
-        throw new Error("Session ID invalide");
-    }
+  const cookieCall = await cookies();
 
-    // Valider que la session existe
-    const session = await prisma.session.findUnique({
-        where: { id: sessionId },
-        include: { user: true }
-    });
+  if (!sessionId) {
+    throw new Error("Session ID invalide");
+  }
 
-    if (!session) {
-        throw new Error("Session non trouvée");
-    }
+  // Valider que la session existe
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { user: true },
+  });
 
-    // Créer le cookie de session pour basculer vers ce compte
-    const sessionCookie = lucia.createSessionCookie(sessionId);
+  if (!session) {
+    throw new Error("Session non trouvée");
+  }
 
-    cookieCall.set(
-        sessionCookie.name,
-        sessionCookie.value,
-        sessionCookie.attributes
-    );
+  // Créer le cookie de session pour basculer vers ce compte
+  const sessionCookie = lucia.createSessionCookie(sessionId);
 
-    return { success: true, userId: session.userId };
+  cookieCall.set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes,
+  );
+
+  return { success: true, userId: session.userId };
 }
 
 export async function getAvailableAccounts() {
-    const { user, session } = await validateRequest();
-    
-    if (!user || !session) {
-        throw new Error("Non authentifié");
-    }
+  const { user, session } = await validateRequest();
 
-    // Récupérer toutes les sessions de cet utilisateur avec leurs devices
-    const sessions = await prisma.session.findMany({
-        where: {
-            userId: user.id,
-        },
-        select: {
-            id: true,
-            expiresAt: true,
-            deviceId: true,
-            device: {
-                select: {
-                    type: true,
-                }
-            }
-        },
-        orderBy: {
-            expiresAt: "desc",
-        }
-    });
+  if (!user || !session) {
+    throw new Error("Non authentifié");
+  }
 
-    // Mapper pour créer les comptes disponibles avec les infos utilisateur
+  // Récupérer toutes les sessions de cet utilisateur avec leurs devices
+  const currentSession = await prisma.session.findUnique({
+    where: { id: session.id },
+    select: {
+      deviceId: true,
+    },
+  });
+
+  if (!currentSession || !currentSession.deviceId) {
     return {
-        currentUser: {
-            id: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-        },
-        accounts: sessions.map((sess) => ({
-            sessionId: sess.id,
-            userId: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            expiresAt: sess.expiresAt,
-            isCurrent: sess.id === session.id,
-            deviceCount: 1, // Chaque session correspond à un device
-        })),
+      currentUser: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+      accounts: [],
     };
+  }
+  const sessions = await prisma.session.findMany({
+    where: {
+      deviceId: currentSession.deviceId,
+    },
+    select: {
+      id: true,
+      expiresAt: true,
+      deviceId: true,
+      device: {
+        select: {
+          type: true,
+        },
+      },
+    },
+    orderBy: {
+      expiresAt: "desc",
+    },
+  });
+
+  // Mapper pour créer les comptes disponibles avec les infos utilisateur
+  return {
+    currentUser: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    },
+    accounts: sessions.map((sess) => ({
+      sessionId: sess.id,
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      expiresAt: sess.expiresAt,
+      isCurrent: sess.id === session.id,
+    })),
+  };
 }
 
 export async function logoutSpecificSession(sessionId: string) {
-    const { user, session } = await validateRequest();
-    
-    if (!user || !session) {
-        throw new Error("Non authentifié");
-    }
+  const { user, session } = await validateRequest();
 
-    if (!sessionId) {
-        throw new Error("Session ID invalide");
-    }
+  if (!user || !session) {
+    throw new Error("Non authentifié");
+  }
 
-    // Empêcher de déconnecter sa propre session via cette route
-    if (sessionId === session.id) {
-        throw new Error("Vous devez utiliser la page de déconnexion sélective");
-    }
+  if (!sessionId) {
+    throw new Error("Session ID invalide");
+  }
 
-    // Vérifier que la session appartient bien à l'utilisateur
-    const sessionToDelete = await prisma.session.findUnique({
-        where: { id: sessionId },
-    });
+  // Empêcher de déconnecter sa propre session via cette route
+  if (sessionId === session.id) {
+    throw new Error("Vous devez utiliser la page de déconnexion sélective");
+  }
 
-    if (!sessionToDelete || sessionToDelete.userId !== user.id) {
-        throw new Error("Session non trouvée");
-    }
+  // Vérifier que la session appartient bien à l'utilisateur
+  const sessionToDelete = await prisma.session.findUnique({
+    where: { id: sessionId },
+  });
 
-    // Supprimer la session
-    await prisma.session.delete({
-        where: { id: sessionId },
-    });
+  if (!sessionToDelete || sessionToDelete.userId !== user.id) {
+    throw new Error("Session non trouvée");
+  }
 
-    return { success: true, message: "Compte déconnecté" };
+  // Supprimer la session
+  await prisma.session.delete({
+    where: { id: sessionId },
+  });
+
+  return { success: true, message: "Compte déconnecté" };
 }
 
 export async function logoutAllOtherSessions() {
-    const { user, session } = await validateRequest();
-    
-    if (!user || !session) {
-        throw new Error("Non authentifié");
-    }
+  const { user, session } = await validateRequest();
 
-    // Déconnecter toutes les sessions sauf la session courante
-    await prisma.session.deleteMany({
-        where: {
-            userId: user.id,
-            id: {
-                not: session.id,
-            },
-        },
-    });
+  if (!user || !session) {
+    throw new Error("Non authentifié");
+  }
 
-    return { success: true, message: "Tous les autres comptes ont été déconnectés" };
+  // Déconnecter toutes les sessions sauf la session courante
+  await prisma.session.deleteMany({
+    where: {
+      userId: user.id,
+      id: {
+        not: session.id,
+      },
+    },
+  });
+
+  return {
+    success: true,
+    message: "Tous les autres comptes ont été déconnectés",
+  };
 }
