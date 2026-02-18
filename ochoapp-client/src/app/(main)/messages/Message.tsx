@@ -26,7 +26,16 @@ import {
   Info,
   Sparkles,
   UserRoundPlus,
+  Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ReactionOverlay, {
   ReactionData,
   ReactionDetailsPopover,
@@ -98,6 +107,8 @@ export function DeletionPlaceholder({
   const { t } = useTranslation();
   const [progress, setProgress] = useState(100);
   const [timeLeft, setTimeLeft] = useState(duration);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const size = 18;
   const stroke = 2;
   const center = size / 2;
@@ -105,6 +116,8 @@ export function DeletionPlaceholder({
   const circumference = radius * 2 * Math.PI;
 
   useEffect(() => {
+    if (isPaused) return;
+
     const intervalTime = 50;
     const step = (100 * intervalTime) / duration;
     const timer = setInterval(() => {
@@ -119,60 +132,116 @@ export function DeletionPlaceholder({
       setTimeLeft((prev) => Math.max(0, prev - intervalTime));
     }, intervalTime);
     return () => clearInterval(timer);
-  }, [duration]);
+  }, [duration, isPaused]);
 
   if (progress === 0) return null;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
   const secondsLeft = Math.ceil(timeLeft / 1000);
 
+  const handleDeleteNow = () => {
+    setShowDeleteConfirm(true);
+    setIsPaused(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteConfirm(false);
+    onCancel(); // Appel onCancel pour déclencher la suppression immédiate
+  };
+
+  const handleCancelConfirm = () => {
+    setShowDeleteConfirm(false);
+    setIsPaused(false);
+  };
+
   return (
     <div className="relative z-0 flex w-full justify-end">
+      <Dialog open={showDeleteConfirm} onOpenChange={(open) => !open && handleCancelConfirm()}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                <Trash2 size={20} className="text-destructive" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle>{t("confirmDelete")}</DialogTitle>
+                <DialogDescription>
+                  {t("deleteMessageNow")}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <button
+              onClick={handleCancelConfirm}
+              className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-muted active:scale-95"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-all hover:bg-destructive/90 active:scale-95"
+            >
+              {t("delete")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="relative flex w-fit select-none flex-col items-end">
         <div className="relative flex w-fit items-center justify-between gap-2 overflow-hidden rounded-full border border-destructive/40 bg-destructive/5 p-1.5 pe-4 text-destructive shadow-sm backdrop-blur-sm">
           <div
             className="absolute bottom-0 left-0 h-1 bg-destructive/30 transition-all duration-75 ease-linear"
             style={{ width: `${progress}%` }}
           />
-          <button
-            onClick={onCancel}
-            className="z-0 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
-          >
-            <div className="relative flex items-center justify-center">
-              <svg height={size} width={size} className="-rotate-90 transform">
-                <circle
-                  stroke="currentColor"
-                  fill="transparent"
-                  strokeWidth={stroke}
-                  className="text-muted-foreground/40 dark:text-muted/50"
-                  r={radius}
-                  cx={center}
-                  cy={center}
-                />
-                <circle
-                  stroke="currentColor"
-                  fill="transparent"
-                  strokeWidth={stroke}
-                  strokeDasharray={circumference}
-                  style={{
-                    strokeDashoffset,
-                    transition: "stroke-dashoffset 75ms linear",
-                  }}
-                  strokeLinecap="round"
-                  className="text-destructive"
-                  r={radius}
-                  cx={center}
-                  cy={center}
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-destructive">
-                {secondsLeft}
-              </span>
-            </div>
-            <div className="flex items-center gap-0.5 pe-1.5 text-xs font-normal text-primary">
-              <Undo2 size={12} strokeWidth={3} />
-              <span className="uppercase">{t("cancel")}</span>
-            </div>
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={handleDeleteNow}
+              className="z-0 flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 p-1 text-xs font-bold text-destructive shadow-sm transition-all hover:border-destructive/60 hover:bg-destructive/20 active:scale-95"
+            >
+              <Trash2 size={12} strokeWidth={3} />
+              <span className="uppercase">{t("deleteNow")}</span>
+            </button>
+            <button
+              onClick={onCancel}
+              className="z-0 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
+            >
+              <div className="relative flex items-center justify-center">
+                <svg height={size} width={size} className="-rotate-90 transform">
+                  <circle
+                    stroke="currentColor"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    className="text-muted-foreground/40 dark:text-muted/50"
+                    r={radius}
+                    cx={center}
+                    cy={center}
+                  />
+                  <circle
+                    stroke="currentColor"
+                    fill="transparent"
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference}
+                    style={{
+                      strokeDashoffset,
+                      transition: "stroke-dashoffset 75ms linear",
+                    }}
+                    strokeLinecap="round"
+                    className="text-destructive"
+                    r={radius}
+                    cx={center}
+                    cy={center}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-destructive">
+                  {secondsLeft}
+                </span>
+              </div>
+              <div className="flex items-center gap-0.5 pe-1.5 text-xs font-normal text-primary">
+                <Undo2 size={12} strokeWidth={3} />
+                <span className="uppercase">{t("cancel")}</span>
+              </div>
+            </button>
+          </div>
           <span className="z-0 italic tracking-wider">{t("deleting")}</span>
         </div>
       </div>
