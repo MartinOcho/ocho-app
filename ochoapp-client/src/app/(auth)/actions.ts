@@ -90,6 +90,9 @@ export async function getAvailableAccounts() {
   const sessions = await prisma.session.findMany({
     where: {
       deviceId: currentSession.deviceId,
+      userId: {
+        not: user.id,
+      },
     },
     select: {
       id: true,
