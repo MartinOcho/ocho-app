@@ -32,6 +32,7 @@ import { WindowsLogo } from "@/components/logos/WindowsLogo";
 import { AppleLogo } from "@/components/logos/AppleLogo";
 import { ChromeLogo } from "@/components/logos/ChromeLogo";
 import { FirefoxLogo, SafariLogo, EdgeLogo, OperaLogo, BraveLogo } from "@/components/logos/BrowserLogos";
+import { VocabularyKey } from "@/lib/vocabulary";
 
 interface Session {
   sessionId: string;
@@ -126,13 +127,13 @@ const getDeviceIcon = (type: string, model: string | null) => {
   }
 };
 
-const getDeviceName = (type: string, model: string | null, t: any): string => {
+const getDeviceName = (type: string, model: string | null, t: (key: VocabularyKey) => string): string => {
   const typeMap: Record<string, string> = {
-    ANDROID: "Android",
-    IOS: "iPhone / iPad",
-    TABLET: t("TABLET") || "Tablette",
-    DESKTOP: t("DESKTOP") || "Ordinateur",
-    WEB: t("WEB") || "Navigateur Web",
+    ANDROID: t("android"),
+    IOS: t("ios"),
+    TABLET: t("tablet"),
+    DESKTOP: t("desktop") ,
+    WEB: t("webBrowser"),
   };
 
   const baseName = typeMap[type.toUpperCase()] || type;

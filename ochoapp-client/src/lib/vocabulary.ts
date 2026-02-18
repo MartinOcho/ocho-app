@@ -468,6 +468,11 @@ export const english = {
   disconnectSuccess: "Session successfully removed",
   disconnectError: "Error removing session",
   expiresOn: "Expires on",
+  android: "Android",
+  ios: "iPhone / iPad",
+  tablet: "Tablet",
+  desktop: "Desktop",
+  webBrowser: "Web Browser",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -950,6 +955,11 @@ export const french: Vocabulary = {
   disconnectSuccess: "Session supprimée avec succès",
   disconnectError: "Erreur lors de la suppression de la session",
   expiresOn: "Expire le",
+  android: "Android",
+  ios: "iPhone / iPad",
+  tablet: "Tablette",
+  desktop: "Ordinateur de bureau",
+  webBrowser: "Navigateur Web",
 };
 
 export const vocabulary = {
