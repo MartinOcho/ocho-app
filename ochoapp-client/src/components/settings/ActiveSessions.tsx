@@ -264,7 +264,7 @@ export default function ActiveSessions() {
                   {device.sessions.length > 0 && (
                     <div className="mt-3 rounded-md bg-muted p-2">
                       <p className="text-xs font-medium text-foreground">
-                        {device.sessions.length} {device.sessions.length > 1 ? t("sessions") : t("session")} {t("active")}
+                        {device.sessions.length} {device.sessions.length > 1 ? t("sessions") : t("session")}
                       </p>
                       <ul className="mt-1 space-y-1">
                         {device.sessions.map((sess) => (
