@@ -196,7 +196,7 @@ export function LogoutDialog({
         const data = await kyInstance("/api/auth/sessions", {
           method: "GET",
           credentials: "include",
-        }).json();
+        }).json() as { sessions: unknown[] };
         // S'il y a plus d'une session, il y a plusieurs comptes
         setHasMultipleAccounts(data.sessions.length > 1);
       } catch (error) {
