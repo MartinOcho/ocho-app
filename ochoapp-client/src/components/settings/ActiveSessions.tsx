@@ -23,7 +23,14 @@ import {
   Wifi,
   Trash2,
   Shield,
+  Globe,
 } from "lucide-react";
+import kyInstance from "@/lib/ky";
+import { AndroidLogo } from "@/components/logos/AndroidLogo";
+import { WindowsLogo } from "@/components/logos/WindowsLogo";
+import { AppleLogo } from "@/components/logos/AppleLogo";
+import { ChromeLogo } from "@/components/logos/ChromeLogo";
+import { FirefoxLogo, SafariLogo, EdgeLogo, OperaLogo, BraveLogo } from "@/components/logos/BrowserLogos";
 
 interface Session {
   sessionId: string;
@@ -48,39 +55,73 @@ interface SessionsResponse {
 }
 
 async function fetchActiveSessions(): Promise<SessionsResponse> {
-  const response = await fetch("/api/auth/active-sessions");
-  if (!response.ok) {
-    throw new Error("Erreur lors du chargement des sessions");
-  }
-  return response.json();
+  return kyInstance("/api/auth/active-sessions").json();
 }
 
 async function removeSession(sessionId: string): Promise<void> {
-  const response = await fetch(`/api/auth/active-sessions/${sessionId}`, {
+  await kyInstance(`/api/auth/active-sessions/${sessionId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionId }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Erreur lors de la suppression de la session");
-  }
+    json: { sessionId },
+  }).json();
 }
 
-const getDeviceIcon = (type: string) => {
+const getBrowserLogo = (model: string | null): React.ComponentType<any> | null => {
+  if (!model) return null;
+
+  const modelLower = model.toLowerCase();
+  const browserMap: Record<string, React.ComponentType<any>> = {
+    chrome: ChromeLogo,
+    firefox: FirefoxLogo,
+    safari: SafariLogo,
+    edge: EdgeLogo,
+    opera: OperaLogo,
+    brave: BraveLogo,
+  };
+
+  for (const [browser, Component] of Object.entries(browserMap)) {
+    if (modelLower.includes(browser)) {
+      return Component;
+    }
+  }
+
+  return null;
+};
+
+const getOSLogo = (model: string | null): React.ComponentType<any> | null => {
+  if (!model) return null;
+
+  const modelLower = model.toLowerCase();
+  if (modelLower.includes("windows")) {
+    return WindowsLogo;
+  }
+  if (modelLower.includes("mac") || modelLower.includes("apple")) {
+    return AppleLogo;
+  }
+  if (modelLower.includes("android")) {
+    return AndroidLogo;
+  }
+
+  return null;
+};
+
+const getDeviceIcon = (type: string, model: string | null) => {
   const baseClassName = "w-6 h-6";
+  const BrowserComponent = getBrowserLogo(model);
+  const OSComponent = getOSLogo(model);
+
   switch (type.toUpperCase()) {
     case "ANDROID":
+      return OSComponent ? <OSComponent className={baseClassName} /> : <Smartphone className={baseClassName} />;
     case "IOS":
-      return <Smartphone className={baseClassName} />;
+      return OSComponent ? <OSComponent className={baseClassName} /> : <Smartphone className={baseClassName} />;
     case "TABLET":
-      return <Tablet className={baseClassName} />;
+      return OSComponent ? <OSComponent className={baseClassName} /> : <Tablet className={baseClassName} />;
     case "DESKTOP":
-      return <Laptop className={baseClassName} />;
+      return OSComponent ? <OSComponent className={baseClassName} /> : <Laptop className={baseClassName} />;
     case "WEB":
-      return <Monitor className={baseClassName} />;
+      return BrowserComponent ? <BrowserComponent className={baseClassName} /> : <Globe className={baseClassName} />;
     default:
-      return <Monitor className={baseClassName} />;
+      return <Globe className={baseClassName} />;
   }
 };
 
@@ -180,7 +221,7 @@ export default function ActiveSessions() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-1 items-start gap-4">
                 <div className="rounded-lg bg-muted p-3">
-                  {getDeviceIcon(device.type)}
+                  {getDeviceIcon(device.type, device.model)}
                 </div>
 
                 <div className="flex-1 min-w-0">
