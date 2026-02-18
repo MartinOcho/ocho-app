@@ -19,14 +19,15 @@ export default function AuthLayoutClient({
 
   const isSwitching = searchParams.get("switching") === "true";
   const isLogoutAccountsPage = pathname?.includes("/logout-accounts");
+  const isLegalPage = pathname?.includes("/terms-of-use") || pathname?.includes("/privacy");
 
   useEffect(() => {
-    if (user && !isSwitching && !isRedirecting && !isLogoutAccountsPage) {
+    if (user && !isSwitching && !isRedirecting && !isLogoutAccountsPage && !isLegalPage) {
       setIsRedirecting(true);
       // Utiliser replace plutôt que push pour éviter une entrée d'historique
       router.replace("/");
     }
-  }, [user, isSwitching, router, isRedirecting, isLogoutAccountsPage]);
+  }, [user, isSwitching, router, isRedirecting, isLogoutAccountsPage, isLegalPage]);
 
   return (
     <main className="flex h-screen max-h-vh items-center justify-center p-5">
