@@ -15,6 +15,7 @@ import {
   Paintbrush2,
   SunIcon,
   Moon,
+  Shield,
 } from "lucide-react";
 import Settings, { SettingsOption } from "./Settings";
 import { logout } from "@/app/(auth)/actions";
@@ -220,6 +221,13 @@ export default function Options({
       action: "default",
       onClick: (value) => navigate(`/settings/${value}`),
       hasSubMenu: !!subOptions.privacy,
+    },
+    {
+      value: "sessions",
+      label: "Appareils et sessions",
+      icon: <Shield size={24} />,
+      action: "default",
+      onClick: () => navigate("/settings/sessions"),
     },
     {
       value: "display",
