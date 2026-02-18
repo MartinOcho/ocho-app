@@ -147,7 +147,7 @@ export default function ActiveSessions() {
   if (isLoading) return <LoaderMain />;
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+      <div className="rounded-lg border bg-muted p-4 text-foreground">
         Erreur lors du chargement des sessions
       </div>
     );
@@ -155,7 +155,7 @@ export default function ActiveSessions() {
 
   if (!sessionsData?.devices || sessionsData.devices.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-600">
+      <div className="rounded-lg border bg-muted p-6 text-center text-muted-foreground">
         <p>Aucun appareil connecté trouvé</p>
       </div>
     );
@@ -163,7 +163,7 @@ export default function ActiveSessions() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-4 text-blue-800">
+      <div className="flex items-center gap-2 rounded-lg bg-accent/50 p-4 text-foreground">
         <Shield className="w-5 h-5" />
         <p className="text-sm">
           Vous pouvez déconnecter les appareils auxquels vous n'avez plus
@@ -175,20 +175,20 @@ export default function ActiveSessions() {
         {sessionsData.devices.map((device) => (
           <div
             key={device.deviceId}
-            className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
+            className="rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-1 items-start gap-4">
-                <div className="rounded-lg bg-gray-100 p-3">
+                <div className="rounded-lg bg-muted p-3">
                   {getDeviceIcon(device.type)}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-semibold text-foreground">
                     {getDeviceName(device.type, device.model)}
                   </h3>
 
-                  <div className="mt-2 space-y-1 text-sm text-gray-600">
+                  <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                     {device.location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -219,15 +219,15 @@ export default function ActiveSessions() {
                   </div>
 
                   {device.sessions.length > 0 && (
-                    <div className="mt-3 rounded-md bg-gray-50 p-2">
-                      <p className="text-xs font-medium text-gray-700">
+                    <div className="mt-3 rounded-md bg-muted p-2">
+                      <p className="text-xs font-medium text-foreground">
                         {device.sessions.length} session{device.sessions.length > 1 ? "s" : ""} active{device.sessions.length > 1 ? "s" : ""}
                       </p>
                       <ul className="mt-1 space-y-1">
                         {device.sessions.map((sess) => (
                           <li
                             key={sess.sessionId}
-                            className="flex items-center justify-between text-xs text-gray-600"
+                            className="flex items-center justify-between text-xs text-muted-foreground"
                           >
                             <span>
                               Expire le{" "}
@@ -236,7 +236,7 @@ export default function ActiveSessions() {
                               )}
                             </span>
                             {sess.isCurrent && (
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 font-medium">
+                              <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-foreground font-medium">
                                 Session actuelle
                               </span>
                             )}
