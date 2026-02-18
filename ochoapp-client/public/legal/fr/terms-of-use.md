@@ -1,79 +1,190 @@
 # Conditions d'Utilisation de OchoApp
 
-Date d'entrée en vigueur : 05 Janvier 2024
+Date d'entrée en vigueur : 18 février 2026
+
+Dernière mise à jour : 18 février 2026
 
 ## 1. Accepter les Règles
 
-En utilisant OchoApp, vous acceptez ces règles. Cela signifie que vous vous engagez à respecter tout ce qui est écrit ici. Si vous n'êtes pas d'accord avec une partie ou la totalité de ces règles, il est préférable de ne pas utiliser l'application. En continuant à utiliser OchoApp, vous montrez que vous acceptez ces conditions. Ces règles constituent un contrat légal entre vous et OchoApp, et elles régissent votre utilisation de l'application.
+En utilisant OchoApp, vous acceptez ces conditions d'utilisation. Cela signifie que vous vous engagez à respecter tout ce qui est écrit ici. Si vous n'êtes pas d'accord avec l'une de ces conditions, il est préférable de ne pas utiliser l'application. En continuant à utiliser OchoApp, vous acceptez ces conditions. Elles constituent un contrat légal entre vous et OchoApp et régissent votre utilisation de l'application, y compris la messagerie, les publications, les commentaires, les notifications et les interactions sociales.
 
 ## 2. Comment Utiliser OchoApp
 
 Vous devez utiliser OchoApp de manière légale, respectueuse et conforme à ces règles. Voici ce que vous ne devez pas faire :
 
-- **Activités illégales** : Ne pas utiliser OchoApp pour des activités interdites par la loi, telles que le harcèlement, la fraude, ou la diffusion de contenu illégal.
+- **Activités illégales** : N'utilisez pas OchoApp pour des activités interdites par la loi, telles que le harcèlement, la fraude, les menaces ou la diffusion de contenu illégal.
 
-- **Contenu inapproprié** : Ne pas publier de contenu blessant, insultant, faux, diffamatoire, obscène, ou qui pourrait nuire à d'autres personnes. Cela inclut les contenus à caractère raciste, sexiste, ou discriminatoire.
+- **Contenu inapproprié** : Ne publiez pas de contenu blessant, insultant, faux, diffamatoire, obscène ou qui pourrait nuire à autrui, y compris dans les publications, messages, commentaires ou toute autre forme. Cela inclut les contenus racistes, sexistes, homophobes ou discriminatoires.
 
-- **Accès non autorisé** : Ne pas essayer d'accéder à des comptes, des informations ou des données qui ne vous appartiennent pas. Cela inclut le piratage, le phishing, ou toute autre méthode d'accès illicite.
+- **Accès non autorisé** : N'essayez pas d'accéder à des comptes, messages, données ou informations qui ne vous appartiennent pas, y compris par le piratage, le phishing ou d'autres méthodes illicites.
 
-- **Outils automatisés** : Ne pas utiliser de robots, de logiciels, de scripts, ou d'autres moyens automatisés pour interagir avec OchoApp sans notre permission explicite. Cela inclut le scraping de données ou l'envoi massif de requêtes.
+- **Outils automatisés** : N'utilisez pas de robots, logiciels, scripts, scrapers ou autres moyens automatisés pour interagir avec OchoApp, y compris pour publier, envoyer des messages, liker ou collecter des données, sans notre permission explicite.
 
-- **Spam** : Ne pas envoyer de messages non sollicités, de publicités, ou de contenus promotionnels à d'autres utilisateurs sans leur consentement.
+- **Spam et abus** : N'envoyez pas de messages non sollicités, de publicités ou de contenus promotionnels à d'autres utilisateurs. Ne spammez pas les réponses, commentaires ou likes pour gonfler l'engagement.
 
-Si vous ne respectez pas ces règles, nous pouvons suspendre ou fermer votre compte, et nous nous réservons le droit de prendre des mesures légales si nécessaire.
+- **Usurpation d'identité** : Ne prétendez pas être quelqu'un d'autre et ne déformez pas votre identité pour tromper d'autres utilisateurs.
+
+- **Violations de la confidentialité** : Ne partagez pas les informations personnelles d'autrui sans consentement. Ne filmez, photographiez ou enregistrez pas autrui sans permission.
+
+Non-respect de ces règles peut entraîner la suspension ou la fermeture permanente de votre compte, la restriction d'accès aux fonctionnalités, et nous nous réservons le droit d'entreprendre une action légale si nécessaire.
 
 ## 3. Votre Compte
 
-Pour utiliser certaines fonctionnalités de OchoApp, vous devez créer un compte. Voici ce que vous devez savoir :
+Pour utiliser les fonctionnalités de OchoApp (messagerie, publication, interactions sociales), vous devez créer un compte.
 
-- **Informations exactes** : Vous devez fournir des informations vraies, exactes et à jour lors de la création de votre compte. Cela inclut votre nom, votre adresse e-mail, et toute autre information requise.
+- **Informations exactes** : Vous devez fournir des informations vraies, exactes et à jour lors de la création de votre compte, y compris votre nom d'utilisateur et adresse e-mail.
 
-- **Protection du compte** : Vous êtes responsable de la sécurité de votre mot de passe et de tout ce qui se passe sur votre compte. Ne partagez pas votre mot de passe avec d'autres personnes. Utilisez un mot de passe fort et changez-le régulièrement.
+- **Protection du compte** : Vous êtes responsable de la sécurité de votre mot de passe et de toute activité sur votre compte. Ne partagez pas votre mot de passe. Utilisez un mot de passe fort et changez-le régulièrement.
 
-- **Utilisation non autorisée** : Si vous remarquez que quelqu'un utilise votre compte sans votre permission, vous devez nous en informer immédiatement à l'adresse ochokom@ochotouchsolution.onmicrosoft.com.
+- **Gestion des appareils** : Nous suivons les appareils associés à votre compte à des fins de sécurité. Vous pouvez consulter et gérer vos appareils connectés dans les paramètres de sécurité.
 
-- **Comptes multiples** : La création de plusieurs comptes pour contourner des restrictions ou des sanctions est interdite.
+- **Utilisation non autorisée** : Si vous remarquez que quelqu'un utilise votre compte sans permission, informez-nous immédiatement à ochokom@ochotouchsolution.onmicrosoft.com.
 
-Si vous perdez l'accès à votre compte, nous pouvons vous aider à le récupérer, mais vous devez prouver que vous en êtes le propriétaire en fournissant les informations nécessaires.
+- **Comptes multiples** : La création de plusieurs comptes pour contourner des restrictions, manipuler l'engagement ou esquiver les actions d'application est interdite.
 
-## 4. Ce Que Vous Partagez
+- **Exigences d'âge** : Vous devez avoir au moins 13 ans pour utiliser OchoApp. Si nous découvrons que vous êtes mineur, nous supprimerons votre compte.
 
-Vous gardez tous les droits sur le contenu que vous publiez sur OchoApp. Cela signifie que vous en restez le propriétaire. Cependant, en partageant du contenu sur OchoApp, vous nous autorisez à l'utiliser pour faire fonctionner et améliorer l'application. Par exemple, nous pouvons afficher votre contenu à d'autres utilisateurs ou l'utiliser pour promouvoir OchoApp. Cette autorisation est mondiale, non exclusive, et gratuite.
+Si vous perdez l'accès à votre compte, nous pouvons vous aider à le récupérer par vérification.
 
-Vous êtes responsable de tout ce que vous publiez. Assurez-vous que votre contenu ne viole pas les droits d'autrui ou les lois en vigueur. Si vous partagez quelque chose d'inapproprié, nous pouvons le supprimer et prendre des mesures contre votre compte, y compris la suspension ou la fermeture de celui-ci.
+## 4. Contenu que Vous Créez et Partagez
 
-## 5. Respect de la Propriété
+### Publications et Commentaires
 
-Tout ce qui est sur OchoApp (comme les logos, les designs, les textes, les images, etc.) est protégé par des droits d'auteur, des marques déposées, et d'autres lois. Cela signifie que vous ne pouvez pas copier, modifier, distribuer, ou utiliser ces éléments sans notre permission écrite. Si vous souhaitez utiliser quelque chose de OchoApp, contactez-nous d'abord pour obtenir une autorisation. Toute utilisation non autorisée de notre propriété intellectuelle peut entraîner des poursuites judiciaires.
+Vous conservez la propriété de tout contenu que vous créez, y compris les publications, commentaires et réponses. Cependant, en publiant sur OchoApp, vous nous accordez une licence mondiale, gratuite, non exclusive pour afficher, distribuer et utiliser votre contenu afin d'exploiter la plateforme. Cela inclut :
 
-## 6. Notre Responsabilité
+- Afficher vos publications dans les fils d'actualité et résultats de recherche
+- Utiliser votre contenu pour l'analyse et les recommandations
+- Stocker votre contenu à des fins de sauvegarde et d'archivage
 
-OchoApp est fourni "tel quel". Cela signifie que nous ne garantissons pas que l'application fonctionnera toujours sans problème, qu'elle sera sécurisée à 100%, ou qu'elle sera exempte d'erreurs. Nous faisons de notre mieux pour vous offrir un service de qualité, mais nous ne pouvons pas tout prévoir. Nous déclinons toute responsabilité pour les dommages indirects, comme la perte de données, les interruptions de service, ou les dommages financiers, qui pourraient survenir lors de l'utilisation de OchoApp. Cependant, nous nous engageons à résoudre les problèmes techniques dans les meilleurs délais.
+### Pièces jointes
 
-## 7. Arrêt de l'Accès
+Quand vous téléchargez des images, vidéos ou documents, nous les stockons via Cloudinary, un service cloud tiers. Vous conservez les droits d'auteur, mais nous accordez le droit d'afficher et distribuer ces pièces jointes dans le cadre de vos publications et messages. Les fichiers multimédias peuvent être optimisés pour différents appareils.
 
-Nous pouvons suspendre ou arrêter votre accès à OchoApp à tout moment, sans préavis, si vous ne respectez pas ces règles. Par exemple, si vous utilisez OchoApp de manière abusive, si vous partagez du contenu interdit, ou si vous tentez de nuire à l'application ou à ses utilisateurs, nous pouvons fermer votre compte. Vous pouvez également fermer votre compte à tout moment si vous ne souhaitez plus utiliser OchoApp. Dans ce cas, vos données seront supprimées conformément à notre politique de confidentialité, sauf si la loi nous oblige à les conserver.
+### Messages
 
-## 8. Changements des Règles
+Les messages privés entre utilisateurs sont chiffrés lors de la transmission et du stockage. Vous conservez la propriété de vos messages, mais nous les stockons pour activer la livraison, les confirmations de lecture et l'historique des messages. Les messages ne peuvent pas être définitivement supprimés de nos systèmes une fois envoyés, mais peuvent être supprimés de votre interface.
 
-Nous pouvons modifier ces règles à tout moment. Par exemple, si nous ajoutons de nouvelles fonctionnalités à OchoApp ou si nous devons nous conformer à de nouvelles lois, nous mettrons à jour ces conditions. Les nouvelles règles seront applicables dès leur publication sur cette page. Il est de votre responsabilité de consulter régulièrement cette page pour rester informé des changements. Si vous continuez à utiliser OchoApp après la publication des nouvelles règles, cela signifie que vous les acceptez. Nous vous informerons des changements majeurs par e-mail ou via une notification dans l'application.
+### Réactions et Interactions
 
-## 9. Nous Contacter
+Les likes, favoris, commentaires et réactions sont suivis pour exploiter les fonctionnalités sociales de OchoApp. Ces données d'engagement sont analysées pour améliorer les recommandations.
 
-Si vous avez des questions sur ces règles ou si vous rencontrez un problème avec OchoApp, vous pouvez nous contacter à l'adresse suivante : ochokom@ochotouchsolution.onmicrosoft.com. Nous ferons de notre mieux pour vous répondre rapidement et vous aider à résoudre tout problème. Vous pouvez également consulter notre centre d'aide en ligne pour trouver des réponses à vos questions.
+### Responsabilité
 
-## 10. Politique de Confidentialité
+Vous êtes responsable de tout contenu que vous publiez. Assurez-vous que votre contenu :
+- Ne viole pas les droits de propriété intellectuelle, la confidentialité ou les droits de la personnalité d'autrui
+- Ne viole aucune loi ou réglementation
+- Est exact et pas trompeur
+- N'est pas un conseil médical, juridique ou financier
 
-Votre vie privée est importante pour nous. Nous collectons et utilisons vos informations personnelles conformément à notre politique de confidentialité. En utilisant OchoApp, vous acceptez que nous traitions vos données comme décrit dans cette politique. Nous ne partagerons jamais vos informations avec des tiers sans votre consentement, sauf si la loi l'exige. Pour en savoir plus sur comment nous protégeons vos données, veuillez consulter notre politique de confidentialité.
+Nous pouvons supprimer le contenu qui viole ces conditions à tout moment. Les violations répétées peuvent entraîner la suspension ou la résiliation du compte.
 
-## 11. Limitation de Responsabilité
+## 5. Fonctionnalités Sociales et Interactions
 
-Dans la mesure permise par la loi, OchoApp ne sera pas responsable des dommages directs, indirects, spéciaux, consécutifs ou exemplaires, y compris, mais sans s'y limiter, la perte de profits, de données, d'utilisation, de goodwill, ou d'autres pertes intangibles résultant de (i) votre accès à ou utilisation de ou incapacité à accéder ou à utiliser le service; (ii) toute conduite ou contenu de tout tiers sur le service; (iii) tout contenu obtenu à partir du service; et (iv) tout accès non autorisé, utilisation ou altération de vos transmissions ou contenu, que la responsabilité soit basée sur la garantie, le contrat, la responsabilité délictuelle (y compris la négligence) ou toute autre théorie légale, que nous ayons été informés ou non de la possibilité de tels dommages.
+### Suivi et Abonnés
 
-## 12. Loi Applicable et Résolution des Litiges
+Vous pouvez choisir de suivre d'autres utilisateurs et d'autres peuvent vous suivre. Votre nombre d'abonnés est public. Vous pouvez bloquer des utilisateurs pour les empêcher de voir votre profil ou de vous envoyer des messages.
 
-Ces conditions d'utilisation sont régies par les lois du pays où OchoApp est basé. Tout litige découlant de ces conditions ou de votre utilisation de OchoApp sera résolu par les tribunaux compétents de ce pays. En cas de litige, nous vous encourageons à nous contacter d'abord pour essayer de résoudre le problème de manière amiable.
+### Notifications
 
-## 13. Bienvenue
+Nous envoyons des notifications pour :
+- Les likes sur vos publications ou commentaires
+- Les nouveaux commentaires sur vos publications
+- Les nouveaux abonnés
+- Les messages directs
+- Les mentions dans les commentaires et messages
+- Les mises à jour de la plateforme
 
-Nous vous souhaitons la bienvenue sur notre application et espérons que vous apprécierez votre expérience avec OchoApp. Si vous avez des questions ou des suggestions, n'hésitez pas à nous contacter.
+Vous pouvez personnaliser les préférences de notification dans les paramètres.
+
+### Vérification d'Utilisateur
+
+Nous offrons des badges de vérification à certains utilisateurs. La vérification indique que nous avons confirmé l'identité de l'utilisateur. La vérification peut être Standard ou Doré et peut expirer. Tenter d'obtenir frauduleusement une vérification est interdit.
+
+### Mentions et Étiquettes
+
+Quand vous mentionnez un autre utilisateur en utilisant @nom_utilisateur, nous le notifions. Le spam de mentions est interdit.
+
+## 6. Historique de Recherche et Confidentialité
+
+Nous collectons votre historique de recherche pour améliorer la fonctionnalité de recherche et les recommandations. Vous pouvez supprimer votre historique de recherche dans les paramètres de confidentialité. Supprimer l'historique ne nous empêche pas d'analyser les tendances de recherche agrégées.
+
+## 7. Paramètres de Confidentialité d'Utilisateur
+
+Vous pouvez contrôler votre confidentialité via les paramètres :
+- Rendre votre profil public ou privé
+- Contrôler qui peut vous envoyer des messages
+- Contrôler qui voit votre liste de suivi
+- Gérer les blocages et le filtrage
+
+Certaines informations (nom d'utilisateur, photo de profil si public) peuvent être visibles même avec un profil privé.
+
+## 8. Droits de Propriété Intellectuelle
+
+Le nom de OchoApp, le logo, le design, le texte et tout autre contenu original de la plateforme sont protégés par les droits d'auteur, les marques déposées et d'autres lois de propriété intellectuelle. Vous ne pouvez pas :
+- Copier, modifier ou reproduire ces éléments sans permission
+- Utiliser le nom ou le logo de OchoApp de façon à créer une confusion
+- Faire du scraping, crawler ou télécharger automatiquement du contenu de la plateforme
+
+Toute utilisation non autorisée peut entraîner une action légale.
+
+## 9. Services Tiers et OAuth
+
+OchoApp s'intègre avec :
+- **Google**, **Facebook** et **GitHub** pour l'authentification
+- **Cloudinary** pour l'hébergement de médias
+- Services d'analyse pour l'analyse d'utilisation
+
+Quand vous authentifiez via ces services, vous consentez à notre accès à certaines informations comme décrit dans les conditions d'utilisation de chaque service. Nous ne sommes pas responsables des pratiques de ces services.
+
+## 10. Notre Responsabilité et Avertissements
+
+OchoApp est fourni « tel quel ». Nous ne garantissons pas que :
+- Le service sera toujours disponible ou exempt d'erreurs
+- Le service sera sécurisé à 100% contre les violations
+- Les messages envoyés ne seront jamais perdus
+- Les fonctionnalités en temps réel fonctionneront parfaitement dans toutes les conditions
+
+Nous faisons de notre mieux pour fournir un service sécurisé, mais aucun système n'est complètement sécurisé. Nous ne sommes pas responsables de :
+- La perte ou la corruption de données
+- Les interruptions ou les temps d'arrêt du service
+- Les messages non livrés
+- La perte d'accès à votre compte
+- Les conséquences des actions d'autres utilisateurs
+- Les services tiers utilisés par la plateforme
+
+Dans la mesure permise par la loi, nous déclinons toute responsabilité pour les dommages indirects, spéciaux ou consécutifs.
+
+## 11. Suspension et Résiliation
+
+Nous pouvons suspendre ou résilier votre compte si :
+- Vous violez ces conditions
+- Vous violez les lois applicables
+- Vous harcelez, menacez ou abusez d'autres utilisateurs
+- Vous essayez d'accéder sans autorisation
+- La loi l'exige
+- Votre compte montre des signes d'activité de bot
+- Vous vous engagez dans de la fraude ou de la manipulation
+
+Upon termination, your account will be deactivated and your data will be handled according to our privacy policy. You may request data export before full deletion.
+
+## 12. Changements de Ces Conditions
+
+Nous pouvons mettre à jour ces conditions à tout moment. Les nouvelles conditions entrent en vigueur dès leur publication. Nous vous notifierons des changements importants par email ou notification dans l'application. Continuer à utiliser OchoApp après les mises à jour signifie que vous acceptez les nouvelles conditions.
+
+## 13. Résolution des Litiges
+
+En cas de litige avec nous :
+1. Essayez de le résoudre en nous contactant à ochokom@ochotouchsolution.onmicrosoft.com
+2. Si non résolu, les litiges seront régis par les lois de la juridiction où OchoApp opère
+3. Vous acceptez d'essayer une résolution amiable avant une action légale
+
+## 14. Nous Contacter
+
+Pour des questions sur ces conditions ou pour signaler des violations, contactez-nous à :
+**Email** : ochokom@ochotouchsolution.onmicrosoft.com
+
+Nous répondrons dans un délai raisonnable.
+
+## 15. Accord Complet
+
+Ces conditions, ainsi que notre Politique de Confidentialité, constituent l'accord complet entre vous et OchoApp. Si une disposition s'avère inexécutable, les dispositions restantes restent en vigueur.
