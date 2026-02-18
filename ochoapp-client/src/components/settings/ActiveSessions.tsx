@@ -220,8 +220,8 @@ export default function ActiveSessions() {
             key={device.deviceId}
             className="rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md"
           >
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex flex-1 items-start gap-4 flex-wrap">
+            <div className="flex items-start justify-between gap-4 max-sm:flex-col-reverse">
+              <div className="flex flex-1 items-start gap-4 max-sm:flex-col">
                 <div className="rounded-lg bg-muted p-3">
                   {getDeviceIcon(device.type, device.model)}
                 </div>
@@ -289,8 +289,6 @@ export default function ActiveSessions() {
                     </div>
                   )}
                 </div>
-              </div>
-
               <div className="flex flex-shrink-0 flex-col gap-2">
                 {device.sessions.some((s) => !s.isCurrent) && (
                   <Button
@@ -313,6 +311,8 @@ export default function ActiveSessions() {
                   </Button>
                 )}
               </div>
+              </div>
+
             </div>
           </div>
         ))}
