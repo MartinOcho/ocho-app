@@ -90,14 +90,19 @@ export async function getAvailableAccounts() {
   const sessions = await prisma.session.findMany({
     where: {
       deviceId: currentSession.deviceId,
-      userId: {
-        not: user.id,
-      },
     },
     select: {
       id: true,
       expiresAt: true,
       deviceId: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
       device: {
         select: {
           type: true,
@@ -119,10 +124,10 @@ export async function getAvailableAccounts() {
     },
     accounts: sessions.map((sess) => ({
       sessionId: sess.id,
-      userId: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      userId: sess.user.id,
+      username: sess.user.username,
+      displayName: sess.user.displayName,
+      avatarUrl: sess.user.avatarUrl,
       expiresAt: sess.expiresAt,
       isCurrent: sess.id === session.id,
     })),
