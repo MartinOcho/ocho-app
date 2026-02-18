@@ -113,9 +113,9 @@ const getDeviceIcon = (type: string, model: string | null) => {
 
   switch (type.toUpperCase()) {
     case "ANDROID":
-      return OSComponent ? <OSComponent className={baseClassName} /> : <Smartphone className={baseClassName} />;
+      return <AndroidLogo className={baseClassName} />;
     case "IOS":
-      return OSComponent ? <OSComponent className={baseClassName} /> : <Smartphone className={baseClassName} />;
+      return <AppleLogo className={baseClassName} />;
     case "TABLET":
       return OSComponent ? <OSComponent className={baseClassName} /> : <Tablet className={baseClassName} />;
     case "DESKTOP":
@@ -220,8 +220,8 @@ export default function ActiveSessions() {
             key={device.deviceId}
             className="rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-1 items-start gap-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex flex-1 items-start gap-4 flex-wrap">
                 <div className="rounded-lg bg-muted p-3">
                   {getDeviceIcon(device.type, device.model)}
                 </div>
