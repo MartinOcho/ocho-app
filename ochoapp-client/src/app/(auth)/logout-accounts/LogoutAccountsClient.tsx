@@ -9,6 +9,14 @@ import { LogOut, LogOutIcon } from "lucide-react";
 import { logoutSpecificSession, logoutAllOtherSessions, getAvailableAccounts } from "@/app/(auth)/actions";
 import OchoLink from "@/components/ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Account {
   sessionId: string;
@@ -26,6 +34,7 @@ export default function LogoutAccountsClient() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loggingOutId, setLoggingOutId] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -60,12 +69,13 @@ export default function LogoutAccountsClient() {
   };
 
   const handleLogoutAllOthers = async () => {
-    if (!confirm(t("confirmLogoutAll") || "Êtes-vous sûr de vouloir déconnecter tous les autres comptes ?")) {
-      return;
-    }
+    setShowConfirmDialog(true);
+  };
 
+  const confirmLogoutAllOthers = async () => {
     try {
       setLoggingOutId("all");
+      setShowConfirmDialog(false);
       await logoutAllOtherSessions();
       // Garder seulement le compte courant
       setAccounts((prev) => prev.filter((acc) => acc.isCurrent));
@@ -200,6 +210,33 @@ export default function LogoutAccountsClient() {
           💡 {t("securityNote")}
         </p>
       </div>
+
+      {/* Dialog de confirmation */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("confirmLogoutAll")}</DialogTitle>
+            <DialogDescription>
+              {t("confirmLogoutAllDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              {t("cancel")}
+            </Button>
+            <LoadingButton
+              onClick={confirmLogoutAllOthers}
+              loading={loggingOutId === "all"}
+              variant="destructive"
+            >
+              {t("logout")}
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

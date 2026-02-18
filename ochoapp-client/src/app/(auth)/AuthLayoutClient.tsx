@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface AuthLayoutClientProps {
@@ -13,18 +13,20 @@ export default function AuthLayoutClient({
   children,
 }: AuthLayoutClientProps) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const isSwitching = searchParams.get("switching") === "true";
+  const isLogoutAccountsPage = pathname?.includes("/logout-accounts");
 
   useEffect(() => {
-    if (user && !isSwitching && !isRedirecting) {
+    if (user && !isSwitching && !isRedirecting && !isLogoutAccountsPage) {
       setIsRedirecting(true);
       // Utiliser replace plutôt que push pour éviter une entrée d'historique
       router.replace("/");
     }
-  }, [user, isSwitching, router, isRedirecting]);
+  }, [user, isSwitching, router, isRedirecting, isLogoutAccountsPage]);
 
   return (
     <main className="flex h-screen max-h-vh items-center justify-center p-5">
