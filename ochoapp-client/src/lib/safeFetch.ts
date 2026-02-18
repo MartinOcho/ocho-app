@@ -3,6 +3,8 @@
  * Gère offline, timeouts, erreurs réseau, 4xx/5xx
  */
 
+import kyInstance from "./ky"
+
 export interface SafeFetchResponse<T> {
   data?: T
   error?: {
@@ -44,7 +46,7 @@ export async function safeFetch<T = unknown>(
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-    const response = await fetch(url, {
+    const response = await kyInstance(url, {
       ...options,
       signal: controller.signal,
     })
