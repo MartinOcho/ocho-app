@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import kyInstance from "@/lib/ky";
 
 export async function PATCH() {
     try {
@@ -22,17 +23,16 @@ export async function PATCH() {
 
         // Notifier le serveur de sockets en temps réel
         try {
-            await fetch(
+            await kyInstance(
                 `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/mark-all-notifications-as-read`,
                 {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
                         "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
                     },
-                    body: JSON.stringify({
+                    json: {
                         recipientId: user.id,
-                    }),
+                    },
                 }
             );
         } catch (e) {

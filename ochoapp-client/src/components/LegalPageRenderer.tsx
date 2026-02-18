@@ -7,6 +7,7 @@ import Buttons from '@/app/(auth)/Buttons';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ReactNode } from 'react';
+import kyInstance from '@/lib/ky';
 
 interface LegalPageProps {
   docType: 'privacy' | 'terms-of-use';
@@ -82,12 +83,7 @@ export default function LegalPageRenderer({ docType, title }: LegalPageProps) {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/legal/${language}/${docType}.md`);
-        if (!response.ok) {
-          throw new Error(`Failed to load ${docType} for language ${language}`);
-        }
-
-        const markdown = await response.text();
+        const markdown = await kyInstance(`/legal/${language}/${docType}.md`).text();
         setContent(markdown);
       } catch (err) {
         console.error('Error loading legal document:', err);

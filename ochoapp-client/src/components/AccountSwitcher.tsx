@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -13,6 +13,7 @@ import { ArrowRightLeftIcon, Plus, Settings, Check, Loader2 } from "lucide-react
 import UserAvatar from "./UserAvatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { switchAccount } from "@/app/(auth)/actions";
+import kyInstance from "@/lib/ky";
 import OchoLink from "./ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
@@ -44,17 +45,17 @@ interface SessionsResponse {
   currentSession: CurrentSession;
 }
 
+interface SessionsApiResponse {
+  sessions: SessionAccount[];
+  currentSession: CurrentSession;
+}
+
 async function fetchSessions(): Promise<SessionsResponse> {
-  const response = await fetch("/api/auth/sessions", {
+  const data = await kyInstance("/api/auth/sessions", {
     method: "GET",
     credentials: "include",
-  });
+  }).json<SessionsApiResponse>();
 
-  if (!response.ok) {
-    throw new Error(`Erreur lors du chargement des sessions: ${response.status}`);
-  }
-
-  const data = await response.json();
   return {
     sessions: data.sessions || [],
     currentSession: data.currentSession,

@@ -1,6 +1,9 @@
 /**
  * Détecte la localisation basée sur l'adresse IP
  */
+
+import kyInstance from '@/lib/ky';
+
 export interface GeoLocationInfo {
   country: string | null;
   countryCode: string | null;
@@ -42,15 +45,9 @@ function parseCloudflareHeaders(headers: Headers): GeoLocationInfo | null {
 async function getGeoLocationFromAPI(ip: string): Promise<GeoLocationInfo | null> {
   try {
     // Limiter les appels API pour ne pas surcharger
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,city,regionName,lat,lon`, {
+    const data = await kyInstance(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,city,regionName,lat,lon`, {
       method: "GET",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json() as {
+    }).json() as {
       status?: string;
       country?: string;
       countryCode?: string;

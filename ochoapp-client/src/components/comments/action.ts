@@ -4,6 +4,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { CommentData, FirstCommentData, getCommentDataIncludes, PostData } from "@/lib/types";
 import { createCommentSchema } from "@/lib/validation";
+import kyInstance from "@/lib/ky";
 
 export async function submitComment({
   post,
@@ -43,22 +44,21 @@ export async function submitComment({
   // Notifier le serveur de sockets pour que le destinataire recoive la notification
   if (user.id !== post.userId) {
     try {
-      await fetch(
+      await kyInstance(
         `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/create-notification`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
           },
-          body: JSON.stringify({
+          json: {
             type: "COMMENT",
             recipientId: post.userId,
             issuerId: user.id,
             postId: post.id,
             commentId: newComment.id,
-          }),
-        },
+          },
+        }
       );
     } catch (e) {
       console.warn("Impossible de notifier le serveur de sockets:", e);
@@ -112,22 +112,21 @@ export async function submitReply({
   // Notifier le serveur de sockets pour que le destinataire recoive la notification
   if (user.id !== comment.userId) {
     try {
-      await fetch(
+      await kyInstance(
         `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/create-notification`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
           },
-          body: JSON.stringify({
+          json: {
             type: "COMMENT_REPLY",
             recipientId: comment.userId,
             issuerId: user.id,
             postId: firstLevelComment.postId,
             commentId: newComment.id,
-          }),
-        },
+          },
+        }
       );
     } catch (e) {
       console.warn("Impossible de notifier le serveur de sockets:", e);
@@ -163,18 +162,17 @@ export async function deleteComment(id: string) {
   try {
     // Supprimer les notifications COMMENT et COMMENT_LIKE associées au commentaire
     await Promise.all([
-      fetch(
+      kyInstance(
         `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/delete-notifications-for-comment`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
           },
-          body: JSON.stringify({
+          json: {
             commentId: id,
             postId: comment.postId,
-          }),
+          },
         }
       ),
     ]);

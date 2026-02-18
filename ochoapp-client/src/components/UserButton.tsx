@@ -193,16 +193,12 @@ export function LogoutDialog({
   useEffect(() => {
     const checkMultipleAccounts = async () => {
       try {
-        const response = await fetch("/api/auth/sessions", {
+        const data = await kyInstance("/api/auth/sessions", {
           method: "GET",
           credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // S'il y a plus d'une session, il y a plusieurs comptes
-          setHasMultipleAccounts(data.sessions.length > 1);
-        }
+        }).json();
+        // S'il y a plus d'une session, il y a plusieurs comptes
+        setHasMultipleAccounts(data.sessions.length > 1);
       } catch (error) {
         console.error("Erreur lors de la vérification des comptes:", error);
       }
