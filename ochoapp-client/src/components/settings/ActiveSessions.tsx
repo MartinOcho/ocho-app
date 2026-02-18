@@ -25,6 +25,7 @@ import {
   Shield,
   Globe,
 } from "lucide-react";
+import { useTranslation } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
 import { AndroidLogo } from "@/components/logos/AndroidLogo";
 import { WindowsLogo } from "@/components/logos/WindowsLogo";
@@ -125,13 +126,13 @@ const getDeviceIcon = (type: string, model: string | null) => {
   }
 };
 
-const getDeviceName = (type: string, model: string | null): string => {
+const getDeviceName = (type: string, model: string | null, t: any): string => {
   const typeMap: Record<string, string> = {
     ANDROID: "Android",
     IOS: "iPhone / iPad",
-    TABLET: "Tablette",
-    DESKTOP: "Ordinateur",
-    WEB: "Navigateur Web",
+    TABLET: t("TABLET") || "Tablette",
+    DESKTOP: t("DESKTOP") || "Ordinateur",
+    WEB: t("WEB") || "Navigateur Web",
   };
 
   const baseName = typeMap[type.toUpperCase()] || type;
@@ -142,6 +143,7 @@ export default function ActiveSessions() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const {
     data: sessionsData,
@@ -157,7 +159,7 @@ export default function ActiveSessions() {
     mutationFn: removeSession,
     onSuccess: () => {
       toast({
-        description: "Session supprimée avec succès",
+        description: t("disconnectSuccess"),
       });
       setSelectedSession(null);
       setIsDialogOpen(false);
@@ -168,7 +170,7 @@ export default function ActiveSessions() {
         description:
           error instanceof Error
             ? error.message
-            : "Erreur lors de la suppression de la session",
+            : t("disconnectError"),
         variant: "destructive",
       });
     },
@@ -189,7 +191,7 @@ export default function ActiveSessions() {
   if (error) {
     return (
       <div className="rounded-lg border bg-muted p-4 text-foreground">
-        Erreur lors du chargement des sessions
+        {t("disconnectError")}
       </div>
     );
   }
@@ -197,7 +199,7 @@ export default function ActiveSessions() {
   if (!sessionsData?.devices || sessionsData.devices.length === 0) {
     return (
       <div className="rounded-lg border bg-muted p-6 text-center text-muted-foreground">
-        <p>Aucun appareil connecté trouvé</p>
+        <p>{t("noConnectedDevices")}</p>
       </div>
     );
   }
@@ -207,8 +209,7 @@ export default function ActiveSessions() {
       <div className="flex items-center gap-2 rounded-lg bg-accent/50 p-4 text-foreground">
         <Shield className="w-5 h-5" />
         <p className="text-sm">
-          Vous pouvez déconnecter les appareils auxquels vous n'avez plus
-          accès.
+          {t("youCanDisconnect")}
         </p>
       </div>
 
@@ -226,7 +227,7 @@ export default function ActiveSessions() {
 
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground">
-                    {getDeviceName(device.type, device.model)}
+                    {getDeviceName(device.type, device.model, t)}
                   </h3>
 
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
@@ -247,8 +248,8 @@ export default function ActiveSessions() {
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 flex-shrink-0" />
                       <span>
-                        Dernière activité:{" "}
-                        {new Date(device.updatedAt).toLocaleDateString("fr-FR", {
+                        {t("lastActivity")}:{" "}
+                        {new Date(device.updatedAt).toLocaleDateString(navigator.language || "en-US", {
                           day: "numeric",
                           month: "long",
                           year: "numeric",
@@ -262,7 +263,7 @@ export default function ActiveSessions() {
                   {device.sessions.length > 0 && (
                     <div className="mt-3 rounded-md bg-muted p-2">
                       <p className="text-xs font-medium text-foreground">
-                        {device.sessions.length} session{device.sessions.length > 1 ? "s" : ""} active{device.sessions.length > 1 ? "s" : ""}
+                        {device.sessions.length} {device.sessions.length > 1 ? t("sessions") : t("session")} {t("active")}
                       </p>
                       <ul className="mt-1 space-y-1">
                         {device.sessions.map((sess) => (
@@ -271,14 +272,14 @@ export default function ActiveSessions() {
                             className="flex items-center justify-between text-xs text-muted-foreground"
                           >
                             <span>
-                              Expire le{" "}
+                              {t("expiresOn")}{" "}
                               {new Date(sess.expiresAt).toLocaleDateString(
-                                "fr-FR"
+                                navigator.language || "en-US"
                               )}
                             </span>
                             {sess.isCurrent && (
                               <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-foreground font-medium">
-                                Session actuelle
+                                {t("currentSession")}
                               </span>
                             )}
                           </li>
@@ -303,10 +304,11 @@ export default function ActiveSessions() {
                       }
                     }}
                     disabled={removeMutation.isPending}
-                    className="gap-2"
+                    className="gap-2 max-sm:w-full max-sm:text-xs max-sm:h-8"
                   >
-                    <Trash2 className="w-4 h-4" />
-                    Déconnecter
+                    <Trash2 className="w-4 h-4 max-sm:w-3 max-sm:h-3" />
+                    <span className="max-sm:hidden">{t("disconnect")}</span>
+                    <span className="sm:hidden">{t("disconnect")}</span>
                   </Button>
                 )}
               </div>
@@ -318,22 +320,22 @@ export default function ActiveSessions() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Déconnecter cet appareil</DialogTitle>
+            <DialogTitle>{t("disconnectDevice")}</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir déconnecter cet appareil ? Vous devrez vous
-              reconnecter si vous accédez à votre compte depuis cet appareil.
+              {t("disconnectDescription")}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Annuler
+          <DialogFooter className="flex gap-2 max-sm:flex-col max-sm:gap-2">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="max-sm:w-full">
+              {t("cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={confirmRemove}
               disabled={removeMutation.isPending}
+              className="max-sm:w-full"
             >
-              {removeMutation.isPending ? "Suppression..." : "Déconnecter"}
+              {removeMutation.isPending ? t("disconnecting") : t("disconnect")}
             </Button>
           </DialogFooter>
         </DialogContent>

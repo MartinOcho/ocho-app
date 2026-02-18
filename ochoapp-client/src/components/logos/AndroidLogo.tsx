@@ -3,9 +3,15 @@ interface AndroidLogoProps {
   size?: number;
 }
 
-export function AndroidLogo({ className, size = 48 }: AndroidLogoProps) {
+export function AndroidLogo({ className = "w-6 h-6", size }: AndroidLogoProps) {
   return (
-    <svg viewBox="0 0 65 65" className={className} width={size} height={size}>
+    <svg
+      viewBox="0 0 65 65"
+      className={className}
+      width={size}
+      height={size}
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         fill="#3DDB85"
         d="M46.8,38.8c-1.4,0-2.6-1.2-2.6-2.6c0-1.4,1.2-2.6,2.6-2.6c1.4,0,2.6,1.2,2.6,2.6C49.5,37.6,48.3,38.8,46.8,38.8

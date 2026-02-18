@@ -455,6 +455,19 @@ export const english = {
   seeMore: "See more",
   gallery: "Gallery",
   noMediaShared: "No media shared",
+  activeSessions: "Active Sessions",
+  noConnectedDevices: "No connected devices found",
+  youCanDisconnect: "You can disconnect devices you no longer have access to.",
+  lastActivity: "Last activity",
+  session: "session",
+  sessions: "sessions",
+  disconnect: "Disconnect",
+  disconnecting: "Disconnecting...",
+  disconnectDevice: "Disconnect this device",
+  disconnectDescription: "Are you sure you want to disconnect this device? You will need to log in again if you access your account from this device.",
+  disconnectSuccess: "Session successfully removed",
+  disconnectError: "Error removing session",
+  expiresOn: "Expires on",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -924,6 +937,19 @@ export const french: Vocabulary = {
   seeMore: "Voir plus",
   gallery: "Galerie",
   noMediaShared: "Aucun média partagé",
+  activeSessions: "Sessions actives",
+  noConnectedDevices: "Aucun appareil connecté trouvé",
+  youCanDisconnect: "Vous pouvez déconnecter les appareils auxquels vous n'avez plus accès.",
+  lastActivity: "Dernière activité",
+  session: "session",
+  sessions: "sessions",
+  disconnect: "Déconnecter",
+  disconnecting: "Déconnexion...",
+  disconnectDevice: "Déconnecter cet appareil",
+  disconnectDescription: "Êtes-vous sûr de vouloir déconnecter cet appareil ? Vous devrez vous reconnecter si vous accédez à votre compte depuis cet appareil.",
+  disconnectSuccess: "Session supprimée avec succès",
+  disconnectError: "Erreur lors de la suppression de la session",
+  expiresOn: "Expire le",
 };
 
 export const vocabulary = {

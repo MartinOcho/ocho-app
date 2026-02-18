@@ -3,7 +3,7 @@ interface ChromeLogoProps {
   size?: number;
 }
 
-export function ChromeLogo({ className, size = 48 }: ChromeLogoProps) {
+export function ChromeLogo({ className = "w-6 h-6", size }: ChromeLogoProps) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className={className} width={size} height={size}>
       <defs>
