@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/context/LanguageContext";
 import kyInstance from "@/lib/ky";
+import Time from "@/components/Time";
 import { AndroidLogo } from "@/components/logos/AndroidLogo";
 import { WindowsLogo } from "@/components/logos/WindowsLogo";
 import { AppleLogo } from "@/components/logos/AppleLogo";
@@ -121,6 +122,16 @@ const getDeviceIcon = (type: string, model: string | null) => {
     case "DESKTOP":
       return OSComponent ? <OSComponent className={baseClassName} /> : <Laptop className={baseClassName} />;
     case "WEB":
+      if (BrowserComponent && OSComponent) {
+        return (
+          <div className="relative w-6 h-6">
+            <BrowserComponent className={baseClassName} />
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5">
+              <OSComponent className="w-2.5 h-2.5" />
+            </div>
+          </div>
+        );
+      }
       return BrowserComponent ? <BrowserComponent className={baseClassName} /> : <Globe className={baseClassName} />;
     default:
       return <Globe className={baseClassName} />;
@@ -274,9 +285,7 @@ export default function ActiveSessions() {
                           >
                             <span>
                               {t("expiresOn")}{" "}
-                              {new Date(sess.expiresAt).toLocaleDateString(
-                                navigator.language || "en-US"
-                              )}
+                              <Time time={new Date(sess.expiresAt)} />
                             </span>
                             {sess.isCurrent && (
                               <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-foreground font-medium">

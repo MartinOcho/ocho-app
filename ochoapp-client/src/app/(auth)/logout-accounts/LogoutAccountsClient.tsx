@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserAvatar from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import LoadingButton from "@/components/LoadingButton";
-import { LogOut, LogOutIcon } from "lucide-react";
+import { LogOut, LogOutIcon, ChevronLeft } from "lucide-react";
 import { logoutSpecificSession, logoutAllOtherSessions, getAvailableAccounts } from "@/app/(auth)/actions";
 import OchoLink from "@/components/ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
@@ -87,10 +88,56 @@ export default function LogoutAccountsClient() {
     }
   };
 
+  const handleBack = () => {
+    router.push("/");
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="max-w-2xl mx-auto p-6">
+        {/* Titre et description skeleton */}
+        <div className="mb-8">
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-full mb-2" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+
+        {/* Compte courant skeleton */}
+        <div className="mb-8 p-4 border rounded-lg bg-card">
+          <Skeleton className="h-6 w-48 mb-4" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-40 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+            <Skeleton className="h-8 w-24 rounded-full" />
+          </div>
+        </div>
+
+        {/* Autres comptes skeleton */}
+        <div className="mb-8">
+          <Skeleton className="h-6 w-48 mb-4" />
+          <div className="space-y-3">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-40 mb-2" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                </div>
+                <Skeleton className="h-9 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -99,13 +146,25 @@ export default function LogoutAccountsClient() {
   const currentAccount = accounts.find((acc) => acc.isCurrent);
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">{t("manageAccounts")}</h1>
-        <p className="text-muted-foreground">
-          {t("logoutAllDescription")}
-        </p>
+    <>
+      {/* Bouton retour mobile */}
+      <div className="fixed top-4 left-4 z-50 sm:hidden">
+        <button
+          onClick={handleBack}
+          className="flex cursor-pointer items-center rounded-3xl border shadow-lg backdrop-blur-md bg-card/30 p-2 transition-all duration-300 hover:bg-card/50"
+          title={t("back")}
+        >
+          <ChevronLeft size={28} />
+        </button>
       </div>
+
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-2">{t("manageAccounts")}</h1>
+          <p className="text-muted-foreground">
+            {t("logoutAllDescription")}
+          </p>
+        </div>
 
       {/* Compte courant */}
       {currentAccount && (
@@ -231,6 +290,7 @@ export default function LogoutAccountsClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }
