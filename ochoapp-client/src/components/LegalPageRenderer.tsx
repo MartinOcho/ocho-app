@@ -67,23 +67,31 @@ const markdownComponents: Components = {
 };
 
 /**
- * Composant pour afficher les documents légaux (Markdown) en fonction de la langue
+ * Composant pour afficher les documents légaux (Markdown) en fonction de la langue du navigateur
+ * Par défaut: Anglais (EN)
+ * Basculer vers: Français (FR) seulement si le navigateur détecte le français
  */
 export default function LegalPageRenderer({ docType, title }: LegalPageProps) {
-  const { language, isReady } = useLanguage();
+  const { isReady } = useLanguage();
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detectedLanguage, setDetectedLanguage] = useState<'en' | 'fr'>('en');
 
   useEffect(() => {
-    if (!isReady) return;
+    // Détecter la langue du navigateur une seule fois
+    const browserLang = navigator.language.startsWith('fr') ? 'fr' : 'en';
+    setDetectedLanguage(browserLang);
+  }, []);
 
+  useEffect(() => {
     const fetchMarkdown = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const markdown = await kyInstance(`/legal/${language}/${docType}.md`).text();
+        // Toujours utiliser la langue détectée du navigateur pour les pages légales
+        const markdown = await kyInstance(`/legal/${detectedLanguage}/${docType}.md`).text();
         setContent(markdown);
       } catch (err) {
         console.error('Error loading legal document:', err);
@@ -94,14 +102,10 @@ export default function LegalPageRenderer({ docType, title }: LegalPageProps) {
     };
 
     fetchMarkdown();
-  }, [language, docType, isReady]);
-
-  if (!isReady) {
-    return <div className="text-center py-8">Loading...</div>;
-  }
+  }, [detectedLanguage, docType]);
 
   if (loading) {
-    return <div className="text-center py-8">Chargement...</div>;
+    return <div className="text-center py-8">Loading...</div>;
   }
 
   if (error) {
@@ -112,7 +116,7 @@ export default function LegalPageRenderer({ docType, title }: LegalPageProps) {
     <div className="privacy-policy container mx-auto px-4 max-w-4xl py-8">
       <AppLogo size={100} logo="LOGO" className="text-primary mx-auto mb-6" />
       <h1 className="text-3xl font-bold text-center text-primary mb-8">
-        {title[language]}
+        {title[detectedLanguage]}
       </h1>
 
       {/* Rendu du Markdown avec react-markdown et composants personnalisés */}

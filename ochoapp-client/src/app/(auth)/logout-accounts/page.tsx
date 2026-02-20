@@ -1,11 +1,18 @@
 import { validateRequest } from "@/auth";
 import { redirect } from "next/navigation";
+import { getTranslation } from "@/lib/language";
 import LogoutAccountsClient from "./LogoutAccountsClient";
 
-export const metadata = {
-  title: "Gérer les comptes",
-  description: "Gérez vos sessions connectées et déconnectez les appareils",
-};
+export async function generateMetadata() {
+  const { manageAccounts, logoutAllDescription } = await getTranslation([
+    "manageAccounts",
+    "logoutAllDescription",
+  ]);
+  return {
+    title: manageAccounts,
+    description: logoutAllDescription,
+  };
+}
 
 export default async function LogoutAccountsPage() {
   const { user } = await validateRequest();

@@ -124,7 +124,7 @@ export default function LogoutAccountsClient() {
               </div>
             </div>
             <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
-              {t("active")}
+              {t("currentSession")}
             </span>
           </div>
         </div>

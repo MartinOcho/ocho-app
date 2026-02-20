@@ -473,6 +473,8 @@ export const english = {
   tablet: "Tablet",
   desktop: "Desktop",
   webBrowser: "Web Browser",
+  devicesAndSessions: "Devices and Sessions",
+  manageActiveSessions: "Manage your active sessions across all devices",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -960,6 +962,8 @@ export const french: Vocabulary = {
   tablet: "Tablette",
   desktop: "Ordinateur de bureau",
   webBrowser: "Navigateur Web",
+  devicesAndSessions: "Appareils et sessions",
+  manageActiveSessions: "Gérez vos sessions actives sur tous vos appareils",
 };
 
 export const vocabulary = {

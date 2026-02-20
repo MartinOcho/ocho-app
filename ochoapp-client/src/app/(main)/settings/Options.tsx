@@ -77,6 +77,7 @@ export default function Options({
     postPrivacy,
     messagePrivacy,
     onlineStatusVisibility,
+    devicesAndSessions,
   } = t();
 
   const queryClient = useQueryClient();
@@ -224,7 +225,7 @@ export default function Options({
     },
     {
       value: "sessions",
-      label: "Appareils et sessions",
+      label: devicesAndSessions,
       icon: <Shield size={24} />,
       action: "default",
       onClick: () => navigate("/settings/sessions"),

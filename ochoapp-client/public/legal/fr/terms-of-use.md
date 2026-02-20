@@ -165,7 +165,7 @@ Nous pouvons suspendre ou résilier votre compte si :
 - Votre compte montre des signes d'activité de bot
 - Vous vous engagez dans de la fraude ou de la manipulation
 
-Upon termination, your account will be deactivated and your data will be handled according to our privacy policy. You may request data export before full deletion.
+À la résiliation, votre compte sera désactivé et vos données seront traitées conformément à notre politique de confidentialité. Vous pouvez demander l'export de vos données avant la suppression complète.
 
 ## 12. Changements de Ces Conditions
 
