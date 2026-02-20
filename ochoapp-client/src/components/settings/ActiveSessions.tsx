@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import LoaderMain from "@/components/LoaderMain";
@@ -35,6 +35,8 @@ import { ChromeLogo } from "@/components/logos/ChromeLogo";
 import { FirefoxLogo, SafariLogo, EdgeLogo, OperaLogo, BraveLogo } from "@/components/logos/BrowserLogos";
 import { VocabularyKey } from "@/lib/vocabulary";
 
+type LogoComponent = React.ComponentType<{ className?: string }>;
+
 interface Session {
   sessionId: string;
   expiresAt: Date;
@@ -68,11 +70,11 @@ async function removeSession(sessionId: string): Promise<void> {
   }).json();
 }
 
-const getBrowserLogo = (model: string | null): React.ComponentType<any> | null => {
+const getBrowserLogo = (model: string | null): LogoComponent | null => {
   if (!model) return null;
 
   const modelLower = model.toLowerCase();
-  const browserMap: Record<string, React.ComponentType<any>> = {
+  const browserMap: Record<string, LogoComponent> = {
     chrome: ChromeLogo,
     firefox: FirefoxLogo,
     safari: SafariLogo,
@@ -90,14 +92,14 @@ const getBrowserLogo = (model: string | null): React.ComponentType<any> | null =
   return null;
 };
 
-const getOSLogo = (model: string | null): React.ComponentType<any> | null => {
+const getOSLogo = (model: string | null): LogoComponent | null => {
   if (!model) return null;
 
   const modelLower = model.toLowerCase();
   if (modelLower.includes("windows")) {
     return WindowsLogo;
   }
-  if (modelLower.includes("mac") || modelLower.includes("apple")) {
+  if (modelLower.includes("mac") || modelLower.includes("apple") || modelLower.includes("ios")) {
     return AppleLogo;
   }
   if (modelLower.includes("android")) {
@@ -126,8 +128,8 @@ const getDeviceIcon = (type: string, model: string | null) => {
         return (
           <div className="relative w-6 h-6">
             <BrowserComponent className={baseClassName} />
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5">
-              <OSComponent className="w-2.5 h-2.5" />
+            <div className="absolute -bottom-3 -right-3 w-4 h-4">
+              <OSComponent className="w-4 h-4" />
             </div>
           </div>
         );
