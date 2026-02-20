@@ -261,13 +261,7 @@ export default function ActiveSessions() {
                       <Clock className="w-4 h-4 flex-shrink-0" />
                       <span>
                         {t("lastActivity")}:{" "}
-                        {new Date(device.updatedAt).toLocaleDateString(navigator.language || "en-US", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        <Time time={new Date(device.updatedAt)} withTime />
                       </span>
                     </div>
                   </div>
@@ -285,7 +279,7 @@ export default function ActiveSessions() {
                           >
                             <span>
                               {t("expiresOn")}{" "}
-                              <Time time={new Date(sess.expiresAt)} />
+                              <Time time={new Date(sess.expiresAt)} withTime />
                             </span>
                             {sess.isCurrent && (
                               <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-foreground font-medium">
