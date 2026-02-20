@@ -81,7 +81,7 @@ export default function RoomHeader({
       ({
         ...initialRoom,
         members: Array.isArray(initialRoom?.members) ? initialRoom.members : [],
-      }) as any,
+      }) as RoomData,
     [initialRoom],
   );
 
@@ -162,7 +162,7 @@ export default function RoomHeader({
       const normalizedData = {
         ...data,
         members: Array.isArray(data?.members) ? data.members : [],
-      } as any;
+      };
       setRoom(normalizedData);
     }
   }, [data]);
@@ -623,7 +623,7 @@ export default function RoomHeader({
         {active && (
           <Tabs
             value={activeTab}
-            onValueChange={(v) => setActiveTab(v as any)}
+            onValueChange={(v) => setActiveTab(v as "info" | "media")}
             className=""
           >
             <TabsList className="grid w-full grid-cols-2">

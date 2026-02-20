@@ -28,7 +28,7 @@ export interface ServerActionState<T> {
  *   }
  * }
  */
-export function useServerAction<T, A extends any[]>(
+export function useServerAction<T, A extends unknown[]>(
   action: (...args: A) => Promise<T>
 ) {
   const [state, setState] = useState<ServerActionState<T>>({
@@ -97,7 +97,7 @@ export function useServerAction<T, A extends any[]>(
 /**
  * Hook pour les Server Actions avec réussite confirmée
  */
-export function useServerActionWithSuccess<T, A extends any[]>(
+export function useServerActionWithSuccess<T, A extends unknown[]>(
   action: (...args: A) => Promise<{ success: boolean; error?: string; data?: T }>
 ) {
   const [state, setState] = useState<ServerActionState<T>>({

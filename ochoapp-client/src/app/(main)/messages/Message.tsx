@@ -485,10 +485,10 @@ export const MessageBubbleContent = ({
               highlight={highlight}
               isOwner={isOwner}
               mentions={
-                message.mentions?.map((m: any) => ({
+                message.mentions?.map((m: { mentionedId: string; mentionedUser?: { username?: string; displayName?: string } }) => ({
                   userId: m.mentionedId,
-                  username: m.mentionedUser?.username,
-                  displayName: m.mentionedUser?.displayName,
+                  username: m.mentionedUser?.username || "",
+                  displayName: m.mentionedUser?.displayName || "",
                 })) || []
               }
             />

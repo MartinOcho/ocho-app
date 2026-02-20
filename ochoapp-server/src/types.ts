@@ -427,14 +427,14 @@ export interface SocketCheckUserStatusEvent {
 }
 
 export interface SocketCreateNotificationEvent {
-  type: any;
+  type: string;
   recipientId?: string;
   postId?: string;
   commentId?: string;
 }
 
 export interface SocketDeleteNotificationEvent {
-  type: any;
+  type: string;
   recipientId?: string;
   postId?: string;
   commentId?: string;

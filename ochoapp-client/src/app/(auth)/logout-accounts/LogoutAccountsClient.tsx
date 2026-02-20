@@ -30,9 +30,16 @@ interface Account {
   isCurrent: boolean;
 }
 
+interface CurrentUser {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 export default function LogoutAccountsClient() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loggingOutId, setLoggingOutId] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);

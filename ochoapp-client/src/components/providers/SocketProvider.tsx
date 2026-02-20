@@ -174,8 +174,8 @@ export default function SocketProvider({
       Promise.all([
         kyInstance
           .get("/api/notifications/unread-count")
-          .json()
-          .then((d: any) => {
+          .json<{ unreadCount: number }>()
+          .then((d) => {
             if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
               setNotificationsUnread(d.unreadCount);
             }
@@ -183,8 +183,8 @@ export default function SocketProvider({
           .catch(() => {}),
         kyInstance
           .get("/api/messages/unread-count")
-          .json()
-          .then((d: any) => {
+          .json<{ unreadCount: number }>()
+          .then((d) => {
             if (!isComponentUnmounted && typeof d?.unreadCount === "number") {
               setMessagesUnread(d.unreadCount);
             }

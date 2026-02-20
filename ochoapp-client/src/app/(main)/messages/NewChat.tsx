@@ -10,7 +10,7 @@ import { useSession } from "../SessionProvider";
 import UserAvatar from "@/components/UserAvatar";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
-import { UserData, UsersPage } from "@/lib/types";
+import { UserData, UsersPage, RoomData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -129,7 +129,7 @@ export default function NewChat({
 
     // Définir les callbacks pour la réponse du serveur
     // On utilise .once pour n'écouter qu'une seule fois la réponse
-    const handleRoomReady = (room: any) => {
+    const handleRoomReady = (room: RoomData) => {
       // Mettre en cache les données de la room et de l'utilisateur
       // si c'est un chat 1v1, on cache l'utilisateur destinataire
       if (!isGroup && user) {

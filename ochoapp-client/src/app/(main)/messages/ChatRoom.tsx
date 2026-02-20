@@ -569,7 +569,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const handleSendMessage = async (
     content: string,
     attachmentIds?: string[],
-    attachments?: any[],
+    attachments?: MessageAttachment[],
   ) => {
     if (!socket || !roomId) return;
 

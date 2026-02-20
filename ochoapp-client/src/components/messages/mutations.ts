@@ -17,6 +17,9 @@ import {
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useCallback } from "react";
 import { useTranslation } from "@/context/LanguageContext";
+import { RoomData } from "@/lib/types";
+
+type RoomMember = RoomData['members'][0];
 
 // Hook pour les mutations via socket
 export function useSocketMutation<T, V>(
@@ -65,13 +68,13 @@ export function useAddMemberMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; members: string[] }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<RoomData>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_add_members", input, (response: any) => {
-          if (response?.success) {
+        socket.emit("group_add_members", input, (response: { success: boolean; error?: string; data?: RoomData }) => {
+          if (response?.success && response.data) {
             resolve(response.data);
           } else {
             reject(new Error(response?.error || somethingWentWrong));
@@ -79,14 +82,14 @@ export function useAddMemberMutation() {
         });
       });
     },
-    onSuccess: async ({ roomId }) => {
+    onSuccess: async (result) => {
       const queryKey = ["chat-rooms"];
       queryClient.invalidateQueries({ queryKey });
 
       toast({
         description: groupAddSuccess,
       });
-      return { roomId };
+      return result;
     },
     onError(error) {
       console.error(error);
@@ -108,13 +111,13 @@ export function useAddAdminMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; member: string }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<{ newRoomMember: RoomMember }>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_add_admin", input, (response: any) => {
-          if (response?.success) {
+        socket.emit("group_add_admin", input, (response: { success: boolean; error?: string; data?: { newRoomMember: RoomMember } }) => {
+          if (response?.success && response.data) {
             resolve(response.data);
           } else {
             reject(new Error(response?.error || somethingWentWrong));
@@ -145,13 +148,13 @@ export function useRemoveMemberMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; memberId: string }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<RoomData>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_remove_member", input, (response: any) => {
-          if (response?.success) {
+        socket.emit("group_remove_member", input, (response: { success: boolean; error?: string; data?: RoomData }) => {
+          if (response?.success && response.data) {
             resolve(response.data);
           } else {
             reject(new Error(response?.error || somethingWentWrong));

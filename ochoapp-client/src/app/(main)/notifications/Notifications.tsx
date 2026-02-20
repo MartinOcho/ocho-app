@@ -2,11 +2,12 @@
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import kyInstance from "@/lib/ky";
-import { NotificationsPage } from "@/lib/types";
+import { NotificationsPage, NotificationData } from "@/lib/types";
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  InfiniteData,
 } from "@tanstack/react-query";
 import { Bell, Frown, Loader2 } from "lucide-react";
 import Notification from "./Notification";
@@ -58,13 +59,13 @@ export default function Notifications() {
   useEffect(() => {
     if (!socket?.connected) return;
 
-    const onNotificationReceived = (notification: any) => {
-      queryClient.setQueryData(["notifications"], (oldData: any) => {
+    const onNotificationReceived = (notification: NotificationData) => {
+      queryClient.setQueryData(["notifications"], (oldData: InfiniteData<NotificationsPage> | undefined) => {
         if (!oldData) return oldData;
 
         // Vérifier si la notification existe déjà pour éviter les doublons
-        const allExistingNotifications = oldData.pages.flatMap((page: any) => page.notifications);
-        const alreadyExists = allExistingNotifications.some((n: any) => n.id === notification.id);
+        const allExistingNotifications = oldData.pages.flatMap((page) => page.notifications);
+        const alreadyExists = allExistingNotifications.some((n) => n.id === notification.id);
 
         if (alreadyExists) {
           return oldData; // Ignorer le doublon
@@ -74,7 +75,7 @@ export default function Notifications() {
           ...oldData,
           pages: [
             {
-              previousCursor: oldData.pages[0]?.previousCursor,
+              nextCursor: oldData.pages[0]?.nextCursor,
               notifications: [notification, ...oldData.pages[0]?.notifications || []],
             },
             ...oldData.pages.slice(1),
@@ -83,11 +84,11 @@ export default function Notifications() {
       });
     };
 
-    const onNotificationDeleted = (data: any) => {
-      queryClient.setQueryData(["notifications"], (oldData: any) => {
+    const onNotificationDeleted = (data: { commentId?: string; postId?: string; type: string }) => {
+      queryClient.setQueryData(["notifications"], (oldData: InfiniteData<NotificationsPage> | undefined) => {
         if (!oldData) return oldData;
 
-        const filterNotifications = (notifs: any[]) =>
+        const filterNotifications = (notifs: NotificationData[]) =>
           notifs.filter((n) => {
             // Supprimer si c'est le même commentId/postId et type
             if (data.commentId && n.commentId === data.commentId && data.type === n.type) {

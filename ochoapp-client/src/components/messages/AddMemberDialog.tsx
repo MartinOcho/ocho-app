@@ -131,7 +131,7 @@ export function AddMemberForm({ onAdd, room }: AddMemberFormProps) {
 
     const membersIds = selectedUsers.map((member) => member.id);
 
-    socket.emit("group_add_members", { roomId: room.id, members: membersIds }, (res: any) => {
+    socket.emit("group_add_members", { roomId: room.id, members: membersIds }, (res: { success: boolean; error?: string; data?: any }) => {
       setLoading(false);
       
       if (res.success) {

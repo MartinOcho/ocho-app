@@ -6,7 +6,7 @@ import multer from "multer";
 import dotenv from "dotenv";
 import { PrismaClient, Prisma, NotificationType } from "@prisma/client"; // Garder les types
 import prisma from "./prisma";
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import {
@@ -167,12 +167,12 @@ app.post(
           .json({ success: false, error: "No file provided" });
 
       const streamUpload = (buffer: Buffer) =>
-        new Promise<any>((resolve, reject) => {
+        new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
             { resource_type: "auto" },
             (error, result) => {
               if (error) return reject(error);
-              resolve(result);
+              resolve(result as UploadApiResponse);
             },
           );
           stream.end(buffer);

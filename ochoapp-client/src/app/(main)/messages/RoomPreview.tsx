@@ -6,6 +6,7 @@ import {
   NotificationCountInfo,
   UserData,
   SocketTypingUpdateEvent,
+  MessageData,
 } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
@@ -104,7 +105,7 @@ export default function RoomPreview({
     };
     const handleReceiveMessage = (data: {
       roomId: string;
-      newMessage: any;
+      newMessage: MessageData;
     }) => {
       if (
         data.roomId === room.id &&
