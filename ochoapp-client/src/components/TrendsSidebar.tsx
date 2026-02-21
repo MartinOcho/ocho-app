@@ -13,7 +13,7 @@ import { getTranslation } from "@/lib/language";
 
 export default function TrendsSidebar() {
   return (
-    <div className="sticky top-0 hidden h-full w-72 flex-none space-y-3 rounded-2xl md:block lg:w-80 overflow-y-auto">
+    <div className="sticky top-0 hidden h-full w-72 flex-none space-y-3 rounded-2xl md:block lg:w-80 overflow-y-auto scrollbar-none">
       <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
         <WhoToFollow />
         <TrendingTopics />
