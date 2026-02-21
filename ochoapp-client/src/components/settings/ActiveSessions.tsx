@@ -221,7 +221,7 @@ export default function ActiveSessions() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-lg bg-accent/50 p-4 text-foreground">
-        <Shield className="w-5 h-5" />
+        <Shield className="size-5 min-w-5 min-h-5" />
         <p className="text-sm">
           {t("youCanDisconnect")}
         </p>
