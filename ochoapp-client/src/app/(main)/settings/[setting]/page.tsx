@@ -16,7 +16,7 @@ export default async function page({ params } : PageProps) {
   return (
     <>
       <SetNavigation navPage="settings" />
-      <div className="w-full min-w-0 space-y-2 sm:space-y-5 max-w-lg">
+      <div className="w-full h-full max-h-full overflow-y-auto  min-w-0 space-y-2 sm:space-y-5 max-w-lg">
         <div className="bg-card/50 p-5 shadow-sm sm:rounded-2xl sm:bg-card">
           <h2 className="text-center text-2xl font-bold">{settings}</h2>
         </div>
