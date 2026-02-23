@@ -16,6 +16,7 @@ import {
   SunIcon,
   Moon,
   Shield,
+  MonitorSmartphone,
 } from "lucide-react";
 import Settings, { SettingsOption } from "./Settings";
 import { logout } from "@/app/(auth)/actions";
@@ -218,7 +219,7 @@ export default function Options({
     {
       value: "privacy",
       label: privacy,
-      icon: <LockKeyholeIcon size={24} />,
+      icon: <Shield size={24} />,
       action: "default",
       onClick: (value) => navigate(`/settings/${value}`),
       hasSubMenu: !!subOptions.privacy,
@@ -226,7 +227,7 @@ export default function Options({
     {
       value: "sessions",
       label: devicesAndSessions,
-      icon: <Shield size={24} />,
+      icon: <MonitorSmartphone size={24} />,
       action: "default",
       onClick: () => navigate("/settings/sessions"),
     },

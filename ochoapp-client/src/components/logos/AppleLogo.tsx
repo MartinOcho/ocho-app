@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 interface AppleLogoProps {
   className?: string;
   size?: number;
@@ -5,7 +7,7 @@ interface AppleLogoProps {
 
 export function AppleLogo({ className = "w-6 h-6", size }: AppleLogoProps) {
   return (
-    <svg fill="#000000" viewBox="0 0 549.875 549.876" className={className} width={size} height={size} xmlns="http://www.w3.org/2000/svg">
+    <svg fill="currentColor" viewBox="0 0 549.875 549.876" className={cn("text-black dark:text-white", className)} width={size} height={size}>
       <g>
         <g>
           <path d="M340.535,104.42c13.881-13.874,24.125-29.07,30.735-45.594c6.389-16.524,9.584-31.5,9.584-44.945c0-0.875-0.056-1.989-0.166-3.305c-0.116-1.316-0.165-2.411-0.165-3.305c-0.22-0.661-0.495-1.873-0.826-3.642c-0.33-1.756-0.605-2.968-0.826-3.629c-38.776,9.033-66.311,25.337-82.613,48.911c-16.524,23.789-25.117,52.1-25.778,84.927c14.755-1.328,26.211-3.188,34.37-5.612C316.747,124.249,328.638,116.323,340.535,104.42z"/>
