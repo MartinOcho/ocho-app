@@ -1,6 +1,15 @@
+import { getCurrentUser } from "@/app/api/android/auth/utils";
+import { ApiResponse } from "@/app/api/android/utils/dTypes";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { NotificationCountInfo } from "@/lib/types";
+import {
+  getMessageDataInclude,
+  getUserDataSelect,
+  MessageData,
+  MessagesSection,
+  NotificationCountInfo,
+} from "@/lib/types";
+import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
@@ -13,10 +22,30 @@ export async function GET(
   const { roomId } = await params;
   
   try {
-    const { user } = await validateRequest();
+    const url = new URL(req.url);
+
+    const { user: loggedInUser, message } = await getCurrentUser();
+    if (!loggedInUser) {
+      return NextResponse.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        id: loggedInUser.id,
+      },
+      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
+    });
 
     if (!user) {
-      return Response.json({ error: "Action non autorisée" }, { status: 401 });
+      return NextResponse.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
     }
 
     const userId = user.id;
@@ -77,9 +106,18 @@ export async function GET(
       unreadCount,
     };
 
-    return Response.json(data);
+    return NextResponse.json<ApiResponse<NotificationCountInfo>>({
+      success: true,
+      data,
+    });
   } catch (error) {
-    console.error(error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Erreur lors de la récupération des messages :", error);
+    return NextResponse.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+    } as ApiResponse<null>);
   }
 }
