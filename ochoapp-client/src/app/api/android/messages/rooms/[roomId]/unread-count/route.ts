@@ -9,6 +9,7 @@ import {
   MessagesSection,
   NotificationCountInfo,
 } from "@/lib/types";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -50,62 +51,76 @@ export async function GET(
 
     const userId = user.id;
 
-    // On s'assure que prisma est bien connecté
+    if (roomId === `saved-${user.id}`) {
+      return NextResponse.json<ApiResponse<NotificationCountInfo>>({
+        success: true,
+        data: {
+          unreadCount: 0,
+        },
+      });
+    }
+
     const roomMember = await prisma.roomMember.findUnique({
       where: {
         roomId_userId: {
-          userId,
+          userId: user.id,
           roomId,
         },
       },
     });
 
     if (!roomMember) {
-      return NextResponse.json<ApiResponse<NotificationCountInfo>>({
-        success: false,
-        message: "Vous n'êtes pas membre de cette discussion.",
-        name: "unauthorized",
+      return Response.json({
+        unreadCount: 0,
       });
     }
 
     const joinedAt = roomMember.joinedAt;
-    const leftAt = roomMember.leftAt;
-
-    const dateFilter: any = {
-      // Typage any temporaire pour flexibilité Prisma ou Prisma.DateTimeFilter
+    
+    const dateFilter: Prisma.DateTimeFilter = {
       gte: joinedAt,
     };
 
-    if (leftAt) {
-      dateFilter.lte = leftAt;
+    if (roomMember.leftAt) {
+      dateFilter.lte = roomMember.leftAt;
     }
-
-    const unreadCount = await prisma.message.count({
-      where: {
-        roomId: roomId,
-        createdAt: dateFilter,
-        senderId: { not: userId },
-        reads: {
-          none: {
-            userId: userId,
-          },
-        },
-        OR: [
-          { type: { not: "REACTION" } },
-          {
-            AND: [
-              { type: "REACTION" },
-              { OR: [{ recipientId: userId }, { senderId: userId }] },
-            ],
-          },
-        ],
-        NOT: {
-          AND: {
-            type: "CREATE",
-            senderId: userId,
-          },
+    
+    const whereClause: Prisma.MessageWhereInput = {
+      roomId: roomId,
+      createdAt: dateFilter, 
+      senderId: { not: user.id },
+      reads: {
+        none: {
+          userId: user.id,
         },
       },
+      OR: [
+        {
+          type: {
+            not: "REACTION",
+          },
+        },
+        {
+          AND: [
+            {
+              type: "REACTION",
+            },
+            {
+              OR: [{ recipientId: user.id }, { senderId: user.id }],
+            },
+          ],
+        },
+      ],
+      NOT: {
+        AND: {
+          type: "CREATE",
+          senderId: user.id,
+        },
+      },
+    };
+
+    const unreadCount = await prisma.message.count({
+      where: whereClause,
     });
 
     const data: NotificationCountInfo = {
