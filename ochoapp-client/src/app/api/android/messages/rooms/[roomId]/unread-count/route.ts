@@ -60,7 +60,13 @@ export async function GET(
       },
     });
 
-    if (!roomMember) return 0;
+    if (!roomMember) {
+      return NextResponse.json<ApiResponse<NotificationCountInfo>>({
+        success: false,
+        message: "Vous n'êtes pas membre de cette discussion.",
+        name: "unauthorized",
+      });
+    }
 
     const joinedAt = roomMember.joinedAt;
     const leftAt = roomMember.leftAt;

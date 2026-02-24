@@ -11,7 +11,7 @@ export async function GET(
   },
 ) {
   const { roomId } = await params;
-  
+
   try {
     const { user } = await validateRequest();
 
@@ -31,7 +31,11 @@ export async function GET(
       },
     });
 
-    if (!roomMember) return 0;
+    if (!roomMember) {
+      return Response.json({
+        error: "Vous n'êtes pas membre de cette discussion.",
+      }, { status: 404 });
+    }
 
     const joinedAt = roomMember.joinedAt;
     const leftAt = roomMember.leftAt;
