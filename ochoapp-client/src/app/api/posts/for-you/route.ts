@@ -1,4 +1,5 @@
 import { validateRequest } from "@/auth";
+import { calculateRelevanceScore } from "@/lib/postScore";
 import prisma from "@/lib/prisma";
 import { getPostDataIncludes, PostsPage } from "@/lib/types";
 import { NextRequest } from "next/server";
@@ -15,8 +16,18 @@ export async function GET(req: NextRequest) {
 
     const pageSize = 10;
 
-    // Requête unique et optimisée pour la pagination
-    const posts = await prisma.post.findMany({
+   
+    // Récupérer les trois derniers posts triés par date
+    const latestPosts = await prisma.post.findMany({
+      include: getPostDataIncludes(user.id),
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: !cursor ? 3 : 0,
+    });
+
+    // Récupérer les posts suivants triés par pertinence
+    const relevantPosts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
       orderBy: [
         {
@@ -28,15 +39,31 @@ export async function GET(req: NextRequest) {
       ],
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0, // Skip the cursor for the next page
+      where: {
+        id: {
+          notIn: latestPosts.map(post => post.id), // Exclure les posts déjà récupérés
+        },
+      },
     });
 
-    const hasMore = posts.length > pageSize;
-    const postsToReturn = hasMore ? posts.slice(0, pageSize) : posts;
-    const nextCursor = hasMore ? postsToReturn[pageSize - 1].id : null;
+    const posts = [...latestPosts, ...relevantPosts];
+
+    const postsWithScores = posts.slice(0, pageSize).map((post) => ({
+      ...post,
+      relevanceScore: calculateRelevanceScore(
+        post,
+        user,
+        posts[0]?.id || undefined,
+      ),
+    }));
+
+    const sortedPosts = postsWithScores
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+    const nextCursor = posts.length > pageSize + latestPosts.length ? posts[pageSize + latestPosts.length].id : null;
 
     const data: PostsPage = {
-      posts: postsToReturn,
+      posts: sortedPosts,
       nextCursor,
     };
 
