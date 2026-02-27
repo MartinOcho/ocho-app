@@ -14,7 +14,7 @@ import { toast } from "../ui/use-toast";
 import { Loader2, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
-import { MessageData } from "@/lib/types";
+import { MessageData, NotificationData, RoomData } from "@/lib/types";
 import { useTranslation } from "@/context/LanguageContext";
 
 // Définition des types pour le contexte
@@ -255,7 +255,7 @@ export default function SocketProvider({
       }));
     };
 
-    const onNewRoomCreated = (room: any) => {
+    const onNewRoomCreated = (room: RoomData) => {
       if (isComponentUnmounted) return;
       console.log("📩 Nouvelle discussion :", room);
       socketInstance.emit("join_room", room.id);
@@ -272,21 +272,21 @@ export default function SocketProvider({
       setMessagesUnread(typeof data?.unreadCount === "number" ? data.unreadCount : null);
     };
 
-    const onNotificationReceived = (notification: any) => {
+    const onNotificationReceived = (notification: NotificationData) => {
       if (isComponentUnmounted) return;
       console.log("🔔 Notification reçue:", notification);
       
       // Afficher un toast selon le type de notification
       const typeMessages: Record<string, string> = {
-        LIKE: `${notification.issuer?.displayName || "Quelqu'un"} a aimé votre contenu`,
-        COMMENT: `${notification.issuer?.displayName || "Quelqu'un"} a commenté votre contenu`,
-        COMMENT_LIKE: `${notification.issuer?.displayName || "Quelqu'un"} a aimé votre commentaire`,
-        COMMENT_REPLY: `${notification.issuer?.displayName || "Quelqu'un"} a répondu à votre commentaire`,
-        FOLLOW: `${notification.issuer?.displayName || "Quelqu'un"} vous suit`,
-        IDENTIFY: `${notification.issuer?.displayName || "Quelqu'un"} vous a identifié`,
+        LIKE: t("likedYourPost"),
+        COMMENT: `${t("commented")} ${notification.comment?.content ? `${t("commentPrev").replace("[c]", notification.comment.content.slice(0, 30))}` : t("onYourPost")}.`,
+        COMMENT_LIKE: t("likedYourComment"),
+        COMMENT_REPLY: `${t("replied")} ${notification.comment?.content ? `${t("commentPrev").replace("[c]", notification.comment.content.slice(0, 30))}` : t("onYourComment")}.`,
+        FOLLOW: t("followedYou"),
+        IDENTIFY: t("taggedYou"),
       };
       
-      const message = typeMessages[notification.type] || "Nouvelle notification";
+      const message = notification.issuer?.displayName ? `${notification.issuer.displayName} ${typeMessages[notification.type]}` : typeMessages[notification.type];
       toast({ description: message });
     };
 
