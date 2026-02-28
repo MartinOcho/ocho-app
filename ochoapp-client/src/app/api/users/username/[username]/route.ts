@@ -54,27 +54,6 @@ export async function GET(req: Request,
                             postId
                         }
                     });
-
-                    // Notifier le serveur de sockets via endpoint interne
-                    try {
-                        await kyInstance(
-                            `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/create-notification`,
-                            {
-                                method: "POST",
-                                headers: {
-                                    "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
-                                },
-                                json: {
-                                    type: "IDENTIFY",
-                                    recipientId: user.id,
-                                    issuerId: post.userId,
-                                    postId,
-                                },
-                            }
-                        );
-                    } catch (e) {
-                        console.warn("Impossible de notifier le serveur de sockets:", e);
-                    }
                 }
             }
         }

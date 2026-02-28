@@ -21,24 +21,6 @@ export async function PATCH() {
             }
         });
 
-        // Notifier le serveur de sockets en temps réel
-        try {
-            await kyInstance(
-                `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL || "http://localhost:5000"}/internal/mark-all-notifications-as-read`,
-                {
-                    method: "POST",
-                    headers: {
-                        "x-internal-secret": process.env.INTERNAL_SERVER_SECRET || "",
-                    },
-                    json: {
-                        recipientId: user.id,
-                    },
-                }
-            );
-        } catch (e) {
-            console.warn("Impossible de notifier le serveur de sockets:", e);
-        }
-
         return new Response();
         
     } catch (error) {
