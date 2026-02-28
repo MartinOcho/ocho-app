@@ -838,7 +838,7 @@ io.on("connection", async (socket: Socket) => {
         const { type, recipientId, postId, commentId } = data;
         if (!recipientId || !type) return;
 
-        const deleteResult = await prisma.notification.deleteMany({
+        const notification = await prisma.notification.findFirst({
           where: {
             type,
             recipientId,
@@ -846,15 +846,35 @@ io.on("connection", async (socket: Socket) => {
             postId: postId || undefined,
             commentId: commentId || undefined,
           },
-        });
-
-        if (deleteResult.count > 0) {
-          io.to(recipientId).emit("notification_deleted", {
-            type,
-            postId,
-            commentId,
-          });
-
+          include: {
+              issuer: {
+                select: {
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+              post: {
+                select: {
+                  content: true,
+                },
+              },
+              comment: {
+                select: {
+                  id: true,
+                  content: true,
+                },
+              },
+            },
+        })
+        if (notification) {
+          await prisma.notification.delete({
+            where: {
+              id: notification.id
+            }
+          })
+          io.to(recipientId).emit("notification_deleted", notification);
+  
           const unreadCount = await prisma.notification.count({
             where: { recipientId, read: false },
           });
