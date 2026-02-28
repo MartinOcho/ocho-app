@@ -87,13 +87,18 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
     try {
       setIsSwitching(true);
       setSwitchingSessionId(sessionId);
+
+      toast({
+        title: t("switchingAccount"),
+        description: t("switchingTo").replace("[account]", displayName),
+      });
       
       await switchAccount(sessionId);
-      
+      queryClient.invalidateQueries();
       // Afficher un toast de confirmation
       toast({
         title: t("accountSwitched") || "Compte changé",
-        description: `Passage à ${displayName}...`,
+        description: t("switchedTo").replace("[account]", displayName),
       });
       
       // Invalider les queries et recharger les données
@@ -107,8 +112,8 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
     } catch (error) {
       console.error("Erreur lors du changement de compte:", error);
       toast({
-        title: t("error") || "Erreur",
-        description: t("switchAccountError") || "Impossible de changer de compte",
+        title: t("error"),
+        description: t("switchAccountError"),
         variant: "destructive",
       });
       setIsSwitching(false);
@@ -144,7 +149,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
             </>
           ) : (
             <>
-              {/* Compte courant */}
+              {/* Compte actuel */}
               {currentSession && (
                 <>
                   <DropdownMenuItem disabled className="flex items-center gap-2">
@@ -171,7 +176,7 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
               {/* Autres comptes */}
               {sessions.length === 0 ? (
                 <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                  {t("noOtherSessions") || "Aucun autre compte"}
+                  {t("noOtherSessions")}
                 </DropdownMenuItem>
               ) : (
                 sessions.map((account) => (
