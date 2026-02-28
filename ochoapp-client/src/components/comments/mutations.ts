@@ -10,6 +10,7 @@ import { CommentsPage, RepliesPage } from "@/lib/types";
 import { redirect, usePathname, useRouter } from "next/navigation";
 import { useProgress } from "@/context/ProgressContext";
 import { useTranslation } from "@/context/LanguageContext";
+import { useSocket } from "../providers/SocketProvider";
 
 export function useSubmitCommentMutation(postId: string) {
   const { toast } = useToast();
@@ -126,6 +127,7 @@ export function useSubmitReplyMutation(commentId: string, firstLevelCommentId: s
 }
 
 export function useDeleteCommentMutation() {
+  const { socket } = useSocket();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { commentDeleted, unableToDeleteComment } = t();
@@ -138,6 +140,11 @@ export function useDeleteCommentMutation() {
     mutationFn: deleteComment,
     onSuccess: async (deletedComment) => {
       const queryKey: QueryKey = ["comments", deletedComment.postId];
+
+
+      socket?.emit("delete_many_notifications", {
+          commentId: deletedComment.id,
+      });
 
       await queryClient.cancelQueries({ queryKey });
 
@@ -173,6 +180,8 @@ export function useDeleteCommentMutation() {
   return mutation;
 }
 export function useDeleteReplyMutation() {
+  const { socket } = useSocket();
+
   const { toast } = useToast();
   const { t } = useTranslation();
   const { commentDeleted, unableToDeleteComment } = t();
@@ -185,6 +194,10 @@ export function useDeleteReplyMutation() {
     mutationFn: deleteComment,
     onSuccess: async (deletedComment) => {
       const queryKey: QueryKey = ["replies", deletedComment.firstLevelCommentId];
+
+      socket?.emit("delete_many_notifications", {
+          commentId: deletedComment.id,
+      });
 
       await queryClient.cancelQueries({ queryKey });
 

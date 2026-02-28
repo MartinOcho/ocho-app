@@ -10,7 +10,6 @@ import kyInstance from "@/lib/ky";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VocabularyKey } from "@/lib/vocabulary";
 import { useTranslation } from "@/context/LanguageContext";
 
 interface LikeButtonProps {

@@ -706,37 +706,81 @@ io.on("connection", async (socket: Socket) => {
         if (!recipientId || !type) return;
         if (userId === recipientId) return;
 
-        const notification = await prisma.notification.create({
-          data: {
-            type,
-            recipientId,
-            issuerId: userId,
-            postId,
-            commentId,
+        const alreadyExists = await prisma.notification.findFirst({
+          where: {
+            AND: [
+              { type: type },
+              { recipientId: recipientId },
+              { postId: postId || undefined },
+              { commentId: commentId || undefined },
+            ]
           },
-          include: {
-            issuer: {
-              select: {
-                username: true,
-                displayName: true,
-                avatarUrl: true,
+        })
+        if (alreadyExists) {
+          const notification = await prisma.notification.update({
+            where: {
+              id: alreadyExists.id
+            },
+            data: {
+              read: false,
+              createdAt: new Date()
+            },
+            include: {
+              issuer: {
+                select: {
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+              post: {
+                select: {
+                  content: true,
+                },
+              },
+              comment: {
+                select: {
+                  id: true,
+                  content: true,
+                },
               },
             },
-            post: {
-              select: {
-                content: true,
-              },
-            },
-            comment: {
-              select: {
-                id: true,
-                content: true,
-              },
-            },
-          },
-        });
+          })
 
-        io.to(recipientId).emit("notification_received", notification);
+          io.to(recipientId).emit("notification_received", notification);
+        }else{
+          const notification = await prisma.notification.create({
+            data: {
+              type,
+              recipientId,
+              issuerId: userId,
+              postId,
+              commentId,
+            },
+            include: {
+              issuer: {
+                select: {
+                  username: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+              post: {
+                select: {
+                  content: true,
+                },
+              },
+              comment: {
+                select: {
+                  id: true,
+                  content: true,
+                },
+              },
+            },
+          });
+          
+          io.to(recipientId).emit("notification_received", notification);
+        }
 
         const unreadCount = await prisma.notification.count({
           where: { recipientId, read: false },
@@ -747,6 +791,40 @@ io.on("connection", async (socket: Socket) => {
       }
     },
   );
+
+  socket.on("delete_many_notifications", async (data: { postId?: string, commentId?: string }) => {
+    try {
+      const { postId, commentId } = data;
+      const notifications = await prisma.notification.findMany({
+        where: {
+          AND: [
+            { postId: postId || undefined },
+            { commentId: commentId || undefined },
+          ]
+        }
+      });
+
+      for (const notification of notifications) {
+        const notificationDeleted = await prisma.notification.delete({
+          where: {
+            id: notification.id,
+          },
+        });
+
+        if(notificationDeleted) {
+          io.to(notification.recipientId).emit("delete_notification", {
+            type: notification.type,
+            recipientId: notification.recipientId,
+            postId: notification.postId || undefined,
+            commentId: notification.commentId || undefined,
+          });
+        }
+      }
+      
+    } catch (e) {
+      console.error("Erreur delete_many_notifications socket:", e);
+    }
+  });
 
   socket.on(
     "delete_notification",

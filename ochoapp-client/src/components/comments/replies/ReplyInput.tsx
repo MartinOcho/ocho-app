@@ -11,6 +11,8 @@ import { useSubmitReplyMutation } from "../mutations";
 import { SubmitReply } from "../action";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/context/LanguageContext";
+import { NotificationType } from "@prisma/client";
+import { useSocket } from "@/components/providers/SocketProvider";
 
 interface CommentInput {
   comment: CommentData;
@@ -19,6 +21,7 @@ interface CommentInput {
 }
 
 export default function ReplyInput({ comment, onClose, profile }: CommentInput) {
+  const { socket } = useSocket();
   const [input, setInput] = useState("");
   const { user } = useSession();
   const { toast } = useToast();
@@ -50,6 +53,14 @@ export default function ReplyInput({ comment, onClose, profile }: CommentInput) 
 
     mutation.mutate(reply, {
       onSuccess: () => {
+        if (comment.userId !== user?.id){
+            socket?.emit("create_notification", {
+                type: "COMMENT_REPLY",
+                recipientId: comment.userId,
+                postId: comment.postId,
+                commentId: comment.id,
+            });
+        }
         setInput("");
       },
     });

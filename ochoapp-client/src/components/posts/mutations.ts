@@ -10,8 +10,11 @@ import { deletePost } from "./actions";
 import { PostsPage } from "@/lib/types";
 import { useProgress } from "@/context/ProgressContext";
 import { useTranslation } from "@/context/LanguageContext";
+import { useSocket } from "../providers/SocketProvider";
 
 export function useDeletePostMutation() {
+  const { socket } = useSocket();
+
   const { toast } = useToast();
 
   const { t } = useTranslation();
@@ -28,6 +31,10 @@ export function useDeletePostMutation() {
     mutationFn: deletePost,
     onSuccess: async (deletedPost) => {
       const queryFilter: QueryFilters = { queryKey: ["post-feed"] };
+
+      socket?.emit("delete_many_notifications", {
+          postId: deletedPost.id,
+      });
 
       await queryClient.cancelQueries(queryFilter);
 

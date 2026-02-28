@@ -9,27 +9,27 @@ import UserAvatar from "../UserAvatar";
 import { useToast } from "../ui/use-toast";
 import { useProgress } from "@/context/ProgressContext";
 import { useTranslation } from "@/context/LanguageContext";
+import { comment } from "postcss";
+import { useSocket } from "../providers/SocketProvider";
 
 interface CommentInput {
   post: PostData;
 }
 
 export default function CommentInput({ post }: CommentInput) {
+  const { socket } = useSocket();
+
   const [input, setInput] = useState("");
   const { user } = useSession();
   const { toast } = useToast();
 
   const { t } = useTranslation();
 
-  const {
-    invalidInput,
-    commentAs
-  } = t();
+  const { invalidInput, commentAs } = t();
 
-  const {startNavigation: navigate} = useProgress();
+  const { startNavigation: navigate } = useProgress();
 
   const mutation = useSubmitCommentMutation(post.id);
-
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +49,14 @@ export default function CommentInput({ post }: CommentInput) {
       },
       {
         onSuccess: (newComment) => {
+          if (newComment.post.userId !== user?.id) {
+            socket?.emit("create_notification", {
+              type: "COMMENT",
+              recipientId: post.userId,
+              postId: post.id,
+              commentId: newComment.id,
+            });
+          }
           navigate(`/posts/${post.id}?comment=${newComment.id}`);
           setInput("");
         },
@@ -64,7 +72,10 @@ export default function CommentInput({ post }: CommentInput) {
       <div className="flex w-full items-end gap-2 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-all duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2">
         <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} />
         <Textarea
-          placeholder={commentAs.replace("[name]", user.displayName.split(" ")[0])}
+          placeholder={commentAs.replace(
+            "[name]",
+            user.displayName.split(" ")[0],
+          )}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           autoFocus={!post._count.comments}
