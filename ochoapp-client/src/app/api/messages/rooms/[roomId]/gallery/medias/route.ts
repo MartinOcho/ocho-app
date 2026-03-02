@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Chercher les messages avec attachements
-    // Chercher les messages avec attachements
+   // Chercher les messages avec attachements
     let messagesAttachments;
 
     if (isSavedMessages) {
@@ -55,6 +55,9 @@ export async function GET(
             senderId: user.id,
             type: "SAVED",
           },
+          messageId: {
+            not: null,
+          }
         },
         include: {
           message: {
@@ -99,6 +102,9 @@ export async function GET(
           message: {
             roomId,
           },
+          messageId: {
+            not: null,
+          }
         },
         include: {
           message: {
@@ -172,12 +178,11 @@ export async function GET(
 
     // Transformer les données en format plat pour la galerie
     const medias: GalleryMediasSection["medias"] = [];
-    const processedMessages: string[] = [];
-
+    const processedAttachmentIds: string[] = [];
     for (const attachment of messagesAttachments) {
-      if (!processedMessages.includes(attachment.id)) {
-        processedMessages.push(attachment.id);
+      if (!processedAttachmentIds.includes(attachment.id)) {
         if (attachment.message) {
+          processedAttachmentIds.push(attachment.id);
           medias.push({
             ...attachment,
             messageId: attachment.message.id,
@@ -185,7 +190,6 @@ export async function GET(
             senderAvatar: attachment.message.sender?.avatarUrl || null,
             sentAt: attachment.message.createdAt,
           });
-          
         }
       }
     }
