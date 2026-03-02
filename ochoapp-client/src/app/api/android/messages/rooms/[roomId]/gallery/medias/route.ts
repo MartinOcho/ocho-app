@@ -84,12 +84,26 @@ export async function GET(
         include: {
           message: {
             select: {
+              id: true,
+              roomId: true,
               content: true,
+              senderId: true,
+              recipientId: true,
+              type: true,
               createdAt: true,
             },
             include: {
               sender: {
                 select: {
+                  id: true,
+                  displayName: true,
+                  username: true,
+                  avatarUrl: true,
+                },
+              },
+              recipient: {
+                select: {
+                  id: true,
                   displayName: true,
                   username: true,
                   avatarUrl: true,
@@ -114,12 +128,26 @@ export async function GET(
         include: {
           message: {
             select: {
+              id: true,
+              roomId: true,
               content: true,
+              senderId: true,
+              recipientId: true,
+              type: true,
               createdAt: true,
             },
             include: {
               sender: {
                 select: {
+                  id: true,
+                  displayName: true,
+                  username: true,
+                  avatarUrl: true,
+                },
+              },
+              recipient: {
+                select: {
+                  id: true,
                   displayName: true,
                   username: true,
                   avatarUrl: true,
