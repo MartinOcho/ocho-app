@@ -70,35 +70,31 @@ export async function GET(
     }
 
     // Chercher les messages avec attachements
-    let messagesWithAttachments;
+    let messagesAttachments;
 
     if (isSavedMessages) {
       // Récupérer les médias des messages sauvegardés
-      messagesWithAttachments = await prisma.message.findMany({
+      messagesAttachments = await prisma.messageAttachment.findMany({
         where: {
-          senderId: user.id,
-          type: "SAVED",
-          attachments: {
-            some: {}, // Au moins un attachement
+          message: {
+            senderId: user.id,
+            type: "SAVED",
           },
         },
         include: {
-          attachments: {
+          message: {
             select: {
-              id: true,
-              type: true,
-              url: true,
-              publicId: true,
-              width: true,
-              height: true,
-              format: true,
-              resourceType: true,
+              content: true,
+              createdAt: true,
             },
-          },
-          sender: {
-            select: {
-              username: true,
-              avatarUrl: true,
+            include: {
+              sender: {
+                select: {
+                  displayName: true,
+                  username: true,
+                  avatarUrl: true,
+                },
+              },
             },
           },
         },
@@ -109,30 +105,26 @@ export async function GET(
       });
     } else {
       // Récupérer les médias d'une room spécifique
-      messagesWithAttachments = await prisma.message.findMany({
+      messagesAttachments = await prisma.messageAttachment.findMany({
         where: {
-          roomId,
-          attachments: {
-            some: {}, // Au moins un attachement
+          message: {
+            roomId,
           },
         },
         include: {
-          attachments: {
+          message: {
             select: {
-              id: true,
-              type: true,
-              url: true,
-              publicId: true,
-              width: true,
-              height: true,
-              format: true,
-              resourceType: true,
+              content: true,
+              createdAt: true,
             },
-          },
-          sender: {
-            select: {
-              username: true,
-              avatarUrl: true,
+            include: {
+              sender: {
+                select: {
+                  displayName: true,
+                  username: true,
+                  avatarUrl: true,
+                },
+              },
             },
           },
         },
@@ -173,8 +165,8 @@ export async function GET(
       const leftDate = member.leftAt;
       if (leftDate) {
         // Filter out messages sent after the user left the group
-        messagesWithAttachments = messagesWithAttachments.filter(
-          (message) => message.createdAt < leftDate,
+        messagesAttachments = messagesAttachments.filter(
+          (attachment) => attachment.message && attachment.message.createdAt < leftDate,
         );
       }
     }
@@ -183,24 +175,25 @@ export async function GET(
     const medias: GalleryMediasSection["medias"] = [];
     const processedMessages: string[] = [];
 
-    for (const message of messagesWithAttachments.slice(0, pageSize)) {
-      if (message.attachments && message.attachments.length > 0) {
-        for (const attachment of message.attachments) {
+    for (const attachment of messagesAttachments) {
+      if (!processedMessages.includes(attachment.id)) {
+        processedMessages.push(attachment.id);
+        if (attachment.message) {
           medias.push({
             ...attachment,
-            messageId: message.id,
-            senderUsername: message.sender?.username || null,
-            senderAvatar: message.sender?.avatarUrl || null,
-            sentAt: message.createdAt,
+            messageId: attachment.message.id,
+            senderUsername: attachment.message.sender?.username || null,
+            senderAvatar: attachment.message.sender?.avatarUrl || null,
+            sentAt: attachment.message.createdAt,
           });
+          
         }
-        processedMessages.push(message.id);
       }
     }
 
     const nextCursor =
-      messagesWithAttachments.length > pageSize
-        ? messagesWithAttachments[pageSize].id
+      messagesAttachments.length > pageSize
+        ? messagesAttachments[pageSize].id
         : null;
 
     const data: GalleryMediasSection = {

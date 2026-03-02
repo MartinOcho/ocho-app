@@ -5,7 +5,7 @@ import { GalleryMediasSection } from "@/lib/types";
 interface UseGalleryQueryProps {
   roomId: string | null;
   enabled?: boolean;
-}
+} 
 
 export function useGalleryQuery({ roomId, enabled = true }: UseGalleryQueryProps) {
   return useInfiniteQuery({
