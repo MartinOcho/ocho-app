@@ -44,7 +44,6 @@ export async function GET(
     }
 
     // Chercher les messages avec attachements
-   // Chercher les messages avec attachements
     let messagesAttachments;
 
     if (isSavedMessages) {
@@ -61,15 +60,6 @@ export async function GET(
         },
         include: {
           message: {
-            select: {
-              id: true,
-              roomId: true,
-              content: true,
-              senderId: true,
-              recipientId: true,
-              type: true,
-              createdAt: true,
-            },
             include: {
               sender: {
                 select: {
@@ -108,15 +98,6 @@ export async function GET(
         },
         include: {
           message: {
-            select: {
-              id: true,
-              roomId: true,
-              content: true,
-              senderId: true,
-              recipientId: true,
-              type: true,
-              createdAt: true,
-            },
             include: {
               sender: {
                 select: {

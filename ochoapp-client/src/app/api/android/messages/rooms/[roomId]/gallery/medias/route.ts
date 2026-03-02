@@ -86,15 +86,6 @@ export async function GET(
         },
         include: {
           message: {
-            select: {
-              id: true,
-              roomId: true,
-              content: true,
-              senderId: true,
-              recipientId: true,
-              type: true,
-              createdAt: true,
-            },
             include: {
               sender: {
                 select: {
@@ -133,15 +124,6 @@ export async function GET(
         },
         include: {
           message: {
-            select: {
-              id: true,
-              roomId: true,
-              content: true,
-              senderId: true,
-              recipientId: true,
-              type: true,
-              createdAt: true,
-            },
             include: {
               sender: {
                 select: {
@@ -204,7 +186,6 @@ export async function GET(
         );
       }
     }
-
     // Transformer les données en format plat pour la galerie
     const medias: GalleryMediasSection["medias"] = [];
     const processedAttachmentIds: string[] = [];
