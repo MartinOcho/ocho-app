@@ -141,7 +141,7 @@ export function MessageFormComponent({
     return new Promise((resolve, reject) => {
       const serverUrl = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_SERVER_URL) || "http://localhost:5000";
       const apiServer = (process.env.NEXT_PUBLIC_API_SERVER || process.env.NEXT_PUBLIC_CHAT_SERVER_URL || serverUrl).replace(/\/$/, "");
-      const uploadUrl = `${apiServer}/api/cloudinary/proxy-upload-multipart`;
+      const uploadUrl = `${apiServer}/api/cloudinary/upload-multipart`;
 
       const xhr = new XMLHttpRequest();
       const form = new FormData();
@@ -361,6 +361,7 @@ export function MessageFormComponent({
         multiple
         className="hidden"
         onChange={handleFiles}
+        placeholder="Joindre un fichier"
       />
       <Button
        type="button"

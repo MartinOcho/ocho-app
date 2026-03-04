@@ -103,7 +103,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello from the server" });
 });
 
-app.post("/api/cloudinary/proxy-upload", async (req, res) => {
+app.post("/api/cloudinary/upload", async (req, res) => {
   try {
     const body = req.body || {};
     const file = body.file;
@@ -156,7 +156,7 @@ app.post("/api/cloudinary/proxy-upload", async (req, res) => {
 });
 
 app.post(
-  "/api/cloudinary/proxy-upload-multipart",
+  "/api/cloudinary/upload-multipart",
   upload.single("file"),
   async (req, res) => {
     try {
