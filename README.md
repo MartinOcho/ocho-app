@@ -303,7 +303,7 @@ ochoapp-server/
 ### 1. Cloner le repository
 
 ```bash
-git clone https://github.com/username/ocho-app.git
+git https://github.com/MartinOcho/ocho-app.git
 cd ocho-app
 ```
 
