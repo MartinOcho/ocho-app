@@ -100,9 +100,11 @@ function HighlightText({
 export function DeletionPlaceholder({
   onCancel,
   duration = 5000,
+  onDelete
 }: {
   onCancel: () => void;
   duration?: number;
+  onDelete: () => void;
 }) {
   const { t } = useTranslation();
   const [progress, setProgress] = useState(100);
@@ -145,7 +147,8 @@ export function DeletionPlaceholder({
 
   const handleConfirmDelete = () => {
     setShowDeleteConfirm(false);
-    onCancel(); // Appel onCancel pour déclencher la suppression immédiate
+    onDelete();
+    setIsPaused(false);
   };
 
   const handleCancelConfirm = () => {
@@ -195,13 +198,6 @@ export function DeletionPlaceholder({
           />
           <div className="flex gap-1">
             <button
-              onClick={handleDeleteNow}
-              className="z-0 flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 p-1 text-xs font-bold text-destructive shadow-sm transition-all hover:border-destructive/60 hover:bg-destructive/20 active:scale-95"
-            >
-              <Trash2 size={12} strokeWidth={3} />
-              <span className="uppercase">{t("deleteNow")}</span>
-            </button>
-            <button
               onClick={onCancel}
               className="z-0 flex items-center gap-1 rounded-full border border-muted-foreground/40 bg-background/40 p-1 text-xs font-bold text-foreground shadow-sm transition-all hover:border-muted-foreground/60 hover:bg-background/30 active:scale-95 dark:border-muted/50 hover:dark:border-muted/60"
             >
@@ -240,6 +236,13 @@ export function DeletionPlaceholder({
                 <Undo2 size={12} strokeWidth={3} />
                 <span className="uppercase">{t("cancel")}</span>
               </div>
+            </button>
+            <button
+              onClick={handleDeleteNow}
+              className="flex items-center gap-0.5 text-xs font-normal text-destructive"
+            >
+              <Trash2 size={12} strokeWidth={3} />
+              <span className="uppercase">{t("delete")}</span>
             </button>
           </div>
           <span className="z-0 italic tracking-wider">{t("deleting")}</span>
@@ -796,6 +799,11 @@ export default function Message({
     };
   }, [isDeleting, socket, message.id, room.id]);
 
+  const handleDelete = ()=>{
+    handleCancelDelete();
+    if (socket) socket.emit("delete_message", { messageId: message.id, roomId: room.id });
+  }
+
   const handleCancelDelete = () => {
     if (deleteTimerRef.current) {
       clearTimeout(deleteTimerRef.current);
@@ -1121,6 +1129,7 @@ export default function Message({
         <DeletionPlaceholder
           onCancel={handleCancelDelete}
           duration={DELETION_DELAY}
+          onDelete={handleDelete}
         />
       ) : (
         <>
