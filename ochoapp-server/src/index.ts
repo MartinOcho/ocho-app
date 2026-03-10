@@ -207,7 +207,8 @@ app.post(
       return res.json({
         success: true,
         attachmentId: messageAttachment.id,
-        result: uploadResult,
+        attachmentUrl: messageAttachment.url,
+        attachmentType: messageAttachment.type
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
