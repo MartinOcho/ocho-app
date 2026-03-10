@@ -25,6 +25,8 @@ import {
   SocketCheckUserStatusEvent,
   SocketCreateNotificationEvent,
   SocketDeleteNotificationEvent,
+  SocketMarkNotificationReadEvent,
+  SocketMarkAllNotificationsReadEvent,
 } from "./types";
 import {
   getFormattedRooms,
@@ -792,6 +794,43 @@ io.on("connection", async (socket: Socket) => {
       }
     },
   );
+
+  // mark a single notification as read
+  socket.on("mark_notification_read", async (data: { notificationId: string }) => {
+    try {
+      const { notificationId } = data;
+      const notification = await prisma.notification.findUnique({
+        where: { id: notificationId, recipientId: userId },
+      });
+      if (notification && !notification.read) {
+        const updated = await prisma.notification.update({
+          where: { id: notificationId },
+          data: { read: true },
+        });
+        io.to(userId).emit("notification_read", updated);
+        const unreadCount = await prisma.notification.count({
+          where: { recipientId: userId, read: false },
+        });
+        io.to(userId).emit("notifications_unread_update", { unreadCount });
+      }
+    } catch (e) {
+      console.error("Erreur mark_notification_read socket:", e);
+    }
+  });
+
+  // mark all notifications as read
+  socket.on("mark_all_notifications_read", async () => {
+    try {
+      await prisma.notification.updateMany({
+        where: { recipientId: userId, read: false },
+        data: { read: true },
+      });
+      io.to(userId).emit("all_notifications_marked_as_read");
+      io.to(userId).emit("notifications_unread_update", { unreadCount: 0 });
+    } catch (e) {
+      console.error("Erreur mark_all_notifications_read socket:", e);
+    }
+  });
 
   socket.on("delete_many_notifications", async (data: { postId?: string, commentId?: string }) => {
     try {

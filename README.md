@@ -507,7 +507,7 @@ npm run prisma
 |----------|---------|-------------|
 | `/api/notifications` | GET | Lister notifications |
 | `/api/notifications/unread-count` | GET | Décompte non lues |
-| `/api/notifications/mark-as-read` | PUT | Marquer comme lues |
+| `/api/notifications/mark-as-read` | PUT | (deprecated) Marquer comme lues – use socket `mark_all_notifications_read` |
 | `/api/notifications/identify` | POST | Identifier utilisateur |
 
 ### Search (`/api/search/`)
@@ -712,7 +712,11 @@ socket.on('user:typing', (roomId, userId) => {})
 socket.on('user:uploading', (roomId, userId) => {})
 
 // Notifications
-socket.on('notification:new', (notification) => {})
+socket.on('notification_received', (notification) => {})
+socket.on('notification_deleted', (notification) => {})
+socket.on('notifications_unread_update', ({ unreadCount }) => {})
+socket.on('all_notifications_marked_as_read', () => {})
+socket.on('notification_read', (notification) => {})
 
 // Chat rooms
 socket.on('room:member-added', (roomId, userId) => {})

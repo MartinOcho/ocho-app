@@ -6,6 +6,7 @@ import { NotificationType } from "@prisma/client";
 import { AtSign, Heart, MessageSquareMore, User2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
+import { useSocket } from "@/components/providers/SocketProvider";
 
 interface NotificationProps {
   notification: NotificationData;
@@ -13,6 +14,13 @@ interface NotificationProps {
 
 export default function Notification({ notification }: NotificationProps) {
   const { t } = useTranslation();
+  const { socket } = useSocket();
+
+  const handleClick = () => {
+    if (!notification.read && socket?.connected) {
+      socket.emit("mark_notification_read", { notificationId: notification.id });
+    }
+  };
   const {
     followedYou,
     likedYourPost,
@@ -91,7 +99,7 @@ export default function Notification({ notification }: NotificationProps) {
   const { message, icon, href } = notificationTypeMap[notification.type];
 
   return (
-    <OchoLink href={href} className="block text-inherit">
+    <OchoLink href={href} className="block text-inherit" onClick={handleClick}>
       <article
         className={cn(
           "flex gap-3 bg-card/50 p-5 shadow-sm transition-colors hover:bg-card/70 sm:rounded-2xl sm:bg-card",

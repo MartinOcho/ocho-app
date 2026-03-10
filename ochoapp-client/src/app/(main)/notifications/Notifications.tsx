@@ -1,11 +1,9 @@
 "use client";
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import kyInstance from "@/lib/ky";
 import { NotificationsPage, NotificationData } from "@/lib/types";
 import {
   useInfiniteQuery,
-  useMutation,
   useQueryClient,
   InfiniteData,
 } from "@tanstack/react-query";
@@ -14,6 +12,7 @@ import Notification from "./Notification";
 import { useEffect, useMemo } from "react";
 import NotificationsSkeleton from "./NotificationsSkeleton";
 import { useSocket } from "@/components/providers/SocketProvider";
+import kyInstance from "@/lib/ky";
 
 export default function Notifications() {
   const {
@@ -39,21 +38,12 @@ export default function Notifications() {
   const queryClient = useQueryClient();
   const { socket } = useSocket();
 
-  const { mutate } = useMutation({
-    mutationFn: () => kyInstance.patch("/api/notifications/mark-as-read"),
-    onSuccess: () => {
-      queryClient.setQueryData(["unread-notifications"], {
-        unreadCount: 0,
-      });
-    },
-    onError(error) {
-      console.error("Impossible de marquer comme lu.", error);
-    },
-  });
-
+  // as soon as the socket is connected we ask the server
+  // to mark all the current user's notifications as read
   useEffect(() => {
-    mutate();
-  }, [mutate]);
+    if (!socket?.connected) return;
+    socket.emit("mark_all_notifications_read");
+  }, [socket]);
 
   // Listener pour les nouvelles notifications via socket
   useEffect(() => {
@@ -110,12 +100,46 @@ export default function Notifications() {
       });
     };
 
+    // mark all read event - update cache
+    const onAllRead = () => {
+      queryClient.setQueryData(["notifications"], (oldData: InfiniteData<NotificationsPage> | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((n) => ({ ...n, read: true })),
+          })),
+        };
+      });
+    };
+
+    // individual notification read
+    const onNotificationRead = (updated: NotificationData) => {
+      queryClient.setQueryData(["notifications"], (oldData: InfiniteData<NotificationsPage> | undefined) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            notifications: page.notifications.map((n) =>
+              n.id === updated.id ? { ...n, read: updated.read } : n,
+            ),
+          })),
+        };
+      });
+    };
+
     socket.on("notification_received", onNotificationReceived);
     socket.on("notification_deleted", onNotificationDeleted);
+    socket.on("all_notifications_marked_as_read", onAllRead);
+    socket.on("notification_read", onNotificationRead);
 
     return () => {
       socket.off("notification_received", onNotificationReceived);
       socket.off("notification_deleted", onNotificationDeleted);
+      socket.off("all_notifications_marked_as_read", onAllRead);
+      socket.off("notification_read", onNotificationRead);
     };
   }, [socket, queryClient]);
 

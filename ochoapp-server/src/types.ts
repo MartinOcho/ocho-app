@@ -440,6 +440,14 @@ export interface SocketDeleteNotificationEvent {
   commentId?: string;
 }
 
+// event sent by client to mark a single notification as read
+export interface SocketMarkNotificationReadEvent {
+  notificationId: string;
+}
+
+// event sent by client to mark ALL notifications for the current user as read
+export interface SocketMarkAllNotificationsReadEvent {}
+
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
 }>;
