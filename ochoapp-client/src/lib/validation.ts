@@ -70,7 +70,7 @@ export const saveMessageSchema = z.object({
 export const createPostSchema = z.object({
   content: z.string(),
   mediaIds: z.array(z.string()).max(5, "Vous pouvez ajouter jusqu'à 5 médias"),
-  gradient: z.number().int().optional(),
+  gradient: z.number().int().nullable().optional(),
 });
 
 export const updateUserProfileSchema = z.object({
