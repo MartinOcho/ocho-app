@@ -625,12 +625,6 @@ io.on("connection", async (socket: Socket) => {
 
         const updatedRooms = await getFormattedRooms(userId, username);
         io.to(userId).emit("room_list_updated", updatedRooms);
-        try {
-          const roomDetails = await handleGetRoomDetails({ roomId }, userId);
-          io.to(userId).emit("room_details", roomDetails);
-        } catch (error) {
-          console.error("Error emitting room_details in send_message (saved):", error);
-        }
       } else {
         // --- BLOC MESSAGES NORMAUX ---
         const {
@@ -704,12 +698,6 @@ io.on("connection", async (socket: Socket) => {
                 roomId: roomId,
                 unreadCount: roomUnreadCount,
               });
-            try {
-              const roomDetails = await handleGetRoomDetails({ roomId }, affectedId);
-              io.to(affectedId).emit("room_details", roomDetails);
-            } catch (error) {
-              console.error("Error emitting room_details in send_message:", error);
-            }
             }
           }
         }
