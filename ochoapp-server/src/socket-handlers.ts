@@ -914,6 +914,7 @@ export async function handleGetRoomDetails(
         reads: {
           none: { userId },
         },
+        senderId: { not: userId },
         ...(isFormerMember && membership.leftAt ? { createdAt: { lt: membership.leftAt } } : {}),
       },
       include: getMessageDataInclude(userId),
