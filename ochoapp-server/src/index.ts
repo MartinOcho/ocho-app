@@ -10,10 +10,6 @@ import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import {
-  getChatRoomDataInclude,
-  getMessageDataInclude,
-  getUserDataSelect,
-  MessageData,
   SocketSendMessageEvent,
   SocketStartChatEvent,
   SocketMarkMessageReadEvent,
@@ -22,11 +18,8 @@ import {
   SocketRemoveReactionEvent,
   SocketDeleteMessageEvent,
   SocketGetRoomsEvent,
+  SocketGetRoomDetailsEvent,
   SocketCheckUserStatusEvent,
-  SocketCreateNotificationEvent,
-  SocketDeleteNotificationEvent,
-  SocketMarkNotificationReadEvent,
-  SocketMarkAllNotificationsReadEvent,
 } from "./types";
 import {
   getFormattedRooms,
@@ -47,6 +40,7 @@ import {
   handleSendSavedMessage,
   handleSendNormalMessage,
   markUndeliveredMessages,
+  handleGetRoomDetails,
 } from "./socket-handlers";
 
 dotenv.config();
@@ -307,6 +301,16 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
+  socket.on("get_room_details", async (data: SocketGetRoomDetailsEvent) => {
+    try {
+      const roomDetails = await handleGetRoomDetails(data, userId);
+      socket.emit("room_details", roomDetails);
+    } catch (error) {
+      console.error("Erreur get_room_details:", error);
+      socket.emit("error_message", "Impossible de récupérer les détails de la discussion.");
+    }
+  });
+
   socket.on("join_room", async (roomId: string) => {
     const userId = socket.data.user.id;
     console.log(
@@ -417,6 +421,14 @@ io.on("connection", async (socket: Socket) => {
         roomId,
         unreadCount: currentRoomUnreadCount,
       });
+
+      // 3. Mise à jour des détails de la room (messages non lus)
+      try {
+        const roomDetails = await handleGetRoomDetails({ roomId }, userId);
+        io.to(userId).emit("room_details", roomDetails);
+      } catch (error) {
+        console.error("Error emitting room_details in mark_message_read:", error);
+      }
     } catch (error) {
       console.error("Erreur mark_message_read:", error);
     }

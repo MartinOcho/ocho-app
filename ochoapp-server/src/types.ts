@@ -422,6 +422,10 @@ export interface SocketGetRoomsEvent {
   cursor?: string | null;
 }
 
+export interface SocketGetRoomDetailsEvent {
+  roomId: string;
+}
+
 export interface SocketCheckUserStatusEvent {
   userId: string;
 }

@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import {
   getChatRoomDataInclude,
   getMessageDataInclude,
+  getUserDataSelect,
   MessageData,
   RoomData,
   SocketStartChatEvent,
@@ -9,6 +10,7 @@ import {
   SocketRemoveReactionEvent,
   SocketDeleteMessageEvent,
   SocketSendMessageEvent,
+  SocketGetRoomDetailsEvent,
 } from "./types";
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
@@ -796,5 +798,132 @@ export async function markUndeliveredMessages(
       "Erreur markUndeliveredMessages lors de la connexion:",
       error
     );
+  }
+}
+
+// --- HANDLE GET ROOM DETAILS ---
+export async function handleGetRoomDetails(
+  data: SocketGetRoomDetailsEvent,
+  userId: string,
+): Promise<RoomData> {
+  const { roomId } = data;
+
+  if (roomId === `saved-${userId}`) {
+    // Handle saved messages room
+    const existingSavedMsgs = await prisma.message.findMany({
+      where: {
+        senderId: userId,
+        type: "SAVED",
+      },
+      include: getMessageDataInclude(userId),
+      take: 3,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true,
+        lastSeen: true,
+        verified: {
+          select: {
+            type: true,
+            expiresAt: true,
+          },
+        },
+        followers: {
+          select: {
+            followerId: true,
+          },
+        },
+        following: {
+          select: {
+            followerId: true,
+          },
+        },
+        _count: {
+          select: {
+            posts: true,
+            followers: true,
+          },
+        },
+      },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const createInfo = await prisma.message.findFirst({
+      where: {
+        senderId: userId,
+        type: "SAVED",
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return {
+      id: `saved-${userId}`,
+      name: null,
+      description: null,
+      groupAvatarUrl: null,
+      privilege: "MANAGE",
+      members: [
+        {
+          user,
+          userId,
+          type: "OWNER",
+          joinedAt: user.createdAt,
+          leftAt: null,
+          kickedAt: null,
+        },
+      ],
+      maxMembers: 300,
+      messages: existingSavedMsgs,
+      isGroup: false,
+      createdAt: createInfo?.createdAt || new Date(),
+    };
+  } else {
+    // Check membership
+    const membership = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId, userId } },
+    });
+
+    if (!membership || membership.type === "BANNED") {
+      throw new Error("Non autorisé");
+    }
+
+    const isFormerMember = membership.leftAt !== null;
+
+    // Get room data
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      include: getChatRoomDataInclude(userId),
+    });
+
+    if (!room) throw new Error("Room not found");
+
+    // Get 3 latest unread messages (before leftAt for former members)
+    const unreadMessages = await prisma.message.findMany({
+      where: {
+        roomId,
+        type: { not: "CREATE" },
+        reads: {
+          none: { userId },
+        },
+        ...(isFormerMember && membership.leftAt ? { createdAt: { lt: membership.leftAt } } : {}),
+      },
+      include: getMessageDataInclude(userId),
+      take: 3,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      ...room,
+      messages: unreadMessages,
+    };
   }
 }

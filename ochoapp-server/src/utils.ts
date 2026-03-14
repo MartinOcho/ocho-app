@@ -8,6 +8,7 @@ import {
   RoomData,
   RoomsSection,
 } from "./types";
+import { handleGetRoomDetails } from "./socket-handlers";
 import { DefaultEventsMap, ExtendedError, Server, Socket } from "socket.io";
 import chalk from "chalk";
 import z from "zod";
@@ -611,6 +612,13 @@ export function groupManagment(
           if (newMembers.includes(mid)) {
             io.to(mid).emit("added_to_group", updatedRoom);
           }
+          // Emit updated room details
+          try {
+            const roomDetails = await handleGetRoomDetails({ roomId }, mid);
+            io.to(mid).emit("room_details", roomDetails);
+          } catch (error) {
+            console.error("Error emitting room_details in group_add_members:", error);
+          }
         });
 
         callback({ success: true, data: { roomId } });
@@ -697,6 +705,13 @@ export function groupManagment(
       for (const uid of relevantUsers) {
         const userRooms = await getFormattedRooms(uid, "");
         io.to(uid).emit("room_list_updated", userRooms);
+        // Emit updated room details
+        try {
+          const roomDetails = await handleGetRoomDetails({ roomId }, uid);
+          io.to(uid).emit("room_details", roomDetails);
+        } catch (error) {
+          console.error("Error emitting room_details in group_remove_member:", error);
+        }
       }
 
       callback({ success: true });
@@ -744,6 +759,13 @@ export function groupManagment(
       for (const uid of relevantUsers) {
         const userRooms = await getFormattedRooms(uid, "");
         io.to(uid).emit("room_list_updated", userRooms);
+        // Emit updated room details
+        try {
+          const roomDetails = await handleGetRoomDetails({ roomId }, uid);
+          io.to(uid).emit("room_details", roomDetails);
+        } catch (error) {
+          console.error("Error emitting room_details in group_ban_member:", error);
+        }
       }
 
       callback({ success: true });
@@ -838,6 +860,13 @@ export function groupManagment(
         activeMemberIds.forEach(async (uid) => {
           const userRooms = await getFormattedRooms(uid, "");
           io.to(uid).emit("room_list_updated", userRooms);
+          // Emit updated room details
+          try {
+            const roomDetails = await handleGetRoomDetails({ roomId }, uid);
+            io.to(uid).emit("room_details", roomDetails);
+          } catch (error) {
+            console.error("Error emitting room_details in group_leave:", error);
+          }
         });
       }
 
@@ -895,6 +924,13 @@ export function groupManagment(
       activeMemberIds.forEach(async (uid) => {
         const userRooms = await getFormattedRooms(uid, "");
         io.to(uid).emit("room_list_updated", userRooms);
+        // Emit updated room details
+        try {
+          const roomDetails = await handleGetRoomDetails({ roomId }, uid);
+          io.to(uid).emit("room_details", roomDetails);
+        } catch (error) {
+          console.error("Error emitting room_details in group_restore_member:", error);
+        }
       });
 
       callback({ success: true });
