@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { getPostDataIncludes } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
-import { ApiResponse } from "../../utils/dTypes";
+import { ApiResponse, Post, User, VerifiedUser } from "../../utils/dTypes";
 import { getCurrentUser } from "../../auth/utils";
 
 export async function POST(req: NextRequest) {
@@ -18,9 +18,12 @@ export async function POST(req: NextRequest) {
     }
     const input = await req.json();
 
+    const currentUserId = user.id
+
+
     const { content, mediaIds, gradient } = createPostSchema.parse(input);
 
-    const newPost = await prisma.post.create({
+    const post = await prisma.post.create({
       data: {
         content,
         userId: user.id,
@@ -32,34 +35,59 @@ export async function POST(req: NextRequest) {
       include: getPostDataIncludes(user.id),
     });
 
-    return NextResponse.json({
+    const userVerifiedData = post.user.verified?.[0];
+    
+          const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
+          const canExpire = !!(expiresAt || null);
+    
+          const expired =
+            canExpire && expiresAt ? new Date().getTime() < expiresAt : false;
+    
+          const isVerified = !!userVerifiedData && !expired;
+          const isBookmarked = post.bookmarks.some(
+            (bookmark) => bookmark.userId === currentUserId,
+          );
+    
+          const verified: VerifiedUser = {
+            verified: isVerified,
+            type: userVerifiedData?.type,
+            expiresAt,
+          };
+    
+          const author: User = {
+            id: post.userId,
+            username: post.user.username,
+            displayName: post.user.displayName,
+            avatarUrl: post.user.avatarUrl || undefined,
+            bio: post.user.bio || undefined,
+            verified,
+            createdAt: post.user.createdAt.getTime(),
+            lastSeen: post.user.lastSeen.getTime(),
+          };
+    
+          const newPost: Post = {
+            id: post.id,
+            author,
+            content: post.content,
+            createdAt: post.createdAt.getTime(),
+            attachments: post.attachments,
+            gradient: post.gradient || undefined,
+            likes: post._count.likes,
+            comments: post._count.comments,
+            isLiked: post.likes.some((like) => like.userId === currentUserId),
+            isBookmarked,
+          };
+
+    return NextResponse.json<ApiResponse<Post>>({
       success: true,
       message: "Post publié avec succès.",
-      data: {
-        ...newPost,
-        createdAt: newPost.createdAt.getTime(),
-        attachments: newPost.attachments.map((attachment) => ({
-          ...attachment,
-          createdAt: attachment.createdAt.getTime(),
-        })),
-        likes: 0,
-        comments: 0,
-        user: {
-          ...newPost.user,
-          createdAt: newPost.user.createdAt.getTime(),
-          lastSeen: newPost.user.lastSeen.getTime(),
-          verified: newPost.user.verified.map((item) => ({
-            ...item,
-            expiresAt: item.expiresAt?.getTime(),
-          })),
-        },
-      },
+      data: newPost,
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({
+    return NextResponse.json<ApiResponse<null>>({
       success: false,
       message: "Quelque chose s'est mal passé. Veuillez réessayer.",
-    } as ApiResponse<null>);
+    });
   }
 }
