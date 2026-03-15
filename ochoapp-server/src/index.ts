@@ -4,7 +4,7 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
-import { PrismaClient, Prisma, NotificationType } from "@prisma/client"; // Garder les types
+import { PrismaClient, Prisma, NotificationType, MediaType } from "@prisma/client"; // Garder les types
 import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
@@ -42,6 +42,7 @@ import {
   markUndeliveredMessages,
   handleGetRoomDetails,
 } from "./socket-handlers";
+import { th } from "zod/locales";
 
 dotenv.config();
 
@@ -151,6 +152,74 @@ app.post("/api/cloudinary/upload", async (req, res) => {
   }
 });
 
+app.post(
+  "/api/cloudinary/upload-attachment",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res
+          .status(400)
+          .json({ success: false, error: "No file provided" });
+
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<UploadApiResponse>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result as UploadApiResponse);
+            },
+          );
+          stream.end(buffer);
+        });
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const attachmentType: MediaType | undefined =
+        uploadResult.resource_type &&
+        String(uploadResult.resource_type).startsWith("video")
+          ? "VIDEO"
+          : uploadResult.resource_type === "image" ||
+              (uploadResult.secure_url &&
+                /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(
+                  uploadResult.secure_url,
+                ))
+            ? "IMAGE"
+            : undefined;
+
+      if (!attachmentType) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Unsupported file type" });
+      }
+
+      const mediaAttachment = await prisma.media.create({
+        data: {
+          type: attachmentType,
+          url: uploadResult.secure_url || uploadResult.url || "",
+        }
+      })
+
+      return res.json({
+        success: true,
+        attachmentId: mediaAttachment.id,
+        attachmentUrl: mediaAttachment.url,
+        attachmentType: mediaAttachment.type
+      });
+    } catch (err) {
+      console.error("Proxy multipart upload error", err);
+      return res
+        .status(500)
+        .json({
+          success: false,
+          error: "Upload failed",
+          details: err instanceof Error ? err.message : undefined,
+        });
+    }
+  },
+);
 app.post(
   "/api/cloudinary/upload-multipart",
   upload.single("file"),
