@@ -782,11 +782,12 @@ io.on("connection", async (socket: Socket) => {
     async (data: {
       type: NotificationType;
       recipientId?: string;
+      issuerId?: string;
       postId?: string;
       commentId?: string;
     }) => {
       try {
-        const { type, recipientId, postId, commentId } = data;
+        const { type, recipientId, issuerId, postId, commentId } = data;
         if (!recipientId || !type) return;
         if (userId === recipientId) return;
 
@@ -795,6 +796,7 @@ io.on("connection", async (socket: Socket) => {
             AND: [
               { type: type },
               { recipientId: recipientId },
+              { issuerId: issuerId || userId || undefined },
               { postId: postId || undefined },
               { commentId: commentId || undefined },
             ]
@@ -837,7 +839,7 @@ io.on("connection", async (socket: Socket) => {
             data: {
               type,
               recipientId,
-              issuerId: userId,
+              issuerId:  issuerId || userId,
               postId,
               commentId,
             },
