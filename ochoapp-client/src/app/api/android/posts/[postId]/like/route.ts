@@ -2,7 +2,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { ApiResponse } from "../../../utils/dTypes";
+import { ApiResponse, LikeResponse } from "../../../utils/dTypes";
 import { getCurrentUser } from "../../../auth/utils";
 
 export async function POST(
@@ -63,8 +63,8 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: "Like action successful.",
-      data: { isLiked, likesCount },
-    } as ApiResponse<{ isLiked: boolean; likesCount: number }>);
+      data: { isLiked, likes: likesCount },
+    } as ApiResponse<LikeResponse>);
   } catch (error) {
     console.error("Error in like endpoint:", error);
     return NextResponse.json({

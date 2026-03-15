@@ -155,6 +155,11 @@ export interface RepliesPage {
   nextCursor: string | null;
 }
 
+export interface LikeResponse {
+  isLiked: boolean;
+  likes: number;
+}
+
 export const calculateRelevanceScore = cache(
   (
     post: PostData,
