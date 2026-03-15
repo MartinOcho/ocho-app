@@ -51,17 +51,6 @@ export async function POST(
           where: { id: postId },
           select: { userId: true },
         });
-
-        if (post && post.userId !== userId) {
-          await prisma.notification.create({
-            data: {
-              issuerId: userId,
-              recipientId: post.userId,
-              postId: postId,
-              type: "LIKE",
-            },
-          });
-        }
         isLiked = true;
       }
     });
