@@ -110,6 +110,80 @@ export async function GET(req: Request) {
       },
     });
 
+    // Supprimer les avatars orphelins (utilisateurs qui ne les utilisent plus)
+    const referencedAvatarUrls = new Set(
+      (
+        await prisma.user.findMany({
+          select: { avatarUrl: true },
+        })
+      )
+        .map((u) => u.avatarUrl)
+        .filter(Boolean) as string[],
+    );
+
+    const orphanAvatars = await prisma.userAvatar.findMany({
+      where: {
+        url: {
+          notIn: Array.from(referencedAvatarUrls),
+        },
+        ...(process.env.NODE_ENV === "production"
+          ? {
+              createdAt: {
+                lte: new Date(Date.now() - 24 * 3600 * 1000), // 1 jour
+              },
+            }
+          : {}),
+      },
+      select: { id: true, url: true, publicId: true },
+    });
+
+    for (const avatar of orphanAvatars) {
+      if (avatar.url.includes("/uploads/avatars/")) {
+        const avatarDir = path.resolve("data/uploads/avatars");
+        const filePath = path.join(
+          avatarDir,
+          avatar.url.split("/uploads/avatars/")[1],
+        );
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        continue;
+      }
+
+      if (avatar.publicId) {
+        try {
+          await cloudinary.uploader.destroy(avatar.publicId);
+        } catch (error) {
+          console.error(
+            `Error deleting orphan avatar ${avatar.publicId}:`,
+            error,
+          );
+        }
+      } else {
+        const key = avatar.url.split(
+          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+        )[1];
+        if (key) {
+          try {
+            await new UTApi().deleteFiles(key);
+          } catch (error) {
+            console.error(
+              `Error deleting orphan avatar UploadThing file ${key}:`,
+              error,
+            );
+          }
+        }
+      }
+    }
+
+    await prisma.userAvatar.deleteMany({
+      where: {
+        id: {
+          in: orphanAvatars.map((a) => a.id),
+        },
+      },
+    });
+
     return new Response(null, { status: 200 });
   } catch (error) {
     console.error(error);

@@ -4,6 +4,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
+import cloudinary from "@/lib/cloudinary";
 import { UTApi, UTFile } from "uploadthing/server";
 import {
   getChatRoomDataInclude,
@@ -47,30 +48,54 @@ export async function deleteUserAvatar() {
   if (!user) {
     throw new Error("Action non autorisée");
   }
-  let filePath: string;
+
   const avatarDir = path.resolve("data/uploads/avatars");
 
-  if (user.avatarUrl?.includes("/uploads/avatars/")) {
-    // If it's an attachment
-    filePath = path.join(
-      avatarDir,
-      user.avatarUrl.split("/uploads/avatars/")[1],
-    );
-  } else {
-    const key = user.avatarUrl?.split(
-      `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-    )[1];
-    if (!key) {
-      throw new Error("Fichier introuvable");
-    }
-    new UTApi().deleteFiles(key);
-    return;
-  }
+  const userAvatars = await prisma.userAvatar.findMany({
+    where: { userId: user.id },
+    select: { id: true, url: true, publicId: true },
+  });
 
-  // Supprimer le fichier s'il existe
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
+  // Delete files / Cloudinary assets for each known avatar record
+  await Promise.all(
+    userAvatars.map(async (avatar) => {
+      if (avatar.publicId) {
+        try {
+          await cloudinary.uploader.destroy(avatar.publicId);
+        } catch (error) {
+          console.error("Error deleting avatar from Cloudinary:", error);
+        }
+        return;
+      }
+
+      if (avatar.url.includes("/uploads/avatars/")) {
+        const filePath = path.join(
+          avatarDir,
+          avatar.url.split("/uploads/avatars/")[1],
+        );
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        return;
+      }
+
+      const key = avatar.url.split(
+        `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+      )[1];
+      if (key) {
+        try {
+          await new UTApi().deleteFiles(key);
+        } catch (error) {
+          console.error("Error deleting avatar from UploadThing:", error);
+        }
+      }
+    }),
+  );
+
+  // Remove avatar records from the database
+  await prisma.userAvatar.deleteMany({
+    where: { id: { in: userAvatars.map((a) => a.id) } },
+  });
 
   const updatedUser = await prisma.user.update({
     where: { id: user.id },

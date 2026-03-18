@@ -4,6 +4,7 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
+import { randomUUID } from "crypto";
 import { PrismaClient, Prisma, NotificationType, MediaType } from "@prisma/client"; // Garder les types
 import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
@@ -287,6 +288,114 @@ app.post(
     }
   },
 );
+
+app.post(
+  "/api/cloudinary/upload-user-avatar",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const { userId } = req.body as { userId?: string };
+      if (!userId) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing userId" });
+      }
+
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res
+          .status(400)
+          .json({ success: false, error: "No file provided" });
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, error: "User not found" });
+      }
+
+      const publicId = `user_avatars/${userId}_${randomUUID()}`;
+
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<UploadApiResponse>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "auto",
+              public_id: publicId,
+              folder: "user_avatars",
+              overwrite: true,
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result as UploadApiResponse);
+            },
+          );
+          stream.end(buffer);
+        });
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const url = uploadResult.secure_url || uploadResult.url || "";
+      const public_id = uploadResult.public_id || null;
+      const resourceType = uploadResult.resource_type || null;
+
+      // Remove any old avatars for this user (both DB records and Cloudinary assets)
+      const oldAvatars = await prisma.userAvatar.findMany({
+        where: { userId },
+        select: { id: true, publicId: true },
+      });
+
+      await prisma.userAvatar.deleteMany({
+        where: {
+          id: {
+            in: oldAvatars.map((a) => a.id),
+          },
+        },
+      });
+
+      await Promise.all(
+        oldAvatars.map(async (old) => {
+          if (old.publicId) {
+            return cloudinary.uploader.destroy(old.publicId).catch((err) => {
+              console.error(
+                "Error deleting old user avatar from Cloudinary:",
+                err,
+              );
+            });
+          }
+          return Promise.resolve();
+        }),
+      );
+
+      const userAvatar = await prisma.userAvatar.create({
+        data: {
+          userId,
+          url,
+          publicId: public_id,
+          width: uploadResult.width || null,
+          height: uploadResult.height || null,
+          format: uploadResult.format || null,
+          resourceType,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { avatarUrl: url },
+      });
+
+      return res.json({ success: true, avatar: userAvatar });
+    } catch (err) {
+      console.error("Proxy avatar upload error", err);
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
+    }
+  },
+);
+
 app.post("/api/auth/session", validateSession);
 
 interface TypingUser {

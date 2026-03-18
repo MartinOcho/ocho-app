@@ -51,6 +51,7 @@ model User {
   @@map("users")
   userPrivacies UserPrivacy[]
   deliveries Delivery[]
+  userAvatars UserAvatar[]
 }
 model VerifiedUsers {
   id        String       @id @default(cuid())
@@ -329,6 +330,22 @@ model Media {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+model UserAvatar {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  url          String
+  publicId     String?
+  width        Int?
+  height       Int?
+  format       String?
+  resourceType String?
+
+  createdAt DateTime @default(now())
+
+  @@map("user_avatar_profile")
 }
 
 model MessageAttachment {
