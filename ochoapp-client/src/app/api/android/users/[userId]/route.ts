@@ -119,15 +119,76 @@ export async function PATCH(
       } as ApiResponse<null>);
     }
 
-    const { displayName, bio, avatarUrl } = await req.json();
+    const { displayName, bio, avatarUrl, avatarId, roomId } = await req.json();
+
+    let updateData: any = {
+      displayName: displayName ?? loggedUser.displayName,
+      bio: bio ?? loggedUser.bio,
+    };
+
+    if (roomId) {
+      // Mise à jour de l'avatar du groupe
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: {
+          members: {
+            where: { userId: loggedUser.id },
+            select: { type: true },
+          },
+        },
+      });
+
+      if (!room || !room.isGroup) {
+        return NextResponse.json({
+          success: false,
+          message: "Group not found or not a group.",
+          name: "group_not_found",
+        } as ApiResponse<null>);
+      }
+
+      const member = room.members[0];
+      if (!member || !["ADMIN", "OWNER"].includes(member.type)) {
+        return NextResponse.json({
+          success: false,
+          message: "Insufficient permissions to update group avatar.",
+          name: "forbidden",
+        } as ApiResponse<null>);
+      }
+
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { groupAvatarUrl: avatarUrl },
+      });
+
+      // Si avatarId fourni, supprimer l'ancien avatar de UserAvatar si nécessaire
+      if (avatarId) {
+        await prisma.userAvatar.deleteMany({
+          where: { id: avatarId, userId: loggedUser.id },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Group avatar updated successfully",
+        data: null,
+      } as ApiResponse<null>);
+    } else {
+      // Mise à jour de l'avatar de l'utilisateur
+      if (avatarUrl !== undefined) {
+        updateData.avatarUrl = avatarUrl;
+      }
+
+      // Si avatarId fourni, supprimer l'ancien avatar de UserAvatar
+      if (avatarId) {
+        await prisma.userAvatar.deleteMany({
+          where: { id: avatarId, userId: loggedUser.id },
+        });
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: {
-        displayName: displayName ?? loggedUser.displayName,
-        bio: bio ?? loggedUser.bio,
-        // avatarUrl: avatarUrl ?? loggedUser.avatarUrl,
-      },
+      data: updateData,
       select: getUserDataSelect(loggedUser.id),
     }) as UserData;
 

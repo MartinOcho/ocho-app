@@ -1,16 +1,13 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { getChatRoomDataInclude, LocalUpload } from "@/lib/types";
+import { LocalUpload } from "@/lib/types";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
-import { UTApi } from "uploadthing/server";
+import cloudinary from "@/lib/cloudinary";
+import { UploadApiResponse } from "cloudinary";
 import { MemberType } from "@prisma/client";
-
-const uploadDir = path.resolve("data/uploads/avatars");
 
 export async function POST(request: NextRequest) {
   
@@ -38,7 +35,12 @@ export async function POST(request: NextRequest) {
 
     const room = await prisma.room.findUnique({
       where: { id: roomId },
-      include: getChatRoomDataInclude(),
+      include: {
+        members: {
+          where: { userId: user.id },
+          select: { type: true, userId: true },
+        },
+      },
     });
 
     if (!room) {
@@ -75,55 +77,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const filename = `${uuidv4()}_${file.name}`;
-    const filepath = path.join(uploadDir, filename);
+    const publicId = `group_avatars/${roomId}_${uuidv4()}`;
 
-    // Assurer que le répertoire de téléchargement existe
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    const streamUpload = (buffer: Buffer) =>
+      new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "auto",
+            folder: "group_avatars",
+            public_id: publicId,
+            overwrite: true,
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result as UploadApiResponse);
+          },
+        );
+        stream.end(buffer);
+      });
 
-    // Retourner l'URL relative pour accéder au fichier
-    let url = `/api/uploads/avatars/${filename}`;
-
-    // Enregistrer le fichier localement
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.promises.writeFile(filepath, buffer).catch(async (err) => {
-      console.error(err);
-      throw new Error("Erreur lors de l'enregistrement du fichier");
-    });
-    const name = filename;
-    const appUrl = url;
-    const size = file.size;
-    const type = "image/webp";
+    const uploadResult = await streamUpload(Buffer.from(await file.arrayBuffer()));
+    const url = uploadResult.secure_url || uploadResult.url || "";
 
     // Suppression de l'ancien avatar
     const oldAvatarUrl = room.groupAvatarUrl;
-    if (oldAvatarUrl) {
-      const isOnLocalServer = oldAvatarUrl.startsWith("/api/uploads/avatars/");
-      if (isOnLocalServer) {
-        const oldFilePath = path.join(
-          uploadDir,
-          oldAvatarUrl.split("/uploads/avatars/")[1],
-        );
-
-        if (fs.existsSync(oldFilePath)) {
-          try {
-            fs.unlinkSync(oldFilePath);
-          } catch (err) {
-            console.error(
-              "Erreur lors de la suppression de l'ancien avatar:",
-              err,
-            );
-          }
+    if (oldAvatarUrl && oldAvatarUrl.includes("cloudinary")) {
+      const oldPublicId = oldAvatarUrl.split("/").pop()?.split(".")[0];
+      if (oldPublicId) {
+        try {
+          await cloudinary.uploader.destroy(oldPublicId);
+        } catch (error) {
+          console.error("Error deleting old group avatar from Cloudinary:", error);
         }
-      } else {
-        const key = oldAvatarUrl.split(
-          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-        )[1];
-        await new UTApi().deleteFiles(key).catch((err) => {
-          console.error(err);
-        });
       }
     }
 
@@ -137,6 +122,11 @@ export async function POST(request: NextRequest) {
         console.error(err);
         throw new Error("Erreur lors de la mise à jour de l'avatar");
       });
+
+    const name = file.name;
+    const appUrl = url;
+    const size = file.size;
+    const type = file.type || "image/webp";
 
     return NextResponse.json<LocalUpload[]>([
       {
@@ -152,6 +142,7 @@ export async function POST(request: NextRequest) {
     ]);
   } catch (error) {
     console.error(error);
-    throw new Error ("Echec du telechargement du fichier");
+    return NextResponse.json({ error: "File upload failed" }, { status: 500 });
   }
 }
+

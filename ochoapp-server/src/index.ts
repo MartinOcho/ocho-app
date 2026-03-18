@@ -294,25 +294,31 @@ app.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const { userId } = req.body as { userId?: string };
-      if (!userId) {
+      const { sessionId } = req.body as { sessionId?: string };
+      if (!sessionId) {
         return res
           .status(400)
-          .json({ success: false, error: "Missing userId" });
+          .json({ success: false, error: "Missing sessionId" });
       }
+
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: { user: true },
+      });
+
+      if (!session || !session.user) {
+        return res
+          .status(401)
+          .json({ success: false, error: "Invalid session" });
+      }
+
+      const userId = session.user.id;
 
       const file = req.file;
       if (!file || !file.buffer)
         return res
           .status(400)
           .json({ success: false, error: "No file provided" });
-
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, error: "User not found" });
-      }
 
       const publicId = `user_avatars/${userId}_${randomUUID()}`;
 
@@ -387,6 +393,114 @@ app.post(
       return res.json({ success: true, avatar: userAvatar });
     } catch (err) {
       console.error("Proxy avatar upload error", err);
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
+    }
+  },
+);
+
+app.post(
+  "/api/cloudinary/upload-group-avatar",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const { sessionId, roomId } = req.body as { sessionId?: string; roomId?: string };
+      if (!sessionId || !roomId) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing sessionId or roomId" });
+      }
+
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: { user: true },
+      });
+
+      if (!session || !session.user) {
+        return res
+          .status(401)
+          .json({ success: false, error: "Invalid session" });
+      }
+
+      const userId = session.user.id;
+
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res
+          .status(400)
+          .json({ success: false, error: "No file provided" });
+
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: {
+          members: {
+            where: { userId },
+            select: { type: true },
+          },
+        },
+      });
+
+      if (!room || !room.isGroup) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Group not found" });
+      }
+
+      const member = room.members[0];
+      if (!member || !["ADMIN", "OWNER"].includes(member.type)) {
+        return res
+          .status(403)
+          .json({ success: false, error: "Insufficient permissions" });
+      }
+
+      const publicId = `group_avatars/${roomId}_${randomUUID()}`;
+
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<UploadApiResponse>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "auto",
+              folder: "group_avatars",
+              public_id: publicId,
+              overwrite: true,
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result as UploadApiResponse);
+            },
+          );
+          stream.end(buffer);
+        });
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const url = uploadResult.secure_url || uploadResult.url || "";
+      const public_id = uploadResult.public_id || null;
+
+      // Supprimer l'ancien avatar du groupe si présent
+      const oldAvatarUrl = room.groupAvatarUrl;
+      if (oldAvatarUrl && oldAvatarUrl.includes("cloudinary")) {
+        const oldPublicId = oldAvatarUrl.split("/").pop()?.split(".")[0];
+        if (oldPublicId) {
+          try {
+            await cloudinary.uploader.destroy(oldPublicId);
+          } catch (error) {
+            console.error("Error deleting old group avatar from Cloudinary:", error);
+          }
+        }
+      }
+
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { groupAvatarUrl: url },
+      });
+
+      return res.json({ success: true, avatarUrl: url });
+    } catch (err) {
+      console.error("Proxy group avatar upload error", err);
       return res.status(500).json({
         success: false,
         error: "Upload failed",

@@ -142,22 +142,27 @@ export async function validateUserInDb(userId: string) {
 }
 
 export async function validateSession(
-  req: Request<{ userId: string }>,
+  req: Request<{ sessionId: string }>,
   res: Response,
 ) {
   try {
-    const { userId } = req.body;
+    const { sessionId } = req.body;
     const internalSecret = req.headers["x-internal-secret"];
 
     if (internalSecret !== INTERNAL_SECRET) {
       return res.status(401).json({ error: "Accès refusé" });
     }
 
-    const userExists = await validateUserInDb(userId);
-    if (!userExists)
-      return res.status(404).json({ error: "Utilisateur introuvable" });
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true },
+    });
 
-    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+    if (!session || !session.user) {
+      return res.status(401).json({ error: "Session invalide" });
+    }
+
+    const token = jwt.sign({ userId: session.user.id }, JWT_SECRET, { expiresIn: "7d" });
     res.json({ token });
   } catch (error) {
     console.error("Validate Session Error:", error);
