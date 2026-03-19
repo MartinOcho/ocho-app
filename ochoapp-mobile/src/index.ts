@@ -10,6 +10,33 @@ import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
+
+import {
+  loginUser,
+  signupUser,
+  getUserProfile,
+  updateUserProfile,
+  toggleFollow,
+  getSuggestedUsers,
+  getPost,
+  deletePost,
+  toggleLike,
+  toggleBookmark,
+  getComments,
+  sendComment,
+  getNotifications,
+  getMessageRooms,
+  searchMessageUsers,
+  getMessageDeliveries,
+  getMessageReactions,
+  getMessageReads,
+  getPostsForYou,
+  getFollowingPosts,
+  getBookmarkedPosts,
+  createPost,
+  getUserPosts,
+} from "./utils";
+
 dotenv.config();
 
 const app = express();
@@ -17,11 +44,10 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
-
 const allowedOrigins = [
   CLIENT_URL,
-  CLIENT_URL.replace(/\/$/, ""), 
-  CLIENT_URL.endsWith("/") ? CLIENT_URL : CLIENT_URL + "/", 
+  CLIENT_URL.replace(/\/$/, ""),
+  CLIENT_URL.endsWith("/") ? CLIENT_URL : CLIENT_URL + "/",
 ];
 
 const corsOptions = {
@@ -63,6 +89,36 @@ const upload = multer({
 app.get("/", (req, res) => {
   res.json({ message: "Hello from the mobile server" });
 });
+
+app.post("/api/login", loginUser);
+
+app.post("/api/signup", signupUser);
+
+app.get("/api/users/:userId", getUserProfile);
+app.patch("/api/users/:userId", updateUserProfile);
+app.get("/api/users/:userId/follow", toggleFollow);
+app.get("/api/users/suggested", getSuggestedUsers);
+
+app.get("/api/posts/:postId", getPost);
+app.delete("/api/posts/:postId", deletePost);
+app.post("/api/posts/:postId/like", toggleLike);
+app.post("/api/posts/:postId/bookmark", toggleBookmark);
+app.get("/api/posts/:postId/comments", getComments);
+app.post("/api/posts/:postId/comments", sendComment);
+
+app.get("/api/posts/for-you", getPostsForYou);
+app.get("/api/posts/following", getFollowingPosts);
+app.get("/api/posts/bookmarks", getBookmarkedPosts);
+app.post("/api/posts", createPost);
+app.get("/api/posts/user/:userId", getUserPosts);
+
+app.get("/api/notifications", getNotifications);
+
+app.get("/api/messages/rooms", getMessageRooms);
+app.get("/api/messages/users", searchMessageUsers);
+app.get("/api/messages/:messageId/deliveries", getMessageDeliveries);
+app.get("/api/messages/:messageId/reactions", getMessageReactions);
+app.get("/api/messages/:messageId/reads", getMessageReads);
 
 app.post("/api/cloudinary/upload", async (req, res) => {
   try {
@@ -106,13 +162,11 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     });
   } catch (err) {
     console.error("Proxy upload error", err);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
-      });
+    return res.status(500).json({
+      success: false,
+      error: "Upload failed",
+      details: err instanceof Error ? err.message : undefined,
+    });
   }
 });
 
@@ -163,24 +217,22 @@ app.post(
         data: {
           type: attachmentType,
           url: uploadResult.secure_url || uploadResult.url || "",
-        }
-      })
+        },
+      });
 
       return res.json({
         success: true,
         attachmentId: mediaAttachment.id,
         attachmentUrl: mediaAttachment.url,
-        attachmentType: mediaAttachment.type
+        attachmentType: mediaAttachment.type,
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Upload failed",
-          details: err instanceof Error ? err.message : undefined,
-        });
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
     }
   },
 );
@@ -237,17 +289,15 @@ app.post(
         success: true,
         attachmentId: messageAttachment.id,
         attachmentUrl: messageAttachment.url,
-        attachmentType: messageAttachment.type
+        attachmentType: messageAttachment.type,
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Upload failed",
-          details: err instanceof Error ? err.message : undefined,
-        });
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
     }
   },
 );
@@ -370,7 +420,10 @@ app.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const { sessionId, roomId } = req.body as { sessionId?: string; roomId?: string };
+      const { sessionId, roomId } = req.body as {
+        sessionId?: string;
+        roomId?: string;
+      };
       if (!sessionId || !roomId) {
         return res
           .status(400)
@@ -451,7 +504,10 @@ app.post(
           try {
             await cloudinary.uploader.destroy(oldPublicId);
           } catch (error) {
-            console.error("Error deleting old group avatar from Cloudinary:", error);
+            console.error(
+              "Error deleting old group avatar from Cloudinary:",
+              error,
+            );
           }
         }
       }
@@ -473,8 +529,8 @@ app.post(
   },
 );
 
-
-
 server.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(chalk.blueBright(`🚀 Serveur des api mobile prêt sur le port ${PORT}`));
+  console.log(
+    chalk.blueBright(`🚀 Serveur des api mobile prêt sur le port ${PORT}`),
+  );
 });
