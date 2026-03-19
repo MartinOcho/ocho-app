@@ -186,8 +186,9 @@ export async function PATCH(
       }
     }
 
+    // Ensure we always update the authenticated user record (userId may be a username)
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: loggedUser.id },
       data: updateData,
       select: getUserDataSelect(loggedUser.id),
     }) as UserData;
