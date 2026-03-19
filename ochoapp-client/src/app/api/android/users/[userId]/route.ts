@@ -110,7 +110,7 @@ export async function PATCH(
       } as ApiResponse<null>);
     }
 
-    if (loggedUser.id !== userId) {
+    if (loggedUser.id !== userId && loggedUser.username !== userId) {
       return NextResponse.json({
         success: false,
         message: "You can only update your own profile.",
