@@ -1,4 +1,163 @@
-import { MessageType, Prisma } from "@prisma/client";
+import { NotificationType, Prisma } from "@prisma/client";
+
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  verified: VerifiedUser | null;
+  createdAt?: number;
+  lastSeen?: number;
+  followersCount?: number;
+  postsCount?: number;
+  isFollowing?: boolean;
+}
+
+export interface VerifiedUser {
+  verified: boolean;
+  type: string | null;
+  expiresAt: number | null;
+}
+
+export interface SignupRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserSession {
+  user?: User; // Détails de l'utilisateur si l'inscription réussit
+  session?: Session;
+}
+
+export type DeviceType = 'ANDROID' | 'IOS' | 'WEB' | 'DESKTOP' | 'UNKNOWN';
+
+export interface SignupResponse {
+  success: boolean; // Contient une erreur si l'inscription échoue
+  message?: string;
+  name?: string;
+  data?: UserSession; // Détails de la session si applicable
+}
+
+export interface LoginResponse {
+  success: boolean; // Contient une erreur si la connexion échoue
+  message?: string;
+  name?: string;
+  data?: UserSession;
+}
+
+export interface Session {
+  id: string;
+  userId: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  name?: string;
+  error?: string;
+  data?: T;
+}
+
+export interface Attachment {
+  type: string;
+  url: string;
+}
+
+export interface Post {
+  id: string;
+  author: User;
+  content: string;
+  createdAt: number;
+  attachments: Attachment[];
+  gradient?: number;
+  likes: number;
+  comments: number;
+  isLiked: boolean;
+  isBookmarked: boolean;
+}
+
+export interface Comment {
+  id: string;
+  author: User | null;
+  content: string;
+  createdAt: number;
+  likes: number;
+  isLiked: boolean;
+  isLikedByAuthor: boolean;
+  isRepliedByAuthor: boolean;
+  postId: string;
+  postAuthorId: string;
+  replies: number;
+}
+
+export interface Reply {
+  id: string;
+  author: User | null;
+  content: string;
+  createdAt: number;
+  likes: number;
+  isLiked: boolean;
+  isLikedByAuthor: boolean;
+  commentId: string | null;
+  commentAuthorId: string | null;
+  commentAuthor: User | null;
+  firstLevelCommentId: string | null;
+  firstLevelCommentAuthorId: string | null;
+  postId: string;
+  postAuthorId: string;
+  replies: number;
+}
+
+export interface NotificationsPage {
+    notifications: NotificationData[];
+    cursor: string | null;
+    hasMore: boolean;
+}
+
+export interface NotificationData {
+    id: string;
+    type: NotificationType;
+    read: boolean;
+    issuer: User;
+    recipientId: string;
+    post?: Post | null;
+    postId?: string | null;
+    comment?: Comment | null;
+    createdAt: number;
+}
+
+export interface PostsPage {
+  posts: Post[];
+  nextCursor: string | null;
+}
+export interface PostsIdsPage {
+  posts: string[];
+  nextCursor: string | null;
+}
+
+export interface CommentsPage {
+  comments: Comment[];
+  nextCursor: string | null;
+}
+export interface RepliesPage {
+  replies: Reply[];
+  nextCursor: string | null;
+}
+
+export interface LikeResponse {
+  isLiked: boolean;
+  likes: number;
+}
+
 
 export type PrivacyType =
   | "PROFILE_VISIBILITY"
@@ -29,6 +188,7 @@ export type NavigationContextType = {
   setCurrentNavigation: (currentNavigation: NavigationType) => void;
 };
 
+
 export type SearchFilter = 
   | "posts"
   | "users"
@@ -37,6 +197,18 @@ export type SearchFilter =
   | "following"
   | "verified-users"
   | "unrelated-users";
+
+
+// Type pour les pièces jointes locales (avant upload)
+export interface LocalAttachment {
+  id: string;
+  attachmentId?: string;
+  fileName?: string;
+  type: AttachmentType;
+  previewUrl?: string;
+  url?: string;
+  isUploading: boolean;
+}
 
 export function getUserDataSelect(
   loggedInUserId: string,
@@ -327,6 +499,19 @@ export function getMessageDataInclude(loggedInUserId: string) {
   } satisfies Prisma.MessageInclude;
 }
 
+export type AttachmentType = "IMAGE" | "VIDEO" | "DOCUMENT";
+
+export interface MessageAttachment {
+  id: string;
+  type: AttachmentType;
+  url: string;
+  publicId: string | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  resourceType: string | null;
+}
+
 
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
@@ -337,126 +522,18 @@ export interface MessagesSection {
   nextCursor: string | null;
 }
 
-// --- TYPES POUR LES ÉVÉNEMENTS SOCKET (PARTAGÉS AVEC CLIENT) ---
-export interface SocketReceiveMessageEvent {
-  newMessage: MessageData;
-  roomId: string;
-  tempId?: string;
-  newRoom?: RoomData;
-}
-
-export interface SocketTypingUpdateEvent {
-  roomId: string;
-  typingUsers: { id: string; displayName: string; avatarUrl: string }[];
-}
-
-export interface SocketMessageDeletedEvent {
+export type GalleryMedia = MessageAttachment & {
   messageId: string;
-  roomId: string;
-}
-
-export interface GalleryMedia {
-  id: string;
-  type: string;
-  url: string;
-  publicId: string | null;
-  width: number | null;
-  height: number | null;
-  format: string | null;
-  resourceType: string | null;
-  messageId: string;
-  senderUsername: string;
-  senderAvatar: string | null;
+  senderUsername?: string;
+  senderAvatar?: string | null;
   sentAt: Date;
-}
+};
 
-export interface SocketGalleryUpdatedEvent {
-  roomId: string;
+export interface GalleryMediasSection {
   medias: GalleryMedia[];
+  nextCursor: string | null;
 }
 
-
-export interface SocketSendMessageEvent {
-  content: string;
-  roomId: string;
-  type: MessageType;
-  tempId?: string;
-  attachmentIds?: string[];
-  recipientId?: string;
-}
-
-export interface SocketStartChatEvent {
-  targetUserId: string;
-  isGroup: boolean;
-  name?: string;
-  membersIds?: string[];
-}
-
-export interface SocketMarkMessageReadEvent {
-  messageId: string;
-  roomId: string;
-}
-
-export interface SocketMarkMessageDeliveredEvent {
-  messageId: string;
-  roomId: string;
-}
-
-export interface SocketAddReactionEvent {
-  messageId: string;
-  roomId: string;
-  content: string;
-}
-
-export interface SocketRemoveReactionEvent {
-  messageId: string;
-  roomId: string;
-}
-
-export interface SocketDeleteMessageEvent {
-  messageId: string;
-  roomId: string;
-}
-
-export interface SocketGetRoomsEvent {
-  cursor?: string | null;
-}
-
-export interface SocketSearchRoomsEvent {
-  query: string;
-  roomId?: string | null;
-  cursor?: string | null;
-}
-
-export interface SocketGetRoomDetailsEvent {
-  roomId: string;
-}
-
-export interface SocketCheckUserStatusEvent {
-  userId: string;
-}
-
-export interface SocketCreateNotificationEvent {
-  type: string;
-  recipientId?: string;
-  postId?: string;
-  commentId?: string;
-}
-
-export interface SocketDeleteNotificationEvent {
-  type: string;
-  recipientId?: string;
-  postId?: string;
-  commentId?: string;
-}
-
-// event sent by client to mark a single notification as read
-export interface SocketMarkNotificationReadEvent {
-  notificationId: string;
-}
-
-// event sent by client to mark ALL notifications for the current user as read
-export interface SocketMarkAllNotificationsReadEvent {}
 
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
@@ -467,10 +544,6 @@ export interface UsersPage {
   nextCursor: string | null;
 }
 
-export interface PostsPage {
-  posts: PostData[];
-  nextCursor: string | null;
-}
 export interface SearchPage {
   posts: (PostData | UserData)[];
   nextCursor: string | null;
@@ -536,15 +609,6 @@ export type FirstCommentData = Prisma.CommentGetPayload<{
   include: ReturnType<typeof getFirstCommentDataIncludes>;
 }>;
 
-export interface CommentsPage {
-  comments: (CommentData & { isRepliedByAuthor: boolean })[] | CommentData[];
-  previousCursor: string | null;
-}
-export interface RepliesPage {
-  replies: CommentData[];
-  previousCursor: string | null;
-  count? : number;
-}
 
 export const notificationsInclude = {
   issuer: {
@@ -567,9 +631,6 @@ export const notificationsInclude = {
   },
 } satisfies Prisma.NotificationInclude;
 
-export type NotificationData = Prisma.NotificationGetPayload<{
-  include: typeof notificationsInclude;
-}>;
 
 export interface NotificationsPage {
   notifications: NotificationData[];
@@ -597,6 +658,14 @@ export interface ReactionData {
     avatarUrl: string | null;
   };
   content: string;
+  createdAt: Date;
+}
+export interface GroupedUser {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  reactedAt: Date; 
 }
 export interface ReactionInfo {
   reactions: number;
@@ -642,3 +711,27 @@ export type LocalUpload = {
     mediaId?: string;
   };
 };
+
+// Room Footer States
+export enum RoomFooterStateType {
+  Loading = "LOADING",
+  Normal = "NORMAL",
+  Unspecified = "UNSPECIFIED",
+  UserLeft = "USER_LEFT",
+  UserKicked = "USER_KICKED",
+  UserDeleted = "USER_DELETED",
+  UserBanned = "USER_BANNED",
+  PrivateProfile = "PRIVATE_PROFILE",
+  GroupFull = "GROUP_FULL",
+}
+
+export type RoomFooterState =
+  | { type: RoomFooterStateType.Loading }
+  | { type: RoomFooterStateType.Normal }
+  | { type: RoomFooterStateType.Unspecified }
+  | { type: RoomFooterStateType.UserLeft }
+  | { type: RoomFooterStateType.UserKicked }
+  | { type: RoomFooterStateType.UserDeleted }
+  | { type: RoomFooterStateType.UserBanned }
+  | { type: RoomFooterStateType.PrivateProfile }
+  | { type: RoomFooterStateType.GroupFull };

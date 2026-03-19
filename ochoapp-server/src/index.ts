@@ -5,7 +5,7 @@ import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
 import { randomUUID } from "crypto";
-import { PrismaClient, Prisma, NotificationType, MediaType } from "@prisma/client"; // Garder les types
+import { NotificationType, MediaType } from "@prisma/client";
 import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
@@ -19,11 +19,13 @@ import {
   SocketRemoveReactionEvent,
   SocketDeleteMessageEvent,
   SocketGetRoomsEvent,
+  SocketSearchRoomsEvent,
   SocketGetRoomDetailsEvent,
   SocketCheckUserStatusEvent,
 } from "./types";
 import {
   getFormattedRooms,
+  searchRooms,
   getUnreadRoomsCount,
   getUnreadMessagesCountPerRoom,
   getMessageDeliveries,
@@ -590,6 +592,16 @@ io.on("connection", async (socket: Socket) => {
       socket.emit("rooms_list_data", response);
     } catch (error) {
       socket.emit("error_message", "Impossible de récupérer les discussions.");
+    }
+  });
+
+  socket.on("search_rooms", async (data: SocketSearchRoomsEvent): Promise<void> => {
+    const { query, roomId, cursor } = data;
+    try {
+      const response = await searchRooms(userId, username, query, roomId, cursor);
+      socket.emit("search_results", response);
+    } catch (error) {
+      socket.emit("error_message", "Impossible de rechercher les discussions.");
     }
   });
 

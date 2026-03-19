@@ -13,11 +13,17 @@ import { DefaultEventsMap, ExtendedError, Server, Socket } from "socket.io";
 import chalk from "chalk";
 import z from "zod";
 import prisma from "./prisma";
+import { Prisma } from "@prisma/client";
 
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "super_secret_key_change_me_in_prod";
 const INTERNAL_SECRET = process.env.INTERNAL_SERVER_SECRET || "default_secret";
+
+// Fonction helper pour normaliser les accents
+function normalizeText(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
 export async function getUnreadRoomsCount(userId: string): Promise<number> {
   const unreadCount = await prisma.room.count({
@@ -400,6 +406,86 @@ export async function getFormattedRooms(
   if (rooms.length > pageSize) {
     const nextItem = rooms.pop();
     nextCursor = nextItem ? nextItem.id : null;
+  }
+
+  return { rooms, nextCursor };
+}
+
+export async function searchRooms(
+  userId: string,
+  username: string,
+  query: string,
+  roomId?: string | null,
+  cursor?: string | null,
+): Promise<RoomsSection> {
+  const pageSize = 10;
+  const normalizedQuery = normalizeText(query);
+
+  // Trouver les messages qui matchent la query
+  const messageWhere: Prisma.MessageWhereInput = {
+    content: {
+      not: "",
+    },
+    type: { not: "CREATE" },
+  };
+
+  if (roomId) {
+    messageWhere.roomId = roomId;
+  } else {
+    // Pour la recherche globale, seulement dans les rooms où l'utilisateur est membre
+    messageWhere.room = {
+      members: {
+        some: {
+          userId,
+          OR: [{ leftAt: null }, { leftAt: { gt: new Date() } }],
+        },
+      },
+    };
+  }
+
+  // Filtrer les messages dont le contenu normalisé contient la query
+  const matchingMessages = await prisma.message.findMany({
+    where: messageWhere,
+    include: {
+      ...getMessageDataInclude(userId),
+      room: { include: getChatRoomDataInclude() },
+    },
+    orderBy: { createdAt: "desc" },
+    take: pageSize + 1,
+    cursor: cursor ? { id: cursor } : undefined,
+  });
+
+  // Filtrer côté client pour la recherche (Prisma ne supporte pas bien les regex avec accents)
+  const filteredMessages = matchingMessages.filter(msg =>
+    msg.content && normalizeText(msg.content).includes(normalizedQuery)
+  );
+
+  // Grouper par roomId
+  const roomsMap = new Map<string, { room: any; messages: MessageData[] }>();
+
+  for (const msg of filteredMessages) {
+    const roomId = msg.roomId;
+    if (!roomId) continue;
+    if (!roomsMap.has(roomId)) {
+      roomsMap.set(roomId, { room: msg.room, messages: [] });
+    }
+    roomsMap.get(roomId)!.messages.push(msg as MessageData);
+  }
+
+  const rooms: RoomData[] = Array.from(roomsMap.values()).map(({ room, messages }) => ({
+    ...room,
+    messages,
+    members: room.members || [],
+  }));
+
+  let nextCursor: string | null = null;
+  if (filteredMessages.length > pageSize) {
+    const nextItem = filteredMessages.pop();
+    nextCursor = nextItem ? nextItem.id : null;
+    // Retirer aussi de rooms si nécessaire
+    if (rooms.length > pageSize) {
+      rooms.pop();
+    }
   }
 
   return { rooms, nextCursor };
