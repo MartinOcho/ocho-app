@@ -35,6 +35,7 @@ import {
   getBookmarkedPosts,
   createPost,
   getUserPosts,
+  createSession,
 } from "./utils";
 
 dotenv.config();
@@ -97,9 +98,9 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello from the mobile server" });
 });
 
-app.post("/api/login", loginUser);
-
 app.post("/api/signup", signupUser);
+app.post("/api/login", loginUser);
+app.post("/api/session/refresh", createSession);
 
 app.get("/api/users/:userId", getUserProfile);
 app.patch("/api/users/:userId", updateUserProfile);

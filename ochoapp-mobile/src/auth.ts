@@ -2,7 +2,7 @@ import type { IncomingHttpHeaders } from "http";
 import { Request, Response } from "express";
 import prisma from "./prisma";
 import { User, UserData, VerifiedUser } from "./types";
-import { loginSchema, signupSchema } from "./validation";
+import { loginSchema, sessionSchema, SessionValues, signupSchema } from "./validation";
 import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
 import { upSaveDevice } from "./devices";
@@ -314,17 +314,42 @@ export async function createSession(req: Request, res: Response) {
       });
     }
 
-    // Créer une nouvelle session
-    const sessionId = randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
-    
-    const newSession = await prisma.session.create({
-      data: {
-        id: sessionId,
-        userId: existingUser.id,
-        expiresAt,
+    let session;
+
+    session = await prisma.session.findFirst({
+      where: {
+        userId,
+        deviceId,
       },
     });
+
+    if (session){
+      // Mettre à jour la date d'expiration de la session existante
+      const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      session = await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          expiresAt: newExpiresAt,
+        },
+      });
+    }else{
+      // Créer une nouvelle session
+      const sessionId = randomUUID();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+      session = await prisma.session.create({
+        data: {
+          id: sessionId,
+          userId: existingUser.id,
+          deviceId,
+          expiresAt,
+        },
+      });
+    }
+
+    // Créer une nouvelle session
+    const sessionId = session.id;
 
     // Essayer de gérer le device et associer la session
     try {
@@ -344,9 +369,9 @@ export async function createSession(req: Request, res: Response) {
       data: {
         user,
         session: {
-          id: newSession.id,
-          userId: newSession.userId,
-          expiresAt: newSession.expiresAt.getTime(),
+          id: session.id,
+          userId: session.userId,
+          expiresAt: session.expiresAt.getTime(),
         },
       },
     });
