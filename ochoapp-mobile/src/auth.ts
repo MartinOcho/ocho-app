@@ -15,7 +15,7 @@ export async function checkVerification(
   const canExpire = !!(expiresAt || null);
 
   const expired =
-    canExpire && expiresAt ? new Date().getTime() < expiresAt : false;
+    canExpire && expiresAt ? new Date().getTime() > expiresAt : false;
 
   const isVerified = !!userVerifiedData && !expired;
 
@@ -98,12 +98,44 @@ export async function loginUser(req: Request, res: Response) {
   }
 
   const user = await formatUserResponse(existingUser as unknown as UserData);
+  
+  // Créer une nouvelle session
+  const sessionId = randomUUID();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+  
+  const session = await prisma.session.create({
+    data: {
+      id: sessionId,
+      userId: existingUser.id,
+      expiresAt,
+    },
+  });
+
+  // Essayer de gérer le device et associer la session si les headers sont présents
+  try {
+    const deviceId = req.headers["X-Device-ID"] as string;
+    if (deviceId) {
+      // upSaveDevice gère: la suppression des anciennes sessions, la création/mise à jour du device, et l'association de la session
+      await upSaveDevice(req.headers, existingUser.id, sessionId);
+    }
+  } catch (error) {
+    console.warn("Erreur lors de la gestion du device:", error);
+    // Ne pas échouer si la gestion du device échoue
+  }
+
   return res.json({
     success: true,
     message: "Authentification réussie.",
     name: "AuthenticationSuccess",
     error: null,
-    data: user,
+    data: {
+      user,
+      session: {
+        id: session.id,
+        userId: session.userId,
+        expiresAt: session.expiresAt.getTime(),
+      },
+    },
   });
 }
 
@@ -167,6 +199,30 @@ export async function signupUser(req: Request, res: Response) {
       },
     });
 
+    // Créer une nouvelle session
+    const sessionId = randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+    
+    const session = await prisma.session.create({
+      data: {
+        id: sessionId,
+        userId: userData.id,
+        expiresAt,
+      },
+    });
+
+    // Essayer de gérer le device et associer la session si les headers sont présents
+    try {
+      const deviceId = req.headers["X-Device-ID"] as string;
+      if (deviceId) {
+        // upSaveDevice gère: la suppression des anciennes sessions, la création/mise à jour du device, et l'association de la session
+        await upSaveDevice(req.headers, userData.id, sessionId);
+      }
+    } catch (error) {
+      console.warn("Erreur lors de la gestion du device:", error);
+      // Ne pas échouer si la gestion du device échoue
+    }
+
     const user = {
       id: userData.id,
       username: userData.username,
@@ -188,6 +244,11 @@ export async function signupUser(req: Request, res: Response) {
       message: "Inscription réussie",
       data: {
         user,
+        session: {
+          id: session.id,
+          userId: session.userId,
+          expiresAt: session.expiresAt.getTime(),
+        },
       },
     });
   } catch (error) {
@@ -204,10 +265,10 @@ export async function createSession(req: Request, res: Response) {
     const { id, userId } = req.body;
 
     // Récupérer les informations de l'appareil depuis les en-têtes
-    const deviceId = req.headers['x-device-id'] as string;
-    const deviceTypeHeader = req.headers['x-device-type'] as string;
-    const deviceModel = req.headers['x-device-model'] as string;
-    const ip = req.headers['x-forwarded-for'] as string || req.headers['x-real-ip'] as string || "unknown";
+    const deviceId = req.headers["X-Device-ID"] as string;
+    const deviceTypeHeader = req.headers["X-Device-Type"] as string;
+    const deviceModel = req.headers["X-Device-Model"] as string;
+    const ip = req.headers["X-Forwarded-For"] as string || req.headers["X-Real-Ip"] as string || "unknown";
 
     // Vérifier la présence des en-têtes essentiels
     if (!deviceId || !deviceTypeHeader) {
@@ -252,9 +313,28 @@ export async function createSession(req: Request, res: Response) {
         name: "invalid_session",
       });
     }
-    upSaveDevice(req.headers, userId);
 
+    // Créer une nouvelle session
+    const sessionId = randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
     
+    const newSession = await prisma.session.create({
+      data: {
+        id: sessionId,
+        userId: existingUser.id,
+        expiresAt,
+      },
+    });
+
+    // Essayer de gérer le device et associer la session
+    try {
+      if (deviceId) {
+        // upSaveDevice gère: la suppression des anciennes sessions, la création/mise à jour du device, et l'association de la session
+        await upSaveDevice(req.headers, existingUser.id, sessionId);
+      }
+    } catch (error) {
+      console.warn("Erreur lors de la gestion du device:", error);
+    }
 
     const user = await formatUserResponse(existingUser as unknown as UserData);
 
@@ -263,6 +343,11 @@ export async function createSession(req: Request, res: Response) {
       message: "Session validée avec succès.",
       data: {
         user,
+        session: {
+          id: newSession.id,
+          userId: newSession.userId,
+          expiresAt: newSession.expiresAt.getTime(),
+        },
       },
     });
   } catch (error) {
@@ -352,7 +437,7 @@ export async function getCurrentUser(
   const canExpire = !!(expiresAt || null);
 
   const expired =
-    canExpire && expiresAt ? new Date().getTime() < expiresAt : false;
+    canExpire && expiresAt ? new Date().getTime() > expiresAt : false;
 
   const isVerified = !!userVerifiedData && !expired;
 

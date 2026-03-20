@@ -2,6 +2,7 @@ import type { IncomingHttpHeaders } from "http";
 import prisma from "./prisma";
 import { DeviceType } from "./types";
 import { Session } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 export interface GeoLocationInfo {
   country: string | null;
@@ -109,13 +110,53 @@ export async function upSaveDevice(
       return null;
     }
 
+    // 0. Créer une nouvelle session si elle n'existe pas
+    let session: Session;
+    
+    if (!sessionId) {
+      // Créer une nouvelle session
+      const newSessionId = randomUUID();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+      
+      session = await prisma.session.create({
+        data: {
+          id: newSessionId,
+          userId: userId,
+          expiresAt,
+        },
+      });
+      sessionId = newSessionId;
+    } else {
+      // Vérifier que la session existe
+      const existingSession = await prisma.session.findUnique({
+        where: { id: sessionId },
+      });
+      
+      if (!existingSession) {
+        console.warn("Session non trouvée:", sessionId);
+        return null;
+      }
+      session = existingSession;
+    }
+
+    // 1. Supprimer les autres sessions existantes avec le même userId + deviceId
+    await prisma.session.deleteMany({
+      where: {
+        userId: userId,
+        deviceId: deviceId,
+        id: {
+          not: sessionId,
+        },
+      },
+    });
+
     const geoLocation = await getGeoLocationFromAPI(deviceIp);
 
     if (!geoLocation) {
       console.warn("Géolocalisation non disponible pour l'IP:", deviceIp);
       return null;
     }
-    // Vérifier si l'appareil existe déjà ou le créer
+    // 2. Vérifier si l'appareil existe déjà ou le créer
     let device = await prisma.device.findUnique({
       where: { deviceId: deviceId },
     });
@@ -150,25 +191,14 @@ export async function upSaveDevice(
       });
     }
 
-    // Associer la session au device
-    const session = await prisma.session.update({
+    // 3. Associer la session au device
+    const updatedSession = await prisma.session.update({
       where: { id: sessionId },
       data: { deviceId: deviceId },
     });
     console.log("Session associée au device:", sessionId);
 
-    // Supprimer toutes les sessions de ce user avec ce deviceId, sauf la nouvelle
-    await prisma.session.deleteMany({
-      where: {
-        userId: userId,
-        deviceId: deviceId,
-        id: {
-          not: sessionId,
-        },
-      },
-    });
-
-    return session;
+    return updatedSession;
   } catch (error) {
     console.error("Erreur lors de l'enregistrement de l'appareil:", error);
     return null;
