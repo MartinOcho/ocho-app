@@ -14,6 +14,7 @@ import chalk from "chalk";
 import {
   loginUser,
   signupUser,
+  logoutUser,
   getUserProfile,
   updateUserProfile,
   toggleFollow,
@@ -26,7 +27,12 @@ import {
   sendComment,
   getNotifications,
   getMessageRooms,
+  getRoom,
+  getMessages,
+  getRoomMedias,
+  getUnreadMessagesCount,
   searchMessageUsers,
+  getMessageUsersByFilter,
   getMessageDeliveries,
   getMessageReactions,
   getMessageReads,
@@ -42,6 +48,12 @@ import {
   likeComment,
   deleteComment,
   getUnreadNotificationCount,
+  getSearchHistory,
+  deleteSearchQuery,
+  saveSearchQuery,
+  searchAll,
+  searchPost,
+  searchPostIds,
 } from "./utils";
 import { ApiResponse } from "./types";
 
@@ -144,11 +156,24 @@ app.get("/api/notifications", getNotifications);
 app.get("/api/unread-count/notifications", getUnreadNotificationCount);
 
 app.get("/api/messages/rooms", getMessageRooms);
+app.get("/api/messages/rooms/:roomId/data", getRoom);
+app.get("/api/messages/rooms/:roomId/messages", getMessages);
+app.get("/api/messages/rooms/:roomId/gallery/medias", getRoomMedias);
+app.get("/api/messages/rooms/:roomId/unread-count", getUnreadMessagesCount);
 app.get("/api/messages/users", searchMessageUsers);
+app.get("/api/messages/users/:filter", getMessageUsersByFilter);
 app.get("/api/messages/:messageId/deliveries", getMessageDeliveries);
 app.get("/api/messages/:messageId/reactions", getMessageReactions);
 app.get("/api/messages/:messageId/reads", getMessageReads);
 
+app.delete("/api/auth/logout", logoutUser);
+
+app.get("/api/search/history", getSearchHistory);
+app.post("/api/search/history", saveSearchQuery);
+app.delete("/api/search/history/:queryId", deleteSearchQuery);
+app.get("/api/search/all", searchAll);
+app.get("/api/search/posts", searchPost);
+app.get("/api/search/posts/ids", searchPostIds);
 
 app.get("/api/check-update", (req: Request, res: Response) => {
   const version = (req.query.version || "").toString();

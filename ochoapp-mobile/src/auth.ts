@@ -385,6 +385,50 @@ export async function createSession(req: Request, res: Response) {
   }
 }
 
+export async function logoutUser(req: Request, res: Response) {
+  const authHeader = req.headers["authorization"] as string | undefined;
+  const deviceId = req.headers["x-device-id"] as string | undefined;
+
+  const sessionToken = authHeader?.split(" ")[1];
+  if (!sessionToken || !deviceId) {
+    return res.status(400).json({
+      success: false,
+      message: "Missing session token or device ID",
+      name: "missing_credentials",
+    });
+  }
+
+  try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionToken },
+      select: { id: true, deviceId: true, userId: true },
+    });
+
+    if (!session || session.deviceId !== deviceId) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found or device mismatch",
+        name: "invalid_session",
+      });
+    }
+
+    await prisma.session.delete({ where: { id: sessionToken } });
+
+    return res.json({
+      success: true,
+      message: "Successfully logged out",
+      data: { sessionId: sessionToken, deviceId },
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
+      name: "logout_error",
+    });
+  }
+}
+
 export async function getCurrentUser(
   headers: IncomingHttpHeaders,
 ): Promise<{ user: User | null; message: string }> {
