@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { getUserDataSelect, User, UserData, VerifiedUser } from "./types";
+import { ApiResponse, getUserDataSelect, User, UserData, VerifiedUser } from "./types";
 import { checkVerification, getCurrentUser } from "./auth";
 import { log } from "console";
 
@@ -425,15 +425,15 @@ export async function toggleFollow(req: Request, res: Response) {
 
 export async function getSuggestedUsers(req: Request, res: Response) {
   try {
-    const { user: loggedUser, message } = await getCurrentUser(req.headers);
-    if (!loggedUser) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      });
-    }
-
+     const { user: loggedUser, message } = await getCurrentUser(req.headers);
+        if (!loggedUser) {
+          return res.json({
+            success: false,
+            message: message || "Utilisateur non authentifié.",
+            name: "unauthorized",
+          } as ApiResponse<null>);
+        }
+    // Exécuter la requête Prisma pour trouver les utilisateurs à suggérer
     const usersToFollow = await prisma.user.findMany({
       where: {
         NOT: {
@@ -454,34 +454,47 @@ export async function getSuggestedUsers(req: Request, res: Response) {
       take: 5,
     });
 
-    const suggestedUsers = await Promise.all(
-      usersToFollow.map(async (user: UserData) => {
-        const verified = await checkVerification(user);
-        let isFollowing = user.followers.some(
-          (follower) => follower.followerId === loggedUser.id,
-        );
+    // Mapper les résultats pour correspondre à la structure de données attendue par le client
+    const suggestedUsers = usersToFollow.map((user: UserData) => {
+      const userVerifiedData = user.verified?.[0];
+      const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
+      const canExpire = !!(expiresAt || null);
 
-        return {
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl || undefined,
-          bio: user.bio || undefined,
-          verified,
-          createdAt: user.createdAt.getTime(),
-          lastSeen: user.lastSeen.getTime(),
-          followersCount: user._count.followers,
-          postsCount: user._count.posts,
-          isFollowing,
-        };
-      }),
-    );
+      const expired =
+        canExpire && expiresAt ? new Date().getTime() < expiresAt : false;
+
+      const isVerified = !!userVerifiedData && !expired;
+
+      const verified: VerifiedUser = {
+        verified: isVerified,
+        type: userVerifiedData?.type,
+        expiresAt,
+      };
+
+      let isFollowing = user.followers.some(
+        (follower) => follower.followerId === loggedUser.id,
+      );
+
+      return {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl || undefined,
+        bio: user.bio || undefined,
+        verified,
+        createdAt: user.createdAt.getTime(),
+        lastSeen: user.lastSeen.getTime(),
+        followersCount: user?._count.followers || 0,
+        postsCount: user?._count.posts || 0,
+        isFollowing,
+      };
+    });
 
     return res.json({
       success: true,
       message: "Suggested users fetched successfully",
       data: suggestedUsers,
-    });
+    } as ApiResponse<User[]>);
   } catch (error) {
     console.error(error);
     return res.json({
@@ -489,6 +502,6 @@ export async function getSuggestedUsers(req: Request, res: Response) {
       message: "An unexpected error occurred",
       name: "unknown",
       data: null,
-    });
+    } as ApiResponse<null>);
   }
 }
