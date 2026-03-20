@@ -66,8 +66,15 @@ const corsOptions = {
       callback(new Error("CORS policy violation"));
     }
   },
-  methods: ["GET", "POST", "OPTIONS"],
+  methods: ["GET", "POST", "OPTIONS", "PATCH", "DELETE"],
   credentials: true,
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Device-ID",
+    "X-Device-Type",
+    "X-Device-Model",
+  ],
 };
 
 app.use(cors(corsOptions));
