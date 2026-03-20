@@ -103,10 +103,12 @@ app.post("/api/signup", signupUser);
 app.post("/api/login", loginUser);
 app.post("/api/session/refresh", createSession);
 
+
+
+app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
 app.patch("/api/users/:userId", updateUserProfile);
 app.get("/api/users/:userId/follow", toggleFollow);
-app.get("/api/users/suggested", getSuggestedUsers);
 
 // Routes pour créer un post
 app.post("/api/posts", createPost);
