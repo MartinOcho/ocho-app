@@ -529,6 +529,39 @@ app.post(
   },
 );
 
+// 404 handler: always JSON
+app.use((req, res) => {
+  res.status(404).type("application/json").json({
+    success: false,
+    error: "Not Found",
+    message: `Endpoint ${req.method} ${req.originalUrl} not found`,
+  });
+});
+
+// Global error handler: convert all errors to JSON (no HTML)
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error("Unhandled API error", err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const status = err?.status || err?.statusCode || 500;
+  const errorMessage =
+    err?.message || (status === 404 ? "Not Found" : "Internal Server Error");
+
+  res.status(status).type("application/json").json({
+    success: false,
+    error: errorMessage,
+    details:
+      process.env.NODE_ENV === "development"
+        ? err instanceof Error
+          ? err.stack
+          : err
+        : undefined,
+  });
+});
+
 server.listen(Number(PORT), "0.0.0.0", () => {
   console.log(
     chalk.blueBright(`🚀 Serveur des api mobile prêt sur le port ${PORT}`),
