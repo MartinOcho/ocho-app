@@ -36,6 +36,7 @@ import {
   createPost,
   getUserPosts,
   createSession,
+  getTrendingHashtags,
 } from "./utils";
 
 dotenv.config();
@@ -115,6 +116,8 @@ app.get("/api/posts/for-you", getPostsForYou);
 app.get("/api/posts/following", getFollowingPosts);
 app.get("/api/posts/bookmarks", getBookmarkedPosts);
 app.get("/api/posts/user/:userId", getUserPosts);
+
+app.get("/api/trending/hashtags", getTrendingHashtags);
 
 // Routes paramétrées (après les routes spécifiques)
 app.get("/api/posts/:postId", getPost);

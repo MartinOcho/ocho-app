@@ -117,6 +117,12 @@ export interface Reply {
   replies: number;
 }
 
+export type TrendingHashtagsResult = {
+  hashtag: string;
+  postsCount: string;
+  likesCount: string;
+};
+
 export interface NotificationsPage {
     notifications: NotificationData[];
     cursor: string | null;
