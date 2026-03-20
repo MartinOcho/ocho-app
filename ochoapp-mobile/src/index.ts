@@ -156,7 +156,7 @@ app.get("/api/notifications", getNotifications);
 app.get("/api/unread-count/notifications", getUnreadNotificationCount);
 
 app.get("/api/messages/rooms", getMessageRooms);
-app.get("/api/messages/rooms/:roomId/data", getRoom);
+app.get("/api/messages/rooms/:roomId", getRoom);
 app.get("/api/messages/rooms/:roomId/messages", getMessages);
 app.get("/api/messages/rooms/:roomId/gallery/medias", getRoomMedias);
 app.get("/api/messages/rooms/:roomId/unread-count", getUnreadMessagesCount);
