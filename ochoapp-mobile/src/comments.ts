@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { Comment, UserData } from "./types";
-import { checkVerification, getCurrentUser } from "./auth";
+import { ApiResponse, Comment, getCommentDataIncludes, Reply, UserData } from "./types";
+import { checkVerification, formatUserResponse, getCurrentUser } from "./auth";
 import { createCommentSchema } from "./validation";
 
 export async function sendComment(req: Request, res: Response) {
@@ -306,6 +306,164 @@ export async function deleteComment(req: Request, res: Response) {
   
   }
 }
+
+export async function sendCommentReply(req: Request, res: Response) {
+  // Lire le corps de la requête UNE SEULE FOIS au début
+  let body;
+  try {
+    body = req.body as Reply;
+  } catch (e) {
+    console.error("Erreur lors de la lecture du corps de la requête (JSON invalide):", e);
+    return res.json({
+      success: false,
+      message: "Requête invalide: le corps doit être un JSON valide.",
+    } as ApiResponse<null>);
+  }
+
+  try {
+      const { user, message } = await getCurrentUser(req.headers);
+      if (!user) {
+        return res.json({
+          success: false,
+          message: message || "Utilisateur non authentifié.",
+          name: "unauthorized",
+        } as ApiResponse<null>);
+      }
+      // Fin de la vérification de l'appareil
+
+      const userId = user.id;
+
+      // Utiliser le corps lu une seule fois (body)
+      const { postId, firstLevelCommentId, content, commentId } = body;
+  
+      const post = await prisma.post.findUnique({
+        where: { id: postId },
+        select: { userId: true },
+      });
+  
+      if (!post) {
+        return res.json({
+          success: false,
+          message: "Post not found.",
+        } as ApiResponse<null>);
+      }
+
+      // NOUVEAUTÉ : Vérification de l'existence du commentaire parent (commentId)
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: commentId || undefined },
+        select: { id: true }
+      });
+
+      if (!parentComment) {
+        return res.json({
+            success: false,
+            message: "Commentaire parent spécifié ('commentId') n'existe pas.",
+            name: "foreign_key_violation", // Nom plus explicite pour l'erreur
+        } as ApiResponse<null>);
+      }
+      // FIN NOUVEAUTÉ
+      
+      const { content: validatedContent } = createCommentSchema.parse({content});
+  
+      const newReply = await prisma.comment.create({
+        data: {
+          // On utilise 'content' qui vient de la déstructuration de 'body'
+          content: validatedContent, 
+          postId,
+          userId,
+          firstLevelCommentId,
+          commentId, // commentId est maintenant validé et connu pour exister
+          type: "REPLY",
+        },
+        include: {
+          ...getCommentDataIncludes(userId),
+          replies: {
+            where: {
+              post: {
+                userId: post.userId,
+              },
+            },
+            select: {
+              id: true,
+            },
+          },
+          firstLevelComment: {
+            select: {
+              user: true,
+            }
+          },
+          comment: {
+            select: {
+              user: true,
+            }
+          }
+        },
+      });
+  
+      
+      const replyUser = await formatUserResponse(newReply.user);
+      const id = newReply.id;
+      const author = replyUser;
+      const newContent = newReply.content;
+      const createdAt = newReply.createdAt.getTime();
+      const likes = newReply._count.likes;
+      const isLiked = newReply.likes.some((like) => like.userId === userId);
+      const isLikedByAuthor = newReply.likes.some(
+        (like) => like.userId === newReply.post.userId,
+      );
+      const postAuthorId = newReply.post.userId;
+      const replies = await prisma.comment.count({
+        where: {
+          firstLevelCommentId: newReply.firstLevelCommentId,
+        },
+      });
+
+      if(!newReply.comment?.user) {
+        return res.json({
+          success: false,
+          message: "L'utilisateur du commentaire parent n'a pas été trouvé.",
+          name: "foreign_key_violation",
+      } as ApiResponse<null>);
+      }
+
+      const commentAuthor = await formatUserResponse(newReply.comment.user as unknown as UserData);
+  
+      const reply: Reply = {
+        id,
+        author,
+        content: newContent,
+        createdAt,
+        likes,
+        isLiked,
+        isLikedByAuthor,
+        postId,
+        postAuthorId,
+        replies,
+        firstLevelCommentId,
+        firstLevelCommentAuthorId: newReply.firstLevelComment?.user.id || null,
+        commentId: newReply.commentId,
+        commentAuthorId: commentAuthor ? commentAuthor.id : null,
+        commentAuthor,
+
+      };
+
+      console.log(reply);
+      
+  
+      return res.json({
+        success: true,
+        message: "Comments sent successfully.",
+        data: reply,
+      } as ApiResponse<Reply>);
+    } catch (error) {
+      console.error(error);
+      return res.json({
+        success: false,
+        message: "Something went wrong. Please try again.",
+      } as ApiResponse<null>);
+    }
+}
+
 export async function getCommentReplies(req: Request, res: Response) {
   const { commentId } = req.params;
   try {

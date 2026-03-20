@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import { Server, Socket } from "socket.io";
+import { Request, Response } from "express";
 import cors from "cors";
 import multer from "multer";
 import dotenv from "dotenv";
@@ -37,7 +37,10 @@ import {
   getUserPosts,
   createSession,
   getTrendingHashtags,
+  getCommentReplies,
+  sendCommentReply,
 } from "./utils";
+import { ApiResponse } from "./types";
 
 dotenv.config();
 
@@ -103,8 +106,6 @@ app.post("/api/signup", signupUser);
 app.post("/api/login", loginUser);
 app.post("/api/session/refresh", createSession);
 
-
-
 app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
 app.patch("/api/users/:userId", updateUserProfile);
@@ -129,6 +130,11 @@ app.post("/api/posts/:postId/bookmark", toggleBookmark);
 app.get("/api/posts/:postId/comments", getComments);
 app.post("/api/posts/:postId/comments", sendComment);
 
+
+app.get("/api/comments/:commentId/replies", getCommentReplies);
+app.post("/api/comments/reply", sendCommentReply);
+
+
 app.get("/api/notifications", getNotifications);
 
 app.get("/api/messages/rooms", getMessageRooms);
@@ -136,6 +142,48 @@ app.get("/api/messages/users", searchMessageUsers);
 app.get("/api/messages/:messageId/deliveries", getMessageDeliveries);
 app.get("/api/messages/:messageId/reactions", getMessageReactions);
 app.get("/api/messages/:messageId/reads", getMessageReads);
+
+
+app.get("/api/check-update", (req: Request, res: Response) => {
+  const version = (req.query.version || "").toString();
+  const platform = (req.query.platform || "").toString();
+  const androidCurrentVersion = 1;
+  const androidVersionName = "0.1.0";
+  const iosCurrentVersion = 1;
+  const iosVersionName = "0.1.0";
+  let isUpToDate = true;
+  if (platform.toLowerCase() === "android") {
+    isUpToDate = parseInt(version) >= androidCurrentVersion;
+  } else if (platform.toLowerCase() === "ios") {
+    isUpToDate = parseInt(version) >= iosCurrentVersion;
+  }
+  const data = {
+    isUpToDate: isUpToDate,
+    currentVersion:
+      platform.toLowerCase() === "android"
+        ? androidCurrentVersion
+        : iosCurrentVersion,
+    downloadUrl:
+      "https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk",
+    versionName:
+      platform.toLowerCase() === "android"
+        ? androidVersionName
+        : iosVersionName,
+  };
+
+  return Response.json({
+    success: true,
+    data,
+    message: isUpToDate
+      ? "L'application est à jour."
+      : "Une mise à jour est disponible.",
+  } as ApiResponse<{
+    isUpToDate: boolean;
+    currentVersion: number;
+    versionName: string;
+    downloadUrl: string;
+  }>);
+});
 
 app.post("/api/cloudinary/upload", async (req, res) => {
   try {
@@ -548,11 +596,14 @@ app.post(
 
 // 404 handler: always JSON
 app.use((req, res) => {
-  res.status(404).type("application/json").json({
-    success: false,
-    error: "Not Found",
-    message: `Endpoint ${req.method} ${req.originalUrl} not found`,
-  });
+  res
+    .status(404)
+    .type("application/json")
+    .json({
+      success: false,
+      error: "Not Found",
+      message: `Endpoint ${req.method} ${req.originalUrl} not found`,
+    });
 });
 
 // Global error handler: convert all errors to JSON (no HTML)
@@ -567,16 +618,19 @@ app.use((err: any, req: any, res: any, next: any) => {
   const errorMessage =
     err?.message || (status === 404 ? "Not Found" : "Internal Server Error");
 
-  res.status(status).type("application/json").json({
-    success: false,
-    error: errorMessage,
-    details:
-      process.env.NODE_ENV === "development"
-        ? err instanceof Error
-          ? err.stack
-          : err
-        : undefined,
-  });
+  res
+    .status(status)
+    .type("application/json")
+    .json({
+      success: false,
+      error: errorMessage,
+      details:
+        process.env.NODE_ENV === "development"
+          ? err instanceof Error
+            ? err.stack
+            : err
+          : undefined,
+    });
 });
 
 server.listen(Number(PORT), "0.0.0.0", () => {
