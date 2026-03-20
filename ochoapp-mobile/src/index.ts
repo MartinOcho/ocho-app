@@ -39,6 +39,9 @@ import {
   getTrendingHashtags,
   getCommentReplies,
   sendCommentReply,
+  likeComment,
+  deleteComment,
+  getUnreadNotificationCount,
 } from "./utils";
 import { ApiResponse } from "./types";
 
@@ -131,11 +134,14 @@ app.get("/api/posts/:postId/comments", getComments);
 app.post("/api/posts/:postId/comments", sendComment);
 
 
-app.get("/api/comments/:commentId/replies", getCommentReplies);
 app.post("/api/comments/reply", sendCommentReply);
+app.get("/api/comments/:commentId/replies", getCommentReplies);
+app.post("/api/comments/:commentId/like", likeComment);
+app.delete("/api/comments/:commentId", deleteComment);
 
 
 app.get("/api/notifications", getNotifications);
+app.get("/api/unread-count/notifications", getUnreadNotificationCount);
 
 app.get("/api/messages/rooms", getMessageRooms);
 app.get("/api/messages/users", searchMessageUsers);

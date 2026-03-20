@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { ApiResponse, Comment, getCommentDataIncludes, Reply, UserData } from "./types";
+import { ApiResponse, Comment, getCommentDataIncludes, LikeResponse, Reply, UserData } from "./types";
 import { checkVerification, formatUserResponse, getCurrentUser } from "./auth";
 import { createCommentSchema } from "./validation";
 
@@ -258,54 +258,6 @@ export async function getComments(req: Request, res: Response) {
   }
 }
 
-export async function deleteComment(req: Request, res: Response) {
-  const { commentId } = req.params;
-  try {
-    const { user: loggedUser, message } = await getCurrentUser(req.headers);
-    if (!loggedUser) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      });
-    }
-
-    const userId = loggedUser.id;
-
-    const comment = await prisma.comment.findUnique({
-      where: { id: commentId },
-      select: { userId: true },
-    });
-    if (!comment) {
-      return res.json({
-        success: false,
-        message: "Comment not found.",
-        name: "not_found",
-      });
-    }
-    if (comment.userId !== userId) {
-      return res.json({
-        success: false,
-        message: "Forbidden: You can only delete your own comments.",
-        name: "forbidden",
-      });
-    }
-    await prisma.comment.delete({
-      where: { id: commentId },
-    });
-    return res.json({
-      success: true,
-      message: "Comment deleted successfully.",
-    });
-  } catch (error) {
-    console.error(error);
-    return res.json({
-      success: false,
-      message: "Something went wrong. Please try again.",
-    });
-  
-  }
-}
 
 export async function sendCommentReply(req: Request, res: Response) {
   // Lire le corps de la requête UNE SEULE FOIS au début
@@ -628,4 +580,143 @@ export async function getCommentReplies(req: Request, res: Response) {
       message: "Something went wrong. Please try again.",
     });
   }
+}
+
+export async function likeComment(req: Request, res: Response) {
+  const { commentId } = req.params;
+
+  try {
+    const { user, message } = await getCurrentUser(req.headers);
+    if (!user) {
+      return res.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+
+    const userId = user.id;
+    let isLiked = false;
+
+    // Utilise une transaction pour garantir que les opérations sont atomiques
+    await prisma.$transaction(async (prisma) => {
+      const existingLike = await prisma.commentLike.findFirst({
+        where: { commentId, userId: userId },
+      });
+
+      if (existingLike) {
+        // Si le like existe, on le supprime
+        await prisma.commentLike.delete({
+          where: {
+            userId_commentId: { userId, commentId },
+          },
+        });
+        isLiked = false;
+      } else {
+        const comment = await prisma.comment.findUnique({
+          where: { id: commentId },
+          select: { postId: true, userId: true },
+        });
+        if (!comment) {
+          return res.json({
+            success: false,
+            message: "Comment not found.",
+            name: "not_found",
+          } as ApiResponse<null>);
+        }
+        // Sinon, on le crée
+        await prisma.commentLike.create({
+          data: {
+            commentId,
+            userId,
+          },
+        });
+
+        // Crée une notification si l'utilisateur n'est pas l'auteur du post
+        const post = await prisma.post.findUnique({
+          where: { id: comment.postId },
+          select: { userId: true },
+        });
+
+        if (post && post.userId !== userId) {
+          await prisma.notification.create({
+            data: {
+              issuerId: userId,
+              recipientId: post.userId,
+              postId: comment.postId,
+              commentId,
+              type: "COMMENT_LIKE",
+            },
+          });
+        }
+        isLiked = true;
+      }
+    });
+
+    // Compte le nombre de likes après la transaction
+    const likesCount = await prisma.commentLike.count({
+      where: { commentId },
+    });
+
+    return res.json({
+      success: true,
+      message: "Like action successful.",
+      data: { isLiked, likes: likesCount },
+    } as ApiResponse<LikeResponse>);
+  } catch (error) {
+    console.error("Error in like endpoint:", error);
+    return res.json({
+      success: false,
+      message: "Something went wrong. Please try again.",
+    } as ApiResponse<null>);
+  }
+}
+
+export async function deleteComment(req: Request, res: Response) {
+  const { commentId } = req.params;
+
+  try {
+    const { user, message } = await getCurrentUser(req.headers);
+    if (!user) {
+      return res.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+
+    const userId = user.id;
+
+    const comment = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { userId: true },
+    });
+    if (!comment) {
+      return res.json({
+        success: false,
+        message: "Comment not found.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+    if (comment.userId !== userId) {
+      return res.json({
+        success: false,
+        message: "Forbidden: You can only delete your own comments.",
+        name: "forbidden",
+      } as ApiResponse<null>);
+    }
+    await prisma.comment.delete({
+      where: { id: commentId },
+    });
+    return res.json({
+      success: true,
+      message: "Comment deleted successfully.",
+    } as ApiResponse<null>);
+  } catch (error) {
+    
+  }
+  return res.json({
+    success: true,
+    message: "Replies endpoint is operational.",
+  } as ApiResponse<null>);
 }
