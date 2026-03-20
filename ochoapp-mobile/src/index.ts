@@ -106,18 +106,22 @@ app.patch("/api/users/:userId", updateUserProfile);
 app.get("/api/users/:userId/follow", toggleFollow);
 app.get("/api/users/suggested", getSuggestedUsers);
 
+// Routes pour créer un post
+app.post("/api/posts", createPost);
+
+// Routes spécifiques (avant les paramètres !)
+app.get("/api/posts/for-you", getPostsForYou);
+app.get("/api/posts/following", getFollowingPosts);
+app.get("/api/posts/bookmarks", getBookmarkedPosts);
+app.get("/api/posts/user/:userId", getUserPosts);
+
+// Routes paramétrées (après les routes spécifiques)
 app.get("/api/posts/:postId", getPost);
 app.delete("/api/posts/:postId", deletePost);
 app.post("/api/posts/:postId/like", toggleLike);
 app.post("/api/posts/:postId/bookmark", toggleBookmark);
 app.get("/api/posts/:postId/comments", getComments);
 app.post("/api/posts/:postId/comments", sendComment);
-
-app.get("/api/posts/for-you", getPostsForYou);
-app.get("/api/posts/following", getFollowingPosts);
-app.get("/api/posts/bookmarks", getBookmarkedPosts);
-app.post("/api/posts", createPost);
-app.get("/api/posts/user/:userId", getUserPosts);
 
 app.get("/api/notifications", getNotifications);
 
