@@ -1,4 +1,4 @@
-import express from "express";
+import express, { ErrorRequestHandler, NextFunction } from "express";
 import http from "http";
 import { Request, Response } from "express";
 import cors from "cors";
@@ -642,19 +642,16 @@ app.use((req, res) => {
 });
 
 // Global error handler: convert all errors to JSON (no HTML)
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: ErrorRequestHandler, req: Request, res: Response, next: NextFunction) => {
   console.error("Unhandled API error", err);
 
   if (res.headersSent) {
     return next(err);
   }
-
-  const status = err?.status || err?.statusCode || 500;
-  const errorMessage =
-    err?.message || (status === 404 ? "Not Found" : "Internal Server Error");
+  const errorMessage = err instanceof Error ? err.message : "Internal Server Error";
+  console.error(err)
 
   res
-    .status(status)
     .type("application/json")
     .json({
       success: false,

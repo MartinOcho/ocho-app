@@ -391,7 +391,7 @@ export async function logoutUser(req: Request, res: Response) {
 
   const sessionToken = authHeader?.split(" ")[1];
   if (!sessionToken || !deviceId) {
-    return res.status(400).json({
+    return res.json({
       success: false,
       message: "Missing session token or device ID",
       name: "missing_credentials",
@@ -405,7 +405,7 @@ export async function logoutUser(req: Request, res: Response) {
     });
 
     if (!session || session.deviceId !== deviceId) {
-      return res.status(404).json({
+      return res.json({
         success: false,
         message: "Session not found or device mismatch",
         name: "invalid_session",
@@ -421,7 +421,7 @@ export async function logoutUser(req: Request, res: Response) {
     });
   } catch (error) {
     console.error("Logout error:", error);
-    return res.status(500).json({
+    return res.json({
       success: false,
       message: "Logout failed",
       name: "logout_error",
