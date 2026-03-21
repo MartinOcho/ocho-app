@@ -11,6 +11,8 @@ import {
   RoomData,
 } from "./types";
 import { get } from "node:http";
+import { validateUser } from "./users";
+import { Prisma } from "@prisma/client";
 
 export async function getMessageRooms(req: Request, res: Response) {
   try {
@@ -132,26 +134,11 @@ export async function getMessageRooms(req: Request, res: Response) {
 export async function getRoom(req: Request, res: Response) {
   const roomId = req.params.roomId;
   try {
-    const { user: loggedInUser, message } = await getCurrentUser(req.headers);
-    if (!loggedInUser) {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
       return res.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      } as ApiResponse<null>);
-    }
-
-    const user = await prisma.user.findFirst({
-      where: {
-        id: loggedInUser.id,
-      },
-      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
-    });
-
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur non authentifié.",
         name: "unauthorized",
       } as ApiResponse<null>);
     }
@@ -203,10 +190,10 @@ export async function getRoom(req: Request, res: Response) {
           privilege: "MANAGE",
           members: [
             {
-              user,
+              user: userData,
               userId,
               type: "OWNER",
-              joinedAt: user.createdAt,
+              joinedAt: userData.createdAt,
               leftAt: null,
               kickedAt: null,
             },
@@ -244,10 +231,10 @@ export async function getRoom(req: Request, res: Response) {
         privilege: "MANAGE",
         members: [
           {
-            user,
+            user: userData,
             userId,
             type: "OWNER",
-            joinedAt: user.createdAt,
+            joinedAt: userData.createdAt,
             leftAt: null,
             kickedAt: null,
           },
@@ -332,6 +319,16 @@ export async function getRoom(req: Request, res: Response) {
   }
 }
 
+export function formatSavedMessages(
+  message: MessageData,
+  userId: string,
+): MessageData {
+  if (message.content !== `create-${userId}`) {
+    return { ...message, type: "CONTENT" };
+  }
+  return { ...message };
+}
+
 export async function getMessages(req: Request, res: Response) {
   const roomId = req.params.roomId;
   const cursor = (req.query.cursor as string) || undefined;
@@ -364,6 +361,29 @@ export async function getMessages(req: Request, res: Response) {
     const userId = user.id;
 
     let messages: MessageData[];
+    const member = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: {
+          roomId,
+          userId: user.id,
+        },
+      },
+    });
+    if (!member) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non trouvé.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+    if (member.type === "BANNED") {
+      return res.json({
+        success: false,
+        data: null,
+        message: "Utilisateur banni.",
+        name: "banned",
+      } as ApiResponse<null>);
+    }
 
     // Vérifier si on récupère des messages d'un canal ou des messages sauvegardés
     if (roomId === `saved-${user.id}`) {
@@ -403,10 +423,10 @@ export async function getMessages(req: Request, res: Response) {
       }
 
       messages = await prisma.message.findMany({
-        where: { roomId },
+        where: { roomId, createdAt: { lt: member?.leftAt || undefined } },
         include: getMessageDataInclude(user.id),
         orderBy: { createdAt: "desc" },
-        take: pageSize + 1, // Récupère une page supplémentaire pour vérifier s'il y a une page suivante
+        take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
       });
     }
@@ -420,35 +440,6 @@ export async function getMessages(req: Request, res: Response) {
     const isGroup = roomData?.isGroup;
 
     if (isGroup) {
-      const member = await prisma.roomMember.findUnique({
-        where: {
-          roomId_userId: {
-            roomId,
-            userId: user.id,
-          },
-        },
-      });
-      if (!member) {
-        return res.json({
-          success: false,
-          message: "Utilisateur non trouvé.",
-          name: "not_found",
-        } as ApiResponse<null>);
-      }
-      if (member.type === "BANNED") {
-        return res.json({
-          success: false,
-          data: null,
-          message: "Utilisateur banni.",
-          name: "banned",
-        } as ApiResponse<null>);
-      }
-
-      const leftDate = member.leftAt;
-      if (leftDate) {
-        // Filters messages dates older than leftdate
-        messages = messages.filter((message) => message.createdAt < leftDate);
-      }
     }
     messages = messages.map((message) => {
       const formattedMsg: MessageData = {
@@ -478,57 +469,167 @@ export async function getMessages(req: Request, res: Response) {
   }
 }
 
+export async function getLastMessage(req: Request, res: Response) {
+  const roomId = req.params.roomId;
+  try {
+    const { userData, user } = await validateUser(req, res);
+
+    if (!user || !userData) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+    const userId = user.id;
+
+    const isSaved = roomId === `saved-${userId}`;
+
+    if (isSaved) {
+      const lastSavedMessage = await prisma.message.findFirst({
+        where: { senderId: userId, type: "SAVED" },
+        orderBy: { createdAt: "desc" },
+        include: getMessageDataInclude(userId),
+      });
+      if (!lastSavedMessage) {
+        return res.json({
+          success: false,
+          message: "Aucun message enregistré trouvé.",
+          name: "not_found",
+        } as ApiResponse<null>);
+      }
+      const displayedMsg: MessageData = formatSavedMessages(
+        lastSavedMessage,
+        userId,
+      );
+      return res.json({
+        success: true,
+        data: displayedMsg,
+      } as ApiResponse<MessageData>);
+    }
+
+    const roomData = await prisma.room.findUnique({
+      where: { id: roomId },
+    });
+
+    const member = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: {
+          roomId,
+          userId: user.id,
+        },
+      },
+    });
+    if (!member) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non trouvé.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+    if (member.type === "BANNED") {
+      return res.json({
+        success: false,
+        data: null,
+        message: "Utilisateur banni.",
+        name: "banned",
+      } as ApiResponse<null>);
+    }
+
+    const leftDate = member.leftAt;
+
+    const lastMessage = await prisma.message.findFirst({
+      where: {
+        roomId,
+        createdAt: { lt: leftDate || undefined },
+      },
+      orderBy: { createdAt: "desc" },
+      include: getMessageDataInclude(userId),
+    });
+    if (!lastMessage) {
+      return res.json({
+        success: false,
+        message: "Aucun message trouvé.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+    const formattedMsg: MessageData = {
+      ...lastMessage,
+    };
+    return res.json({
+      success: true,
+      data: formattedMsg,
+    } as ApiResponse<MessageData>);
+  } catch (error) {
+    console.error("Erreur lors de la récupération du dernier message :", error);
+    return res.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+    } as ApiResponse<null>);
+  }
+}
+
 export async function getRoomMedias(req: Request, res: Response) {
   const roomId = req.params.roomId;
   const cursor = (req.query.cursor as string) || undefined;
   const pageSize = 12;
 
   try {
-    const { user: loggedInUser, message } = await getCurrentUser(req.headers);
-    if (!loggedInUser) {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
       return res.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur non authentifié.",
         name: "unauthorized",
-      });
+      } as ApiResponse<null>);
     }
+    const userId = user.id;
 
-    const user = await prisma.user.findUnique({
-      where: { id: loggedInUser.id },
-      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
-    });
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      });
-    }
-
-    const isSavedMessages = roomId === `saved-${user.id}`;
+    const isSavedMessages = roomId === `saved-${userId}`;
 
     const roomData = isSavedMessages
       ? null
       : await prisma.room.findUnique({ where: { id: roomId } });
 
     if (!isSavedMessages && !roomData) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Room introuvable.",
-          name: "room-not-found",
-        });
+      return res.json({
+        success: false,
+        message: "Room introuvable.",
+        name: "room-not-found",
+      });
+    }
+    const member = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId, userId: user.id } },
+    });
+    if (!member) {
+      return res.json({
+        success: false,
+        data: null,
+        message: "Utilisateur non trouvé.",
+        name: "not_found",
+      });
+    }
+    if (member.type === "BANNED") {
+      return res.json({
+        success: false,
+        data: null,
+        message: "Utilisateur banni.",
+        name: "banned",
+      });
     }
 
-    let attachments = await prisma.messageAttachment.findMany({
+    const attachments = await prisma.messageAttachment.findMany({
       where: {
         message: {
           ...(isSavedMessages
-            ? { senderId: user.id, type: "SAVED" }
+            ? { senderId: userId, type: "SAVED" }
             : { roomId }),
         },
         messageId: { not: null },
+        createdAt: { lt: member?.leftAt || undefined },
       },
       include: {
         message: {
@@ -558,39 +659,6 @@ export async function getRoomMedias(req: Request, res: Response) {
       skip: cursor ? 1 : 0,
     });
 
-    if (!isSavedMessages && roomData?.isGroup) {
-      const member = await prisma.roomMember.findUnique({
-        where: { roomId_userId: { roomId, userId: user.id } },
-      });
-      if (!member) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            data: null,
-            message: "Utilisateur non trouvé.",
-            name: "not_found",
-          });
-      }
-      if (member.type === "BANNED") {
-        return res
-          .status(403)
-          .json({
-            success: false,
-            data: null,
-            message: "Utilisateur banni.",
-            name: "banned",
-          });
-      }
-
-      if (member.leftAt) {
-        attachments = attachments.filter(
-          (attachment) =>
-            attachment.message && attachment.message.createdAt < member.leftAt!,
-        );
-      }
-    }
-
     const medias = attachments
       .filter((attachment) => attachment.message)
       .map((attachment) => ({
@@ -610,42 +678,100 @@ export async function getRoomMedias(req: Request, res: Response) {
       "Erreur lors de la récupération des medias du canal :",
       error,
     );
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Erreur interne du serveur",
-        name: "server-error",
-      });
+    return res.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+    });
   }
+}
+
+export async function getUnreadRoomsCount(req: Request, res: Response) {
+  try {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+    const userId = user.id;
+
+    const unreadCount = await prisma.room.count({
+      where: {
+        members: {
+          some: {
+            AND: [
+              { userId },
+              {
+                joinedAt: {
+                  lte: new Date(),
+                },
+              },
+              { OR: [{ leftAt: { lt: new Date() } }, { leftAt: null }] },
+            ],
+          },
+        },
+        messages: {
+          some: {
+            AND: [
+              { type: { not: "CREATE" } },
+              {
+                reads: {
+                  none: {
+                    userId,
+                  },
+                },
+              },
+              {
+                OR: [
+                  {
+                    AND: [
+                      { senderId: { not: userId } },
+                      {
+                        type: {
+                          not: "REACTION",
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    AND: [
+                      {
+                        type: "REACTION",
+                      },
+                      {
+                        OR: [{ recipientId: userId }, { senderId: userId }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    });
+    return unreadCount;
+  } catch (error) {}
 }
 
 export async function getUnreadMessagesCount(req: Request, res: Response) {
   const roomId = req.params.roomId;
 
   try {
-    const { user: loggedInUser, message } = await getCurrentUser(req.headers);
-    if (!loggedInUser) {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
       return res.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur non authentifié.",
         name: "unauthorized",
-      });
+      } as ApiResponse<null>);
     }
+    const userId = user.id;
 
-    const user = await prisma.user.findUnique({
-      where: { id: loggedInUser.id },
-      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
-    });
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      });
-    }
-
-    if (roomId === `saved-${user.id}`) {
+    if (roomId === `saved-${userId}`) {
       return res.json({ success: true, data: { unreadCount: 0 } });
     }
 
@@ -657,27 +783,25 @@ export async function getUnreadMessagesCount(req: Request, res: Response) {
       return res.json({ success: true, data: { unreadCount: 0 } });
     }
 
-    const dateFilter: any = { gte: roomMember.joinedAt };
-    if (roomMember.leftAt) {
-      dateFilter.lte = roomMember.leftAt;
-    }
-
     const unreadCount = await prisma.message.count({
       where: {
         roomId,
-        createdAt: dateFilter,
-        senderId: { not: user.id },
-        reads: { none: { userId: user.id } },
+        createdAt: {
+          gt: roomMember.joinedAt,
+          lt: roomMember.leftAt || undefined,
+        },
+        senderId: { not: userId },
+        reads: { none: { userId } },
         OR: [
           { type: { not: "REACTION" } },
           {
             AND: [
               { type: "REACTION" },
-              { OR: [{ recipientId: user.id }, { senderId: user.id }] },
+              { OR: [{ recipientId: userId }, { senderId: userId }] },
             ],
           },
         ],
-        NOT: { AND: [{ type: "CREATE" }, { senderId: user.id }] },
+        NOT: { AND: [{ type: "CREATE" }, { senderId: userId }] },
       },
     });
 
@@ -687,13 +811,11 @@ export async function getUnreadMessagesCount(req: Request, res: Response) {
       "Erreur lors de la récupération du compteur de messages non lus :",
       error,
     );
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Erreur interne du serveur",
-        name: "server-error",
-      });
+    return res.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+    });
   }
 }
 
@@ -704,30 +826,18 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
   const pageSize = 10;
 
   try {
-    const { user: loggedInUser, message } = await getCurrentUser(req.headers);
-    if (!loggedInUser) {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
       return res.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur non authentifié.",
         name: "unauthorized",
-      });
+      } as ApiResponse<null>);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: loggedInUser.id },
-      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
-    });
 
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur introuvable.",
-        name: "unauthorized",
-      });
-    }
-
-    let whereClause: any = {};
-    const searchCondition = searchQuery
+    let whereClause: Prisma.UserWhereInput = {};
+    const searchCondition: Prisma.UserWhereInput | undefined = searchQuery
       ? {
           OR: [
             { displayName: { contains: searchQuery, mode: "insensitive" } },
@@ -791,13 +901,11 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
     return res.json({ success: true, data: { users: usersPage, nextCursor } });
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs :", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Erreur interne du serveur",
-        name: "server-error",
-      });
+    return res.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+    });
   }
 }
 
@@ -807,29 +915,15 @@ export async function searchMessageUsers(req: Request, res: Response) {
     const searchQuery = req.query.q as string | undefined;
     const pageSize = 10;
 
-    const { user: loggedInUser, message } = await getCurrentUser(req.headers);
-    if (!loggedInUser) {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
       return res.json({
         success: false,
-        message: message || "Utilisateur non authentifié.",
+        message: "Utilisateur non authentifié.",
         name: "unauthorized",
-      });
+      } as ApiResponse<null>);
     }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        id: loggedInUser.id,
-      },
-      select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
-    });
-
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
-      });
-    }
 
     const userId = user.id;
 
@@ -855,7 +949,7 @@ export async function searchMessageUsers(req: Request, res: Response) {
         take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: { id: "asc" },
-        select: getUserDataSelect(user.id),
+        select: getUserDataSelect(userId),
       });
 
       const nextCursor = users.length > pageSize ? users[pageSize].id : null;

@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { ApiResponse, getUserDataSelect, User, UserData, VerifiedUser } from "./types";
+import {
+  ApiResponse,
+  getUserDataSelect,
+  User,
+  UserData,
+  VerifiedUser,
+} from "./types";
 import { checkVerification, getCurrentUser } from "./auth";
 import { log } from "console";
 
@@ -425,14 +431,14 @@ export async function toggleFollow(req: Request, res: Response) {
 
 export async function getSuggestedUsers(req: Request, res: Response) {
   try {
-     const { user: loggedUser, message } = await getCurrentUser(req.headers);
-        if (!loggedUser) {
-          return res.json({
-            success: false,
-            message: message || "Utilisateur non authentifié.",
-            name: "unauthorized",
-          } as ApiResponse<null>);
-        }
+    const { user: loggedUser, message } = await getCurrentUser(req.headers);
+    if (!loggedUser) {
+      return res.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
     // Exécuter la requête Prisma pour trouver les utilisateurs à suggérer
     const usersToFollow = await prisma.user.findMany({
       where: {
@@ -504,4 +510,36 @@ export async function getSuggestedUsers(req: Request, res: Response) {
       data: null,
     } as ApiResponse<null>);
   }
+}
+
+export async function validateUser(
+  req: Request,
+  res: Response,
+): Promise<{ userData: UserData | null; user: User | null }> {
+  const { user: loggedInUser, message } = await getCurrentUser(req.headers);
+  if (!loggedInUser) {
+    res.json({
+      success: false,
+      message: message || "Utilisateur non authentifié.",
+      name: "unauthorized",
+    } as ApiResponse<null>);
+    return { userData: null, user: null };
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: loggedInUser.id,
+    },
+    select: getUserDataSelect(loggedInUser.id, loggedInUser.username),
+  });
+
+  if (!user) {
+    res.json({
+      success: false,
+      message: message || "Utilisateur non authentifié.",
+      name: "unauthorized",
+    } as ApiResponse<null>);
+    return { userData: null, user: null };
+  }
+  return { userData: user, user: loggedInUser };
 }

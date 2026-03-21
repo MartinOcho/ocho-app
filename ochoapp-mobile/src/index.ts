@@ -54,6 +54,8 @@ import {
   searchAll,
   searchPost,
   searchPostIds,
+  getLastMessage,
+  getUnreadRoomsCount,
 } from "./utils";
 import { ApiResponse } from "./types";
 
@@ -156,8 +158,10 @@ app.get("/api/notifications", getNotifications);
 app.get("/api/unread-count/notifications", getUnreadNotificationCount);
 
 app.get("/api/messages/rooms", getMessageRooms);
+app.get("/api/messages/rooms/unreads", getUnreadRoomsCount);
 app.get("/api/messages/rooms/:roomId", getRoom);
 app.get("/api/messages/rooms/:roomId/messages", getMessages);
+app.get("/api/messages/rooms/:roomId/latest-message", getLastMessage);
 app.get("/api/messages/rooms/:roomId/gallery/medias", getRoomMedias);
 app.get("/api/messages/rooms/:roomId/unread-count", getUnreadMessagesCount);
 app.get("/api/messages/users", searchMessageUsers);
