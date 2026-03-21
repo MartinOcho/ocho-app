@@ -21,6 +21,7 @@ import {
   SocketGetRoomsEvent,
   SocketSearchRoomsEvent,
   SocketGetRoomDetailsEvent,
+  SocketGetLastMessageEvent,
   SocketCheckUserStatusEvent,
 } from "./types";
 import {
@@ -44,6 +45,7 @@ import {
   handleSendNormalMessage,
   markUndeliveredMessages,
   handleGetRoomDetails,
+  handleGetLastMessage,
 } from "./socket-handlers";
 import { th } from "zod/locales";
 
@@ -612,6 +614,16 @@ io.on("connection", async (socket: Socket) => {
     } catch (error) {
       console.error("Erreur get_room_details:", error);
       socket.emit("error_message", "Impossible de récupérer les détails de la discussion.");
+    }
+  });
+
+  socket.on("get_last_message", async (data: SocketGetLastMessageEvent) => {
+    try {
+      const lastMessage = await handleGetLastMessage(data, userId);
+      socket.emit("last_message", lastMessage);
+    } catch (error) {
+      console.error("Erreur get_last_message:", error);
+      socket.emit("error_message", "Impossible de récupérer le dernier message.");
     }
   });
 

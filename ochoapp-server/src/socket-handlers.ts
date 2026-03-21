@@ -11,6 +11,7 @@ import {
   SocketDeleteMessageEvent,
   SocketSendMessageEvent,
   SocketGetRoomDetailsEvent,
+  SocketGetLastMessageEvent,
 } from "./types";
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
@@ -927,4 +928,87 @@ export async function handleGetRoomDetails(
       messages: unreadMessages,
     };
   }
+}
+
+// --- HANDLE GET LAST MESSAGE ---
+export async function handleGetLastMessage(
+  data: SocketGetLastMessageEvent,
+  userId: string,
+): Promise<MessageData> {
+  const { roomId } = data;
+
+  const isSaved = roomId === `saved-${userId}`;
+
+  if (isSaved) {
+    const lastSavedMessage = await prisma.message.findFirst({
+      where: { senderId: userId, type: "SAVED" },
+      orderBy: { createdAt: "desc" },
+      include: getMessageDataInclude(userId),
+    });
+
+    if (!lastSavedMessage) {
+      throw new Error("Aucun message enregistré trouvé.");
+    }
+
+    // Format saved messages
+    if (lastSavedMessage.content !== `create-${userId}`) {
+      return { ...lastSavedMessage, type: "CONTENT" };
+    }
+    return lastSavedMessage;
+  }
+
+  // Check membership for regular rooms
+  const member = await prisma.roomMember.findUnique({
+    where: {
+      roomId_userId: {
+        roomId,
+        userId: userId,
+      },
+    },
+  });
+
+  if (!member) {
+    throw new Error("Utilisateur non trouvé.");
+  }
+
+  if (member.type === "BANNED") {
+    throw new Error("Utilisateur banni.");
+  }
+
+  const leftDate = member.leftAt;
+
+  const lastMessage = await prisma.message.findFirst({
+    where: {
+      roomId,
+      createdAt: { lt: leftDate || undefined },
+    },
+    orderBy: { createdAt: "desc" },
+    include: getMessageDataInclude(userId),
+  });
+
+  if (!lastMessage) {
+    throw new Error("Aucun message trouvé.");
+  }
+
+  await prisma.lastMessage.upsert({
+    where: {
+      userId_roomId: {
+        userId,
+        roomId,
+      },
+    },
+    create: {
+      userId,
+      roomId,
+      messageId: lastMessage.id,
+      createdAt: lastMessage.createdAt,
+    },
+    update: {
+      messageId: lastMessage.id,
+      createdAt: lastMessage.createdAt,
+    },
+  });
+
+
+  return lastMessage;
 }

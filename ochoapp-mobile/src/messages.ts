@@ -556,6 +556,25 @@ export async function getLastMessage(req: Request, res: Response) {
     const formattedMsg: MessageData = {
       ...lastMessage,
     };
+
+    await prisma.lastMessage.upsert({
+      where: {
+        userId_roomId: {
+          userId,
+          roomId,
+        },
+      },
+      create: {
+        userId,
+        roomId,
+        messageId: lastMessage.id,
+        createdAt: lastMessage.createdAt,
+      },
+      update: {
+        messageId: lastMessage.id,
+        createdAt: lastMessage.createdAt,
+      },
+    });
     return res.json({
       success: true,
       data: formattedMsg,
@@ -835,7 +854,6 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
 
-
     let whereClause: Prisma.UserWhereInput = {};
     const searchCondition: Prisma.UserWhereInput | undefined = searchQuery
       ? {
@@ -923,7 +941,6 @@ export async function searchMessageUsers(req: Request, res: Response) {
         name: "unauthorized",
       } as ApiResponse<null>);
     }
-
 
     const userId = user.id;
 

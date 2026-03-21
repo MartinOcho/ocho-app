@@ -432,6 +432,10 @@ export interface SocketGetRoomDetailsEvent {
   roomId: string;
 }
 
+export interface SocketGetLastMessageEvent {
+  roomId: string;
+}
+
 export interface SocketCheckUserStatusEvent {
   userId: string;
 }

@@ -4,6 +4,9 @@
 			"path": "./ochoapp-server"
 		},
 		{
+			"path": "./ochoapp-mobile"
+		},
+		{
 			"path": "./ochoapp-client"
 		}
 	],
