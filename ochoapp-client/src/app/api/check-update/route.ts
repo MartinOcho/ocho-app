@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ApiResponse } from "../android/utils/dTypes";
-
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  name?: string;
+  error?: string;
+  data?: T;
+}
 export async function GET(req: NextRequest) {
   const version = req.nextUrl.searchParams.get("version") || "";
   const platform = req.nextUrl.searchParams.get("platform") || "";
