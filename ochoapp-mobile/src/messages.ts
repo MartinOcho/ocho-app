@@ -615,6 +615,7 @@ export async function getRoomMedias(req: Request, res: Response) {
     const member = await prisma.roomMember.findUnique({
       where: { roomId_userId: { roomId, userId: user.id } },
     });
+    if (!isSavedMessages) {
     if (!member) {
       return res.json({
         success: false,
@@ -630,6 +631,8 @@ export async function getRoomMedias(req: Request, res: Response) {
         message: "Utilisateur banni.",
         name: "banned",
       });
+    }
+      
     }
 
     const attachments = await prisma.messageAttachment.findMany({
