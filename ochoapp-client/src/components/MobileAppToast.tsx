@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { Download, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AppLogo from "./AppLogo";
 
 export default function MobileAppToast() {
   const [isAndroid, setIsAndroid] = useState(false);
@@ -26,16 +27,19 @@ export default function MobileAppToast() {
   const downloadUrl = "/android/download";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-black/40 p-4 z-[60] animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-0 left-0 right-0 p-4 z-[60] animate-in slide-in-from-bottom-4">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Ouvrez OchoApp mobile
             </h3>
-            <p className="text-sm text-gray-600">
-              Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives.
-            </p>
+            <div className="flex gap-2 items-center flex-col">
+                <AppLogo size={40} />
+                <p className="text-sm text-gray-600">
+                Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives.
+                </p>
+            </div>
           </div>
           <button
             onClick={() => setIsVisible(false)}
@@ -49,16 +53,18 @@ export default function MobileAppToast() {
         <div className="mt-4 flex gap-2">
           <Button
             onClick={() => window.open(deeplink)}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex items-center justify-center gap-2 flex-1 bg-blue-600 hover:bg-blue-700 text-white"
           >
-            Ouvrir
+            <ExternalLink size={20} />
+            <span>Ouvrir</span>
           </Button>
           <Button
             onClick={() => window.open(downloadUrl, "_blank")}
             variant="outline"
-            className="flex-1"
+            className="flex items-center justify-center gap-2 flex-1"
           >
-            Télécharger
+            <Download size={20} />
+            <span>Télécharger</span>
           </Button>
         </div>
       </div>
