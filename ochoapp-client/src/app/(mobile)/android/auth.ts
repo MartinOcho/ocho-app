@@ -3,6 +3,8 @@ import { GitHub, Google } from "arctic";
 const MOBILE_API_URL =
   process.env.NEXT_PUBLIC_MOBILE_API_URL || process.env.NEXT_PUBLIC_BASE_URL;
 
+console.log("MOBILE_API_URL", MOBILE_API_URL);
+
 export const google = new Google(
   process.env.GOOGLE_CLIENT_ID!,
   process.env.GOOGLE_CLIENT_SECRET!,
