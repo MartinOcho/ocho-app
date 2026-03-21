@@ -104,7 +104,6 @@ export async function getPost(req: Request, res: Response) {
 
     if (!allScores || !post) {
       return res
-        .status(404)
         .json({ success: false, message: "Post not found" });
     }
 
@@ -228,7 +227,6 @@ export async function deletePost(req: Request, res: Response) {
 
     if (!postToDelete) {
       return res
-        .status(404)
         .json({ success: false, message: "Post non trouvé" });
     }
 

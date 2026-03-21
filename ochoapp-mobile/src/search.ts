@@ -139,7 +139,7 @@ export async function saveSearchQuery(req: Request, res: Response) {
 
     const { query } = req.body as { query?: string };
     if (!query) {
-      return res.status(400).json({ success: false, message: "Query is required" });
+      return res.json({ success: false, message: "Query is required" });
     }
 
     const newEntry = await prisma.searchHistory.create({
@@ -161,12 +161,12 @@ export async function deleteSearchQuery(req: Request, res: Response) {
 
     const queryId = req.params.queryId;
     if (!queryId) {
-      return res.status(400).json({ success: false, message: "queryId is required" });
+      return res.json({ success: false, message: "queryId is required" });
     }
 
     const entry = await prisma.searchHistory.findUnique({ where: { id: queryId } });
     if (!entry || entry.userId !== user.id) {
-      return res.status(404).json({ success: false, message: "Search history item not found." });
+      return res.json({ success: false, message: "Search history item not found." });
     }
 
     await prisma.searchHistory.delete({ where: { id: queryId } });
@@ -187,7 +187,7 @@ export async function searchAll(req: Request, res: Response) {
 
     const query = (req.query.q as string) || (req.query.query as string) || "";
     if (!query) {
-      return res.status(400).json({ success: false, message: "q parameter is required" });
+      return res.json({ success: false, message: "q parameter is required" });
     }
 
     const posts = await prisma.post.findMany({
@@ -256,7 +256,7 @@ export async function searchPostIds(req: Request, res: Response) {
 
     const q = (req.query.q as string) || "";
     if (!q) {
-      return res.status(400).json({ success: false, message: "q parameter is required" });
+      return res.json({ success: false, message: "q parameter is required" });
     }
 
     const pageSize = 10;

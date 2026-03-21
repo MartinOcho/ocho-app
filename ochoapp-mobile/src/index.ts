@@ -56,6 +56,7 @@ import {
   searchPostIds,
   getLastMessage,
   getUnreadRoomsCount,
+  validateUser,
 } from "./utils";
 import { ApiResponse } from "./types";
 
@@ -147,12 +148,10 @@ app.post("/api/posts/:postId/bookmark", toggleBookmark);
 app.get("/api/posts/:postId/comments", getComments);
 app.post("/api/posts/:postId/comments", sendComment);
 
-
 app.post("/api/comments/reply", sendCommentReply);
 app.get("/api/comments/:commentId/replies", getCommentReplies);
 app.post("/api/comments/:commentId/like", likeComment);
 app.delete("/api/comments/:commentId", deleteComment);
-
 
 app.get("/api/notifications", getNotifications);
 app.get("/api/unread-count/notifications", getUnreadNotificationCount);
@@ -224,10 +223,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
   try {
     const body = req.body || {};
     const file = body.file;
-    if (!file)
-      return res
-        .status(400)
-        .json({ success: false, error: "No file provided" });
+    if (!file) return res.json({ success: false, error: "No file provided" });
 
     const uploadResult = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
@@ -262,11 +258,11 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     });
   } catch (err) {
     console.error("Proxy upload error", err);
-    return res.status(500).json({
+    return res.json({
       success: false,
       error: "Upload failed",
-      details: err instanceof Error ? err.message : undefined,
-    });
+      message: err instanceof Error ? err.message : undefined,
+    } as ApiResponse<null>);
   }
 });
 
@@ -277,9 +273,7 @@ app.post(
     try {
       const file = req.file;
       if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
+        return res.json({ success: false, error: "No file provided" });
 
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
@@ -308,9 +302,7 @@ app.post(
             : undefined;
 
       if (!attachmentType) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Unsupported file type" });
+        return res.json({ success: false, error: "Unsupported file type" });
       }
 
       const mediaAttachment = await prisma.media.create({
@@ -328,10 +320,10 @@ app.post(
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res.status(500).json({
+      return res.json({
         success: false,
         error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
+        message: err instanceof Error ? err.message : undefined,
       });
     }
   },
@@ -343,9 +335,7 @@ app.post(
     try {
       const file = req.file;
       if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
+        return res.json({ success: false, error: "No file provided" });
 
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
@@ -393,10 +383,10 @@ app.post(
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res.status(500).json({
+      return res.json({
         success: false,
         error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
+        message: err instanceof Error ? err.message : undefined,
       });
     }
   },
@@ -409,9 +399,7 @@ app.post(
     try {
       const { sessionId } = req.body as { sessionId?: string };
       if (!sessionId) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Missing sessionId" });
+        return res.json({ success: false, error: "Missing sessionId" });
       }
 
       const session = await prisma.session.findUnique({
@@ -420,18 +408,14 @@ app.post(
       });
 
       if (!session || !session.user) {
-        return res
-          .status(401)
-          .json({ success: false, error: "Invalid session" });
+        return res.json({ success: false, error: "Invalid session" });
       }
 
       const userId = session.user.id;
 
       const file = req.file;
       if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
+        return res.json({ success: false, error: "No file provided" });
 
       const publicId = `user_avatars/${userId}_${randomUUID()}`;
 
@@ -506,48 +490,35 @@ app.post(
       return res.json({ success: true, avatar: userAvatar });
     } catch (err) {
       console.error("Proxy avatar upload error", err);
-      return res.status(500).json({
+      return res.json({
         success: false,
         error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
+        message: err instanceof Error ? err.message : undefined,
       });
     }
   },
 );
 
 app.post(
-  "/api/cloudinary/upload-group-avatar",
+  "/api/:roomId/cloudinary/upload-group-avatar",
   upload.single("file"),
   async (req, res) => {
     try {
-      const { sessionId, roomId } = req.body as {
-        sessionId?: string;
-        roomId?: string;
-      };
-      if (!sessionId || !roomId) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Missing sessionId or roomId" });
+      const roomId = req.params.roomId;
+
+      const { userData, user } = await validateUser(req, res);
+      if (!user || !userData) {
+        return res.json({
+          success: false,
+          message: "Utilisateur non authentifié.",
+          name: "unauthorized",
+        } as ApiResponse<null>);
       }
-
-      const session = await prisma.session.findUnique({
-        where: { id: sessionId },
-        include: { user: true },
-      });
-
-      if (!session || !session.user) {
-        return res
-          .status(401)
-          .json({ success: false, error: "Invalid session" });
-      }
-
-      const userId = session.user.id;
+      const userId = user.id;
 
       const file = req.file;
       if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
+        return res.json({ success: false, error: "No file provided" });
 
       const room = await prisma.room.findUnique({
         where: { id: roomId },
@@ -560,16 +531,12 @@ app.post(
       });
 
       if (!room || !room.isGroup) {
-        return res
-          .status(404)
-          .json({ success: false, error: "Group not found" });
+        return res.json({ success: false, error: "Group not found" });
       }
 
       const member = room.members[0];
       if (!member || !["ADMIN", "OWNER"].includes(member.type)) {
-        return res
-          .status(403)
-          .json({ success: false, error: "Insufficient permissions" });
+        return res.json({ success: false, error: "Insufficient permissions" });
       }
 
       const publicId = `group_avatars/${roomId}_${randomUUID()}`;
@@ -620,7 +587,7 @@ app.post(
       return res.json({ success: true, avatarUrl: url });
     } catch (err) {
       console.error("Proxy group avatar upload error", err);
-      return res.status(500).json({
+      return res.json({
         success: false,
         error: "Upload failed",
         details: err instanceof Error ? err.message : undefined,
@@ -631,9 +598,7 @@ app.post(
 
 // 404 handler: always JSON
 app.use((req, res) => {
-  res
-    .status(404)
-    .type("application/json")
+  res.type("application/json")
     .json({
       success: false,
       error: "Not Found",
@@ -642,18 +607,23 @@ app.use((req, res) => {
 });
 
 // Global error handler: convert all errors to JSON (no HTML)
-app.use((err: ErrorRequestHandler, req: Request, res: Response, next: NextFunction) => {
-  console.error("Unhandled API error", err);
+app.use(
+  (
+    err: ErrorRequestHandler,
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    console.error("Unhandled API error", err);
 
-  if (res.headersSent) {
-    return next(err);
-  }
-  const errorMessage = err instanceof Error ? err.message : "Internal Server Error";
-  console.error(err)
+    if (res.headersSent) {
+      return next(err);
+    }
+    const errorMessage =
+      err instanceof Error ? err.message : "Internal Server Error";
+    console.error(err);
 
-  res
-    .type("application/json")
-    .json({
+    res.type("application/json").json({
       success: false,
       error: errorMessage,
       details:
@@ -663,7 +633,8 @@ app.use((err: ErrorRequestHandler, req: Request, res: Response, next: NextFuncti
             : err
           : undefined,
     });
-});
+  },
+);
 
 server.listen(Number(PORT), "0.0.0.0", () => {
   console.log(
