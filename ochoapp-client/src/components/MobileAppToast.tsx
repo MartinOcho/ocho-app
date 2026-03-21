@@ -26,7 +26,7 @@ export default function MobileAppToast() {
   const downloadUrl = "/android/download";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-black/40 p-4 z-50 animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-black/40 p-4 z-[60] animate-in slide-in-from-bottom-4">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">

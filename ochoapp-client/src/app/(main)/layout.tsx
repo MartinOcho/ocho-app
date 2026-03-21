@@ -31,18 +31,17 @@ export default async function Layout({
   };
 
   return (
-          <ProgressProvider>
-    <SessionProvider value={sessionValue}>
-      {/* Le SocketProvider enveloppe les enfants pour activer le temps réel partout */}
-      <LanguageProvider>
-        <SocketProvider>
-        <Toaster/>
-        <MobileAppToast/>
+    <ProgressProvider>
+      <SessionProvider value={sessionValue}>
+        {/* Le SocketProvider enveloppe les enfants pour activer le temps réel partout */}
+        <LanguageProvider>
+          <SocketProvider>
+            <Toaster />
             <NavigationProvider>
               <MenuBarProvider>
                 <SearchProvider>
                   <ChatProvider>
-                    <div className="max-h-dvh relative flex h-screen w-full flex-col">
+                    <div className="relative flex h-screen max-h-dvh w-full flex-col">
                       <Navbar />
                       <div className="relative h-full max-h-full w-full overflow-hidden">
                         <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
@@ -56,9 +55,10 @@ export default async function Layout({
                 </SearchProvider>
               </MenuBarProvider>
             </NavigationProvider>
-        </SocketProvider>
-      </LanguageProvider>
-    </SessionProvider>
-          </ProgressProvider>
+            <MobileAppToast />
+          </SocketProvider>
+        </LanguageProvider>
+      </SessionProvider>
+    </ProgressProvider>
   );
 }
