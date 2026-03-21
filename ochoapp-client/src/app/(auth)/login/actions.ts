@@ -54,7 +54,7 @@ export async function login(
       sessionCookie.value,
       sessionCookie.attributes,
     );
-    return redirect("/");
+    return redirect("/?fromLogin=true");
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;

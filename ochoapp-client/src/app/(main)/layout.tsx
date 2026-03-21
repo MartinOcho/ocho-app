@@ -12,6 +12,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { ProgressProvider } from "@/context/ProgressContext";
 import SocketProvider from "@/components/providers/SocketProvider";
 import { Toaster } from "@/components/ui/toaster";
+import MobileAppToast from "@/components/MobileAppToast";
 
 export default async function Layout({
   children,
@@ -36,6 +37,7 @@ export default async function Layout({
       <LanguageProvider>
         <SocketProvider>
         <Toaster/>
+        <MobileAppToast/>
             <NavigationProvider>
               <MenuBarProvider>
                 <SearchProvider>

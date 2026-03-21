@@ -56,7 +56,7 @@ export default function Page() {
           >
             <AndroidLogo size={24} />{" "}
             <span className="hidden @[11rem]:inline">
-              Telecharger l&apos;application
+              Télécharger l&apos;application
             </span>
           </Button>
           <Button

@@ -4,22 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 // Le téléchargement est généralement géré en redirigeant l'utilisateur vers l'URL sécurisée du fichier.
 
 export async function GET(request: NextRequest) {
-  // 1. Définir le nom de fichier souhaité
-  const fileName = "OchoApp.apk";
   
-  // 2. Récupérer l'URL sécurisée d'UploadThing pour ce fichier.
-  //    Cette URL doit être stockée dans votre base de données après le téléversement initial.
-  //    Pour cet exemple, je vais utiliser une URL factice. REMPLACEZ CELA PAR LA VRAIE LOGIQUE.
-  const uploadThingFileUrl = "https://github.com/devTeam222/OchoApp/releases/download/app/app-release.apk"; 
+  const uploadThingFileUrl = "https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk"; 
   
-  // Dans un scénario réel, vous feriez :
-  // const fileId = request.nextUrl.searchParams.get("id"); // Récupérer l'ID à partir de la requête
-  // const fileRecord = await db.files.findUnique({ where: { id: fileId } }); // Rechercher dans la DB
-  // if (!fileRecord || !fileRecord.url) {
-  //   return NextResponse.json({ error: "File record not found" }, { status: 404 });
-  // }
-  // const uploadThingFileUrl = fileRecord.url;
-
   try {
     // 3. Vérifier si l'URL est valide
     if (!uploadThingFileUrl) {
