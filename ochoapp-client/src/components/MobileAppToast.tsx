@@ -9,9 +9,6 @@ export default function MobileAppToast() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const fromLogin = urlParams.get("fromLogin");
-      if (fromLogin) {
         const isAndroid = /Android/i.test(navigator.userAgent);
         if (isAndroid) {
           // Essayer d'ouvrir l'app
@@ -20,11 +17,9 @@ export default function MobileAppToast() {
 
           // Timeout pour détecter si l'app s'ouvre
           const timeout = setTimeout(() => {
-            console.log("Test android");
-            
             toast({
               title: "Téléchargez l'application mobile",
-              description: "Profitez d'une meilleure expérience sur OchoApp mobile.",
+              description: "Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives.",
               action: <ToastAction altText="Télécharger" onClick={() => window.location.href = downloadUrl}>Télécharger</ToastAction>,
             });
           }, 2000);
@@ -38,7 +33,6 @@ export default function MobileAppToast() {
           }, { once: true });
         }
       }
-    }
   }, [toast]);
 
   return null;
