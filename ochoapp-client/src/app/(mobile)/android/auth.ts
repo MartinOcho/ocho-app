@@ -12,6 +12,6 @@ export const github = new GitHub(
   process.env.GITHUB_CLIENT_ID!,
   process.env.GITHUB_CLIENT_SECRET!,
   {
-    redirectURI: `${MOBILE_API_URL}/api/auth/callback/github`,
+    redirectURI: `${MOBILE_API_URL}/api/auth/callback/github/android`,
   },
 );
