@@ -20,7 +20,8 @@ export default function MobileAppToast() {
 
           // Timeout pour détecter si l'app s'ouvre
           const timeout = setTimeout(() => {
-            // Si après 2 secondes la page est encore là, l'app n'est pas installée
+            console.log("Test android");
+            
             toast({
               title: "Téléchargez l'application mobile",
               description: "Profitez d'une meilleure expérience sur OchoApp mobile.",
