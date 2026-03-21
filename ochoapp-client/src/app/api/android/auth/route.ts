@@ -1,7 +1,7 @@
 import { lucia } from "@/auth";
 import prisma from "@/lib/prisma";
 import { DeviceType } from "@prisma/client";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { ApiResponse } from "../../check-update/route";
 

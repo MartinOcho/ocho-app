@@ -369,21 +369,6 @@ export async function getMessages(req: Request, res: Response) {
         },
       },
     });
-    if (!member) {
-      return res.json({
-        success: false,
-        message: "Utilisateur non trouvé.",
-        name: "not_found",
-      } as ApiResponse<null>);
-    }
-    if (member.type === "BANNED") {
-      return res.json({
-        success: false,
-        data: null,
-        message: "Utilisateur banni.",
-        name: "banned",
-      } as ApiResponse<null>);
-    }
 
     // Vérifier si on récupère des messages d'un canal ou des messages sauvegardés
     if (roomId === `saved-${user.id}`) {
@@ -408,6 +393,21 @@ export async function getMessages(req: Request, res: Response) {
         });
       }
     } else {
+      if (!member) {
+        return res.json({
+          success: false,
+          message: "Utilisateur non trouvé.",
+          name: "not_found",
+        } as ApiResponse<null>);
+      }
+      if (member.type === "BANNED") {
+        return res.json({
+          success: false,
+          data: null,
+          message: "Utilisateur banni.",
+          name: "banned",
+        } as ApiResponse<null>);
+      }
       // Récupérer les messages d'un canal spécifique
       const room = await prisma.room.findFirst({
         where: {
@@ -437,10 +437,6 @@ export async function getMessages(req: Request, res: Response) {
       where: { id: roomId },
     });
 
-    const isGroup = roomData?.isGroup;
-
-    if (isGroup) {
-    }
     messages = messages.map((message) => {
       const formattedMsg: MessageData = {
         ...message,
@@ -507,10 +503,6 @@ export async function getLastMessage(req: Request, res: Response) {
         data: displayedMsg,
       } as ApiResponse<MessageData>);
     }
-
-    const roomData = await prisma.room.findUnique({
-      where: { id: roomId },
-    });
 
     const member = await prisma.roomMember.findUnique({
       where: {
