@@ -198,11 +198,38 @@ export type NavigationContextType = {
 export type SearchFilter = 
   | "posts"
   | "users"
-  | "friend"
-  | "followers"
-  | "following"
-  | "verified-users"
-  | "unrelated-users";
+
+export interface UserSettings {
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    email: string | null;
+    birthday: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    createdAt: string;
+    lastUsernameChange: string | null;
+  };
+  privacy: Record<PrivacyType, PrivacyValue>;
+}
+
+export interface PrivacyUpdateRequest {
+  type: PrivacyType;
+  value: PrivacyValue;
+}
+
+export interface BirthdayUpdateRequest {
+  birthday: string; // ISO date string
+}
+
+export interface UsernameUpdateRequest {
+  username: string;
+}
+
+export interface AccountDeletionRequest {
+  confirmation: string;
+}
 
 
 // Type pour les pièces jointes locales (avant upload)

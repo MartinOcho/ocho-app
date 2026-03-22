@@ -15,10 +15,21 @@ import {
   loginUser,
   signupUser,
   logoutUser,
+} from "./auth";
+import {
   getUserProfile,
   updateUserProfile,
   toggleFollow,
   getSuggestedUsers,
+  getUserSettings,
+  updateUserPrivacy,
+  updateUserBirthday,
+  updateUsername,
+  exportUserData,
+  disableUserAccount,
+  deleteUserAccount,
+} from "./users";
+import {
   getPost,
   deletePost,
   toggleLike,
@@ -128,6 +139,15 @@ app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
 app.patch("/api/users/:userId", updateUserProfile);
 app.get("/api/users/:userId/follow", toggleFollow);
+
+// Routes pour les paramètres utilisateur
+app.get("/api/settings", getUserSettings);
+app.patch("/api/settings/privacy", updateUserPrivacy);
+app.patch("/api/settings/birthday", updateUserBirthday);
+app.patch("/api/settings/username", updateUsername);
+app.get("/api/settings/export", exportUserData);
+app.post("/api/settings/disable", disableUserAccount);
+app.delete("/api/settings/delete", deleteUserAccount);
 
 // Routes pour créer un post
 app.post("/api/posts", createPost);
