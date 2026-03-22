@@ -30,6 +30,17 @@ import {
   deleteUserAccount,
 } from "./users";
 import {
+  getActivityHistory,
+  getUserPostsActivity,
+  getUserLikes,
+  getUserBookmarks,
+  getUserComments,
+  getUserRoomJoins,
+  getUserRoomLeaves,
+  getUserRoomCreations,
+  getUserSearches,
+} from "./activity";
+import {
   getPost,
   deletePost,
   toggleLike,
@@ -197,6 +208,18 @@ app.delete("/api/search/history/:queryId", deleteSearchQuery);
 app.get("/api/search/all", searchAll);
 app.get("/api/search/posts", searchPost);
 app.get("/api/search/posts/ids", searchPostIds);
+
+app.get("/api/activity/history", getActivityHistory);
+
+// Endpoints spécifiques par type d'activité
+app.get("/api/activity/posts", getUserPostsActivity);
+app.get("/api/activity/likes", getUserLikes);
+app.get("/api/activity/bookmarks", getUserBookmarks);
+app.get("/api/activity/comments", getUserComments);
+app.get("/api/activity/rooms/joined", getUserRoomJoins);
+app.get("/api/activity/rooms/left", getUserRoomLeaves);
+app.get("/api/activity/rooms/created", getUserRoomCreations);
+app.get("/api/activity/searches", getUserSearches);
 
 app.get("/api/check-update", (req: Request, res: Response) => {
   const version = (req.query.version || "").toString();

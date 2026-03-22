@@ -399,6 +399,81 @@ export function getLastMsgInclude(){
   } satisfies Prisma.MessageInclude
 }
 
+// Types pour l'historique d'activité
+export type ActivityType =
+  | "POST_CREATED"
+  | "POST_LIKED"
+  | "POST_BOOKMARKED"
+  | "COMMENT_CREATED"
+  | "COMMENT_LIKED"
+  | "ROOM_JOINED"
+  | "ROOM_LEFT"
+  | "ROOM_CREATED"
+  | "SEARCH_PERFORMED";
+
+export interface ActivityItem {
+  id: string; // ID généré pour l'activité
+  activityType: ActivityType;
+  createdAt: number; // timestamp
+  entityId: string; // ID de l'entité concernée (post, comment, etc.)
+  entity?: Post | Comment | Message | Room | User | SearchHistory; // Données de l'entité
+  metadata?: Record<string, any>; // Métadonnées supplémentaires
+}
+
+export interface ActivityHistoryResponse {
+  activities: ActivityItem[];
+  total: number;
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+export interface ActivityHistoryRequest {
+  userId: string;
+  limit?: number;
+  cursor?: string;
+  type?: ActivityType;
+  startDate?: number;
+  endDate?: number;
+}
+
+// Types pour les messages et rooms (si pas déjà définis)
+export interface Message {
+  id: string;
+  type: string;
+  content: string;
+  sender: User;
+  recipient: User;
+  attachments: Attachment[];
+  mentions: MessageMention[];
+  createdAt: number;
+}
+
+export interface MessageMention {
+  mentionedId: string;
+  mentionedUser: User;
+}
+
+export interface Room {
+  id: string;
+  name?: string | null;
+  isGroup?: boolean;
+  createdAt: number;
+  members?: RoomMember[];
+}
+
+export interface RoomMember {
+  userId: string;
+  joinedAt: number;
+  role?: string;
+  type?: string;
+}
+
+export interface SearchHistory {
+  id: string;
+  query: string;
+  createdAt: number;
+}
+
 export type LastMsgData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getLastMsgInclude>;
 }>;
