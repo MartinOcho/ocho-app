@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import  prisma  from "./prisma";
+import prisma from "./prisma";
 import {
   ActivityType,
   ActivityItem,
@@ -9,10 +9,11 @@ import {
   Comment,
   User,
   SearchHistory,
-  PostData
+  PostData,
 } from "./types";
 import { getPostDataIncludes, getUserDataSelect } from "./types";
 import { getCurrentUser } from "./auth";
+import { Prisma } from "@prisma/client";
 
 class ActivityAggregationService {
   /**
@@ -26,7 +27,7 @@ class ActivityAggregationService {
       type?: ActivityType;
       startDate?: number;
       endDate?: number;
-    } = {}
+    } = {},
   ): Promise<ActivityHistoryResponse> {
     const { limit = 50, cursor, type, startDate, endDate } = options;
 
@@ -56,7 +57,12 @@ class ActivityAggregationService {
         SEARCH_PERFORMED: this.getUserSearches,
       };
 
-      const activities = await typeMap[type](userId, { limit, cursor, startDate, endDate });
+      const activities = await typeMap[type](userId, {
+        limit,
+        cursor,
+        startDate,
+        endDate,
+      });
       return {
         activities,
         total: activities.length,
@@ -78,22 +84,31 @@ class ActivityAggregationService {
 
     if (cursor) {
       // Trouver l'index du curseur
-      const cursorIndex = allActivities.findIndex(a => a.id === cursor);
+      const cursorIndex = allActivities.findIndex((a) => a.id === cursor);
       if (cursorIndex !== -1) {
         // Prendre les éléments après le curseur
-        paginatedActivities = allActivities.slice(cursorIndex + 1, cursorIndex + 1 + limit);
+        paginatedActivities = allActivities.slice(
+          cursorIndex + 1,
+          cursorIndex + 1 + limit,
+        );
         hasMore = cursorIndex + 1 + limit < allActivities.length;
-        nextCursor = hasMore ? paginatedActivities[paginatedActivities.length - 1]?.id : undefined;
+        nextCursor = hasMore
+          ? paginatedActivities[paginatedActivities.length - 1]?.id
+          : undefined;
       } else {
         // Curseur non trouvé, recommencer du début
         paginatedActivities = allActivities.slice(0, limit);
         hasMore = allActivities.length > limit;
-        nextCursor = hasMore ? paginatedActivities[paginatedActivities.length - 1]?.id : undefined;
+        nextCursor = hasMore
+          ? paginatedActivities[paginatedActivities.length - 1]?.id
+          : undefined;
       }
     } else {
       paginatedActivities = allActivities.slice(0, limit);
       hasMore = allActivities.length > limit;
-      nextCursor = hasMore ? paginatedActivities[paginatedActivities.length - 1]?.id : undefined;
+      nextCursor = hasMore
+        ? paginatedActivities[paginatedActivities.length - 1]?.id
+        : undefined;
     }
 
     return {
@@ -109,7 +124,12 @@ class ActivityAggregationService {
    */
   async getUserPosts(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -121,15 +141,15 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('post_')) {
-      const cursorId = cursor.replace('post_', '');
+    if (cursor && cursor.startsWith("post_")) {
+      const cursorId = cursor.replace("post_", "");
       where.id = { lt: cursorId };
     }
 
     const posts = await prisma.post.findMany({
       where,
       include: getPostDataIncludes(userId),
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
@@ -143,20 +163,24 @@ class ActivityAggregationService {
           displayName: post.user.displayName,
           avatarUrl: post.user.avatarUrl,
           bio: post.user.bio,
-          verified: post.user.verified.length > 0 ? {
-            verified: true,
-            type: post.user.verified[0].type,
-            expiresAt: post.user.verified[0].expiresAt?.getTime() || null,
-          } : null,
+          verified:
+            post.user.verified.length > 0
+              ? {
+                  verified: true,
+                  type: post.user.verified[0].type,
+                  expiresAt: post.user.verified[0].expiresAt?.getTime() || null,
+                }
+              : null,
           createdAt: post.user.createdAt?.getTime(),
           lastSeen: post.user.lastSeen?.getTime(),
           followersCount: post.user._count?.followers,
           postsCount: post.user._count?.posts,
-          isFollowing: post.user.followers?.some(f => f.followerId === userId) || false,
+          isFollowing:
+            post.user.followers?.some((f) => f.followerId === userId) || false,
         },
         content: post.content,
         createdAt: post.createdAt.getTime(),
-        attachments: post.attachments.map(att => ({
+        attachments: post.attachments.map((att) => ({
           type: att.type,
           url: att.url,
         })),
@@ -182,7 +206,12 @@ class ActivityAggregationService {
    */
   async getUserLikes(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -197,8 +226,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('like_')) {
-      const cursorId = cursor.replace('like_', '');
+    if (cursor && cursor.startsWith("like_")) {
+      const cursorId = cursor.replace("like_", "");
       where.id = { lt: cursorId };
     }
 
@@ -209,11 +238,11 @@ class ActivityAggregationService {
           include: getPostDataIncludes(userId),
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
-    return notifications.map(notification => {
+    return notifications.map((notification) => {
       // Convertir le post selon le même pattern
       const postData = notification.post as PostData;
       const convertedPost: Post = {
@@ -224,20 +253,26 @@ class ActivityAggregationService {
           displayName: postData.user.displayName,
           avatarUrl: postData.user.avatarUrl,
           bio: postData.user.bio,
-          verified: postData.user.verified.length > 0 ? {
-            verified: true,
-            type: postData.user.verified[0].type,
-            expiresAt: postData.user.verified[0].expiresAt?.getTime() || null,
-          } : null,
+          verified:
+            postData.user.verified.length > 0
+              ? {
+                  verified: true,
+                  type: postData.user.verified[0].type,
+                  expiresAt:
+                    postData.user.verified[0].expiresAt?.getTime() || null,
+                }
+              : null,
           createdAt: postData.user.createdAt?.getTime(),
           lastSeen: postData.user.lastSeen?.getTime(),
           followersCount: postData.user._count?.followers,
           postsCount: postData.user._count?.posts,
-          isFollowing: postData.user.followers?.some(f => f.followerId === userId) || false,
+          isFollowing:
+            postData.user.followers?.some((f) => f.followerId === userId) ||
+            false,
         },
         content: postData.content,
         createdAt: postData.createdAt.getTime(),
-        attachments: postData.attachments.map(att => ({
+        attachments: postData.attachments.map((att) => ({
           type: att.type,
           url: att.url,
         })),
@@ -263,7 +298,12 @@ class ActivityAggregationService {
    */
   async getUserComments(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -275,8 +315,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('comment_')) {
-      const cursorId = cursor.replace('comment_', '');
+    if (cursor && cursor.startsWith("comment_")) {
+      const cursorId = cursor.replace("comment_", "");
       where.id = { lt: cursorId };
     }
 
@@ -302,24 +342,30 @@ class ActivityAggregationService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
-    return comments.map(comment => {
+    return comments.map((comment) => {
       const convertedComment: Comment = {
         id: comment.id,
-        author: comment.user ? {
-          id: comment.user.id,
-          username: comment.user.username,
-          displayName: comment.user.displayName,
-          avatarUrl: comment.user.avatarUrl,
-          verified: comment.user.verified.length > 0 ? {
-            verified: true,
-            type: comment.user.verified[0].type,
-            expiresAt: comment.user.verified[0].expiresAt?.getTime() || null,
-          } : null,
-        } : null,
+        author: comment.user
+          ? {
+              id: comment.user.id,
+              username: comment.user.username,
+              displayName: comment.user.displayName,
+              avatarUrl: comment.user.avatarUrl,
+              verified:
+                comment.user.verified.length > 0
+                  ? {
+                      verified: true,
+                      type: comment.user.verified[0].type,
+                      expiresAt:
+                        comment.user.verified[0].expiresAt?.getTime() || null,
+                    }
+                  : null,
+            }
+          : null,
         content: comment.content,
         createdAt: comment.createdAt.getTime(),
         likes: comment._count.likes,
@@ -327,7 +373,7 @@ class ActivityAggregationService {
         isLikedByAuthor: false,
         isRepliedByAuthor: false,
         postId: comment.postId,
-        postAuthorId: comment.post.user?.id || '',
+        postAuthorId: comment.post.user?.id || "",
         replies: comment._count.replies,
       };
 
@@ -346,7 +392,12 @@ class ActivityAggregationService {
    */
   async getUserBookmarks(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -358,8 +409,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('bookmark_')) {
-      const cursorId = cursor.replace('bookmark_', '');
+    if (cursor && cursor.startsWith("bookmark_")) {
+      const cursorId = cursor.replace("bookmark_", "");
       where.id = { lt: cursorId };
     }
 
@@ -370,11 +421,11 @@ class ActivityAggregationService {
           include: getPostDataIncludes(userId),
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
-    return bookmarks.map(bookmark => {
+    return bookmarks.map((bookmark) => {
       // Convertir le post selon le même pattern
       const postData = bookmark.post as PostData;
       const convertedPost: Post = {
@@ -385,20 +436,26 @@ class ActivityAggregationService {
           displayName: postData.user.displayName,
           avatarUrl: postData.user.avatarUrl,
           bio: postData.user.bio,
-          verified: postData.user.verified.length > 0 ? {
-            verified: true,
-            type: postData.user.verified[0].type,
-            expiresAt: postData.user.verified[0].expiresAt?.getTime() || null,
-          } : null,
+          verified:
+            postData.user.verified.length > 0
+              ? {
+                  verified: true,
+                  type: postData.user.verified[0].type,
+                  expiresAt:
+                    postData.user.verified[0].expiresAt?.getTime() || null,
+                }
+              : null,
           createdAt: postData.user.createdAt?.getTime(),
           lastSeen: postData.user.lastSeen?.getTime(),
           followersCount: postData.user._count?.followers,
           postsCount: postData.user._count?.posts,
-          isFollowing: postData.user.followers?.some(f => f.followerId === userId) || false,
+          isFollowing:
+            postData.user.followers?.some((f) => f.followerId === userId) ||
+            false,
         },
         content: postData.content,
         createdAt: postData.createdAt.getTime(),
-        attachments: postData.attachments.map(att => ({
+        attachments: postData.attachments.map((att) => ({
           type: att.type,
           url: att.url,
         })),
@@ -424,7 +481,12 @@ class ActivityAggregationService {
    */
   async getUserRoomJoins(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -439,8 +501,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('room_join_')) {
-      const cursorId = cursor.replace('room_join_', '');
+    if (cursor && cursor.startsWith("room_join_")) {
+      const cursorId = cursor.replace("room_join_", "");
       where.id = { lt: cursorId };
     }
 
@@ -453,14 +515,32 @@ class ActivityAggregationService {
             name: true,
             isGroup: true,
             createdAt: true,
+            groupAvatarUrl: true,
           },
         },
       },
-      orderBy: { joinedAt: 'desc' },
+      orderBy: { joinedAt: "desc" },
       take: limit,
     });
 
-    return roomMembers.map(member => ({
+    const otherUser = await prisma.roomMember.findFirst({
+        where: {
+            roomId: roomMembers[0]?.roomId,
+            userId: { not: userId },
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                },
+            },
+        },
+    });
+
+    return roomMembers.map((member) => ({
       id: `room_join_${member.id}`,
       activityType: "ROOM_JOINED" as ActivityType,
       createdAt: member.joinedAt.getTime(),
@@ -470,6 +550,8 @@ class ActivityAggregationService {
         name: member.room.name,
         isGroup: member.room.isGroup,
         createdAt: member.room.createdAt.getTime(),
+        avatarUrl: member.room.groupAvatarUrl || undefined,
+        otherUser: otherUser?.user
       },
     }));
   }
@@ -479,7 +561,12 @@ class ActivityAggregationService {
    */
   async getUserRoomLeaves(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -494,8 +581,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('room_leave_')) {
-      const cursorId = cursor.replace('room_leave_', '');
+    if (cursor && cursor.startsWith("room_leave_")) {
+      const cursorId = cursor.replace("room_leave_", "");
       where.id = { lt: cursorId };
     }
 
@@ -508,14 +595,31 @@ class ActivityAggregationService {
             name: true,
             isGroup: true,
             createdAt: true,
+            groupAvatarUrl: true,
           },
         },
       },
-      orderBy: { leftAt: 'desc' },
+      orderBy: { leftAt: "desc" },
       take: limit,
     });
+    const otherUser = await prisma.roomMember.findFirst({
+        where: {
+            roomId: roomMembers[0]?.roomId,
+            userId: { not: userId },
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                },
+            },
+        },
+    });
 
-    return roomMembers.map(member => ({
+    return roomMembers.map((member) => ({
       id: `room_leave_${member.id}`,
       activityType: "ROOM_LEFT" as ActivityType,
       createdAt: member.leftAt!.getTime(),
@@ -524,7 +628,9 @@ class ActivityAggregationService {
         id: member.room.id,
         name: member.room.name,
         isGroup: member.room.isGroup,
+        avatarUrl: member.room.groupAvatarUrl || undefined,
         createdAt: member.room.createdAt.getTime(),
+        otherUser: otherUser?.user
       },
     }));
   }
@@ -534,11 +640,16 @@ class ActivityAggregationService {
    */
   async getUserRoomCreations(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
-    const where: any = {
+    const where: Prisma.RoomMemberWhereInput = {
       userId,
       type: "OWNER", // Seulement les rooms où l'utilisateur est propriétaire
     };
@@ -549,8 +660,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('room_create_')) {
-      const cursorId = cursor.replace('room_create_', '');
+    if (cursor && cursor.startsWith("room_create_")) {
+      const cursorId = cursor.replace("room_create_", "");
       where.id = { lt: cursorId };
     }
 
@@ -563,14 +674,31 @@ class ActivityAggregationService {
             name: true,
             isGroup: true,
             createdAt: true,
+            groupAvatarUrl: true,
           },
         },
       },
-      orderBy: { joinedAt: 'desc' },
+      orderBy: { joinedAt: "desc" },
       take: limit,
     });
+    const otherUser = await prisma.roomMember.findFirst({
+      where: {
+        roomId: roomMembers[0]?.roomId,
+        userId: { not: userId },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
 
-    return roomMembers.map(member => ({
+    return roomMembers.map((member) => ({
       id: `room_create_${member.id}`,
       activityType: "ROOM_CREATED" as ActivityType,
       createdAt: member.joinedAt.getTime(),
@@ -579,13 +707,20 @@ class ActivityAggregationService {
         id: member.room.id,
         name: member.room.name,
         isGroup: member.room.isGroup,
+        avatarUrl: member.room.groupAvatarUrl || undefined,
         createdAt: member.room.createdAt.getTime(),
+        otherUser: otherUser?.user
       },
     }));
   }
   async getUserSearches(
     userId: string,
-    options: { limit?: number; cursor?: string; startDate?: number; endDate?: number }
+    options: {
+      limit?: number;
+      cursor?: string;
+      startDate?: number;
+      endDate?: number;
+    },
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
@@ -597,8 +732,8 @@ class ActivityAggregationService {
     }
 
     // Utiliser la pagination par curseur si un curseur est fourni
-    if (cursor && cursor.startsWith('search_')) {
-      const cursorId = cursor.replace('search_', '');
+    if (cursor && cursor.startsWith("search_")) {
+      const cursorId = cursor.replace("search_", "");
       where.id = { lt: cursorId };
     }
 
@@ -609,11 +744,11 @@ class ActivityAggregationService {
         query: true,
         createdAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
 
-    return searches.map(search => ({
+    return searches.map((search) => ({
       id: `search_${search.id}`,
       activityType: "SEARCH_PERFORMED" as ActivityType,
       createdAt: search.createdAt.getTime(),
@@ -663,7 +798,10 @@ export const getUserPostsActivity = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -708,7 +846,10 @@ export const getUserLikes = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -753,7 +894,10 @@ export const getUserBookmarks = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -798,7 +942,10 @@ export const getUserComments = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -843,7 +990,10 @@ export const getUserRoomJoins = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -888,7 +1038,10 @@ export const getUserRoomLeaves = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -925,7 +1078,10 @@ export const getUserRoomCreations = async (req: Request, res: Response) => {
       endDate: endDate ? parseInt(endDate as string) : undefined,
     };
 
-    const activities = await activityService.getUserRoomCreations(userId, options);
+    const activities = await activityService.getUserRoomCreations(
+      userId,
+      options,
+    );
 
     res.json({
       success: true,
@@ -933,7 +1089,10 @@ export const getUserRoomCreations = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -978,7 +1137,10 @@ export const getUserSearches = async (req: Request, res: Response) => {
         activities,
         total: activities.length,
         hasMore: activities.length === (options.limit || 50),
-        nextCursor: activities.length > 0 ? activities[activities.length - 1]?.id : undefined,
+        nextCursor:
+          activities.length > 0
+            ? activities[activities.length - 1]?.id
+            : undefined,
       },
     });
   } catch (error) {
@@ -1034,7 +1196,10 @@ export const getActivityHistory = async (req: Request, res: Response) => {
       endDate: endDate ? parseInt(endDate as string) : undefined,
     };
 
-    const result = await activityService.getUserActivityHistory(userId, options);
+    const result = await activityService.getUserActivityHistory(
+      userId,
+      options,
+    );
 
     res.json({
       success: true,
