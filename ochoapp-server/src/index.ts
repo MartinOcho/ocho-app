@@ -1072,26 +1072,7 @@ io.on("connection", async (socket: Socket) => {
               postId,
               commentId,
             },
-            include: {
-              issuer: {
-                select: {
-                  username: true,
-                  displayName: true,
-                  avatarUrl: true,
-                },
-              },
-              post: {
-                select: {
-                  content: true,
-                },
-              },
-              comment: {
-                select: {
-                  id: true,
-                  content: true,
-                },
-              },
-            },
+            include: notificationsInclude,
           });
           
           io.to(recipientId).emit("notification_received", notification);
@@ -1198,26 +1179,7 @@ io.on("connection", async (socket: Socket) => {
             postId: postId || undefined,
             commentId: commentId || undefined,
           },
-          include: {
-              issuer: {
-                select: {
-                  username: true,
-                  displayName: true,
-                  avatarUrl: true,
-                },
-              },
-              post: {
-                select: {
-                  content: true,
-                },
-              },
-              comment: {
-                select: {
-                  id: true,
-                  content: true,
-                },
-              },
-            },
+          include: notificationsInclude,
         })
         if (notification) {
           await prisma.notification.delete({
