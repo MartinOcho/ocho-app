@@ -32,6 +32,14 @@ export async function getNotifications(req: Request, res: Response) {
             avatarUrl: true,
           },
         },
+        post: {
+          select: {
+            id: true,
+            userId: true,
+            content: true,
+            attachments: true,
+          },
+        },
         comment: {
           select: {
             id: true,
@@ -99,6 +107,7 @@ export async function getNotifications(req: Request, res: Response) {
         comment,
         createdAt: notif.createdAt.getTime(),
         postId: notif.postId || null,
+        post: notif.post || null,
       };
     });
 

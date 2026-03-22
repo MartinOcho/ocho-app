@@ -560,7 +560,10 @@ export const notificationsInclude = {
   },
   post: {
     select: {
+      id: true,
+      userId: true,
       content: true,
+      attachments: true,
     },
   },
   comment: {

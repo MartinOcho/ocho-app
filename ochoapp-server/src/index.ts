@@ -23,6 +23,7 @@ import {
   SocketGetRoomDetailsEvent,
   SocketGetLastMessageEvent,
   SocketCheckUserStatusEvent,
+  notificationsInclude,
 } from "./types";
 import {
   getFormattedRooms,
@@ -1058,26 +1059,7 @@ io.on("connection", async (socket: Socket) => {
               read: false,
               createdAt: new Date()
             },
-            include: {
-              issuer: {
-                select: {
-                  username: true,
-                  displayName: true,
-                  avatarUrl: true,
-                },
-              },
-              post: {
-                select: {
-                  content: true,
-                },
-              },
-              comment: {
-                select: {
-                  id: true,
-                  content: true,
-                },
-              },
-            },
+            include: notificationsInclude
           })
 
           io.to(recipientId).emit("notification_received", notification);
