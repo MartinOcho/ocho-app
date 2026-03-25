@@ -798,6 +798,105 @@ export interface BookmarkInfo {
   isBookmarkedByUser: boolean;
 }
 
+// ============================================================================
+// TYPES POUR L'API DE RECHERCHE AMÉLIORÉE
+// ============================================================================
+
+export interface Hashtag {
+  hashtag: string;
+  postCount: number;
+  likeCount: number;
+}
+
+export interface SearchHistoryItem {
+  id: string;
+  query: string;
+  createdAt: number;
+}
+
+export interface SearchResults<T> {
+  items: T[];
+  hasMore: boolean;
+  nextCursor?: string | null;
+}
+
+export interface GeneralSearchResponse {
+  posts: SearchResults<Post>;
+  users: SearchResults<User>;
+  hashtags: SearchResults<Hashtag>;
+}
+
+export interface PostSearchResponse {
+  activities: Array<{
+    id: string;
+    activityType: "POST";
+    createdAt: number;
+    entityId: string;
+    entity: Post;
+  }>;
+  total: number;
+  hasMore: boolean;
+  nextCursor?: string | null;
+}
+
+export interface UserSearchResponse {
+  activities: Array<{
+    id: string;
+    activityType: "USER";
+    createdAt: number;
+    entityId: string;
+    entity: User;
+  }>;
+  total: number;
+  hasMore: boolean;
+  nextCursor?: string | null;
+}
+
+export interface HashtagSearchResponse {
+  activities: Array<{
+    id: string;
+    activityType: "HASHTAG";
+    createdAt: number;
+    entityId: string;
+    entity: Hashtag;
+  }>;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface SearchHistoryResponse {
+  activities: Array<{
+    id: string;
+    activityType: "SEARCH_PERFORMED";
+    createdAt: number;
+    entityId: string;
+    entity: SearchHistoryItem;
+  }>;
+  total: number;
+  hasMore: boolean;
+  nextCursor?: string | null;
+}
+
+export interface SaveSearchRequest {
+  query: string;
+}
+
+export interface SaveSearchResponse {
+  id: string;
+  query: string;
+  createdAt: number;
+}
+
+export type SearchType = "posts" | "users" | "hashtags";
+
+export interface SearchFilters {
+  type?: SearchType;
+  limit?: number;
+  cursor?: string;
+  startDate?: number;
+  endDate?: number;
+}
+
 export interface NotificationCountInfo {
   unreadCount: number;
 }

@@ -7,9 +7,9 @@ import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
 import { upSaveDevice } from "./devices";
 
-export async function checkVerification(
+export function checkVerification(
   userData: UserData,
-): Promise<VerifiedUser> {
+): VerifiedUser {
   const userVerifiedData = userData.verified?.[0];
   const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
   const canExpire = !!(expiresAt || null);

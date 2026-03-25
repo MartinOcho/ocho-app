@@ -70,16 +70,22 @@ import {
   likeComment,
   deleteComment,
   getUnreadNotificationCount,
+  getLastMessage,
+  getUnreadRoomsCount,
+  validateUser,
+} from "./utils";
+import {
   getSearchHistory,
   deleteSearchQuery,
   saveSearchQuery,
   searchAll,
   searchPost,
   searchPostIds,
-  getLastMessage,
-  getUnreadRoomsCount,
-  validateUser,
-} from "./utils";
+  searchGeneral,
+  searchUsers,
+  searchHashtags,
+  searchPostsFiltered,
+} from "./search";
 import { ApiResponse } from "./types";
 
 dotenv.config();
@@ -202,12 +208,17 @@ app.get("/api/messages/:messageId/reads", getMessageReads);
 
 app.delete("/api/auth/logout", logoutUser);
 
+// Routes de recherche
+app.get("/api/search", searchGeneral);
 app.get("/api/search/history", getSearchHistory);
 app.post("/api/search/history", saveSearchQuery);
 app.delete("/api/search/history/:queryId", deleteSearchQuery);
 app.get("/api/search/all", searchAll);
 app.get("/api/search/posts", searchPost);
+app.get("/api/search/posts/filtered", searchPostsFiltered);
 app.get("/api/search/posts/ids", searchPostIds);
+app.get("/api/search/users", searchUsers);
+app.get("/api/search/hashtags", searchHashtags);
 
 app.get("/api/activity/history", getActivityHistory);
 
