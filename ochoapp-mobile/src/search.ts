@@ -117,10 +117,11 @@ export async function searchGeneral(req: Request, res: Response) {
       // Posts
       prisma.post.findMany({
         where: {
-          content: {
-            contains: q,
-            mode: "insensitive",
-          },
+          OR: [
+              { content: { search: q } },
+              { user: { displayName: { search: q } } },
+              { user: { username: { search: q } } },
+            ],
         },
           include: getPostDataIncludes(user.id),
         orderBy: { createdAt: "desc" },
@@ -133,14 +134,12 @@ export async function searchGeneral(req: Request, res: Response) {
           OR: [
             {
               username: {
-                contains: q,
-                mode: "insensitive",
+                search: q,
               },
             },
             {
               displayName: {
-                contains: q,
-                mode: "insensitive",
+                search: q,
               },
             },
           ],
@@ -153,8 +152,7 @@ export async function searchGeneral(req: Request, res: Response) {
       prisma.post.findMany({
         where: {
           content: {
-            contains: "#",
-            mode: "insensitive",
+            search: "#",
           },
         },
         select: {
@@ -238,10 +236,11 @@ export async function searchPostsFiltered(req: Request, res: Response) {
     const whereClause: Prisma.PostWhereInput = {
       AND: [
         {
-          content: {
-            contains: q,
-            mode: "insensitive",
-          },
+          OR: [
+              { content: { search: q } },
+              { user: { displayName: { search: q } } },
+              { user: { username: { search: q } } },
+            ],
         },
         {
           createdAt: {
@@ -315,14 +314,12 @@ export async function searchUsers(req: Request, res: Response) {
         OR: [
           {
             username: {
-              contains: q,
-              mode: "insensitive",
+              search: q,
             },
           },
           {
             displayName: {
-              contains: q,
-              mode: "insensitive",
+              search: q,
             },
           },
         ],
@@ -387,8 +384,7 @@ export async function searchHashtags(req: Request, res: Response) {
     const posts = await prisma.post.findMany({
       where: {
         content: {
-          contains: "#",
-          mode: "insensitive",
+          search: "#",
         },
       },
       select: {
@@ -508,9 +504,6 @@ export async function getSearchHistory(req: Request, res: Response) {
   }
 }
 
-// ============================================================================
-// ENDPOINT: POST /api/search/history - SAUVEGARDER UNE RECHERCHE
-// ============================================================================
 
 export async function saveSearchQuery(req: Request, res: Response) {
   try {
@@ -555,9 +548,6 @@ export async function saveSearchQuery(req: Request, res: Response) {
   }
 }
 
-// ============================================================================
-// ENDPOINT: DELETE /api/search/history/:id - SUPPRESSION D'UNE RECHERCHE
-// ============================================================================
 
 export async function deleteSearchQuery(req: Request, res: Response) {
   try {
@@ -606,9 +596,6 @@ export async function deleteSearchQuery(req: Request, res: Response) {
   }
 }
 
-// ============================================================================
-// LEGACY FUNCTIONS (pour compatibilité avec les imports existants)
-// ============================================================================
 
 export async function searchPosts(req: Request, res: Response) {
   return searchPostsFiltered(req, res);
