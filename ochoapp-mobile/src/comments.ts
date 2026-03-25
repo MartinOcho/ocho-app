@@ -4,6 +4,7 @@ import {
   ApiResponse,
   Comment,
   getCommentDataIncludes,
+  getUserDataSelect,
   LikeResponse,
   Reply,
   UserData,
@@ -185,18 +186,7 @@ export async function getComments(req: Request, res: Response) {
           },
         },
         user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-            verified: {
-              select: {
-                type: true,
-                expiresAt: true,
-              },
-            },
-          },
+          select: getUserDataSelect(userId),
         },
         likes: {
           where: { userId },
