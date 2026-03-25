@@ -369,7 +369,7 @@ class ActivityAggregationService {
         content: comment.content,
         createdAt: comment.createdAt.getTime(),
         likes: comment._count.likes,
-        isLiked: false, // TODO: vérifier si l'utilisateur a liké
+        isLiked: false, 
         isLikedByAuthor: false,
         isRepliedByAuthor: false,
         postId: comment.postId,
