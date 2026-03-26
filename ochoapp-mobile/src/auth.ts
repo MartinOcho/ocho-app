@@ -120,12 +120,12 @@ export async function loginUser(req: Request, res: Response) {
   const newSessionData = await newSession(
     existingUser.id,
     {
-      deviceId: req.headers["X-Device-ID"] as string,
-      deviceType: req.headers["X-Device-Type"] as string,
-      deviceModel: req.headers["X-Device-Model"] as string,
+      deviceId: req.headers["x-device-id"] as string,
+      deviceType: req.headers["x-device-type"] as string,
+      deviceModel: req.headers["x-device-model"] as string,
     },
-    (req.headers["X-Forwarded-For"] as string) ||
-      (req.headers["X-Real-Ip"] as string) ||
+    (req.headers["x-forwarded-for"] as string) ||
+      (req.headers["x-real-ip"] as string) ||
       "unknown",
   );
 
