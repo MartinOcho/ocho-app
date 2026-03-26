@@ -48,6 +48,8 @@ export async function formatUserResponse(userData: UserData): Promise<User> {
 
 export async function loginUser(req: Request, res: Response) {
   const input = req.body;
+  console.log(req.headers);
+  
 
   const credentials = loginSchema.parse(input);
   const { username, password } = credentials;
