@@ -97,7 +97,7 @@ export async function searchGeneral(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -216,7 +216,7 @@ export async function searchPostsFiltered(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -294,7 +294,7 @@ export async function searchUsers(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -366,7 +366,7 @@ export async function searchHashtags(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -458,7 +458,7 @@ export async function getSearchHistory(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -512,7 +512,7 @@ export async function saveSearchQuery(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -556,7 +556,7 @@ export async function deleteSearchQuery(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -619,7 +619,7 @@ export async function searchPostIds(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 

@@ -565,7 +565,7 @@ app.post(
         return res.json({
           success: false,
           message: "Utilisateur non authentifié.",
-          name: "unauthorized",
+          name: "invalid_session",
         } as ApiResponse<null>);
       }
       const userId = user.id;

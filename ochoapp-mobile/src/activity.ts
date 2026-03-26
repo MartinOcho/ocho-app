@@ -776,7 +776,7 @@ export const getUserPostsActivity = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -824,7 +824,7 @@ export const getUserLikes = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -872,7 +872,7 @@ export const getUserBookmarks = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -920,7 +920,7 @@ export const getUserComments = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -968,7 +968,7 @@ export const getUserRoomJoins = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -1016,7 +1016,7 @@ export const getUserRoomLeaves = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -1064,7 +1064,7 @@ export const getUserRoomCreations = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -1115,7 +1115,7 @@ export const getUserSearches = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -1164,7 +1164,7 @@ export const getActivityHistory = async (req: Request, res: Response) => {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 

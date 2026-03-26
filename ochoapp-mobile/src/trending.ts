@@ -10,7 +10,7 @@ export async function getTrendingHashtags(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 

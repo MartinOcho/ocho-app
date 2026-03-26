@@ -20,7 +20,7 @@ export async function sendComment(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -153,7 +153,7 @@ export async function getComments(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -300,7 +300,7 @@ export async function sendCommentReply(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     // Fin de la vérification de l'appareil
@@ -447,7 +447,7 @@ export async function getCommentReplies(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
     const userId = loggedUser.id;
@@ -619,7 +619,7 @@ export async function likeComment(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
 
@@ -709,7 +709,7 @@ export async function deleteComment(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
 

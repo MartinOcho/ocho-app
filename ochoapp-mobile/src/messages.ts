@@ -23,7 +23,7 @@ export async function getMessageRooms(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -139,7 +139,7 @@ export async function getRoom(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -340,7 +340,7 @@ export async function getMessages(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
 
@@ -355,7 +355,7 @@ export async function getMessages(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -474,7 +474,7 @@ export async function getLastMessage(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -594,7 +594,7 @@ export async function getRoomMedias(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -707,7 +707,7 @@ export async function getUnreadRoomsCount(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -780,7 +780,7 @@ export async function getUnreadMessagesCount(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     const userId = user.id;
@@ -845,7 +845,7 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
 
@@ -933,7 +933,7 @@ export async function searchMessageUsers(req: Request, res: Response) {
       return res.json({
         success: false,
         message: "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
 
@@ -995,7 +995,7 @@ export async function getMessageDeliveries(req: Request, res: Response) {
     return res.json({
       success: false,
       message: message || "Utilisateur non authentifié.",
-      name: "unauthorized",
+      name: "invalid_session",
     });
   }
 
@@ -1052,7 +1052,7 @@ export async function getMessageReactions(req: Request, res: Response) {
       return res.json({
         success: false,
         message: msg || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -1149,7 +1149,7 @@ export async function getMessageReads(req: Request, res: Response) {
     return res.json({
       success: false,
       message: message || "Utilisateur non authentifié.",
-      name: "unauthorized",
+      name: "invalid_session",
     });
   }
 

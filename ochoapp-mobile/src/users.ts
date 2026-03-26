@@ -18,7 +18,7 @@ export async function getUserProfile(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -111,7 +111,7 @@ export async function updateUserProfile(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -259,7 +259,7 @@ export async function toggleFollow(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -436,7 +436,7 @@ export async function getSuggestedUsers(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       } as ApiResponse<null>);
     }
     // Exécuter la requête Prisma pour trouver les utilisateurs à suggérer
@@ -521,7 +521,7 @@ export async function validateUser(
     res.json({
       success: false,
       message: message || "Utilisateur non authentifié.",
-      name: "unauthorized",
+      name: "invalid_session",
     } as ApiResponse<null>);
     return { userData: null, user: null };
   }
@@ -537,7 +537,7 @@ export async function validateUser(
     res.json({
       success: false,
       message: message || "Utilisateur non authentifié.",
-      name: "unauthorized",
+      name: "invalid_session",
     } as ApiResponse<null>);
     return { userData: null, user: null };
   }
@@ -553,7 +553,7 @@ export async function getUserSettings(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -633,7 +633,7 @@ export async function updateUserPrivacy(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -702,7 +702,7 @@ export async function updateUserBirthday(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -768,7 +768,7 @@ export async function updateUsername(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -854,7 +854,7 @@ export async function exportUserData(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -958,7 +958,7 @@ export async function disableUserAccount(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
@@ -988,7 +988,7 @@ export async function deleteUserAccount(req: Request, res: Response) {
       return res.json({
         success: false,
         message: message || "Utilisateur non authentifié.",
-        name: "unauthorized",
+        name: "invalid_session",
       });
     }
 
