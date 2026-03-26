@@ -288,13 +288,15 @@ export async function newSession(
   device: { deviceId: string; deviceType: string; deviceModel?: string },
   ip: string,
 ) {
+  console.log(device, ip);
+  
   try {
     const { deviceId, deviceType: deviceTypeHeader, deviceModel } = device;
     // Vérifier la présence des en-têtes essentiels
     if (!deviceId || !device) {
       return {
         success: false,
-        message: "En-têtes d'appareil manquants (deviceId, deviceType).",
+        message: "En-têtes d'appareil manquants.",
         name: "missing_device_headers",
       };
     }
