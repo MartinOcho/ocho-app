@@ -357,6 +357,7 @@ export async function newSession(
         },
         data: {
           expiresAt: newExpiresAt,
+          deviceId: newDevice.id
         },
       });
     } else {
@@ -373,8 +374,6 @@ export async function newSession(
       });
     }
 
-    // Créer une nouvelle session
-    const sessionId = session.id;
 
     const user = await formatUserResponse(existingUser as unknown as UserData);
 
