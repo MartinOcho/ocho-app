@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from "http";
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { User, UserData, VerifiedUser } from "./types";
+import { getUserDataSelect, User, UserData, VerifiedUser } from "./types";
 import { loginSchema, sessionSchema, SessionValues, signupSchema } from "./validation";
 import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
@@ -452,35 +452,11 @@ export async function getCurrentUser(
       device: {
         select: {
           deviceId: true,
-          deviceType: true,
-          deviceModel: true,
+          type: true,
+          model: true,
         },
       },
-      user: {
-        select: {
-          id: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          bio: true,
-          lastSeen: true,
-          createdAt: true,
-          following: {
-            select: {
-              followerId: true,
-            },
-            take: 0,
-          },
-          followers: {
-            select: {
-              followerId: true,
-            },
-            take: 0,
-          },
-          verified: true,
-          _count: true,
-        },
-      },
+      user: {select: getUserDataSelect("")},
     },
   });
   if (!session?.user) {
