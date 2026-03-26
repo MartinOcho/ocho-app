@@ -357,7 +357,7 @@ export async function newSession(
         },
         data: {
           expiresAt: newExpiresAt,
-          deviceId: newDevice.id
+          deviceId: newDevice.deviceId
         },
       });
     } else {
@@ -368,7 +368,7 @@ export async function newSession(
         data: {
           id: sessionId,
           userId: existingUser.id,
-          deviceId: newDevice.id,
+          deviceId: newDevice.deviceId,
           expiresAt,
         },
       });
