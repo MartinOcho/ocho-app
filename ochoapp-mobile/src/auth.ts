@@ -357,7 +357,6 @@ export async function newSession(
         },
         data: {
           expiresAt: newExpiresAt,
-          deviceId: newDevice.deviceId
         },
       });
     } else {
