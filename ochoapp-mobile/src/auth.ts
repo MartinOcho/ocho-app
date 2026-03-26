@@ -449,6 +449,13 @@ export async function getCurrentUser(
       id: sessionToken,
     },
     include: {
+      device: {
+        select: {
+          deviceId: true,
+          deviceType: true,
+          deviceModel: true,
+        },
+      },
       user: {
         select: {
           id: true,
@@ -496,6 +503,8 @@ export async function getCurrentUser(
 
   // Vérifier que la session appartient au device
   if (!device || session.deviceId !== deviceId) {
+    console.log(session, device, deviceId, "Session ou appareil non trouvé, ou session non associée à l'appareil");
+    
     return {
       user: null,
       message: "Appareil non autorisé ou session invalide.",
