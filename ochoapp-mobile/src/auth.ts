@@ -12,6 +12,7 @@ import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
 import { upSaveDevice } from "./devices";
 import { DeviceType } from "@prisma/client";
+import { de } from "zod/locales";
 
 export function checkVerification(userData: UserData): VerifiedUser {
   const userVerifiedData = userData.verified?.[0];
@@ -49,7 +50,6 @@ export async function formatUserResponse(userData: UserData): Promise<User> {
 export async function loginUser(req: Request, res: Response) {
   const input = req.body;
   console.log(req.headers);
-  
 
   const credentials = loginSchema.parse(input);
   const { username, password } = credentials;
@@ -226,26 +226,35 @@ export async function signupUser(req: Request, res: Response) {
 
     // Créer une nouvelle session
     const sessionId = randomUUID();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    const session = await prisma.session.create({
-      data: {
-        id: sessionId,
-        userId: userData.id,
-        expiresAt,
+    const newSessionData = await newSession(
+      userData.id,
+      {
+        deviceId: req.headers["x-device-id"] as string,
+        deviceType: req.headers["x-device-type"] as string,
+        deviceModel: req.headers["x-device-model"] as string,
       },
-    });
+      (req.headers["x-forwarded-for"] as string) ||
+        (req.headers["x-real-ip"] as string) ||
+        "unknown",
+    );
 
-    // Essayer de gérer le device et associer la session si les headers sont présents
+    if (!newSessionData.success || !newSessionData.data?.session) {
+      console.warn(
+        "Erreur lors de la création de la session:",
+        newSessionData.message,
+      );
+      return res.json(newSessionData);
+    }
+    const session = newSessionData.data.session;
     try {
       const deviceId = req.headers["X-Device-ID"] as string;
       if (deviceId) {
-        // upSaveDevice gère: la suppression des anciennes sessions, la création/mise à jour du device, et l'association de la session
         await upSaveDevice(req.headers, userData.id, sessionId);
       }
     } catch (error) {
       console.warn("Erreur lors de la gestion du device:", error);
-      // Ne pas échouer si la gestion du device échoue
     }
 
     const user = {
@@ -266,13 +275,16 @@ export async function signupUser(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Inscription réussie",
+      message: "Authentification réussie.",
+      name: "AuthenticationSuccess",
+      error: null,
       data: {
         user,
         session: {
           id: session.id,
           userId: session.userId,
-          expiresAt: session.expiresAt.getTime(),
+          deviceId: session.deviceId,
+          expiresAt: session.expiresAt,
         },
       },
     });
@@ -291,7 +303,7 @@ export async function newSession(
   ip: string,
 ) {
   console.log(device, ip);
-  
+
   try {
     const { deviceId, deviceType: deviceTypeHeader, deviceModel } = device;
     // Vérifier la présence des en-têtes essentiels
@@ -373,7 +385,6 @@ export async function newSession(
       });
     }
 
-
     const user = await formatUserResponse(existingUser as unknown as UserData);
 
     return {
@@ -384,6 +395,7 @@ export async function newSession(
         session: {
           id: session.id,
           userId: session.userId,
+          deviceId: session.deviceId,
           expiresAt: session.expiresAt.getTime(),
         },
       },
