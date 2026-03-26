@@ -2,14 +2,18 @@ import type { IncomingHttpHeaders } from "http";
 import { Request, Response } from "express";
 import prisma from "./prisma";
 import { getUserDataSelect, User, UserData, VerifiedUser } from "./types";
-import { loginSchema, sessionSchema, SessionValues, signupSchema } from "./validation";
+import {
+  loginSchema,
+  sessionSchema,
+  SessionValues,
+  signupSchema,
+} from "./validation";
 import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
 import { upSaveDevice } from "./devices";
+import { DeviceType } from "@prisma/client";
 
-export function checkVerification(
-  userData: UserData,
-): VerifiedUser {
+export function checkVerification(userData: UserData): VerifiedUser {
   const userVerifiedData = userData.verified?.[0];
   const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
   const canExpire = !!(expiresAt || null);
@@ -98,11 +102,11 @@ export async function loginUser(req: Request, res: Response) {
   }
 
   const user = await formatUserResponse(existingUser as unknown as UserData);
-  
+
   // Créer une nouvelle session
   const sessionId = randomUUID();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
-  
+
   const session = await prisma.session.create({
     data: {
       id: sessionId,
@@ -111,11 +115,30 @@ export async function loginUser(req: Request, res: Response) {
     },
   });
 
+  const newSessionData = await newSession(
+    existingUser.id,
+    {
+      deviceId: req.headers["X-Device-ID"] as string,
+      deviceType: req.headers["X-Device-Type"] as string,
+      deviceModel: req.headers["X-Device-Model"] as string,
+    },
+    (req.headers["X-Forwarded-For"] as string) ||
+      (req.headers["X-Real-Ip"] as string) ||
+      "unknown",
+  );
+
+  if (!newSessionData.success) {
+    console.warn(
+      "Erreur lors de la création de la session:",
+      newSessionData.message,
+    );
+    return res.json(newSessionData);
+  }
+
   // Essayer de gérer le device et associer la session si les headers sont présents
   try {
     const deviceId = req.headers["X-Device-ID"] as string;
     if (deviceId) {
-      // upSaveDevice gère: la suppression des anciennes sessions, la création/mise à jour du device, et l'association de la session
       await upSaveDevice(req.headers, existingUser.id, sessionId);
     }
   } catch (error) {
@@ -202,7 +225,7 @@ export async function signupUser(req: Request, res: Response) {
     // Créer une nouvelle session
     const sessionId = randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
-    
+
     const session = await prisma.session.create({
       data: {
         id: sessionId,
@@ -260,6 +283,118 @@ export async function signupUser(req: Request, res: Response) {
     });
   }
 }
+export async function newSession(
+  userId: string,
+  device: { deviceId: string; deviceType: string; deviceModel?: string },
+  ip: string,
+) {
+  try {
+    const { deviceId, deviceType: deviceTypeHeader, deviceModel } = device;
+    // Vérifier la présence des en-têtes essentiels
+    if (!deviceId || !device) {
+      return {
+        success: false,
+        message: "En-têtes d'appareil manquants (deviceId, deviceType).",
+        name: "missing_device_headers",
+      };
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        id: {
+          equals: userId,
+          mode: "insensitive",
+        },
+      },
+      select: getUserDataSelect(""),
+    });
+
+    if (!existingUser) {
+      return {
+        success: false,
+        message: "Session non valide. Veuillez vous reconnecter et réessayer",
+        name: "invalid_session",
+      };
+    }
+
+    let session;
+
+    session = await prisma.session.findFirst({
+      where: {
+        userId,
+        device: {
+          deviceId,
+        },
+      },
+    });
+
+    let newDevice = await prisma.device.findUnique({
+      where: {
+        deviceId,
+      },
+    });
+
+    if (!newDevice) {
+      newDevice = await prisma.device.create({
+        data: {
+          deviceId,
+          type: (deviceTypeHeader || "UNKNOWN") as DeviceType,
+          model: deviceModel,
+        },
+      });
+    }
+
+    if (session) {
+      // Mettre à jour la date d'expiration de la session existante
+      const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      session = await prisma.session.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          expiresAt: newExpiresAt,
+        },
+      });
+    } else {
+      // Créer une nouvelle session
+      const sessionId = randomUUID();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+      session = await prisma.session.create({
+        data: {
+          id: sessionId,
+          userId: existingUser.id,
+          deviceId: newDevice.id,
+          expiresAt,
+        },
+      });
+    }
+
+    // Créer une nouvelle session
+    const sessionId = session.id;
+
+    const user = await formatUserResponse(existingUser as unknown as UserData);
+
+    return {
+      success: true,
+      message: "Session créée avec succès.",
+      data: {
+        user,
+        session: {
+          id: session.id,
+          userId: session.userId,
+          expiresAt: session.expiresAt.getTime(),
+        },
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      message: "Quelque chose s'est mal passé. Veuillez réessayer.",
+      name: "server_error",
+    };
+  }
+}
 export async function createSession(req: Request, res: Response) {
   try {
     const { id, userId } = req.body;
@@ -268,7 +403,10 @@ export async function createSession(req: Request, res: Response) {
     const deviceId = req.headers["X-Device-ID"] as string;
     const deviceTypeHeader = req.headers["X-Device-Type"] as string;
     const deviceModel = req.headers["X-Device-Model"] as string;
-    const ip = req.headers["X-Forwarded-For"] as string || req.headers["X-Real-Ip"] as string || "unknown";
+    const ip =
+      (req.headers["X-Forwarded-For"] as string) ||
+      (req.headers["X-Real-Ip"] as string) ||
+      "unknown";
 
     // Vérifier la présence des en-têtes essentiels
     if (!deviceId || !deviceTypeHeader) {
@@ -286,25 +424,8 @@ export async function createSession(req: Request, res: Response) {
           mode: "insensitive",
         },
       },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        email: true,
-        bio: true,
-        createdAt: true,
-        lastSeen: true,
-        verified: {
-          select: {
-            type: true,
-            expiresAt: true,
-          },
-        },
-        passwordHash: true,
-      },
+      select: getUserDataSelect(""),
     });
-
 
     if (!existingUser) {
       return res.json({
@@ -319,11 +440,29 @@ export async function createSession(req: Request, res: Response) {
     session = await prisma.session.findFirst({
       where: {
         userId,
+        device: {
+          deviceId,
+        },
+      },
+    });
+
+    let device = await prisma.device.findUnique({
+      where: {
         deviceId,
       },
     });
 
-    if (session){
+    if (!device) {
+      device = await prisma.device.create({
+        data: {
+          deviceId,
+          type: (deviceTypeHeader || "UNKNOWN") as DeviceType,
+          model: deviceModel,
+        },
+      });
+    }
+
+    if (session) {
       // Mettre à jour la date d'expiration de la session existante
       const newExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       session = await prisma.session.update({
@@ -334,7 +473,7 @@ export async function createSession(req: Request, res: Response) {
           expiresAt: newExpiresAt,
         },
       });
-    }else{
+    } else {
       // Créer une nouvelle session
       const sessionId = randomUUID();
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
@@ -342,7 +481,7 @@ export async function createSession(req: Request, res: Response) {
         data: {
           id: sessionId,
           userId: existingUser.id,
-          deviceId,
+          deviceId: device.id,
           expiresAt,
         },
       });
@@ -456,7 +595,7 @@ export async function getCurrentUser(
           model: true,
         },
       },
-      user: {select: getUserDataSelect("")},
+      user: { select: getUserDataSelect("") },
     },
   });
   if (!session?.user) {
@@ -478,9 +617,14 @@ export async function getCurrentUser(
   });
 
   // Vérifier que la session appartient au device
-  if (!device || session.deviceId !== deviceId) {
-    console.log(session, device, deviceId, "Session ou appareil non trouvé, ou session non associée à l'appareil");
-    
+  if (!device || device.deviceId !== deviceId) {
+    console.log(
+      session,
+      device,
+      deviceId,
+      "Session ou appareil non trouvé, ou session non associée à l'appareil",
+    );
+
     return {
       user: null,
       message: "Appareil non autorisé ou session invalide.",

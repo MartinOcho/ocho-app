@@ -143,7 +143,7 @@ export async function upSaveDevice(
     await prisma.session.deleteMany({
       where: {
         userId: userId,
-        deviceId: deviceId,
+        device: {deviceId},
         id: {
           not: sessionId,
         },
@@ -194,7 +194,7 @@ export async function upSaveDevice(
     // 3. Associer la session au device
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
-      data: { deviceId: deviceId },
+      data: { deviceId: device.id },
     });
     console.log("Session associée au device:", sessionId);
 
