@@ -48,7 +48,6 @@ import {
   handleGetRoomDetails,
   handleGetLastMessage,
 } from "./socket-handlers";
-import { th } from "zod/locales";
 
 dotenv.config();
 

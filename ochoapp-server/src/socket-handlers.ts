@@ -962,7 +962,7 @@ export async function handleGetLastMessage(
     where: {
       roomId_userId: {
         roomId,
-        userId: userId,
+        userId,
       },
     },
   });
@@ -980,7 +980,7 @@ export async function handleGetLastMessage(
   const lastMessage = await prisma.message.findFirst({
     where: {
       roomId,
-      createdAt: { lt: leftDate || undefined },
+      createdAt: { lte: leftDate || undefined },
     },
     orderBy: { createdAt: "desc" },
     include: getMessageDataInclude(userId),
