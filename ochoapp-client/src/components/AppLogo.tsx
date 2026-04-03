@@ -23,10 +23,14 @@ export default function AppLogo({
     <Logo className={className} size={size} />
   );
 
+  const textGradientClasses = "bg-gradient-to-r from-[#157ff2] to-[#0c50cc] text-transparent bg-clip-text";
+  const textSizeClass = `text-[${size}px]`;
+  const stackedTextSizeClass = `text-[${size > 48 ? size * 1.25 : size}px]`;
+
   if (logo) {
     if (logo === "TEXT") {
       return (
-        <span className={`text-[${size}px] font-bold ${className}`}>
+        <span className={cn(textSizeClass, "font-bold", textGradientClasses, className)}>
           OchoApp
         </span>
       );
@@ -43,7 +47,7 @@ export default function AppLogo({
       >
         {logoEl}
         <span
-          className={cn(`text-[${size > 48 ? size * 1.25 : size}px] font-bold`)}
+          className={cn(stackedTextSizeClass, "font-bold", textGradientClasses)}
         >
           OchoApp
         </span>
