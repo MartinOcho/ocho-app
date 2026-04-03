@@ -54,7 +54,7 @@ export default function AppLogo({
 }
 
 function Logo({ className = "", size = 48 }: AppLogoProps) {
-  const iconSize = size/2;
+  const iconSize = size;
   return (
     <svg
       width={iconSize/2}
@@ -77,11 +77,9 @@ function Logo({ className = "", size = 48 }: AppLogoProps) {
           <stop offset="1" stopColor="#0c50cc" />
         </linearGradient>
       </defs>
-      <g transform="translate(28 28) scale(0.44)">
         <path
           d="M50,50 C30,30 20,10 50,10 C80,10 70,30 50,50 C30,70 20,90 50,90 C80,90 70,70 50,50 Z"
           fill="none"
-          stroke="rgba(0,0,0,0.1)"
           strokeWidth="14"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -95,12 +93,11 @@ function Logo({ className = "", size = 48 }: AppLogoProps) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-      </g>
     </svg>
   );
 }
 function LogoXmas({ className = "", size = 48 }: AppLogoProps) {
-  const iconSize = size/2;
+  const iconSize = size;
   return (
     <svg
       width={iconSize/2}
@@ -127,7 +124,7 @@ function LogoXmas({ className = "", size = 48 }: AppLogoProps) {
         d="M50,50c-8.8,-8.8 -13.2,-17.6 0,-17.6S58.8,41.2 50,50s-13.2,17.6 0,17.6S58.8,58.8 50,50z"
         fill="none"
         stroke="url(#xmasGradient)"
-        strokeWidth="5.72"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
