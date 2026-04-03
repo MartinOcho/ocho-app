@@ -16,11 +16,11 @@ export default function Navbar() {
       <nav className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 px-5 py-3 max-sm:justify-between">
         <OchoLink
           href="/"
-          className="text-2xl font-bold max-sm:hidden"
+          className="text-2xl font-bold max-sm:absolute max-sm:invisible"
         >
           <AppLogo size={70} />
         </OchoLink>
-        <OchoLink href="/" className="text-2xl font-bold sm:hidden">
+        <OchoLink href="/" className="text-2xl font-bold flex sm:hidden">
           <AppLogo logo="LOGO" size={70} />
         </OchoLink>
         <SearchField />
