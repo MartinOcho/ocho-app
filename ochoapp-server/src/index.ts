@@ -102,7 +102,103 @@ const upload = multer({
 });
 
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from the server" });
+  const userAgent = req.get('User-Agent') || '';
+  const isAndroid = /Android/i.test(userAgent);
+  const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+  const isMobile = isAndroid || isIOS;
+
+  // Page de bienvenue pour tous les appareils
+  const title = isMobile ? "Ouvrez OchoApp mobile" : "Bienvenue sur OchoApp";
+  const description = isMobile ? "Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives." : "Accédez à OchoApp pour une expérience optimale.";
+  const html = `
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Bienvenue sur OchoApp</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .toast { max-width: 400px; width: 90%; background: white; border-radius: 28px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); padding: 24px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+        .content { flex: 1; }
+        .title { font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 8px; }
+        .logo-text { display: flex; gap: 8px; align-items: center; flex-direction: column; }
+        .logo-svg { width: 40px; height: 40px; }
+        .description { font-size: 14px; color: #6b7280; }
+        .close { color: #9ca3af; font-size: 20px; cursor: pointer; border: none; background: none; }
+        .close:hover { color: #6b7280; }
+        .buttons { display: flex; gap: 8px; margin-top: 16px; }
+        .button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 24px; font-size: 16px; font-weight: 500; text-decoration: none; transition: background-color 0.2s; flex: 1; }
+        .button.primary { background-color: #2563eb; color: white; }
+        .button.primary:hover { background-color: #1d4ed8; }
+        .button.secondary { background-color: transparent; color: #374151; border: 1px solid #d1d5db; }
+        .button.secondary:hover { background-color: #f9fafb; }
+        .ios-message { font-size: 14px; color: #9ca3af; margin-top: 16px; }
+        @media (max-width: 600px) { .buttons { flex-direction: column; } .button { width: 100%; } }
+      </style>
+    </head>
+    <body>
+      <div class="toast">
+        <div class="header">
+          <div class="content">
+            <h3 class="title">${title}</h3>
+            <div class="logo-text">
+              <svg class="logo-svg w-48 h-48 drop-shadow-md" viewBox="0 0 100 100" fill="none" aria-label="OchoApp logo">
+                <defs>
+                    <linearGradient id="logoGradient" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+                        <!-- CORRECTION: stop-color au lieu de stopcolor -->
+                        <stop offset="0" stop-color="#157ff2"></stop>
+                        <stop offset="1" stop-color="#0c50cc"></stop>
+                    </linearGradient>
+                </defs>
+                <path d="M50,50 C30,30 20,10 50,10 C80,10 70,30 50,50 C30,70 20,90 50,90 C80,90 70,70 50,50 Z" 
+                      fill="none" 
+                      stroke="url(#logoGradient)" 
+                      stroke-width="14" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round">
+                </path>
+            </svg>
+              <p class="description">${description}</p>
+            </div>
+          </div>
+        </div>
+        <div class="buttons">
+          ${isMobile ? (isAndroid ? `
+            <a href="ochoapp://home" class="button primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15,3 21,3 21,9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>Ouvrir</span>
+            </a>
+            <a href="https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk" class="button secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7,10 12,15 17,10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Télécharger</span>
+            </a>
+          ` : isIOS ? `
+            <div class="ios-message">
+              <p>Disponible sur l'App Store</p>
+              <p>Recherchez "OchoApp" sur l'App Store pour télécharger.</p>
+            </div>
+          ` : '') : `
+            <a href="http://localhost:3000" class="button primary">Accéder à la version web</a>
+          `}
+        </div>
+        <noscript>
+          <p>Version texte : ${description} Pour mobile Android, ouvrez l'application avec ochoapp://home ou téléchargez depuis https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk. Pour desktop, accédez à http://localhost:3000.</p>
+        </noscript>
+      </div>
+    </body>
+    </html>
+  `;
+  res.send(html);
 });
 
 app.post("/api/cloudinary/upload", async (req, res) => {
