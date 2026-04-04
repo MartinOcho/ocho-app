@@ -188,11 +188,11 @@ app.get("/", (req, res) => {
               <p>Recherchez "OchoApp" sur l'App Store pour télécharger.</p>
             </div>
           ` : '') : `
-            <a href="http://localhost:3000" class="button primary">Accéder à la version web</a>
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="button primary">Accéder à la version web</a>
           `}
         </div>
         <noscript>
-          <p>Version texte : ${description} Pour mobile Android, ouvrez l'application avec ochoapp://home ou téléchargez depuis https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk. Pour desktop, accédez à http://localhost:3000.</p>
+          <p>Version texte : ${description} Pour mobile Android, ouvrez l'application avec ochoapp://home ou téléchargez depuis https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk. Pour desktop, accédez à ${process.env.CLIENT_URL || 'http://localhost:3000'}.</p>
         </noscript>
       </div>
     </body>
