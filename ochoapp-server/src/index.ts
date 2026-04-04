@@ -188,7 +188,7 @@ app.get("/", (req, res) => {
               <p>Recherchez "OchoApp" sur l'App Store pour télécharger.</p>
             </div>
           ` : '') : `
-            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="button primary">Accéder à la version web</a>
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="button primary">Accéder à l'accueil</a>
           `}
         </div>
         <noscript>
