@@ -58,6 +58,7 @@ import {
   getMessageDeliveries,
   getMessageReactions,
   getMessageReads,
+  updateRoom,
   getPostsForYou,
   getFollowingPosts,
   getBookmarkedPosts,
@@ -301,6 +302,7 @@ app.get("/api/messages/users/:filter", getMessageUsersByFilter);
 app.get("/api/messages/:messageId/deliveries", getMessageDeliveries);
 app.get("/api/messages/:messageId/reactions", getMessageReactions);
 app.get("/api/messages/:messageId/reads", getMessageReads);
+app.patch("/api/messages/rooms/:roomId", updateRoom);
 
 app.delete("/api/auth/logout", logoutUser);
 

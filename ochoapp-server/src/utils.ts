@@ -583,6 +583,7 @@ export const updateGroupChatProfileSchema = z.object({
     .string()
     .trim()
     .max(2000, "La description ne peut pas depasser 2000 caractères."),
+  groupAvatarUrl: z.string().trim().url().optional(),
 });
 
 export type UpdateGroupChatProfileValues = z.infer<
@@ -715,6 +716,82 @@ export function groupManagment(
         callback({ success: true, data: { roomId } });
       } catch (error: any) {
         console.error("Erreur group_add_members:", error);
+        callback({ success: false, error: error.message || "Erreur serveur" });
+      }
+    },
+  );
+
+  socket.on(
+    "group_update",
+    async (
+      input: UpdateGroupChatProfileValues,
+      callback: (data: any) => void,
+    ) => {
+      try {
+        const { id: roomId, name, description, groupAvatarUrl } =
+          updateGroupChatProfileSchema.parse(input);
+
+        const room = await prisma.room.findUnique({
+          where: { id: roomId },
+          include: { members: true },
+        });
+
+        if (!room || !room.isGroup) {
+          throw new Error("Groupe introuvable");
+        }
+
+        const member = await prisma.roomMember.findUnique({
+          where: {
+            roomId_userId: {
+              roomId,
+              userId,
+            },
+          },
+        });
+
+        if (!member || ["OLD", "BANNED"].includes(member.type)) {
+          throw new Error("Accès refusé au groupe");
+        }
+
+        if (!["ADMIN", "OWNER"].includes(member.type)) {
+          throw new Error("Vous n'avez pas les permissions pour modifier ce groupe.");
+        }
+
+        const updatedRoom = await prisma.room.update({
+          where: { id: roomId },
+          data: {
+            name,
+            description,
+            ...(groupAvatarUrl !== undefined && { groupAvatarUrl }),
+          },
+          include: getChatRoomDataInclude(),
+        });
+
+        io.to(roomId).emit("room_updated", updatedRoom);
+
+        const activeMemberIds = room.members
+          .filter((m) => !["OLD", "BANNED"].includes(m.type))
+          .map((m) => m.userId)
+          .filter((uid): uid is string => !!uid);
+
+        await Promise.all(
+          activeMemberIds.map(async (mid) => {
+            const userRooms = await getFormattedRooms(mid, "");
+            io.to(mid).emit("room_list_updated", userRooms);
+            try {
+              const roomDetails = await handleGetRoomDetails({ roomId }, mid);
+              io.to(mid).emit("room_details", roomDetails);
+            } catch (error) {
+              console.error(
+                "Error emitting room_details in group_update:",
+                error,
+              );
+            }
+          }),
+        );
+
+        callback({ success: true, data: updatedRoom });
+      } catch (error: any) {
         callback({ success: false, error: error.message || "Erreur serveur" });
       }
     },

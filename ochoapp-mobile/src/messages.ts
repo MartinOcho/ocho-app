@@ -1195,3 +1195,142 @@ export async function getMessageReads(req: Request, res: Response) {
     });
   }
 }
+
+export async function updateRoom(req: Request, res: Response) {
+  const { roomId } = req.params;
+  const { name, description, groupAvatarUrl } = req.body;
+
+  try {
+    const { userData, user } = await validateUser(req, res);
+    if (!user || !userData) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non authentifié.",
+        name: "invalid_session",
+      } as ApiResponse<null>);
+    }
+
+    // Cannot update saved room
+    if (roomId === `saved-${user.id}`) {
+      return res.json({
+        success: false,
+        message: "Impossible de modifier les messages enregistrés.",
+        name: "invalid_operation",
+      } as ApiResponse<null>);
+    }
+
+    // Check if room exists
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+    });
+
+    if (!room) {
+      return res.json({
+        success: false,
+        message: "Discussion non trouvée.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+
+    if(!name && !description && !groupAvatarUrl) {
+      return res.json({
+        success: false,
+        message: "Aucun champ à mettre à jour.",
+        name: "invalid_input",
+      } as ApiResponse<null>);
+    }
+
+    if(!room.isGroup) {
+      return res.json({
+        success: false,
+        message: "Impossible de modifier une discussion privée.",
+        name: "invalid_operation",
+      } as ApiResponse<null>);
+    }
+
+
+    // Check if user is a member of the room
+    const member = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: {
+          roomId,
+          userId: user.id,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.json({
+        success: false,
+        message: "Utilisateur non membre de la discussion.",
+        name: "not_found",
+      } as ApiResponse<null>);
+    }
+
+    // Check if user has permission to update the room (ADMIN or OWNER)
+    if (!["ADMIN", "OWNER"].includes(member.type)) {
+      return res.json({
+        success: false,
+        message: "Vous n'avez pas les permissions pour modifier cette discussion.",
+        name: "unauthorized",
+      } as ApiResponse<null>);
+    }
+
+    // Update room with provided fields
+    const updatedRoom = await prisma.room.update({
+      where: { id: roomId },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(groupAvatarUrl !== undefined && { groupAvatarUrl }),
+      },
+    });
+
+    // Fetch room data with members
+    const membersData = await prisma.roomMember.findMany({
+      where: { roomId },
+    });
+
+    const membersToReturn = await Promise.all(
+      membersData.map(async (member) => {
+        if (!member.userId) {
+          return null;
+        }
+
+        const memberUser = await prisma.user.findUnique({
+          where: { id: member.userId },
+          select: getUserDataSelect(user.id),
+        });
+
+        return {
+          user: memberUser,
+          userId: member.userId,
+          type: member.type,
+          joinedAt: member.joinedAt,
+          leftAt: member.leftAt,
+          kickedAt: member.kickedAt,
+        };
+      }),
+    );
+
+    const roomWithMembers: RoomData = {
+      ...updatedRoom,
+      members: membersToReturn.filter((m) => m !== null),
+      messages: [],
+    };
+
+    return res.json({
+      success: true,
+      message: "Canal modifié avec succès.",
+      data: roomWithMembers,
+    } as ApiResponse<RoomData>);
+  } catch (error) {
+    console.error("Erreur lors de la modification du canal :", error);
+    return res.json({
+      success: false,
+      message: "Erreur interne du serveur",
+      name: "server-error",
+      error: error instanceof Error ? error.message : String(error),
+    } as ApiResponse<null>);
+  }
+}
