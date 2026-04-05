@@ -583,7 +583,7 @@ export const updateGroupChatProfileSchema = z.object({
     .string()
     .trim()
     .max(2000, "La description ne peut pas depasser 2000 caractères."),
-  groupAvatarUrl: z.string().trim().url().optional(),
+  groupAvatarUrl: z.string().trim().url().nullable().optional(),
 });
 
 export type UpdateGroupChatProfileValues = z.infer<
