@@ -215,20 +215,23 @@ export function getChatRoomDataInclude(
             createdAt: true,
             lastSeen: true,
             verified: {
-              where: {
-                userId,
-              },
               select: {
                 type: true,
                 expiresAt: true,
               },
             },
             followers: {
+              where: {
+                followerId: userId,
+              },
               select: {
                 followerId: true,
               },
             },
             following: {
+              where: {
+                followerId: userId,
+              },
               select: {
                 followerId: true,
               },
