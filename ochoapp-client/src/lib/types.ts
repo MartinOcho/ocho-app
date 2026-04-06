@@ -37,7 +37,7 @@ export type LanguageContextType = {
   vocabulary: Vocabulary;
 };
 
-export type SearchFilter = 
+export type SearchFilter =
   | "posts"
   | "users"
   | "friend"
@@ -45,7 +45,6 @@ export type SearchFilter =
   | "following"
   | "verified-users"
   | "unrelated-users";
-
 
 // Type pour les pièces jointes locales (avant upload)
 export interface LocalAttachment {
@@ -68,14 +67,9 @@ export function getUserDataSelect(
     displayName: true,
     avatarUrl: true,
     bio: true,
-            createdAt: true,
-            lastSeen: true,
-            verified: {
-      where: {
-        user: {
-          username,
-        },
-      },
+    createdAt: true,
+    lastSeen: true,
+    verified: {
       select: {
         type: true,
         expiresAt: true,
@@ -200,27 +194,25 @@ export function getMessageDataSelect() {
             username: true,
           },
         },
-      }
+      },
     },
     createdAt: true,
   } satisfies Prisma.MessageSelect;
 }
 
-export function getLastMsgInclude(){
+export function getLastMsgInclude() {
   return {
     room: {
       include: getChatRoomDataInclude(),
-    }
-  } satisfies Prisma.MessageInclude
+    },
+  } satisfies Prisma.MessageInclude;
 }
 
 export type LastMsgData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getLastMsgInclude>;
 }>;
 
-export function getChatRoomDataInclude(
-  userId: string | undefined = undefined,
-) {
+export function getChatRoomDataInclude(userId: string | undefined = undefined) {
   return {
     members: {
       select: {
@@ -363,7 +355,6 @@ export interface MessageAttachment {
   resourceType: string | null;
 }
 
-
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
 }>;
@@ -502,7 +493,7 @@ export interface CommentsPage {
 export interface RepliesPage {
   replies: CommentData[];
   previousCursor: string | null;
-  count? : number;
+  count?: number;
 }
 
 export const notificationsInclude = {
@@ -566,7 +557,7 @@ export interface GroupedUser {
   displayName: string;
   username: string;
   avatarUrl: string | null;
-  reactedAt: Date; 
+  reactedAt: Date;
 }
 export interface ReactionInfo {
   reactions: number;

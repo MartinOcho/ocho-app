@@ -29,7 +29,7 @@ export type NavigationContextType = {
   setCurrentNavigation: (currentNavigation: NavigationType) => void;
 };
 
-export type SearchFilter = 
+export type SearchFilter =
   | "posts"
   | "users"
   | "friend"
@@ -48,14 +48,9 @@ export function getUserDataSelect(
     displayName: true,
     avatarUrl: true,
     bio: true,
-            createdAt: true,
-            lastSeen: true,
-            verified: {
-      where: {
-        user: {
-          username,
-        },
-      },
+    createdAt: true,
+    lastSeen: true,
+    verified: {
       select: {
         type: true,
         expiresAt: true,
@@ -180,27 +175,25 @@ export function getMessageDataSelect() {
             username: true,
           },
         },
-      }
+      },
     },
     createdAt: true,
   } satisfies Prisma.MessageSelect;
 }
 
-export function getLastMsgInclude(){
+export function getLastMsgInclude() {
   return {
     room: {
       include: getChatRoomDataInclude(),
-    }
-  } satisfies Prisma.MessageInclude
+    },
+  } satisfies Prisma.MessageInclude;
 }
 
 export type LastMsgData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getLastMsgInclude>;
 }>;
 
-export function getChatRoomDataInclude(
-  userId: string | undefined = undefined,
-) {
+export function getChatRoomDataInclude(userId: string | undefined = undefined) {
   return {
     members: {
       select: {
@@ -330,7 +323,6 @@ export function getMessageDataInclude(loggedInUserId: string) {
   } satisfies Prisma.MessageInclude;
 }
 
-
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
 }>;
@@ -377,7 +369,6 @@ export interface SocketGalleryUpdatedEvent {
   roomId: string;
   medias: GalleryMedia[];
 }
-
 
 export interface SocketSendMessageEvent {
   content: string;
@@ -550,7 +541,7 @@ export interface CommentsPage {
 export interface RepliesPage {
   replies: CommentData[];
   previousCursor: string | null;
-  count? : number;
+  count?: number;
 }
 
 export const notificationsInclude = {

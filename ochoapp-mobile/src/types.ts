@@ -1,6 +1,5 @@
 import { NotificationType, Prisma } from "@prisma/client";
 
-
 export interface User {
   id: string;
   username: string;
@@ -38,7 +37,7 @@ export interface UserSession {
   session?: Session;
 }
 
-export type DeviceType = 'ANDROID' | 'IOS' | 'WEB' | 'DESKTOP' | 'UNKNOWN';
+export type DeviceType = "ANDROID" | "IOS" | "WEB" | "DESKTOP" | "UNKNOWN";
 
 export interface SignupResponse {
   success: boolean; // Contient une erreur si l'inscription échoue
@@ -124,21 +123,21 @@ export type TrendingHashtagsResult = {
 };
 
 export interface NotificationsPage {
-    notifications: NotificationData[];
-    cursor: string | null;
-    hasMore: boolean;
+  notifications: NotificationData[];
+  cursor: string | null;
+  hasMore: boolean;
 }
 
 export interface NotificationData {
-    id: string;
-    type: NotificationType;
-    read: boolean;
-    issuer: User;
-    recipientId: string;
-    post?: Post | null;
-    postId?: string | null;
-    comment?: Comment | null;
-    createdAt: number;
+  id: string;
+  type: NotificationType;
+  read: boolean;
+  issuer: User;
+  recipientId: string;
+  post?: Post | null;
+  postId?: string | null;
+  comment?: Comment | null;
+  createdAt: number;
 }
 
 export interface PostsPage {
@@ -163,7 +162,6 @@ export interface LikeResponse {
   isLiked: boolean;
   likes: number;
 }
-
 
 export type PrivacyType =
   | "PROFILE_VISIBILITY"
@@ -194,10 +192,7 @@ export type NavigationContextType = {
   setCurrentNavigation: (currentNavigation: NavigationType) => void;
 };
 
-
-export type SearchFilter = 
-  | "posts"
-  | "users"
+export type SearchFilter = "posts" | "users";
 
 export interface UserSettings {
   user: {
@@ -231,7 +226,6 @@ export interface AccountDeletionRequest {
   confirmation: string;
 }
 
-
 // Type pour les pièces jointes locales (avant upload)
 export interface LocalAttachment {
   id: string;
@@ -253,14 +247,9 @@ export function getUserDataSelect(
     displayName: true,
     avatarUrl: true,
     bio: true,
-            createdAt: true,
-            lastSeen: true,
-            verified: {
-      where: {
-        user: {
-          username,
-        },
-      },
+    createdAt: true,
+    lastSeen: true,
+    verified: {
       select: {
         type: true,
         expiresAt: true,
@@ -385,18 +374,18 @@ export function getMessageDataSelect() {
             username: true,
           },
         },
-      }
+      },
     },
     createdAt: true,
   } satisfies Prisma.MessageSelect;
 }
 
-export function getLastMsgInclude(){
+export function getLastMsgInclude() {
   return {
     room: {
       include: getChatRoomDataInclude(),
-    }
-  } satisfies Prisma.MessageInclude
+    },
+  } satisfies Prisma.MessageInclude;
 }
 
 // Types pour l'historique d'activité
@@ -478,9 +467,7 @@ export type LastMsgData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getLastMsgInclude>;
 }>;
 
-export function getChatRoomDataInclude(
-  userId: string | undefined = undefined,
-) {
+export function getChatRoomDataInclude(userId: string | undefined = undefined) {
   return {
     members: {
       select: {
@@ -623,7 +610,6 @@ export interface MessageAttachment {
   resourceType: string | null;
 }
 
-
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
 }>;
@@ -644,7 +630,6 @@ export interface GalleryMediasSection {
   medias: GalleryMedia[];
   nextCursor: string | null;
 }
-
 
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataIncludes>;
@@ -720,7 +705,6 @@ export type FirstCommentData = Prisma.CommentGetPayload<{
   include: ReturnType<typeof getFirstCommentDataIncludes>;
 }>;
 
-
 export const notificationsInclude = {
   issuer: {
     select: {
@@ -741,7 +725,6 @@ export const notificationsInclude = {
     },
   },
 } satisfies Prisma.NotificationInclude;
-
 
 export interface NotificationsPage {
   notifications: NotificationData[];
@@ -776,7 +759,7 @@ export interface GroupedUser {
   displayName: string;
   username: string;
   avatarUrl: string | null;
-  reactedAt: Date; 
+  reactedAt: Date;
 }
 export interface ReactionInfo {
   reactions: number;
