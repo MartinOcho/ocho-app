@@ -524,12 +524,35 @@ export async function saveSearchQuery(req: Request, res: Response) {
       });
     }
 
+    const existingEntry = await prisma.searchHistory.findFirst({
+      where: {
+        userId: user.id,
+        query: query.trim(),
+      },
+    });
+    
+    if (existingEntry) {
+      await prisma.searchHistory.update({
+        where: { id: existingEntry.id },
+        data: { createdAt: new Date() },
+      });
+      return res.json({
+        success: true,
+        data: {
+          id: existingEntry.id,
+          query: existingEntry.query,
+          createdAt: existingEntry.createdAt.getTime(),
+        },
+      });
+    }
+
     const newEntry = await prisma.searchHistory.create({
       data: {
         userId: user.id,
         query: query.trim(),
       },
     });
+
 
     return res.json({
       success: true,

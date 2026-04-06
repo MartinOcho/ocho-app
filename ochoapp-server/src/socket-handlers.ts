@@ -16,6 +16,7 @@ import {
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
 import { Server } from "socket.io";
+import { get } from "http";
 
 const prisma = new PrismaClient();
 
@@ -823,37 +824,7 @@ export async function handleGetRoomDetails(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-        createdAt: true,
-        lastSeen: true,
-        verified: {
-          select: {
-            type: true,
-            expiresAt: true,
-          },
-        },
-        followers: {
-          select: {
-            followerId: true,
-          },
-        },
-        following: {
-          select: {
-            followerId: true,
-          },
-        },
-        _count: {
-          select: {
-            posts: true,
-            followers: true,
-          },
-        },
-      },
+      select: getUserDataSelect(""),
     });
 
     if (!user) throw new Error("User not found");
