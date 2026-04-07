@@ -493,7 +493,6 @@ app.post(
         return res.json({ success: false, error: "No file provided" });
 
       const fileName = file.filename || `upload_${Date.now()}.${file.mimetype.split("/")[1] || "dat"}`;
-      console.log(file);
       
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
