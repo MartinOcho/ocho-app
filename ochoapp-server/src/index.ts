@@ -328,10 +328,11 @@ app.post(
     try {
       const file = req.file;
       if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
+        return res.json({ success: false, error: "No file provided" });
 
+      const fileName = file.filename || `upload_${Date.now()}.${file.mimetype.split("/")[1] || "dat"}`;
+      console.log(file);
+      
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -345,6 +346,7 @@ app.post(
         });
 
       const uploadResult = await streamUpload(file.buffer);
+      
 
       const attachmentType =
         uploadResult.resource_type &&
@@ -360,6 +362,7 @@ app.post(
 
       const messageAttachment = await prisma.messageAttachment.create({
         data: {
+          fileName,
           type: attachmentType,
           url: uploadResult.secure_url || uploadResult.url || "",
           publicId: uploadResult.public_id || null,
@@ -374,17 +377,15 @@ app.post(
         success: true,
         attachmentId: messageAttachment.id,
         attachmentUrl: messageAttachment.url,
-        attachmentType: messageAttachment.type
+        attachmentType: messageAttachment.type,
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Upload failed",
-          details: err instanceof Error ? err.message : undefined,
-        });
+      return res.json({
+        success: false,
+        error: "Upload failed",
+        message: err instanceof Error ? err.message : undefined,
+      });
     }
   },
 );
