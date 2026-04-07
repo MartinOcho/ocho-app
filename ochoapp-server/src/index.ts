@@ -210,6 +210,9 @@ app.post("/api/cloudinary/upload", async (req, res) => {
         .status(400)
         .json({ success: false, error: "No file provided" });
 
+        const fileName = file.name || `upload_${Date.now()}.${file.type.split("/")[1] || "dat"}`;
+
+
     const uploadResult = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
     });
@@ -229,6 +232,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
         type: attachmentType,
         url: uploadResult.secure_url || uploadResult.url || "",
         publicId: uploadResult.public_id || null,
+        fileName,
         width: uploadResult.width || null,
         height: uploadResult.height || null,
         format: uploadResult.format || null,
