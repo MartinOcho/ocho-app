@@ -48,6 +48,7 @@ import {
   handleGetRoomDetails,
   handleGetLastMessage,
 } from "./socket-handlers";
+import { FileLike, getFileExtension } from "./files";
 
 dotenv.config();
 
@@ -210,7 +211,9 @@ app.post("/api/cloudinary/upload", async (req, res) => {
         .status(400)
         .json({ success: false, error: "No file provided" });
 
-        const fileName = file.name || `upload_${Date.now()}.${file.type.split("/")[1] || "dat"}`;
+        const fileExtension = getFileExtension(file);
+
+        const fileName = file.name || `upload_${Date.now()}.${fileExtension}`;
 
 
     const uploadResult = await cloudinary.uploader.upload(file, {
@@ -334,8 +337,17 @@ app.post(
       if (!file || !file.buffer)
         return res.json({ success: false, error: "No file provided" });
 
-      const fileName = file.filename || `upload_${Date.now()}.${file.mimetype.split("/")[1] || "dat"}`;
-      
+      const fileLike: FileLike | undefined = file
+        ? {
+            name: file.originalname,
+            type: file.mimetype,
+          }
+        : undefined;
+
+      const fileExtension = getFileExtension(fileLike);
+
+      const fileName = file.filename || `upload_${Date.now()}.${fileExtension}`;
+
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
