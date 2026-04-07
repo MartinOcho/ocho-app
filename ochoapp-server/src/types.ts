@@ -302,6 +302,7 @@ export function getMessageDataInclude(loggedInUserId: string) {
         type: true,
         url: true,
         publicId: true,
+        fileName: true,
         width: true,
         height: true,
         format: true,
