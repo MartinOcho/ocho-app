@@ -355,6 +355,7 @@ model MessageAttachment {
   type         AttachmentType
   url          String
   publicId     String?
+  fileName      String?
   width        Int?
   height       Int?
   format       String?

@@ -377,6 +377,8 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     const file = body.file;
     if (!file) return res.json({ success: false, error: "No file provided" });
 
+    const fileName = file.name || `upload_${Date.now()}.${file.type.split("/")[1] || "dat"}`;
+
     const uploadResult = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
     });
@@ -395,6 +397,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       data: {
         type: attachmentType,
         url: uploadResult.secure_url || uploadResult.url || "",
+        fileName,
         publicId: uploadResult.public_id || null,
         width: uploadResult.width || null,
         height: uploadResult.height || null,
@@ -489,6 +492,8 @@ app.post(
       if (!file || !file.buffer)
         return res.json({ success: false, error: "No file provided" });
 
+      const fileName = file.filename || `upload_${Date.now()}.${file.mimetype.split("/")[1] || "dat"}`;
+
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -502,6 +507,7 @@ app.post(
         });
 
       const uploadResult = await streamUpload(file.buffer);
+      
 
       const attachmentType =
         uploadResult.resource_type &&
@@ -524,6 +530,7 @@ app.post(
           height: uploadResult.height || null,
           format: uploadResult.format || null,
           resourceType: uploadResult.resource_type || null,
+          fileName,
         },
       });
 

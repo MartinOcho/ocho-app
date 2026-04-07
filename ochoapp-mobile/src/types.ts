@@ -604,6 +604,7 @@ export interface MessageAttachment {
   type: AttachmentType;
   url: string;
   publicId: string | null;
+  fileName?: string | null;
   width: number | null;
   height: number | null;
   format: string | null;
