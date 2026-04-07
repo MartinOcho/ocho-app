@@ -16,7 +16,6 @@ import {
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
 import { Server } from "socket.io";
-import { get } from "http";
 
 const prisma = new PrismaClient();
 
@@ -526,6 +525,7 @@ export async function handleSendSavedMessage(
       type: att.type,
       url: att.url,
       publicId: att.publicId,
+      fileName: att.fileName,
       width: att.width,
       height: att.height,
       format: att.format,
@@ -706,6 +706,7 @@ export async function handleSendNormalMessage(
       type: att.type,
       url: att.url,
       publicId: att.publicId,
+      fileName: att.fileName,
       width: att.width,
       height: att.height,
       format: att.format,
