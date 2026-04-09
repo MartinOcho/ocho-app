@@ -858,7 +858,15 @@ io.on("connection", async (socket: Socket) => {
         console.error("Error emitting room_details in mark_message_read:", error);
       }
     } catch (error) {
-      console.error("Erreur mark_message_read:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("Message not found")) {
+        io.to(roomId).emit("message_deleted", {
+          messageId,
+          roomId,
+        });
+      } else {
+        console.error("Erreur mark_message_read:", error);
+      }
     }
   });
 
@@ -878,7 +886,15 @@ io.on("connection", async (socket: Socket) => {
           deliveries,
         });
       } catch (error) {
-        console.error("Erreur mark_message_delivered:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        if (errorMsg.includes("Message not found")) {
+          io.to(roomId).emit("message_deleted", {
+            messageId,
+            roomId,
+          });
+        } else {
+          console.error("Erreur mark_message_delivered:", error);
+        }
       }
     },
   );
@@ -908,8 +924,16 @@ io.on("connection", async (socket: Socket) => {
         }
       }
     } catch (error) {
-      console.error("Erreur add_reaction:", error);
-      socket.emit("error", { message: "Impossible d'ajouter la réaction" });
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("Message not found")) {
+        io.to(data.roomId).emit("message_deleted", {
+          messageId: data.messageId,
+          roomId: data.roomId,
+        });
+      } else {
+        console.error("Erreur add_reaction:", error);
+        socket.emit("error", { message: "Impossible d'ajouter la réaction" });
+      }
     }
   });
 
@@ -938,10 +962,18 @@ io.on("connection", async (socket: Socket) => {
         }
       }
     } catch (error) {
-      console.error("Erreur remove_reaction:", error);
-      socket.emit("error", {
-        message: "Impossible de supprimer la réaction",
-      });
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("Message not found")) {
+        io.to(data.roomId).emit("message_deleted", {
+          messageId: data.messageId,
+          roomId: data.roomId,
+        });
+      } else {
+        console.error("Erreur remove_reaction:", error);
+        socket.emit("error", {
+          message: "Impossible de supprimer la réaction",
+        });
+      }
     }
   });
   socket.on("delete_message", async (data: SocketDeleteMessageEvent) => {

@@ -214,8 +214,11 @@ export async function handleAddReaction(
       sender: { select: { id: true, username: true } },
     },
   });
+  if (!originalMessage) throw new Error("Message not found");
 
-  if (!originalMessage || !originalMessage.senderId) throw new Error("Message not found");
+  if (!originalMessage.senderId) {
+    throw new Error("Invalid message state: senderId is not set");
+  }
 
   const reaction = await prisma.reaction.upsert({
     where: {
@@ -316,8 +319,9 @@ export async function handleRemoveReaction(
       },
     },
   });
+  if (!message) throw new Error("Message not found");
 
-  if (!message || !message.reactions[0])
+  if (!message.reactions[0])
     throw new Error("Reaction not found");
 
   const reactionId = message.reactions[0].id;
