@@ -213,7 +213,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
 
         const fileExtension = getFileExtension(file);
 
-        const fileName = file.name || `upload_${Date.now()}.${fileExtension}`;
+        const fileName = file.name || `ochoapp_${Date.now()}.${fileExtension}`;
 
 
     const uploadResult = await cloudinary.uploader.upload(file, {
@@ -346,7 +346,7 @@ app.post(
 
       const fileExtension = getFileExtension(fileLike);
 
-      const fileName = file.filename || `upload_${Date.now()}.${fileExtension}`;
+      const fileName = file.filename || `ochoapp_${Date.now()}.${fileExtension}`;
 
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
