@@ -206,15 +206,13 @@ app.post("/api/cloudinary/upload", async (req, res) => {
   try {
     const body = req.body || {};
     const file = body.file;
-    if (!file)
-      return res
-        .status(400)
-        .json({ success: false, error: "No file provided" });
+    if (!file) return res.json({ success: false, error: "No file provided" });
 
-        const fileExtension = getFileExtension(file);
+    const fileExtension = getFileExtension(file);
 
-        const fileName = file.name || `ochoapp_${Date.now()}.${fileExtension}`;
+    const fileSize = file.size;
 
+    const fileName = file.name || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
 
     const uploadResult = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
@@ -224,7 +222,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       uploadResult.resource_type &&
       String(uploadResult.resource_type).startsWith("video")
         ? "VIDEO"
-        : uploadResult.resource_type === "image" ||
+        : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
             (uploadResult.secure_url &&
               /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
           ? "IMAGE"
@@ -234,11 +232,12 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       data: {
         type: attachmentType,
         url: uploadResult.secure_url || uploadResult.url || "",
-        publicId: uploadResult.public_id || null,
         fileName,
+        publicId: uploadResult.public_id || null,
         width: uploadResult.width || null,
         height: uploadResult.height || null,
-        format: uploadResult.format || null,
+        format: fileExtension || uploadResult.format || null,
+        size: fileSize,
         resourceType: uploadResult.resource_type || null,
       },
     });
@@ -346,8 +345,10 @@ app.post(
 
       const fileExtension = getFileExtension(fileLike);
 
-      const fileName = file.filename || `ochoapp_${Date.now()}.${fileExtension}`;
+      const fileSize = file.size;
 
+      const fileName = file.filename || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
+      
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -364,16 +365,14 @@ app.post(
       
 
       const attachmentType =
-        uploadResult.resource_type &&
-        String(uploadResult.resource_type).startsWith("video")
-          ? "VIDEO"
-          : uploadResult.resource_type === "image" ||
-              (uploadResult.secure_url &&
-                /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(
-                  uploadResult.secure_url,
-                ))
-            ? "IMAGE"
-            : "DOCUMENT";
+      uploadResult.resource_type &&
+      String(uploadResult.resource_type).startsWith("video")
+        ? "VIDEO"
+        : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
+            (uploadResult.secure_url &&
+              /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
+          ? "IMAGE"
+          : "DOCUMENT";
 
       const messageAttachment = await prisma.messageAttachment.create({
         data: {
@@ -383,7 +382,8 @@ app.post(
           publicId: uploadResult.public_id || null,
           width: uploadResult.width || null,
           height: uploadResult.height || null,
-          format: uploadResult.format || null,
+          format: fileExtension || uploadResult.format || null,
+          size: fileSize,
           resourceType: uploadResult.resource_type || null,
         },
       });

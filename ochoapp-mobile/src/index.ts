@@ -380,6 +380,8 @@ app.post("/api/cloudinary/upload", async (req, res) => {
 
     const fileExtension = getFileExtension(file);
 
+    const fileSize = file.size;
+
     const fileName = file.name || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
 
     const uploadResult = await cloudinary.uploader.upload(file, {
@@ -405,6 +407,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
         width: uploadResult.width || null,
         height: uploadResult.height || null,
         format: fileExtension || uploadResult.format || null,
+        size: fileSize,
         resourceType: uploadResult.resource_type || null,
       },
     });
@@ -504,6 +507,8 @@ app.post(
 
       const fileExtension = getFileExtension(fileLike);
 
+      const fileSize = file.size;
+
       const fileName = file.filename || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
       
       const streamUpload = (buffer: Buffer) =>
@@ -540,6 +545,7 @@ app.post(
           width: uploadResult.width || null,
           height: uploadResult.height || null,
           format: fileExtension || uploadResult.format || null,
+          size: fileSize,
           resourceType: uploadResult.resource_type || null,
         },
       });

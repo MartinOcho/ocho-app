@@ -359,6 +359,7 @@ model MessageAttachment {
   width        Int?
   height       Int?
   format       String?
+  size         Int?
   resourceType String?
 
   createdAt DateTime @default(now())
