@@ -404,7 +404,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
         publicId: uploadResult.public_id || null,
         width: uploadResult.width || null,
         height: uploadResult.height || null,
-        format: uploadResult.format || null,
+        format: fileExtension || uploadResult.format || null,
         resourceType: uploadResult.resource_type || null,
       },
     });
@@ -541,7 +541,7 @@ app.post(
           publicId: uploadResult.public_id || null,
           width: uploadResult.width || null,
           height: uploadResult.height || null,
-          format: uploadResult.format || null,
+          format: fileExtension || uploadResult.format || null,
           resourceType: uploadResult.resource_type || null,
         },
       });
