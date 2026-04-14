@@ -390,7 +390,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       uploadResult.resource_type &&
       String(uploadResult.resource_type).startsWith("video")
         ? "VIDEO"
-        : uploadResult.resource_type === "image" ||
+        : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
             (uploadResult.secure_url &&
               /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
           ? "IMAGE"
@@ -522,16 +522,14 @@ app.post(
       
 
       const attachmentType =
-        uploadResult.resource_type &&
-        String(uploadResult.resource_type).startsWith("video")
-          ? "VIDEO"
-          : uploadResult.resource_type === "image" ||
-              (uploadResult.secure_url &&
-                /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(
-                  uploadResult.secure_url,
-                ))
-            ? "IMAGE"
-            : "DOCUMENT";
+      uploadResult.resource_type &&
+      String(uploadResult.resource_type).startsWith("video")
+        ? "VIDEO"
+        : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
+            (uploadResult.secure_url &&
+              /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
+          ? "IMAGE"
+          : "DOCUMENT";
 
       const messageAttachment = await prisma.messageAttachment.create({
         data: {
