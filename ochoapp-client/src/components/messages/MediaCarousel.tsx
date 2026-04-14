@@ -83,7 +83,9 @@ interface MediaCarouselProps {
       if (!current?.url) return;
       const a = document.createElement("a");
       a.href = current.url;
-      a.download = `media-${index}`;
+      const baseName = current.fileName || current.url.split("/").pop() || "document";
+      const downloadName = current.format && !baseName.includes('.') ? `${baseName}.${current.format}` : baseName;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -301,7 +303,10 @@ interface MediaCarouselProps {
             </div>
             <a
               href={attachment.url}
-              download={attachment.fileName || `document-${index}`}
+              download={(() => {
+                const baseName = attachment.fileName || attachment.url.split("/").pop() || "document";
+                return attachment.format && !baseName.includes('.') ? `${baseName}.${attachment.format}` : baseName;
+              })()}
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
             >
               <Download size={16} />

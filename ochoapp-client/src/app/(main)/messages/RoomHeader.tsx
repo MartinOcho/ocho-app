@@ -16,6 +16,7 @@ import {
   Images,
   Info,
   Loader2,
+  FileText,
 } from "lucide-react";
 import Linkify from "@/components/Linkify";
 import { Button } from "@/components/ui/button";
@@ -101,7 +102,7 @@ export default function RoomHeader({
 
   const { isMediaFullscreen } = useActiveRoom();
 
-  const [activeTab, setActiveTab] = useState<"info" | "media">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "media" | "documents">("info");
 
   useGalleryQuery({ roomId, enabled: !!roomId });
 
@@ -623,10 +624,10 @@ export default function RoomHeader({
         {active && (
           <Tabs
             value={activeTab}
-            onValueChange={(v) => setActiveTab(v as "info" | "media")}
+            onValueChange={(v) => setActiveTab(v as "info" | "media" | "documents")}
             className=""
           >
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="info" className="flex items-center gap-2">
                 <Info size={16} />
                 <span>{t("infos")}</span>
@@ -634,6 +635,10 @@ export default function RoomHeader({
               <TabsTrigger value="media" className="flex items-center gap-2">
                 <Images size={16} />
                 <span>{t("medias")}</span>
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-2">
+                <FileText size={16} />
+                <span>{t("documents")}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -873,7 +878,14 @@ export default function RoomHeader({
               value="media"
               className="flex flex-1 flex-col gap-3 overflow-y-auto max-sm:pb-20"
             >
-              {roomId && <MediaGalleryContainer roomId={roomId} />}
+              {roomId && <MediaGalleryContainer roomId={roomId} mediaType="IMAGE" />}
+            </TabsContent>
+
+            <TabsContent
+              value="documents"
+              className="flex flex-1 flex-col gap-3 overflow-y-auto max-sm:pb-20"
+            >
+              {roomId && <MediaGalleryContainer roomId={roomId} mediaType="DOCUMENT" />}
             </TabsContent>
           </Tabs>
         )}
@@ -1183,15 +1195,18 @@ export function GroupUserPopover({
     </Popover>
   );
 }
-export function MediaGalleryContainer({ roomId }: { roomId: string }) {
+export function MediaGalleryContainer({ roomId, mediaType = "IMAGE" }: { roomId: string; mediaType?: "IMAGE" | "VIDEO" | "DOCUMENT" }) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useGalleryQuery({ roomId, enabled: !!roomId });
 
   const queryClient = useQueryClient();
 
   const allMedias = useMemo(
-    () => data?.pages?.flatMap((page) => page?.medias ?? []) || [],
-    [data],
+    () => {
+      const medias = data?.pages?.flatMap((page) => page?.medias ?? []) || [];
+      return medias.filter((m) => m.type === mediaType);
+    },
+    [data, mediaType],
   );
 
   return (

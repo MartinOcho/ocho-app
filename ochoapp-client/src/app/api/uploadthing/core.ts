@@ -217,7 +217,6 @@ export const fileRouter = {
   // the upload until the `onUploadComplete` resolved.
   withAwaitedServerData: f(
     { image: { maxFileSize: "4MB", maxFileCount: 4 } },
-    { awaitServerData: true },
   )
     .middleware(async () => {
       const { user } = await validateRequest();

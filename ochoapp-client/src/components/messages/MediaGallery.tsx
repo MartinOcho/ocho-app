@@ -45,6 +45,17 @@ export default function MediaGallery({
   });
   const { socket } = useSocket();
 
+  const downloadMedia = (media: GalleryMedia) => {
+    const link = document.createElement("a");
+    link.href = media.url;
+    const baseName = media.fileName || media.url.split("/").pop() || "document";
+    const downloadName = media.format && !baseName.includes('.') ? `${baseName}.${media.format}` : baseName;
+    link.download = downloadName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Mettre à jour les médias affichés quand `medias` change
   useEffect(() => {
     const validatedMedias = validateGalleryMedias(medias ?? []);
@@ -247,7 +258,7 @@ export default function MediaGallery({
             return (
               <button
                 key={`${media.messageId}-${media.id}`}
-                onClick={() => setSelectedIndex(visibleMedias.indexOf(media))}
+                onClick={() => media.type === "DOCUMENT" ? downloadMedia(media) : setSelectedIndex(visibleMedias.indexOf(media))}
                 className="relative group rounded-md overflow-hidden aspect-square hover:opacity-80 transition-opacity"
                 title={`Envoyé par ${media.senderUsername || "inconnu"}`}
               >

@@ -47,7 +47,14 @@ export default function MediaStrip({
   };
 
   const openDocument = (attachment: MessageAttachment) => {
-    window.open(attachment.url, "_blank", "noopener noreferrer");
+    const link = document.createElement("a");
+    link.href = attachment.url;
+    const baseName = attachment.fileName || attachment.url.split("/").pop() || "document";
+    const downloadName = attachment.format && !baseName.includes('.') ? `${baseName}.${attachment.format}` : baseName;
+    link.download = downloadName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleHiddenClick = () => {
@@ -131,16 +138,13 @@ export default function MediaStrip({
           );
 
           return attachment.type === "DOCUMENT" ? (
-            <a
+            <button
               key={index}
-              href={attachment.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              download={attachment.fileName || `document-${index + 1}`}
+              onClick={() => openDocument(attachment)}
               className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
             >
               {content}
-            </a>
+            </button>
           ) : (
             <button
               key={index}
