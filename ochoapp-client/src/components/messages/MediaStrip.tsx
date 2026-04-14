@@ -2,11 +2,15 @@
 
 import { MessageAttachment } from "@/lib/types";
 import { useState } from "react";
-import { Play } from "lucide-react";
+import { Play, FileText } from "lucide-react";
 import { useTranslation } from "@/context/LanguageContext";
 import MediaCarousel from "./MediaCarousel";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function getAttachmentName(attachment: MessageAttachment) {
+  return attachment.fileName || attachment.url.split("/").pop() || "Fichier";
+}
 
 interface MediaStripProps {
   attachments?: MessageAttachment[];
@@ -26,10 +30,38 @@ export default function MediaStrip({
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   
-  // Afficher 3 images complètes + la 4ème avec overlay badge
+  const mediaAttachments = attachments.filter((attachment) => attachment.type !== "DOCUMENT");
+  const hiddenAttachments = attachments.slice(3);
+
+  // Afficher 3 items complètes + la 4ème avec overlay badge
   const MAX_VISIBLE_MEDIA = 3;
   const hasMore = attachments.length > MAX_VISIBLE_MEDIA;
   const remainingCount = attachments.length - MAX_VISIBLE_MEDIA;
+
+  const openMediaCarousel = (attachment: MessageAttachment) => {
+    const mediaIndex = mediaAttachments.findIndex((item) => item.id === attachment.id);
+    if (mediaIndex >= 0) {
+      setSelectedIndex(mediaIndex);
+      onMediaOpen?.();
+    }
+  };
+
+  const openDocument = (attachment: MessageAttachment) => {
+    window.open(attachment.url, "_blank", "noopener noreferrer");
+  };
+
+  const handleHiddenClick = () => {
+    const hiddenMedia = hiddenAttachments.find((attachment) => attachment.type !== "DOCUMENT");
+    if (hiddenMedia) {
+      openMediaCarousel(hiddenMedia);
+      return;
+    }
+
+    const hiddenDocument = hiddenAttachments.find((attachment) => attachment.type === "DOCUMENT");
+    if (hiddenDocument) {
+      openDocument(hiddenDocument);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -45,11 +77,6 @@ export default function MediaStrip({
     return null;
   }
 
-  const handleMediaClick = (index: number) => {
-    setSelectedIndex(index);
-    onMediaOpen?.();
-  };
-
   return (
     <>
       <div
@@ -58,99 +85,135 @@ export default function MediaStrip({
           className
         )}
       >
-        {attachments.slice(0, MAX_VISIBLE_MEDIA).map((attachment, index) => (
-          <button
-            key={index}
-            onClick={() => handleMediaClick(index)}
-            className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
-          >
-            {attachment.type === "VIDEO" ? (
-              <div className={`h-[${attachment.height}px] w-[${attachment.width}px}]`}>
-                <video
-                  width={attachment.width || undefined}
-                  height={attachment.height || undefined}
-                  src={attachment.url}
-                  className={cn(
-                    "rounded-lg object-cover cursor-pointer  bg-accent",
-                    attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24",
-                    `h-[${attachment.height}px] w-[${attachment.width}px}]`
-                  )}
-                  />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
-                  <Play
-                    size={32}
-                    className="text-white/80 fill-white/80"
-                    />
-                </div>
-              </div>
-            ) : (
-              <img
+        {attachments.slice(0, MAX_VISIBLE_MEDIA).map((attachment, index) => {
+          const content = attachment.type === "VIDEO" ? (
+            <div className="relative overflow-hidden rounded-lg bg-accent">
+              <video
                 width={attachment.width || undefined}
                 height={attachment.height || undefined}
                 src={attachment.url}
-                alt={`Attachment ${index + 1}`}
                 className={cn(
-                  "rounded-lg object-cover cursor-pointer  bg-accent",
-                  attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24",
-                  `h-[${attachment.height}px] w-[${attachment.width}px}]`
+                  "rounded-lg object-cover cursor-pointer bg-accent",
+                  attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-24 max-sm:max-h-24" : "size-32 max-sm:size-24"
                 )}
               />
-            )}
-          </button>
-        ))}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
+                <Play size={32} className="text-white/80 fill-white/80" />
+              </div>
+            </div>
+          ) : attachment.type === "IMAGE" ? (
+            <img
+              width={attachment.width || undefined}
+              height={attachment.height || undefined}
+              src={attachment.url}
+              alt={`Attachment ${index + 1}`}
+              className={cn(
+                "rounded-lg object-cover cursor-pointer bg-accent",
+                attachments.length === 1 ? "aspect-square object-cover max-w-xs max-h-96 max-sm:max-w-full" : "size-32 max-sm:size-24"
+              )}
+            />
+          ) : (
+            <div className="flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-border/20 bg-background p-4 text-center shadow-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/20 text-muted-foreground">
+                <FileText size={24} />
+              </div>
+              <div className="space-y-1">
+                <p className="max-w-[10rem] truncate text-sm font-semibold text-foreground">
+                  {getAttachmentName(attachment)}
+                </p>
+                {attachment.format && (
+                  <p className="text-xs uppercase text-muted-foreground/80">
+                    {attachment.format}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+
+          return attachment.type === "DOCUMENT" ? (
+            <a
+              key={index}
+              href={attachment.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              download={attachment.fileName || `document-${index + 1}`}
+              className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+            >
+              {content}
+            </a>
+          ) : (
+            <button
+              key={index}
+              onClick={() => openMediaCarousel(attachment)}
+              className="relative group rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+            >
+              {content}
+            </button>
+          );
+        })}
 
         {/* 4ème image avec badge "+N" overlay */}
         {hasMore && attachments[MAX_VISIBLE_MEDIA] && (
           <button
-            onClick={() => {
-              setSelectedIndex(MAX_VISIBLE_MEDIA);
-              onMediaOpen?.();
-            }}
+            onClick={handleHiddenClick}
             className="relative group rounded-lg overflow-hidden hover:opacity-70 transition-opacity"
           >
             {attachments[MAX_VISIBLE_MEDIA].type === "VIDEO" ? (
-              <div className={`h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`}>
+              <div className="relative overflow-hidden rounded-lg bg-accent">
                 <video
                   src={attachments[MAX_VISIBLE_MEDIA].url}
                   className={cn(
                     "rounded-lg object-cover cursor-pointer bg-accent",
-                    "size-32 max-sm:size-24",
-                    `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
+                    "size-32 max-sm:size-24"
                   )}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors rounded-lg">
-                  <Play
-                    size={32}
-                    className="text-white/80 fill-white/80"
-                  />
+                  <Play size={32} className="text-white/80 fill-white/80" />
                 </div>
               </div>
-            ) : (
+            ) : attachments[MAX_VISIBLE_MEDIA].type === "IMAGE" ? (
               <img
                 src={attachments[MAX_VISIBLE_MEDIA].url}
                 alt={`Attachment 4`}
                 className={cn(
                   "rounded-lg object-cover cursor-pointer bg-accent",
-                  "size-32 max-sm:size-24",
-                  `h-[${attachments[MAX_VISIBLE_MEDIA].height}px] w-[${attachments[MAX_VISIBLE_MEDIA].width}px}]`
+                  "size-32 max-sm:size-24"
                 )}
               />
+            ) : (
+              <div className="flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-lg border border-border/20 bg-background p-4 text-center shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/20 text-muted-foreground">
+                  <FileText size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="max-w-[10rem] truncate text-sm font-semibold text-foreground">
+                    {getAttachmentName(attachments[MAX_VISIBLE_MEDIA])}
+                  </p>
+                  {attachments[MAX_VISIBLE_MEDIA].format && (
+                    <p className="text-xs uppercase text-muted-foreground/80">
+                      {attachments[MAX_VISIBLE_MEDIA].format}
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* Badge overlay "+N" */}
-            {remainingCount > 1 && (<div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">+{remainingCount}</div>
-                <div className="text-xs text-white/80">{t("seeMore")}</div>
+            {remainingCount > 1 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 group-hover:bg-black/60 transition-colors rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">+{remainingCount}</div>
+                  <div className="text-xs text-white/80">{t("seeMore")}</div>
+                </div>
               </div>
-            </div>)}
+            )}
           </button>
         )}
       </div>
 
       {selectedIndex !== null && (
         <MediaCarousel
-          attachments={attachments}
+          attachments={mediaAttachments}
           initialIndex={selectedIndex}
           onClose={() => {
             setSelectedIndex(null);

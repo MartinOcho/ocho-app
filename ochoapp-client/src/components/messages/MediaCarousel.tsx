@@ -1,13 +1,13 @@
 
-  import React, { useState, useEffect, useRef, useCallback } from "react";
-  import { motion, AnimatePresence, useMotionValue } from "framer-motion";
-  import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
-  import { MessageAttachment } from "@/lib/types";
-  import { cn } from "@/lib/utils";
-  import { useActiveRoom } from "@/context/ChatContext";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, FileText } from "lucide-react";
+import { MessageAttachment } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { useActiveRoom } from "@/context/ChatContext";
 
-  interface MediaCarouselProps {
-    attachments: MessageAttachment[];
+interface MediaCarouselProps {
+  attachments: MessageAttachment[];
     initialIndex: number;
     onClose: () => void;
   }
@@ -102,19 +102,23 @@
         <div className="flex items-center justify-between p-3 border-b border-white/10">
           <div className="flex items-center gap-3 text-white text-sm">
             <span className="font-medium">{index + 1} / {attachments.length}</span>
-            {current?.type && <span className="text-white/50 text-xs">{current.type === 'VIDEO' ? 'Vidéo' : 'Image'}</span>}
+            {current?.type && (
+              <span className="text-white/50 text-xs">
+                {current.type === 'VIDEO' ? 'Vidéo' : current.type === 'IMAGE' ? 'Image' : 'Document'}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            {current.type !== 'VIDEO' && (
+            {current.type === 'IMAGE' && (
               <button onClick={() => setIsZoomed((v) => !v)} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
                 {isZoomed ? <ZoomOut size={18} /> : <ZoomIn size={18} />}
               </button>
             )}
-            <button onClick={download} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
+            <button aria-label="Télécharger" onClick={download} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
               <Download size={18} />
             </button>
-            <button onClick={handleClose} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
+            <button aria-label="Fermer" onClick={handleClose} className="p-2 rounded-lg bg-black/50 text-white hover:bg-white/10">
               <X size={18} />
             </button>
           </div>
@@ -123,12 +127,12 @@
         <div ref={wrapperRef} className="relative w-full h-full flex-1 flex items-center justify-center overflow-hidden">
           {/* Left/Right nav */}
           {index > 0 && (
-            <button onClick={() => paginate(-1)} className="absolute left-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
+            <button aria-label="Précédent" onClick={() => paginate(-1)} className="absolute left-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
               <ChevronLeft size={28} />
             </button>
           )}
           {index < attachments.length - 1 && (
-            <button onClick={() => paginate(1)} className="absolute right-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
+            <button aria-label="Suivant" onClick={() => paginate(1)} className="absolute right-4 z-50 p-3 rounded-full bg-black/50 text-white hover:bg-white/20">
               <ChevronRight size={28} />
             </button>
           )}
@@ -163,8 +167,12 @@
                 >
                   {att.type === 'VIDEO' ? (
                     <video src={att.url} className="w-10 h-10 object-cover" />
-                  ) : (
+                  ) : att.type === 'IMAGE' ? (
                     <img src={att.url} alt={`thumb-${i}`} className="w-10 h-10 object-cover" />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded bg-white/10 text-white/80">
+                      <FileText size={18} />
+                    </div>
                   )}
                 </button>
               ))}
@@ -260,6 +268,46 @@
           onDragEnd={onDragEnd}
         >
           <video src={attachment.url} controls autoPlay className="max-h-[80vh] max-w-full rounded-sm shadow-2xl bg-black object-contain" />
+        </motion.div>
+      );
+    }
+
+    if (attachment.type === 'DOCUMENT') {
+      return (
+        <motion.div
+          className="w-full max-w-5xl px-4 flex justify-center"
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          custom={direction}
+          transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={onDragEnd}
+        >
+          <div className="flex max-h-[85vh] max-w-[90vw] w-full flex-col items-center justify-center gap-6 rounded-3xl border border-white/10 bg-black/60 p-8 text-center shadow-2xl">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-white/90">
+              <FileText size={32} />
+            </div>
+            <div className="space-y-2">
+              <p className="max-w-[28rem] break-words text-lg font-semibold text-white">
+                {attachment.fileName || attachment.url.split("/").pop() || "Document"}
+              </p>
+              {attachment.format && (
+                <p className="text-sm uppercase text-white/70">{attachment.format}</p>
+              )}
+            </div>
+            <a
+              href={attachment.url}
+              download={attachment.fileName || `document-${index}`}
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+            >
+              <Download size={16} />
+              Télécharger
+            </a>
+          </div>
         </motion.div>
       );
     }
