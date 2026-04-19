@@ -23,6 +23,7 @@ import {
   SocketGetRoomDetailsEvent,
   SocketGetLastMessageEvent,
   SocketCheckUserStatusEvent,
+  SocketDeleteRoomEvent,
   notificationsInclude,
 } from "./types";
 import {
@@ -49,6 +50,7 @@ import {
   handleGetLastMessage,
 } from "./socket-handlers";
 import { FileLike, getFileExtension } from "./files";
+import { th } from "zod/locales";
 
 dotenv.config();
 
@@ -1360,6 +1362,40 @@ io.on("connection", async (socket: Socket) => {
       });
     }
   });
+
+  socket.on(
+    "delete_room",
+    async (data: SocketDeleteRoomEvent) => {
+      try {
+        const { roomId } = data;
+        const room = await prisma.room.findUnique({
+          where: { id: roomId },
+          include: { members: true },
+        });
+
+        if (!room || room.isGroup) throw new Error("Room not found or is a group");
+
+        const hasCurrentUser = room.members.some(
+          (member) => member.userId === userId,
+        );
+        const deletedInterlocutorMembers = room.members.filter(
+          (member) => member.userId === null,
+        );
+
+        if (!hasCurrentUser || deletedInterlocutorMembers.length !== 1) throw new Error("Room not found or invalid members");
+
+        await prisma.room.delete({ where: { id: roomId } });
+
+        io.to(userId).emit("room_deleted", { roomId });
+
+        const userRooms = await getFormattedRooms(userId, "");
+        io.to(userId).emit("room_list_updated", userRooms);
+      } catch (error) {
+        console.error("Erreur delete_room:", error);
+      }
+    },
+  );
+
   socket.broadcast.emit("user_status_change", {
     userId: userId,
     isOnline: true,

@@ -435,6 +435,10 @@ export interface SocketCheckUserStatusEvent {
   userId: string;
 }
 
+export interface SocketDeleteRoomEvent {
+  roomId: string;
+}
+
 export interface SocketCreateNotificationEvent {
   type: string;
   recipientId?: string;
