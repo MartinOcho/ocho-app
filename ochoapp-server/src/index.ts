@@ -233,7 +233,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     const messageAttachment = await prisma.messageAttachment.create({
       data: {
         type: attachmentType,
-        url: uploadResult.secure_url || uploadResult.url || "",
+        url: uploadResult.url || uploadResult.secure_url || "",
         fileName,
         publicId: uploadResult.public_id || null,
         width: uploadResult.width || null,
@@ -307,7 +307,7 @@ app.post(
       const mediaAttachment = await prisma.media.create({
         data: {
           type: attachmentType,
-          url: uploadResult.secure_url || uploadResult.url || "",
+          url: uploadResult.url || uploadResult.secure_url || "",
         }
       })
 
@@ -380,7 +380,7 @@ app.post(
         data: {
           fileName,
           type: attachmentType,
-          url: uploadResult.secure_url || uploadResult.url || "",
+          url: uploadResult.url || uploadResult.secure_url || "",
           publicId: uploadResult.public_id || null,
           width: uploadResult.width || null,
           height: uploadResult.height || null,
@@ -459,7 +459,7 @@ app.post(
 
       const uploadResult = await streamUpload(file.buffer);
 
-      const url = uploadResult.secure_url || uploadResult.url || "";
+      const url = uploadResult.url || uploadResult.secure_url || "";
       const public_id = uploadResult.public_id || null;
       const resourceType = uploadResult.resource_type || null;
 
@@ -595,7 +595,7 @@ app.post(
 
       const uploadResult = await streamUpload(file.buffer);
 
-      const url = uploadResult.secure_url || uploadResult.url || "";
+      const url = uploadResult.url || uploadResult.secure_url || "";
       const public_id = uploadResult.public_id || null;
 
       // Supprimer l'ancien avatar du groupe si présent

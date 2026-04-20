@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       });
 
     const uploadResult = await streamUpload(Buffer.from(await file.arrayBuffer()));
-    const url = uploadResult.secure_url || uploadResult.url || "";
+    const url = uploadResult.url || uploadResult.secure_url || "";
     const public_id = uploadResult.public_id || null;
 
     // Supprimer les anciens avatars de l'utilisateur (base et Cloudinary)
