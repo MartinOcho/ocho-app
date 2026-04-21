@@ -5,8 +5,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL") 
-  directUrl = env("POSTGRES_URL_NON_POOLING") 
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
@@ -37,22 +37,23 @@ model User {
   receivedNotification Notification[] @relation("Recipient")
   issuedNotification   Notification[] @relation("Issuer")
 
-  lastSeen       DateTime        @default(now())
-  isOnline       Boolean         @default(false)
-  createdAt      DateTime        @default(now())
+  lastSeen            DateTime         @default(now())
+  isOnline            Boolean          @default(false)
+  createdAt           DateTime         @default(now())
   lastUsernameChange  DateTime?
-  Reaction       Reaction[]
-  verified       VerifiedUsers[]
-  relevanceScore PostUserScore[]
-  oldUserData    OldUserData[]
-  searches       SearchHistory[]
+  Reaction            Reaction[]
+  verified            VerifiedUsers[]
+  relevanceScore      PostUserScore[]
+  oldUserData         OldUserData[]
+  searches            SearchHistory[]
   mentionedInMessages MessageMention[] @relation("MentionedInMessage")
+  userPrivacies       UserPrivacy[]
+  deliveries          Delivery[]
+  userAvatars         UserAvatar[]
 
   @@map("users")
-  userPrivacies UserPrivacy[]
-  deliveries Delivery[]
-  userAvatars UserAvatar[]
 }
+
 model VerifiedUsers {
   id        String       @id @default(cuid())
   userId    String
@@ -77,12 +78,12 @@ model OldUserData {
 
 model Device {
   id        String     @id @default(cuid())
-  deviceId  String     @unique  
+  deviceId  String     @unique
   type      DeviceType @default(UNKNOWN)
   model     String?
   ip        String?
   location  String?
-  sessions  Session[]  
+  sessions  Session[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -100,7 +101,7 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceId  String?  // Référence au Device via son deviceId unique
+  deviceId  String? // Référence au Device via son deviceId unique
   device    Device?  @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
 
   @@map("sessions")
@@ -114,7 +115,6 @@ model AuthCode {
   @@unique([id, userId])
   @@map("auth_code")
 }
-
 
 enum VerifiedType {
   STANDARD
@@ -163,7 +163,7 @@ model RoomMember {
   isUploadingFile Boolean    @default(false)
   joinedAt        DateTime   @default(now())
   leftAt          DateTime?
-  kickedAt       DateTime?
+  kickedAt        DateTime?
 
   @@unique([roomId, userId])
   @@map("chat_members")
@@ -178,24 +178,25 @@ enum MemberType {
 }
 
 model Message {
-  id           String        @id @default(cuid())
+  id           String              @id @default(cuid())
   content      String
-  sender       User?         @relation("Sender", fields: [senderId], references: [id], onDelete: SetNull)
+  sender       User?               @relation("Sender", fields: [senderId], references: [id], onDelete: SetNull)
   senderId     String?
-  recipient    User?         @relation("Recipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  recipient    User?               @relation("Recipient", fields: [recipientId], references: [id], onDelete: SetNull)
   recipientId  String?
-  room         Room?         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room         Room?               @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId       String?
-  reaction     Reaction?     @relation("Sender", fields: [reactionId], references: [id], onDelete: Cascade)
+  reaction     Reaction?           @relation("Sender", fields: [reactionId], references: [id], onDelete: Cascade)
   reactionId   String?
   type         MessageType
-  reads        Read[]  
-  deliveries   Delivery[]  
+  voiceNote    VoiceNote?
+  reads        Read[]
+  deliveries   Delivery[]
   reactions    Reaction[]
   lastMessages LastMessage[]
   attachments  MessageAttachment[]
   mentions     MessageMention[]
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime            @default(now())
 
   @@index([roomId, createdAt]) // Optimisation performance
   @@map("messages")
@@ -212,6 +213,18 @@ enum MessageType {
   SAVED
   REACTION
   MENTION
+  VOICENOTE
+}
+
+model VoiceNote {
+  id        String   @id @default(cuid())
+  messageId String?  @unique
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  url       String
+  duration  Int
+  createdAt DateTime @default(now())
+
+  @@map("voice_notes")
 }
 
 model LastMessage {
@@ -270,13 +283,13 @@ model Reaction {
 }
 
 model MessageMention {
-  id           String  @id @default(cuid())
-  messageId    String
-  message      Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  mentionedId  String
-  mentionedUser User   @relation("MentionedInMessage", fields: [mentionedId], references: [id], onDelete: Cascade)
-  
-  createdAt    DateTime @default(now())
+  id            String  @id @default(cuid())
+  messageId     String
+  message       Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedId   String
+  mentionedUser User    @relation("MentionedInMessage", fields: [mentionedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   @@unique([messageId, mentionedId])
   @@index([messageId])
@@ -333,9 +346,9 @@ enum MediaType {
 }
 
 model UserAvatar {
-  id String @id @default(cuid())
-  userId String?
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id           String  @id @default(cuid())
+  userId       String?
+  user         User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   url          String
   publicId     String?
   width        Int?
@@ -355,7 +368,7 @@ model MessageAttachment {
   type         AttachmentType
   url          String
   publicId     String?
-  fileName      String?
+  fileName     String?
   width        Int?
   height       Int?
   format       String?
@@ -471,9 +484,9 @@ model SearchHistory {
 }
 
 model Privacy {
-  id        String       @id @default(cuid())
-  type      PrivacyType
-  value     PrivacyValue
+  id          String        @id @default(cuid())
+  type        PrivacyType
+  value       PrivacyValue
   userPrivacy UserPrivacy[]
 
   @@unique([type, value])
