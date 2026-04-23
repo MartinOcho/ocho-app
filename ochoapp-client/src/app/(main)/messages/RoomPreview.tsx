@@ -21,7 +21,7 @@ import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
-import { Image as ImageIcon, Video as VideoIcon, AtSign } from "lucide-react";
+import { Image as ImageIcon, Video as VideoIcon, AtSign, Mic } from "lucide-react";
 
 interface RoomProps {
   room: RoomData;
@@ -191,6 +191,7 @@ export default function RoomPreview({
     twoUsersTyping,
     threeUsersTyping,
     multipleTyping,
+    voiceMessage,
   } = t();
 
   const typingText = !!typing.typingUsers.length
@@ -277,6 +278,11 @@ export default function RoomPreview({
     type: "CLEAR",
     createdAt: Date.now(),
     mentions: [],
+    recipient: null,
+    attachments: [],
+    voiceNote: null,
+    reactions: [],
+    _count: { reactions: 0 },
   };
   // Check if current user is mentioned in the last message
   const isMentionedInLastMessage =
@@ -455,7 +461,16 @@ export default function RoomPreview({
 
   const attachmentPreview = getAttachmentPreview();
 
-  const voiceNoteMsg = "";
+  // Fonction pour formatter la durée en MM:SS
+  const formatDuration = (durationMs: number | undefined): string => {
+    if (!durationMs) return "0:00";
+    const totalSeconds = Math.floor(durationMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const voiceNoteDuration = formatDuration(messagePreview.voiceNote?.duration);
 
   const contentsTypes = {
     CREATE: room.isGroup
@@ -472,7 +487,7 @@ export default function RoomPreview({
     BAN: oldMemberMsg,
     REACTION: reactionContent,
     MENTION: mentionContent,
-    VOICENOTE: voiceNoteMsg,
+    VOICENOTE: "",
   };
 
   let messagePreviewContent =
@@ -617,7 +632,13 @@ export default function RoomPreview({
                       highlight={highlight}
                     />
                   ) : (
-                    messagePreviewContent
+                    messageType === "VOICENOTE" ? (
+                    <>
+                      {showUserPreview && `${sender || appUser}: `}
+                      <Mic className="inline h-4 w-4 align-text-bottom" />
+                      {voiceMessage} ({voiceNoteDuration})
+                    </>
+                  ) : messagePreviewContent
                   ))) ||
                 noMessage
               )}

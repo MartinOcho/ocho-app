@@ -150,6 +150,7 @@ export type UserData = Prisma.UserGetPayload<{
 
 export function getMessageDataSelect() {
   return {
+    id: true,
     type: true,
     content: true,
     sender: {
@@ -184,6 +185,14 @@ export function getMessageDataSelect() {
         resourceType: true,
       },
     },
+    voiceNote: {
+      select: {
+        id: true,
+        url: true,
+        duration: true,
+        createdAt: true,
+      },
+    },
     mentions: {
       select: {
         mentionedId: true,
@@ -196,7 +205,21 @@ export function getMessageDataSelect() {
         },
       },
     },
+    _count: {
+      select: {
+        reactions: true,
+      },
+    },
+    reactions: {
+      select: {
+        user: true,
+        content: true,
+      },
+    },
     createdAt: true,
+    senderId: true,
+    roomId: true,
+    recipientId: true,
   } satisfies Prisma.MessageSelect;
 }
 
