@@ -639,6 +639,7 @@ interface TypingUser {
   avatarUrl: string | null;
 }
 const typingUsersByRoom = new Map<string, Map<string, TypingUser>>();
+const recordingUsersByRoom = new Map<string, Map<string, TypingUser>>();
 
 const io = new Server(server, {
   cors: {
@@ -822,6 +823,49 @@ io.on("connection", async (socket: Socket) => {
         (u) => u.id !== userId,
       );
       io.to(roomId).emit("typing_update", { roomId, typingUsers: typingList });
+    }
+  });
+
+  socket.on("recording_start", async (roomId: string) => {
+    if (!roomId || roomId.trim() === "") {
+      return;
+    }
+    if (!roomId.startsWith("saved-")) {
+      const membership = await prisma.roomMember.findUnique({
+        where: { roomId_userId: { roomId, userId } },
+        select: { leftAt: true, type: true },
+      });
+      if (!membership || membership.leftAt || membership.type === "BANNED")
+        return;
+    }
+
+    if (!recordingUsersByRoom.has(roomId)) {
+      recordingUsersByRoom.set(roomId, new Map());
+    }
+
+    const roomRecording = recordingUsersByRoom.get(roomId)!;
+    roomRecording.set(userId, { id: userId, displayName, avatarUrl });
+
+    const recordingUsers = Array.from(roomRecording.values());
+    console.log(chalk.greenBright(`📢 Broadcasting recording_update to ${roomId}, users:`, recordingUsers));
+
+    io.to(roomId).emit("recording_update", { roomId, recordingUsers });
+  });
+
+  socket.on("recording_stop", (roomId: string) => {
+    if (!roomId || roomId.trim() === "") {
+      return;
+    }
+    const roomRecording = recordingUsersByRoom.get(roomId);
+    if (roomRecording) {
+      roomRecording.delete(userId);
+      if (roomRecording.size === 0) {
+        recordingUsersByRoom.delete(roomId);
+      }
+      const recordingList = Array.from(roomRecording?.values() || []).filter(
+        (u) => u.id !== userId,
+      );
+      io.to(roomId).emit("recording_update", { roomId, recordingUsers: recordingList });
     }
   });
 
@@ -1490,6 +1534,11 @@ io.on("connection", async (socket: Socket) => {
     typingUsersByRoom.forEach((typingUsers, room) => {
       typingUsers.delete(userId);
       io.to(room).emit("typing_stop", { roomId: room });
+    });
+
+    recordingUsersByRoom.forEach((recordingUsers, room) => {
+      recordingUsers.delete(userId);
+      io.to(room).emit("recording_update", { roomId: room, recordingUsers: Array.from(recordingUsers.values()) });
     });
 
     console.log(chalk.yellow(`${displayName} s'est déconnecté.`));

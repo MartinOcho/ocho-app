@@ -43,6 +43,7 @@ interface MessageFormComponentProps {
   canAttach?: boolean;
   members?: RoomMember[];
   onValidityChange?: (isValid: boolean) => void;
+  onVoiceSendingStart?: (tempId: string, duration: number) => void;
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -78,6 +79,7 @@ export function MessageFormComponent({
   canAttach = true,
   members = [],
   onValidityChange,
+  onVoiceSendingStart,
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -86,11 +88,18 @@ export function MessageFormComponent({
   const { activeRoomId } = useActiveRoom();
   
   // Voice recorder hook
-  const voiceRecorder = useVoiceRecorder(activeRoomId || "", () => {
-    // Reset form after sending voice note
-    setInput("");
-    setAttachments([]);
-  });
+  const voiceRecorder = useVoiceRecorder(
+    activeRoomId || "", 
+    () => {
+      // Reset form after sending voice note
+      setInput("");
+      setAttachments([]);
+    },
+    (tempId) => {
+      // Add voice message preview
+      onVoiceSendingStart?.(tempId, 0);
+    }
+  );
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
   const abortControllersRef = useRef<Record<string, () => void>>({});
@@ -493,12 +502,16 @@ export function MessageFormComponent({
       ) : (
         <Button
           size={!expanded ? "icon" : "default"}
-          disabled={!expanded ? false : !canSend()}
+          disabled={!expanded}
           onClick={() => {
             if (!canSend() && !expanded) {
               voiceRecorder.startRecording();
-            } else {
+            } else if (expanded && canSend()) {
               handleSend();
+            } else if (!canSend() && expanded) {
+              voiceRecorder.startRecording();
+            } else if (!expanded) {
+              onExpanded(true);
             }
           }}
           className={cn(
@@ -508,8 +521,9 @@ export function MessageFormComponent({
               : "h-[50px] w-[50px] rounded-full border-none outline-none",
           )}
           variant={expanded && input.trim() ? "default" : "outline"}
+          title={!canSend() ? "Enregistrer une note vocale" : "Envoyer le message"}
         >
-          {!canSend() && !expanded ? <Mic className="h-5 w-5" /> : <Send />}
+          {canSend() ? <Send /> : <Mic className="h-5 w-5" />}
         </Button>
       )}
     </div>

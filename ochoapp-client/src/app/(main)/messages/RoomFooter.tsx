@@ -33,6 +33,7 @@ interface RoomFooterProps {
   onFollowUser?: () => void;
   onViewGroupDetails?: () => void;
   onValidityChange?: (isValid: boolean) => void;
+  onVoiceSendingStart?: (tempId: string, duration: number) => void;
 }
 
 export default function RoomFooter({
@@ -50,6 +51,7 @@ export default function RoomFooter({
   onFollowUser,
   onViewGroupDetails,
   onValidityChange,
+  onVoiceSendingStart,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -68,6 +70,7 @@ export default function RoomFooter({
           canAttach={true}
           members={members}
           onValidityChange={onValidityChange}
+          onVoiceSendingStart={onVoiceSendingStart}
         />
       );
 

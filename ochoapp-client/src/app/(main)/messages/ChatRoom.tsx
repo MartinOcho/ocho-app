@@ -52,6 +52,7 @@ import { useRoomFooterState } from "./useRoomFooterState";
 import { RoomFooterStateType } from "@/lib/types";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
+import RecordingStatus from "@/components/messages/RecordingStatus";
 
 interface ChatProps {
   roomId: string | null;
@@ -802,8 +803,9 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
           {status === "success" && (
             <>
-              {/* Indicateur de frappe  */}
+              {/* Indicateur de frappe et enregistrement */}
               <TypingIndicator typingUsers={typingUsers} />
+              <RecordingStatus roomId={roomId} />
 
               {/* Messages "live" reçus via socket avant refresh (filtrés) */}
               {clusteredNewMessages.map((group, i) => {
@@ -819,7 +821,8 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                   content={msg.content}
                   status={msg.status}
                   onRetry={() => handleRetryMessage(msg)}
-                  attachments={tempAttachments[msg.tempId] || []} />
+                  attachments={tempAttachments[msg.tempId] || []}
+                  type={msg.type} />
               ))}
 
               {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
@@ -898,6 +901,18 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 onExpandedChange={setMessageInputExpanded}
                 members={room?.members}
                 onValidityChange={setIsFormValid}
+                onVoiceSendingStart={(tempId, duration) => {
+                  setSentMessages((prev) => [
+                    ...prev,
+                    {
+                      tempId,
+                      content: "",
+                      roomId,
+                      type: "VOICENOTE",
+                      status: "sending",
+                    },
+                  ]);
+                }}
               />
             </div>
           )}
@@ -971,9 +986,10 @@ interface SendingMessageProps {
   status: "sending" | "error";
   onRetry: () => void;
   attachments?: MessageAttachment[];
+  type?: MessageType;
 }
 
-function SendingMessage({ content, status, onRetry, attachments }: SendingMessageProps) {
+function SendingMessage({ content, status, onRetry, attachments, type }: SendingMessageProps) {
   const { t } = useTranslation();
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -983,6 +999,8 @@ function SendingMessage({ content, status, onRetry, attachments }: SendingMessag
     // Reset visual loading state after delay
     setTimeout(() => setIsRetrying(false), 2000);
   };
+
+  const displayText = type === "VOICENOTE" ? "📎 Envoi d'une note vocale..." : content;
 
   return (
     <div className="relative flex w-full flex-col gap-3 duration-300">
@@ -1017,7 +1035,7 @@ function SendingMessage({ content, status, onRetry, attachments }: SendingMessag
                       : "",
                   )}
                 >
-                  {content}
+                  {displayText}
                 </p>
               </Linkify>
             </div>

@@ -588,6 +588,7 @@ export async function handleSendNormalMessage(
           type,
           recipientId: calculatedRecipientId,
         },
+        include: getMessageDataInclude(userId),
       });
       
       if (attachmentIds && attachmentIds.length > 0) {
@@ -619,63 +620,38 @@ export async function handleSendNormalMessage(
         include: getChatRoomDataInclude(),
       });
 
+      // Fetch active members for lastMessage updates
+      const activeMembers = await tx.roomMember.findMany({
+        where: { roomId, leftAt: null, type: { not: "BANNED" } },
+      });
+
+      // Update lastMessage INSIDE transaction only
+      for (const member of activeMembers) {
+        if (member.userId) {
+          await tx.lastMessage.upsert({
+            where: { userId_roomId: { userId: member.userId, roomId } },
+            create: {
+              userId: member.userId,
+              roomId,
+              messageId: msg.id,
+            },
+            update: { messageId: msg.id, createdAt: new Date() },
+          });
+        }
+      }
+
       return { createdMessage: msg, roomData: room };
     },
   );
 
-  const newMessage = await prisma.message.findUnique({
-    where: { id: createdMessage.id },
-    include: getMessageDataInclude(userId),
-  });
+  const newMessage = createdMessage;
 
-  if (!newMessage) throw new Error("Failed to create message");
-
-  const activeMembers = await prisma.roomMember.findMany({
-    where: { roomId, leftAt: null, type: { not: "BANNED" } },
-  });
-
-  const deliveredUserIds: string[] = [];
-
-  for (const member of activeMembers) {
-    if (member.userId) {
-      await prisma.lastMessage.upsert({
-        where: { userId_roomId: { userId: member.userId, roomId } },
-        create: {
-          userId: member.userId,
-          roomId,
-          messageId: newMessage.id,
-        },
-        update: { messageId: newMessage.id, createdAt: new Date() },
-      });
-
-      // Mark message as delivered for online members (except sender)
-      // Check if user is connected via Socket.IO instead of BD to avoid latency
-      const userSocketRoom = io.sockets.adapter.rooms.get(member.userId);
-      const isUserOnline = userSocketRoom && userSocketRoom.size > 0;
-      
-      if (member.userId !== userId && isUserOnline) {
-        await prisma.delivery.upsert({
-          where: {
-            userId_messageId: {
-              userId: member.userId,
-              messageId: newMessage.id,
-            },
-          },
-          create: {
-            userId: member.userId,
-            messageId: newMessage.id,
-          },
-          update: {},
-        });
-        deliveredUserIds.push(member.userId);
-      }
-    }
-  }
-
-
-  const affectedUserIds = activeMembers
+  // Get affected users
+  const affectedUserIds = (roomData?.members || [])
     .map((m) => m.userId)
     .filter((id): id is string => id !== null);
+
+  const deliveredUserIds: string[] = [];
 
   // --- HANDLE MENTIONS ---
   // Process mentions as part of the message (treated as unread messages)
@@ -1052,7 +1028,7 @@ export async function handleSendVoiceNote(
   }
 
   // Créer le message et la note vocale
-  const { createdMessage, roomData } = await prisma.$transaction(
+  const createdMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const msg = await tx.message.create({
         data: {
@@ -1061,10 +1037,11 @@ export async function handleSendVoiceNote(
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
         },
+        include: getMessageDataInclude(userId),
       });
 
       // Créer la note vocale
-      const voiceNote = await tx.voiceNote.create({
+      await tx.voiceNote.create({
         data: {
           url: voiceNoteUrl,
           duration: Math.round(duration * 1000), // Convertir en millisecondes
@@ -1091,24 +1068,14 @@ export async function handleSendVoiceNote(
         }
       }
 
-      const room = await tx.room.findUnique({
-        where: { id: roomId },
-        include: getChatRoomDataInclude(),
-      });
-
-      return { createdMessage: msg, roomData: room };
+      return msg;
     },
   );
 
-  const newMessage = await prisma.message.findUnique({
-    where: { id: createdMessage.id },
-    include: getMessageDataInclude(userId),
-  });
-
-  if (!newMessage) throw new Error("Failed to create voice note message");
+  const newMessage = createdMessage;
 
   return {
-    newMessage,
+    newMessage: createdMessage,
     tempId,
   };
 }

@@ -158,7 +158,7 @@ export const useVoiceRecorder = (roomId: string, onVoiceNoteSent?: () => void) =
     return (
       <button
         onClick={startRecording}
-        disabled={disabled || isSending}
+        disabled={isSending}
         className={cn(
           'inline-flex items-center justify-center h-10 w-10 rounded-full',
           'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors',
