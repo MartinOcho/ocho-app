@@ -12,6 +12,8 @@ import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import {
   SocketSendMessageEvent,
+  SocketSendVoiceNoteEvent,
+  SocketRecordingStatusEvent,
   SocketStartChatEvent,
   SocketMarkMessageReadEvent,
   SocketMarkMessageDeliveredEvent,
@@ -45,6 +47,7 @@ import {
   handleDeleteMessage,
   handleSendSavedMessage,
   handleSendNormalMessage,
+  handleSendVoiceNote,
   markUndeliveredMessages,
   handleGetRoomDetails,
   handleGetLastMessage,
@@ -1168,6 +1171,74 @@ io.on("connection", async (socket: Socket) => {
       console.error("Erreur send_message:", error);
       socket.emit("error", { message: "Erreur lors de l'envoi" });
     }
+  });
+
+  socket.on("send_voice_note", async (data: SocketSendVoiceNoteEvent) => {
+    const { tempId, roomId } = data;
+
+    console.log(chalk.green("Envoi d'une note vocale:", `${Math.round(data.duration)}s`));
+
+    try {
+      const { newMessage } = await handleSendVoiceNote(
+        data,
+        userId,
+        username,
+        io,
+        cloudinary,
+      );
+
+      socket.join(roomId);
+
+      io.to(roomId).emit("receive_message", {
+        newMessage,
+        roomId,
+        tempId,
+      });
+
+      const updatedRooms = await getFormattedRooms(userId, username);
+      io.to(userId).emit("room_list_updated", updatedRooms);
+
+      // Émettre la mise à jour pour les autres membres
+      const members = await prisma.roomMember.findMany({
+        where: { roomId, userId: { not: userId }, leftAt: null },
+        select: { userId: true },
+      });
+
+      for (const member of members) {
+        if (member.userId) {
+          const user = await prisma.user.findUnique({
+            where: { id: member.userId },
+            select: { username: true },
+          });
+          if (user) {
+            const updatedRooms = await getFormattedRooms(
+              member.userId,
+              user.username,
+            );
+            io.to(member.userId).emit("room_list_updated", updatedRooms);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erreur send_voice_note:", error);
+      socket.emit("error", { message: "Erreur lors de l'envoi de la note vocale" });
+    }
+  });
+
+  socket.on("recording_status", async (data: SocketRecordingStatusEvent) => {
+    const { roomId, isRecording } = data;
+
+    socket.join(roomId);
+
+    // Émettre le statut d'enregistrement aux autres utilisateurs dans la room
+    io.to(roomId).emit("user_recording_status", {
+      userId,
+      isRecording,
+      displayName: (await prisma.user.findUnique({
+        where: { id: userId },
+        select: { displayName: true },
+      }))?.displayName || "Utilisateur",
+    });
   });
 
   socket.on(

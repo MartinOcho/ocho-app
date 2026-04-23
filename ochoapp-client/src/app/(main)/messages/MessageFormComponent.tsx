@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, X, Video, File as FileIcon, Loader2, Paperclip } from "lucide-react";
+import { Send, X, Video, File as FileIcon, Loader2, Paperclip, Mic } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { AttachmentType } from "@/lib/types";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,8 @@ import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 import MentionInput from "@/components/MentionInput";
 import { toast } from "@/components/ui/use-toast";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { VoiceRecorderDisplay } from "@/components/messages/VoiceRecorderDisplay";
 
 interface LocalAttachment {
   id: string; 
@@ -81,6 +83,14 @@ export function MessageFormComponent({
   const [input, setInput] = useState("");
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  const { activeRoomId } = useActiveRoom();
+  
+  // Voice recorder hook
+  const voiceRecorder = useVoiceRecorder(activeRoomId || "", () => {
+    // Reset form after sending voice note
+    setInput("");
+    setAttachments([]);
+  });
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
   const abortControllersRef = useRef<Record<string, () => void>>({});
@@ -339,7 +349,8 @@ export function MessageFormComponent({
     const hasContent = input.trim().length > 0;
     const hasUploadedAttachments = attachments.some((a) => !a.isUploading && a.attachmentId);
     
-    return !hasUploading && (hasContent || hasUploadedAttachments);
+    // Ne pas envoyer si on est en train d'enregistrer
+    return !hasUploading && !voiceRecorder.isRecording && (hasContent || hasUploadedAttachments);
   };
 
   const handleSend = () => {
@@ -350,7 +361,7 @@ export function MessageFormComponent({
     <div
       className={cn(
         "relative flex z-20 w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
-        expanded ? "" : "aspect-square w-fit rounded-full p-0",
+        expanded || voiceRecorder.isRecording ? "" : "aspect-square w-fit rounded-full p-0",
       )}
     >
       <input
@@ -363,21 +374,22 @@ export function MessageFormComponent({
         onChange={handleFiles}
         placeholder="Joindre un fichier"
       />
-      <Button
-       type="button"
-        size="icon"
-        onClick={handleFileClick}
-        className={cn(
-          "p-2 size-10 max-w-10 max-h-10 min-h-10 min-w-10 rounded-full border-none outline-none",
-          !canAttach && "opacity-50 cursor-not-allowed",
-          attachments.some((a) => a.isUploading)
-            ? "text-amber-500 hover:text-amber-600"
-            : "text-muted-foreground hover:text-foreground",
-            !expanded && "hidden",
-        )}
-        variant="outline"
-        disabled={!canAttach || attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
-        title="Joindre un fichier"
+
+      {!voiceRecorder.isRecording && expanded && (
+        <Button
+         type="button"
+          size="icon"
+          onClick={handleFileClick}
+          className={cn(
+            "p-2 size-10 max-w-10 max-h-10 min-h-10 min-w-10 rounded-full border-none outline-none flex-shrink-0",
+            !canAttach && "opacity-50 cursor-not-allowed",
+            attachments.some((a) => a.isUploading)
+              ? "text-amber-500 hover:text-amber-600"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          variant="outline"
+          disabled={!canAttach || attachments.some((a) => a.isUploading) || attachments.filter((a) => !a.isUploading).length >= 5}
+          title="Joindre un fichier"
       >
         {attachments.some((a) => a.isUploading) ? (
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -385,9 +397,10 @@ export function MessageFormComponent({
           <Paperclip className="h-5 w-5" />
         )}
       </Button>
-      <div className={cn("flex w-full flex-col gap-2 border-r border-border", !expanded && "hidden")}>
+      )}
+
+      <div className={cn("flex w-full flex-col gap-2 border-r border-border", !expanded || voiceRecorder.isRecording ? "hidden" : "")}>
         {attachments.length > 0 && (
-          // MODIFICATION ICI : Ajout de flex-wrap, max-h-40, overflow-y-auto
           <div className="flex w-full flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
             {attachments.map((a, i) => (
               <div
@@ -461,28 +474,44 @@ export function MessageFormComponent({
           placeholder={t("typeMessage")}
           className={cn(
             "max-h-[10rem] min-h-10 w-full resize-none overflow-y-auto rounded-none border-none bg-transparent py-2 px-0.5 ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
-            expanded ? "relative w-full" : "invisible absolute w-0",
+            expanded && !voiceRecorder.isRecording ? "relative w-full" : "invisible absolute w-0",
           )}
           value={input}
           onChange={handleChange}
           members={members}
-          disabled={false}
+          disabled={voiceRecorder.isRecording}
         />
       </div>
-      <Button
-        size={!expanded ? "icon" : "default"}
-        disabled={!canSend()}
-        onClick={handleSend}
-        className={cn(
-          "rounded-full p-2",
-          expanded
-            ? ""
-            : "h-[50px] w-[50px] rounded-full border-none outline-none",
-        )}
-        variant={expanded && input.trim() ? "default" : "outline"}
-      >
-        <Send />
-      </Button>
+      {voiceRecorder.isRecording ? (
+        <VoiceRecorderDisplay
+          recordingTime={voiceRecorder.recordingTime}
+          isSending={voiceRecorder.isSending}
+          onCancel={voiceRecorder.cancelRecording}
+          onStop={voiceRecorder.stopRecording}
+          onSend={voiceRecorder.sendVoiceNote}
+        />
+      ) : (
+        <Button
+          size={!expanded ? "icon" : "default"}
+          disabled={!expanded ? false : !canSend()}
+          onClick={() => {
+            if (!canSend() && !expanded) {
+              voiceRecorder.startRecording();
+            } else {
+              handleSend();
+            }
+          }}
+          className={cn(
+            "rounded-full p-2",
+            expanded
+              ? ""
+              : "h-[50px] w-[50px] rounded-full border-none outline-none",
+          )}
+          variant={expanded && input.trim() ? "default" : "outline"}
+        >
+          {!canSend() && !expanded ? <Mic className="h-5 w-5" /> : <Send />}
+        </Button>
+      )}
     </div>
   );
 }

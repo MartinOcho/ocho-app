@@ -179,7 +179,7 @@ enum MemberType {
 
 model Message {
   id           String              @id @default(cuid())
-  content      String
+  content      String              @default("")
   sender       User?               @relation("Sender", fields: [senderId], references: [id], onDelete: SetNull)
   senderId     String?
   recipient    User?               @relation("Recipient", fields: [recipientId], references: [id], onDelete: SetNull)

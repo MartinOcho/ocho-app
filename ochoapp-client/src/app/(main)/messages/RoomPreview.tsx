@@ -455,6 +455,8 @@ export default function RoomPreview({
 
   const attachmentPreview = getAttachmentPreview();
 
+  const voiceNoteMsg = "";
+
   const contentsTypes = {
     CREATE: room.isGroup
       ? messagePreview.sender?.id === loggedinUser.id
@@ -470,6 +472,7 @@ export default function RoomPreview({
     BAN: oldMemberMsg,
     REACTION: reactionContent,
     MENTION: mentionContent,
+    VOICENOTE: voiceNoteMsg,
   };
 
   let messagePreviewContent =

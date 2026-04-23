@@ -328,6 +328,14 @@ export function getMessageDataInclude(loggedInUserId: string) {
         resourceType: true,
       },
     },
+    voiceNote: {
+      select: {
+        id: true,
+        url: true,
+        duration: true,
+        createdAt: true,
+      },
+    },
     mentions: {
       select: {
         mentionedId: true,

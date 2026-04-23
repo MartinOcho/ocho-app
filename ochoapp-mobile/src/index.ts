@@ -427,6 +427,55 @@ app.post("/api/cloudinary/upload", async (req, res) => {
   }
 });
 
+app.post("/api/cloudinary/upload-voice", async (req, res) => {
+  try {
+    const { voiceNoteBase64, duration } = req.body;
+    
+    if (!voiceNoteBase64) {
+      return res.json({ success: false, error: "No voice data provided" });
+    }
+
+    // Convertir base64 en buffer
+    const buffer = Buffer.from(
+      voiceNoteBase64.replace(/^data:audio\/[a-z]+;base64,/, ''),
+      'base64'
+    );
+
+    // Upload à Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'video',
+          format: 'mp3',
+          flags: 'immutable_cache',
+          folder: 'ochoapp/voice_notes',
+        },
+        (error: any, result: any) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(buffer);
+    });
+
+    const result = uploadResult as any;
+
+    res.json({
+      success: true,
+      voiceNoteUrl: result.secure_url,
+      duration: Math.round(duration * 1000),
+      publicId: result.public_id,
+    });
+  } catch (err) {
+    console.error("Voice upload error", err);
+    return res.json({
+      success: false,
+      error: "Voice upload failed",
+      message: err instanceof Error ? err.message : undefined,
+    } as ApiResponse<null>);
+  }
+});
+
 app.post(
   "/api/cloudinary/upload-attachment",
   upload.single("file"),

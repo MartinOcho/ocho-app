@@ -43,6 +43,7 @@ import ReactionOverlay, {
 } from "./reaction/ReactionOverlay";
 import GroupAvatar from "@/components/GroupAvatar";
 import MediaStrip from "@/components/messages/MediaStrip";
+import VoiceNotePlayer from "@/components/messages/VoiceNotePlayer";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -464,6 +465,16 @@ export const MessageBubbleContent = ({
             onMediaClose={onMediaClose}
           />
         )}
+      
+      {/* Afficher la note vocale */}
+      {message.voiceNote && !message.content.trim() && (
+        <VoiceNotePlayer
+          url={message.voiceNote.url}
+          duration={message.voiceNote.duration / 1000} // Convertir en secondes
+          className={cn(isOwner ? "mr-0" : "ml-0")}
+        />
+      )}
+      
       <div
         onClick={(e) => {
           e.stopPropagation();
@@ -478,6 +489,7 @@ export const MessageBubbleContent = ({
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
           borderRadiusClass,
           !message.content.trim() && message.attachments.length && "hidden",
+          !message.content.trim() && message.voiceNote && "hidden", // Masquer la bulle texte si c'est une note vocale
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}

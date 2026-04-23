@@ -10,6 +10,7 @@ import {
   SocketRemoveReactionEvent,
   SocketDeleteMessageEvent,
   SocketSendMessageEvent,
+  SocketSendVoiceNoteEvent,
   SocketGetRoomDetailsEvent,
   SocketGetLastMessageEvent,
 } from "./types";
@@ -987,4 +988,127 @@ export async function handleGetLastMessage(
 
 
   return lastMessage;
+}
+
+// --- HANDLE SEND VOICE NOTE ---
+export async function handleSendVoiceNote(
+  data: SocketSendVoiceNoteEvent,
+  userId: string,
+  username: string,
+  io: Server,
+  cloudinary: any,
+) {
+  const { voiceNoteBase64, duration, roomId, tempId, recipientId } = data;
+
+  const membership = await prisma.roomMember.findUnique({
+    where: { roomId_userId: { roomId, userId } },
+  });
+
+  if (!membership || membership.type === "BANNED" || membership.leftAt) {
+    throw new Error("Non autorisé");
+  }
+
+  // Récupérer les infos de la room
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { members: true },
+  });
+
+  if (!room) throw new Error("Room not found");
+
+  // Calculer le recipientId pour les messages directs
+  let calculatedRecipientId = recipientId;
+  if (!room.isGroup) {
+    const otherMember = room.members.find(m => m.userId && m.userId !== userId);
+    if (otherMember?.userId) {
+      calculatedRecipientId = otherMember.userId;
+    }
+  }
+
+  // Convertir base64 en buffer
+  const buffer = Buffer.from(voiceNoteBase64.replace(/^data:audio\/[a-z]+;base64,/, ''), 'base64');
+
+  // Upload à Cloudinary
+  let voiceNoteUrl = '';
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'video',
+          format: 'mp3',
+          flags: 'immutable_cache',
+          folder: 'ochoapp/voice_notes',
+        },
+        (error: any, result: any) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(buffer);
+    });
+    voiceNoteUrl = (uploadResult as any).secure_url;
+  } catch (error) {
+    throw new Error(`Failed to upload voice note: ${error}`);
+  }
+
+  // Créer le message et la note vocale
+  const { createdMessage, roomData } = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      const msg = await tx.message.create({
+        data: {
+          roomId,
+          senderId: userId,
+          type: "VOICENOTE",
+          recipientId: calculatedRecipientId,
+        },
+      });
+
+      // Créer la note vocale
+      const voiceNote = await tx.voiceNote.create({
+        data: {
+          url: voiceNoteUrl,
+          duration: Math.round(duration * 1000), // Convertir en millisecondes
+          messageId: msg.id,
+        },
+      });
+
+      // Mettre à jour lastMessage pour tous les membres actifs
+      const activeMembers = await tx.roomMember.findMany({
+        where: { roomId, leftAt: null, type: { not: "BANNED" } },
+      });
+
+      for (const member of activeMembers) {
+        if (member.userId) {
+          await tx.lastMessage.upsert({
+            where: { userId_roomId: { userId: member.userId, roomId } },
+            create: {
+              userId: member.userId,
+              roomId,
+              messageId: msg.id,
+            },
+            update: { messageId: msg.id, createdAt: new Date() },
+          });
+        }
+      }
+
+      const room = await tx.room.findUnique({
+        where: { id: roomId },
+        include: getChatRoomDataInclude(),
+      });
+
+      return { createdMessage: msg, roomData: room };
+    },
+  );
+
+  const newMessage = await prisma.message.findUnique({
+    where: { id: createdMessage.id },
+    include: getMessageDataInclude(userId),
+  });
+
+  if (!newMessage) throw new Error("Failed to create voice note message");
+
+  return {
+    newMessage,
+    tempId,
+  };
 }

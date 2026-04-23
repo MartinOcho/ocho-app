@@ -429,11 +429,19 @@ export interface ActivityHistoryRequest {
 export interface Message {
   id: string;
   type: string;
-  content: string;
+  content?: string | null;
   sender: User;
   recipient: User;
   attachments: Attachment[];
   mentions: MessageMention[];
+  voiceNote?: VoiceNote | null;
+  createdAt: number;
+}
+
+export interface VoiceNote {
+  id: string;
+  url: string;
+  duration: number;
   createdAt: number;
 }
 

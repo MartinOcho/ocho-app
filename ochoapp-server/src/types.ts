@@ -309,6 +309,14 @@ export function getMessageDataInclude(loggedInUserId: string) {
         resourceType: true,
       },
     },
+    voiceNote: {
+      select: {
+        id: true,
+        url: true,
+        duration: true,
+        createdAt: true,
+      },
+    },
     mentions: {
       select: {
         mentionedId: true,
@@ -378,6 +386,20 @@ export interface SocketSendMessageEvent {
   tempId?: string;
   attachmentIds?: string[];
   recipientId?: string;
+}
+
+export interface SocketSendVoiceNoteEvent {
+  voiceNoteBase64: string;
+  duration: number;
+  roomId: string;
+  tempId?: string;
+  recipientId?: string;
+}
+
+export interface SocketRecordingStatusEvent {
+  roomId: string;
+  isRecording: boolean;
+  userId: string;
 }
 
 export interface SocketStartChatEvent {
