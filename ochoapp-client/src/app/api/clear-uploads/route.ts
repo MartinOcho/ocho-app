@@ -94,7 +94,11 @@ export async function GET(req: Request) {
     for (const attachment of unusedMessageAttachments) {
       if (attachment.publicId) {
         try {
-          await cloudinary.uploader.destroy(attachment.publicId);
+          await cloudinary.uploader.destroy(attachment.publicId, { invalidate: true }, (error, result) => {
+            if (error) {
+              console.error(`Error deleting orphan avatar ${attachment.publicId}:`, error);
+            }
+          });
         } catch (error) {
           console.error(`Error deleting Cloudinary file ${attachment.publicId}:`, error);
         }
@@ -152,7 +156,11 @@ export async function GET(req: Request) {
 
       if (avatar.publicId) {
         try {
-          await cloudinary.uploader.destroy(avatar.publicId);
+          await cloudinary.uploader.destroy(avatar.publicId, { invalidate: true }, (error, result) => {
+            if (error) {
+              console.error(`Error deleting orphan avatar ${avatar.publicId}:`, error);
+            }
+          });
         } catch (error) {
           console.error(
             `Error deleting orphan avatar ${avatar.publicId}:`,
@@ -183,7 +191,7 @@ export async function GET(req: Request) {
         },
       },
     });
-
+    
     return new Response(null, { status: 200 });
   } catch (error) {
     console.error(error);
