@@ -21,7 +21,12 @@ import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
-import { Image as ImageIcon, Video as VideoIcon, AtSign, Mic } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Video as VideoIcon,
+  AtSign,
+  Mic,
+} from "lucide-react";
 
 interface RoomProps {
   room: RoomData;
@@ -134,8 +139,12 @@ export default function RoomPreview({
 
     const handleTypingUpdate = (data: SocketTypingUpdateEvent) => {
       if (data.roomId === room.id) {
-        const isTyping = !!data.typingUsers.filter((u) => u.id !== loggedinUser?.id).length;
-        const dataTypingUsers = data.typingUsers.filter(u => u.id !== loggedinUser?.id)
+        const isTyping = !!data.typingUsers.filter(
+          (u) => u.id !== loggedinUser?.id,
+        ).length;
+        const dataTypingUsers = data.typingUsers.filter(
+          (u) => u.id !== loggedinUser?.id,
+        );
         const typing = { isTyping, typingUsers: dataTypingUsers };
         setTyping(typing);
       }
@@ -199,9 +208,9 @@ export default function RoomPreview({
       ? isTyping
       : typing.typingUsers.length === 1
         ? userTyping.replace(
-                "[name]",
-                typing.typingUsers[0].displayName.split(" ")[0] || appUser,
-              )
+            "[name]",
+            typing.typingUsers[0].displayName.split(" ")[0] || appUser,
+          )
         : typing.typingUsers.length === 2
           ? twoUsersTyping
               .replace(
@@ -287,10 +296,8 @@ export default function RoomPreview({
   // Check if current user is mentioned in the last message
   const isMentionedInLastMessage =
     messagePreview.type === "CONTENT" &&
-    Array.isArray((messagePreview).mentions) &&
-    (messagePreview).mentions.some(
-      (m) => m.mentionedId === loggedinUser.id,
-    );
+    Array.isArray(messagePreview.mentions) &&
+    messagePreview.mentions.some((m) => m.mentionedId === loggedinUser.id);
 
   const otherUser: UserData | null =
     isSaved || isMentionedInLastMessage
@@ -323,7 +330,8 @@ export default function RoomPreview({
   const currentMember = room.members.find(
     (member) => member.userId === loggedinUser.id,
   );
-  const hasLeft = messageType === "LEAVE" && !messagePreview.sender && isRecipient;
+  const hasLeft =
+    messageType === "LEAVE" && !messagePreview.sender && isRecipient;
 
   const otherUserFirstName = otherUser?.displayName.split(" ")[0] || appUser;
   const senderFirstName =
@@ -358,14 +366,14 @@ export default function RoomPreview({
     }
     if (messageType === "LEAVE") {
       console.log(messagePreview);
-      
+
       oldMemberMsg = memberLeft.replace("[name]", memberName);
       if (room?.messages[0].sender) {
         room?.messages[0].sender.id === loggedinUser.id
           ? (oldMemberMsg = youRemovedMember.replace("[name]", memberName))
           : (oldMemberMsg =
               recipient.id === loggedinUser.id
-                ? removedYou.replace("[name]", sender || appUser) 
+                ? removedYou.replace("[name]", sender || appUser)
                 : removedMember
                     .replace("[name]", sender || appUser)
                     .replace("[member]", memberName));
@@ -591,7 +599,8 @@ export default function RoomPreview({
             <span
               className={cn(
                 "line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
-                (messageType !== "CONTENT" || typing.isTyping) &&
+                (["CONTENT", "VOICENOTE"].includes(messageType) ||
+                  typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
               )}
@@ -616,21 +625,25 @@ export default function RoomPreview({
                   )}
                 </>
               ) : (
-                (messagePreviewContent || messageType === "VOICENOTE") &&
-                  (messagePreviewContent ? (messageType === "REACTION" ? (
-                    <>
-                      {messagePreviewContent.split("[r]")[0]}
-                      <span className="font-emoji">
-                        {messagePreview.content}
-                      </span>
-                      {messagePreviewContent.split("[r]")[1]}
-                    </>
-                  ) : messageType === "CONTENT" ? (
-                    <HighlightText
-                      text={messagePreviewContent}
-                      highlight={highlight}
-                    />
-                  ) : "") : messageType === "VOICENOTE" ? (
+                ((messagePreviewContent || messageType === "VOICENOTE") &&
+                  (messagePreviewContent ? (
+                    messageType === "REACTION" ? (
+                      <>
+                        {messagePreviewContent.split("[r]")[0]}
+                        <span className="font-emoji">
+                          {messagePreview.content}
+                        </span>
+                        {messagePreviewContent.split("[r]")[1]}
+                      </>
+                    ) : messageType === "CONTENT" ? (
+                      <HighlightText
+                        text={messagePreviewContent}
+                        highlight={highlight}
+                      />
+                    ) : (
+                      ""
+                    )
+                  ) : messageType === "VOICENOTE" ? (
                     <>
                       {showUserPreview && `${sender || appUser}: `}
                       <Mic className="inline h-4 w-4 align-text-bottom" />
@@ -638,7 +651,7 @@ export default function RoomPreview({
                     </>
                   ) : (
                     messagePreviewContent
-                  )) ||
+                  ))) ||
                 noMessage
               )}
             </span>
