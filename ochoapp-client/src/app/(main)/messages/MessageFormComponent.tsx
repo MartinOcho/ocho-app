@@ -100,10 +100,6 @@ export function MessageFormComponent({
       onVoiceSendingStart?.(tempId, 0);
     }
   );
-
-  useEffect(() => {
-    onExpanded((voiceRecorder.isRecording && !expanded));
-  }, [voiceRecorder.isRecording, expanded]);
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
   const abortControllersRef = useRef<Record<string, () => void>>({});
@@ -116,7 +112,7 @@ export function MessageFormComponent({
   // Notifier le parent chaque fois que la validité change
   useEffect(() => {
     onValidityChange?.(canSend());
-  }, [input, attachments, onValidityChange]);
+  }, [input, attachments, onValidityChange, voiceRecorder.isRecording]);
 
   const handleChange = (value: string) => {
     setInput(value);
