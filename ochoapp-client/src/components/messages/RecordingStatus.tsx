@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSocket } from '@/components/providers/SocketProvider';
+import { useSession } from '@/app/(main)/SessionProvider';
 import UserAvatar from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { Mic } from 'lucide-react';
@@ -19,6 +20,7 @@ interface RecordingStatusProps {
 export default function RecordingStatus({ roomId }: RecordingStatusProps) {
   const [recordingUsers, setRecordingUsers] = useState<RecordingUser[]>([]);
   const { socket } = useSocket();
+  const { user: loggedUser } = useSession();
 
   useEffect(() => {
     if (!socket || !roomId) return;
@@ -26,7 +28,10 @@ export default function RecordingStatus({ roomId }: RecordingStatusProps) {
     const handleRecordingUpdate = (data: { roomId: string; recordingUsers: RecordingUser[] }) => {
       if (data.roomId === roomId) {
         console.log('[RecordingStatus] Updated recording users:', data.recordingUsers);
-        setRecordingUsers(data.recordingUsers || []);
+        const filteredUsers = data.recordingUsers.filter(
+          (u) => u.id !== loggedUser?.id,
+        );
+        setRecordingUsers(filteredUsers || []);
       }
     };
 
@@ -35,7 +40,7 @@ export default function RecordingStatus({ roomId }: RecordingStatusProps) {
     return () => {
       socket.off('recording_update', handleRecordingUpdate);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, loggedUser?.id]);
 
   if (recordingUsers.length === 0) {
     return null;
