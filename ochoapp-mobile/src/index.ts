@@ -820,7 +820,7 @@ app.post(
         data: {
           url: voiceNoteUrl,
           publicId: publicId,
-          duration: durationMs,
+          duration: durationMs / 1000,
         },
       });
 
