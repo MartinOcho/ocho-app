@@ -76,17 +76,16 @@ const MAX_TIME_DIFF = 20 * 60 * 1000; // 20 minutes en millisecondes
 // Helper: Check if a message should be treated as a "non-clusterable" message
 // This includes:
 // 1. Media-only messages (no text)
-// 2. Messages with both text and media (media part is separate bubble)
+// 2. Voice note messages (no text)
+// 3. Messages with both text and media (media part is separate bubble)
 const shouldBreakCluster = (message: MessageData): boolean => {
   if (message.type !== "CONTENT") return false;
   
   const hasAttachments = message.attachments && message.attachments.length > 0;
+  const hasVoiceNote = !!(message.voiceNote && message.voiceNote);
   const hasText = message.content && message.content.trim() !== "";
   
-  // Break cluster if:
-  // - Only has media (media-only tip)
-  // - Has both media and text (the text part doesn't cluster with text-only messages)
-  return hasAttachments;
+  return hasAttachments || hasVoiceNote;
 };
 
 function groupMessages(messages: MessageData[], limit: number = 5) {

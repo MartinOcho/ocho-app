@@ -1030,7 +1030,6 @@ export async function handleSendVoiceNote(
   // Créer le message et la note vocale
   const createdMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
-      // Créer le message sans include d'abord
       const msg = await tx.message.create({
         data: {
           roomId,
@@ -1038,6 +1037,7 @@ export async function handleSendVoiceNote(
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
         },
+        include: getMessageDataInclude(userId),
       });
 
       // Créer la note vocale
@@ -1068,11 +1068,7 @@ export async function handleSendVoiceNote(
         }
       }
 
-      // Récupérer le message complet avec voiceNote incluse
-      return await tx.message.findUnique({
-        where: { id: msg.id },
-        include: getMessageDataInclude(userId),
-      });
+      return msg;
     },
   );
 
