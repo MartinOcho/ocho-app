@@ -100,6 +100,10 @@ export function MessageFormComponent({
       onVoiceSendingStart?.(tempId, 0);
     }
   );
+
+  useEffect(() => {
+    onExpanded(voiceRecorder.isRecording);
+  }, [voiceRecorder.isRecording]);
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
   const abortControllersRef = useRef<Record<string, () => void>>({});
