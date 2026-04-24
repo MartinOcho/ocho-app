@@ -5,14 +5,23 @@ import { useSocket } from '@/components/providers/SocketProvider';
 import { useSession } from '@/app/(main)/SessionProvider';
 import { useToast } from '@/components/ui/use-toast';
 
+export interface VoiceNoteProgress {
+  tempId: string;
+  status: 'uploading' | 'sending' | 'sent' | 'error';
+  progress: number; // 0-100
+  error?: string;
+}
+
 export const useVoiceRecorder = (
   roomId: string, 
   onVoiceNoteSent?: () => void,
-  onSendingStart?: (tempId: string) => void
+  onSendingStart?: (tempId: string) => void,
+  onProgress?: (progress: VoiceNoteProgress) => void,
 ) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSending, setIsSending] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -113,6 +122,7 @@ export const useVoiceRecorder = (
 
     console.log('[VoiceRecorder] sendVoiceNote called, stopping recorder...');
     setIsSending(true);
+    setUploadProgress(0);
 
     // Retourner une promesse qui se résout quand onstop est appelé
     return new Promise<void>((resolve) => {
@@ -143,16 +153,52 @@ export const useVoiceRecorder = (
           // Appeler le callback pour ajouter le message à sentMessages
           onSendingStart?.(tempId);
 
-          // --- STEP 1: Upload l'audio à l'API ---
+          // Émettre progression: commencer upload
+          onProgress?.({
+            tempId,
+            status: 'uploading',
+            progress: 5,
+          });
+
+          // --- STEP 1: Upload l'audio à l'API avec progress tracking ---
           const formData = new FormData();
           formData.append('audio', audioBlob, 'voicenote.webm');
           formData.append('duration', recordingTime.toString());
           formData.append('sessionId', session.id);
 
           console.log('[VoiceRecorder] Uploading audio to API...');
-          const uploadResponse = await fetch('/api/voicenotes/upload', {
-            method: 'POST',
-            body: formData,
+          
+          const uploadResponse = await new Promise<Response>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            // Tracker la progression de l'upload
+            xhr.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 90) + 5; // 5-95%
+                console.log('[VoiceRecorder] Upload progress:', percent + '%');
+                setUploadProgress(percent);
+                onProgress?.({
+                  tempId,
+                  status: 'uploading',
+                  progress: percent,
+                });
+              }
+            });
+
+            xhr.addEventListener('load', () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(new Response(xhr.responseText, { status: xhr.status }));
+              } else {
+                reject(new Error(`HTTP ${xhr.status}`));
+              }
+            });
+
+            xhr.addEventListener('error', () => {
+              reject(new Error('Upload failed'));
+            });
+
+            xhr.open('POST', '/api/voicenotes/upload');
+            xhr.send(formData);
           });
 
           if (!uploadResponse.ok) {
@@ -166,6 +212,13 @@ export const useVoiceRecorder = (
           }
 
           console.log('[VoiceRecorder] Audio uploaded successfully, voiceNoteId:', uploadResult.voiceNoteId);
+
+          // Émettre progression: upload terminé, envoi en cours
+          onProgress?.({
+            tempId,
+            status: 'sending',
+            progress: 95,
+          });
 
           // --- STEP 2: Envoyer le message via socket avec la voiceNoteId ---
           console.log('[VoiceRecorder] Sending voice note message via socket...');
@@ -181,7 +234,7 @@ export const useVoiceRecorder = (
           audioChunksRef.current = [];
           setRecordingTime(0);
           setIsSending(false);
-          setIsRecording(false);
+          setUploadProgress(0);
 
           onVoiceNoteSent?.();
 
@@ -194,9 +247,20 @@ export const useVoiceRecorder = (
         } catch (error) {
           console.error('[VoiceRecorder] Error:', error);
           setIsSending(false);
+          setUploadProgress(0);
+          
+          const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la note vocale.';
+          
+          onProgress?.({
+            tempId: `temp-${Date.now()}`,
+            status: 'error',
+            progress: 0,
+            error: errorMessage,
+          });
+          
           toast({
             title: 'Erreur',
-            description: error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la note vocale.',
+            description: errorMessage,
             variant: 'destructive',
           });
           resolve();
@@ -226,6 +290,7 @@ export const useVoiceRecorder = (
     isRecording,
     recordingTime,
     isSending,
+    uploadProgress,
     startRecording,
     stopRecording,
     cancelRecording,

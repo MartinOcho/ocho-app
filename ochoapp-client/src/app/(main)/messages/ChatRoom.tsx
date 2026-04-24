@@ -53,6 +53,7 @@ import { RoomFooterStateType } from "@/lib/types";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 import RecordingStatus from "@/components/messages/RecordingStatus";
+import { SendingVoiceNote } from "@/components/messages/SendingVoiceNote";
 
 interface ChatProps {
   roomId: string | null;
@@ -63,11 +64,17 @@ interface ChatProps {
 interface SentMessageState {
   tempId: string;
   roomId: string;
-  content: string;
+  content?: string;
   recipientId?: string;
   type: MessageType;
   status: "sending" | "error";
   attachmentIds?: string[];
+  isVoiceNote?: boolean;
+  voiceNoteProgress?: {
+    status: 'uploading' | 'sending' | 'sent' | 'error';
+    progress: number;
+    error?: string;
+  };
 }
 
 // --- FONCTION UTILITAIRE DE CLUSTERING AVANCÉE ---
@@ -815,13 +822,24 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
               {/* Messages en cours d'envoi (échecs ou loading) - Géré par SentMessage */}
               {/* Note: On ne clusterise pas les messages "sending" pour l'instant car ils ont un statut spécial */}
               {sentMessages.map((msg) => (
-                <SendingMessage
-                  key={msg.tempId}
-                  content={msg.content}
-                  status={msg.status}
-                  onRetry={() => handleRetryMessage(msg)}
-                  attachments={tempAttachments[msg.tempId] || []}
-                  type={msg.type} />
+                msg.isVoiceNote ? (
+                  <SendingVoiceNote
+                    key={msg.tempId}
+                    tempId={msg.tempId}
+                    progress={msg.voiceNoteProgress?.progress}
+                    status={msg.voiceNoteProgress?.status as any}
+                    error={msg.voiceNoteProgress?.error}
+                    onRetry={() => handleRetryMessage(msg)}
+                  />
+                ) : (
+                  <SendingMessage
+                    key={msg.tempId}
+                    content={msg.content || ""}
+                    status={msg.status}
+                    onRetry={() => handleRetryMessage(msg)}
+                    attachments={tempAttachments[msg.tempId] || []}
+                    type={msg.type} />
+                )
               ))}
 
               {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
@@ -900,7 +918,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 onExpandedChange={setMessageInputExpanded}
                 members={room?.members}
                 onValidityChange={setIsFormValid}
-                onVoiceSendingStart={(tempId, duration) => {
+                onVoiceSendingStart={(tempId) => {
                   setSentMessages((prev) => [
                     ...prev,
                     {
@@ -909,8 +927,29 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                       roomId,
                       type: "VOICENOTE",
                       status: "sending",
+                      isVoiceNote: true,
+                      voiceNoteProgress: {
+                        status: 'uploading' as const,
+                        progress: 0,
+                      },
                     },
                   ]);
+                }}
+                onVoiceProgress={(progress) => {
+                  setSentMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.tempId === progress.tempId
+                        ? {
+                            ...msg,
+                            voiceNoteProgress: {
+                              status: progress.status,
+                              progress: progress.progress,
+                              error: progress.error,
+                            },
+                          }
+                        : msg
+                    )
+                  );
                 }}
               />
             </div>

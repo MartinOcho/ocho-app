@@ -43,7 +43,8 @@ interface MessageFormComponentProps {
   canAttach?: boolean;
   members?: RoomMember[];
   onValidityChange?: (isValid: boolean) => void;
-  onVoiceSendingStart?: (tempId: string, duration: number) => void;
+  onVoiceSendingStart?: (tempId: string) => void;
+  onVoiceProgress?: (progress: { tempId: string; status: 'uploading' | 'sending' | 'sent' | 'error'; progress: number; error?: string }) => void;
 }
 
 // Fonction utilitaire pour traduire les erreurs techniques en messages utilisateur
@@ -80,6 +81,7 @@ export function MessageFormComponent({
   members = [],
   onValidityChange,
   onVoiceSendingStart,
+  onVoiceProgress,
 }: MessageFormComponentProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -97,7 +99,11 @@ export function MessageFormComponent({
     },
     (tempId) => {
       // Add voice message preview
-      onVoiceSendingStart?.(tempId, 0);
+      onVoiceSendingStart?.(tempId);
+    },
+    (progress) => {
+      // Callback for progress updates
+      onVoiceProgress?.(progress);
     }
   );
   

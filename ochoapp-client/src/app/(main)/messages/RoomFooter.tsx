@@ -33,7 +33,8 @@ interface RoomFooterProps {
   onFollowUser?: () => void;
   onViewGroupDetails?: () => void;
   onValidityChange?: (isValid: boolean) => void;
-  onVoiceSendingStart?: (tempId: string, duration: number) => void;
+  onVoiceSendingStart?: (tempId: string) => void;
+  onVoiceProgress?: (progress: { tempId: string; status: 'uploading' | 'sending' | 'sent' | 'error'; progress: number; error?: string }) => void;
 }
 
 export default function RoomFooter({
@@ -52,6 +53,7 @@ export default function RoomFooter({
   onViewGroupDetails,
   onValidityChange,
   onVoiceSendingStart,
+  onVoiceProgress,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -71,6 +73,7 @@ export default function RoomFooter({
           members={members}
           onValidityChange={onValidityChange}
           onVoiceSendingStart={onVoiceSendingStart}
+          onVoiceProgress={onVoiceProgress}
         />
       );
 
