@@ -1125,7 +1125,7 @@ export default function Message({
   // Si c'est un message REACTION simple sans contenu, on ne l'affiche pas (géré par overlay)
   if (
     messageType === "REACTION" ||
-    (messageType !== "CONTENT" && !systemContent)
+    (messageType !== "CONTENT" && messageType !== "VOICENOTE" && !systemContent)
   )
     return null;
 

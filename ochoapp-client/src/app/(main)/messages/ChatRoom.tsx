@@ -705,8 +705,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
         showDateHeader = true;
       }
     }
-    console.log(group);
-    
     if (!group.length) return null;
     return (
       <div key={`cluster-${groupIndex}`} className="contents">
