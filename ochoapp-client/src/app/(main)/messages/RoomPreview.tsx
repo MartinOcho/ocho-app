@@ -599,7 +599,7 @@ export default function RoomPreview({
             <span
               className={cn(
                 "line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
-                (["CONTENT", "VOICENOTE"].includes(messageType) ||
+                (!["CONTENT", "VOICENOTE"].includes(messageType) ||
                   typing.isTyping) &&
                   "text-xs text-primary",
                 typing.isTyping && "animate-pulse",
