@@ -398,15 +398,22 @@ export async function handleRemoveReaction(
 export async function handleDeleteMessage(
   data: SocketDeleteMessageEvent,
   userId: string,
-  username: string,
 ) {
   const { messageId, roomId } = data;
 
   const messageToDelete = await prisma.message.findUnique({
     where: { id: messageId },
   });
+  if (!messageToDelete) {
+    // Already deleted
+    return {
+      isSavedRoom: roomId.startsWith("saved-"),
+      attachmentIds: [],
+      affectedUserIds: [userId],
+    };
+  }
 
-  if (!messageToDelete || !messageToDelete.senderId) throw new Error("Message not found");
+  if (!messageToDelete.senderId) throw new Error("Message not found");
 
   if (messageToDelete.senderId !== userId) {
     throw new Error("Non autorisé");

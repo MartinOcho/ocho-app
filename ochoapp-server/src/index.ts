@@ -1029,7 +1029,7 @@ io.on("connection", async (socket: Socket) => {
   socket.on("delete_message", async (data: SocketDeleteMessageEvent) => {
     try {
       const { isSavedRoom, attachmentIds, affectedUserIds } =
-        await handleDeleteMessage(data, userId, username);
+        await handleDeleteMessage(data, userId);
 
       io.to(data.roomId).emit("message_deleted", {
         messageId: data.messageId,
