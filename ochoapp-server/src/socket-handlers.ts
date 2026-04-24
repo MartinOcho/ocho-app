@@ -725,7 +725,12 @@ export async function handleSendNormalMessage(
     },
   );
 
-  const newMessage = createdMessage;
+  const newMessage = await prisma.message.findUnique({
+    where: { id: createdMessage.id },
+    include: getMessageDataInclude(userId),
+  });
+
+  if (!newMessage) throw new Error("Failed to create message");
 
   // Get affected users
   const affectedUserIds = (roomData?.members || [])
