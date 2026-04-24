@@ -102,7 +102,7 @@ export function MessageFormComponent({
   );
 
   useEffect(() => {
-    onExpanded((!voiceRecorder.isRecording && expanded));
+    onExpanded((voiceRecorder.isRecording && expanded));
   }, [voiceRecorder.isRecording]);
   
   // Ref pour stocker les fonctions d'annulation (abort) par ID de fichier local
