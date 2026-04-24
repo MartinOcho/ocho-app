@@ -111,7 +111,9 @@ export function MessageFormComponent({
 
   // Notifier le parent chaque fois que la validité change
   useEffect(() => {
-    onValidityChange?.(canSend());
+    // Considérer comme valide si on est en train d'enregistrer OU si on peut envoyer
+    const isValid = voiceRecorder.isRecording || canSend();
+    onValidityChange?.(isValid);
   }, [input, attachments, onValidityChange, voiceRecorder.isRecording]);
 
   const handleChange = (value: string) => {
