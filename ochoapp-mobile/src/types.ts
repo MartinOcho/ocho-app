@@ -443,6 +443,7 @@ export interface VoiceNote {
   url: string;
   duration: number;
   createdAt: number;
+  publicId: string;
 }
 
 export interface MessageMention {

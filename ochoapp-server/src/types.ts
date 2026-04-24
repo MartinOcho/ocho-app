@@ -394,8 +394,7 @@ export interface SocketSendMessageEvent {
 }
 
 export interface SocketSendVoiceNoteEvent {
-  voiceNoteBase64: string;
-  duration: number;
+  voiceNoteId: string;
   roomId: string;
   tempId?: string;
   recipientId?: string;

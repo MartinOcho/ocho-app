@@ -87,7 +87,7 @@ import {
   searchHashtags,
   searchPostsFiltered,
 } from "./search";
-import { ApiResponse } from "./types";
+import { ApiResponse, VoiceNote } from "./types";
 import { FileLike, getFileExtension } from "./files";
 
 dotenv.config();
@@ -766,6 +766,81 @@ app.post(
         success: false,
         error: "Upload failed",
         details: err instanceof Error ? err.message : undefined,
+      });
+    }
+  },
+);
+
+// --- VOICENOTE UPLOAD API ---
+app.post(
+  "/api/voicenotes/upload",
+  upload.single("audio"),
+  async (req, res) => {
+    try {
+      const { userData, user } = await validateUser(req, res);
+      if (!user || !userData) {
+        return res.json({
+          success: false,
+          message: "Utilisateur non authentifié.",
+          name: "invalid_session",
+        } as ApiResponse<null>);
+      }
+
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res.json({ success: false, error: "No file provided" });
+
+      const { duration } = req.body as { duration?: string };
+
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<UploadApiResponse>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "video",
+              format: "mp3",
+              flags: "immutable_cache",
+              folder: "ochoapp/voice_notes",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result as UploadApiResponse);
+            },
+          );
+          stream.end(buffer);
+        });
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const voiceNoteUrl = uploadResult.secure_url || "";
+      const publicId = uploadResult.public_id || "";
+      const durationMs = Math.round((parseInt(duration || "0") || uploadResult.duration || 0) * 1000);
+
+      // Créer l'entrée VoiceNote en BD
+      const voiceNote = await prisma.voiceNote.create({
+        data: {
+          url: voiceNoteUrl,
+          publicId: publicId,
+          duration: durationMs,
+        },
+      });
+
+      return res.json({
+        success: true,
+        message: "Voicenote uploaded successfully",
+        data: {
+          id: voiceNote.id,
+          url: voiceNote.url,
+          duration: voiceNote.duration,
+          publicId: voiceNote.publicId,
+          createdAt: voiceNote.createdAt.getTime(),
+        }
+      } as ApiResponse<VoiceNote>);
+    } catch (err) {
+      console.error("Voicenote upload error", err);
+      return res.json({
+        success: false,
+        error: "Upload failed",
+        message: err instanceof Error ? err.message : undefined,
       });
     }
   },

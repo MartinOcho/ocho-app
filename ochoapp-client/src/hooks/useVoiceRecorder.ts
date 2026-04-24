@@ -17,7 +17,7 @@ export const useVoiceRecorder = (
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { socket } = useSocket();
-  const { user } = useSession();
+  const { user, session } = useSession();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -106,8 +106,8 @@ export const useVoiceRecorder = (
       return;
     }
 
-    if (!socket || !user) {
-      console.warn('[VoiceRecorder] Cannot send: socket or user missing');
+    if (!socket || !user || !session) {
+      console.warn('[VoiceRecorder] Cannot send: socket, user or session missing');
       return;
     }
 
@@ -119,7 +119,7 @@ export const useVoiceRecorder = (
       const mediaRecorder = mediaRecorderRef.current!;
       
       // Une seule fois: quand stop() est complètement terminé et ondataavailable a été appelé
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         console.log('[VoiceRecorder] onstop triggered, audio chunks collected:', audioChunksRef.current.length);
         
         if (audioChunksRef.current.length === 0) {
@@ -137,60 +137,66 @@ export const useVoiceRecorder = (
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           console.log('[VoiceRecorder] Audio blob created, size:', audioBlob.size);
+
+          const tempId = `temp-${Date.now()}`;
           
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const base64String = e.target?.result as string;
-            console.log('[VoiceRecorder] Base64 created, length:', base64String.length);
+          // Appeler le callback pour ajouter le message à sentMessages
+          onSendingStart?.(tempId);
 
-            const tempId = `temp-${Date.now()}`;
-            
-            // Appeler le callback pour ajouter le message à sentMessages
-            onSendingStart?.(tempId);
+          // --- STEP 1: Upload l'audio à l'API ---
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'voicenote.webm');
+          formData.append('duration', recordingTime.toString());
+          formData.append('sessionId', session.id);
 
-            socket.emit('send_voice_note', {
-              voiceNoteBase64: base64String,
-              duration: recordingTime,
-              roomId,
-              tempId,
-            });
+          console.log('[VoiceRecorder] Uploading audio to API...');
+          const uploadResponse = await fetch('/api/voicenotes/upload', {
+            method: 'POST',
+            body: formData,
+          });
 
-            console.log('[VoiceRecorder] Voice note emitted via socket with tempId:', tempId);
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+          }
 
-            // Réinitialiser l'enregistrement
-            audioChunksRef.current = [];
-            setRecordingTime(0);
-            setIsSending(false);
-            setIsRecording(false);
+          const uploadResult = await uploadResponse.json();
+          
+          if (!uploadResult.success || !uploadResult.voiceNoteId) {
+            throw new Error(uploadResult.error || 'Upload failed');
+          }
 
-            onVoiceNoteSent?.();
+          console.log('[VoiceRecorder] Audio uploaded successfully, voiceNoteId:', uploadResult.voiceNoteId);
 
-            toast({
-              title: 'Succès',
-              description: 'Note vocale envoyée.',
-            });
+          // --- STEP 2: Envoyer le message via socket avec la voiceNoteId ---
+          console.log('[VoiceRecorder] Sending voice note message via socket...');
+          socket.emit('send_voice_note', {
+            voiceNoteId: uploadResult.voiceNoteId,
+            roomId,
+            tempId,
+          });
 
-            resolve();
-          };
+          console.log('[VoiceRecorder] Voice note message emitted via socket with tempId:', tempId);
 
-          reader.onerror = () => {
-            console.error('[VoiceRecorder] FileReader error');
-            setIsSending(false);
-            toast({
-              title: 'Erreur',
-              description: 'Erreur lors de la lecture des données audio.',
-              variant: 'destructive',
-            });
-            resolve();
-          };
+          // Réinitialiser l'enregistrement
+          audioChunksRef.current = [];
+          setRecordingTime(0);
+          setIsSending(false);
+          setIsRecording(false);
 
-          reader.readAsDataURL(audioBlob);
+          onVoiceNoteSent?.();
+
+          toast({
+            title: 'Succès',
+            description: 'Note vocale envoyée.',
+          });
+
+          resolve();
         } catch (error) {
-          console.error('[VoiceRecorder] Error processing audio:', error);
+          console.error('[VoiceRecorder] Error:', error);
           setIsSending(false);
           toast({
             title: 'Erreur',
-            description: 'Erreur lors du traitement de la note vocale.',
+            description: error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la note vocale.',
             variant: 'destructive',
           });
           resolve();

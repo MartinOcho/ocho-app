@@ -632,6 +632,85 @@ app.post(
   },
 );
 
+// --- VOICENOTE UPLOAD API ---
+app.post(
+  "/api/voicenotes/upload",
+  upload.single("audio"),
+  async (req, res) => {
+    try {
+      const { sessionId, duration } = req.body as { sessionId?: string; duration?: string };
+      if (!sessionId) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing sessionId" });
+      }
+
+      const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: { user: true },
+      });
+
+      if (!session || !session.user) {
+        return res
+          .status(401)
+          .json({ success: false, error: "Invalid session" });
+      }
+
+      const file = req.file;
+      if (!file || !file.buffer)
+        return res
+          .status(400)
+          .json({ success: false, error: "No file provided" });
+
+      const streamUpload = (buffer: Buffer) =>
+        new Promise<UploadApiResponse>((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: "video",
+              format: "mp3",
+              flags: "immutable_cache",
+              folder: "ochoapp/voice_notes",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result as UploadApiResponse);
+            },
+          );
+          stream.end(buffer);
+        });
+
+      const uploadResult = await streamUpload(file.buffer);
+
+      const voiceNoteUrl = uploadResult.secure_url || "";
+      const publicId = uploadResult.public_id || "";
+      const durationMs = Math.round((parseInt(duration || "0") || uploadResult.duration || 0) * 1000);
+
+      // Créer l'entrée VoiceNote en BD
+      const voiceNote = await prisma.voiceNote.create({
+        data: {
+          url: voiceNoteUrl,
+          publicId: publicId,
+          duration: durationMs,
+        },
+      });
+
+      return res.json({
+        success: true,
+        voiceNoteId: voiceNote.id,
+        voiceNoteUrl,
+        duration: voiceNote.duration,
+      });
+    } catch (err) {
+      console.error("Voicenote upload error", err);
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
+    }
+  },
+);
+
 app.post("/api/auth/session", validateSession);
 
 interface TypingUser {
@@ -1221,7 +1300,7 @@ io.on("connection", async (socket: Socket) => {
   socket.on("send_voice_note", async (data: SocketSendVoiceNoteEvent) => {
     const { tempId, roomId } = data;
 
-    console.log(chalk.green("Envoi d'une note vocale:", `${Math.round(data.duration)}s`));
+    console.log(chalk.green("Envoi d'une note vocale"));
 
     try {
       const isSavedRoom = roomId === `saved-${userId}`;

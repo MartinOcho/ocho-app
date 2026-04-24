@@ -589,53 +589,27 @@ export async function handleSendSavedVoiceNote(
   userId: string,
   cloudinary: CloudinaryApi,
 ) {
-  const { voiceNoteBase64, duration } = data;
+  const { voiceNoteId } = data;
 
-  // Convertir base64 en buffer
-  const buffer = Buffer.from(voiceNoteBase64.replace(/^data:audio\/[a-z]+;base64,/, ''), 'base64');
+  // Valider que la voiceNote existe
+  const voiceNote = await prisma.voiceNote.findUnique({
+    where: { id: voiceNoteId },
+  });
 
-  // Upload à Cloudinary
-  let voiceNoteUrl = '';
-  let publicId = '';
-  try {
-    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'video',
-          format: 'mp3',
-          flags: 'immutable_cache',
-          folder: 'ochoapp/voice_notes',
-        },
-        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(buffer);
-    });
-    voiceNoteUrl = uploadResult.secure_url;
-    publicId = uploadResult.public_id;
-  } catch (error) {
-    throw new Error(`Failed to upload voice note: ${error}`);
-  }
+  if (!voiceNote) throw new Error("Voice note not found");
 
-  // Créer le message et la note vocale
+  // Créer le message et le lier à la note vocale
   const createdMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const msg = await tx.message.create({
         data: {
           senderId: userId,
           type: "VOICENOTE",
-        },
-      });
-
-      // Créer la note vocale
-      await tx.voiceNote.create({
-        data: {
-          url: voiceNoteUrl,
-          publicId: publicId,
-          duration: Math.round(duration * 1000), // Convertir en millisecondes
-          messageId: msg.id,
+          voiceNote: {
+            connect: {
+              id: voiceNoteId,
+            },
+          }
         },
       });
 
@@ -1118,7 +1092,14 @@ export async function handleSendVoiceNote(
   io: Server,
   cloudinary: CloudinaryApi,
 ) {
-  const { voiceNoteBase64, duration, roomId, tempId, recipientId } = data;
+  const { voiceNoteId, roomId, tempId, recipientId } = data;
+
+  // Valider que la voiceNote existe
+  const voiceNote = await prisma.voiceNote.findUnique({
+    where: { id: voiceNoteId },
+  });
+
+  if (!voiceNote) throw new Error("Voice note not found");
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
@@ -1145,35 +1126,7 @@ export async function handleSendVoiceNote(
     }
   }
 
-  // Convertir base64 en buffer
-  const buffer = Buffer.from(voiceNoteBase64.replace(/^data:audio\/[a-z]+;base64,/, ''), 'base64');
-
-  // Upload à Cloudinary
-  let voiceNoteUrl = '';
-  let publicId = '';
-  try {
-    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'video',
-          format: 'mp3',
-          flags: 'immutable_cache',
-          folder: 'ochoapp/voice_notes',
-        },
-        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(buffer);
-    });
-    voiceNoteUrl = uploadResult.secure_url;
-    publicId = uploadResult.public_id;
-  } catch (error) {
-    throw new Error(`Failed to upload voice note: ${error}`);
-  }
-
-  // Créer le message et la note vocale
+  // Créer le message et le lier à la note vocale
   const createdMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
       const msg = await tx.message.create({
@@ -1182,16 +1135,11 @@ export async function handleSendVoiceNote(
           senderId: userId,
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
-        },
-      });
-
-      // Créer la note vocale
-      await tx.voiceNote.create({
-        data: {
-          url: voiceNoteUrl,
-          publicId: publicId,
-          duration: Math.round(duration * 1000), // Convertir en millisecondes
-          messageId: msg.id,
+          voiceNote: {
+            connect: {
+              id: voiceNoteId,
+            },
+          }
         },
       });
 
