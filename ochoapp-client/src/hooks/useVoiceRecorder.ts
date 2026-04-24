@@ -197,7 +197,7 @@ export const useVoiceRecorder = (
               reject(new Error('Upload failed'));
             });
 
-            xhr.open('POST', '/api/voicenotes/upload');
+            xhr.open('POST', `${process.env.NEXT_PUBLIC_CHAT_SERVER_URL}/api/voicenotes/upload`);
             xhr.send(formData);
           });
 
