@@ -103,11 +103,10 @@ export default function VoiceNotePlayer({
         )}
       </button>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-40">
         <div className="w-full bg-gray-300 dark:bg-gray-600 h-1 rounded-full overflow-hidden cursor-pointer group">
           <div
-            className="bg-blue-500 h-full transition-all group-hover:bg-blue-600"
-            style={{ width: `${progressPercentage}%` }}
+            className={cn("bg-blue-500 h-full transition-all group-hover:bg-blue-600", `w-[${progressPercentage}%]`)}
             onClick={(e) => {
               if (!audioRef.current || !duration) return;
               const rect = e.currentTarget.parentElement?.getBoundingClientRect();
@@ -118,7 +117,7 @@ export default function VoiceNotePlayer({
             }}
           />
         </div>
-        <div className="flex justify-between items-center mt-1 text-xs text-gray-600 dark:text-gray-400">
+        <div className="flex justify-between items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -127,7 +126,7 @@ export default function VoiceNotePlayer({
       <button
         onClick={handleDownload}
         className="inline-flex items-center justify-center h-8 w-8 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
-        title="Télécharger"
+        title="Télécharger" 
       >
         <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
       </button>
