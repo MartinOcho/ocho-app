@@ -17,6 +17,15 @@ import {
 import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
 import { Server } from "socket.io";
+import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
+
+
+interface CloudinaryApi {
+  uploader: {
+    upload_stream: (options: any, callback: (error: any, result: any) => void) => NodeJS.WritableStream;
+    destroy: (publicId: string, options?: any, callback?: (error: any, result: any) => void) => Promise<any> | void;
+  };
+}
 
 const prisma = new PrismaClient();
 
@@ -398,11 +407,16 @@ export async function handleRemoveReaction(
 export async function handleDeleteMessage(
   data: SocketDeleteMessageEvent,
   userId: string,
+  cloudinary?: CloudinaryApi,
 ) {
   const { messageId, roomId } = data;
 
   const messageToDelete = await prisma.message.findUnique({
     where: { id: messageId },
+    include: {
+      attachments: true,
+      voiceNote: true,
+    },
   });
   if (!messageToDelete) {
     // Already deleted
@@ -422,6 +436,25 @@ export async function handleDeleteMessage(
   const attachments = await prisma.messageAttachment.findMany({
     where: { messageId },
   });
+
+  // Delete voice note from Cloudinary if exists
+  if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId && cloudinary) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        cloudinary.uploader.destroy(
+          messageToDelete.voiceNote!.publicId!,
+          { invalidate: true },
+          (error: UploadApiErrorResponse, result: UploadApiResponse) => {
+            if (error) reject(error);
+            else resolve();
+          }
+        );
+      });
+    } catch (error) {
+      console.error(`Failed to delete voice note from Cloudinary: ${error}`);
+      // Continue with message deletion even if Cloudinary delete fails
+    }
+  }
 
   if (roomId === "saved-" + userId) {
     await prisma.message.delete({
@@ -554,7 +587,7 @@ export async function handleSendSavedMessage(
 export async function handleSendSavedVoiceNote(
   data: SocketSendVoiceNoteEvent,
   userId: string,
-  cloudinary: any,
+  cloudinary: CloudinaryApi,
 ) {
   const { voiceNoteBase64, duration } = data;
 
@@ -563,8 +596,9 @@ export async function handleSendSavedVoiceNote(
 
   // Upload à Cloudinary
   let voiceNoteUrl = '';
+  let publicId = '';
   try {
-    const uploadResult = await new Promise((resolve, reject) => {
+    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'video',
@@ -572,14 +606,15 @@ export async function handleSendSavedVoiceNote(
           flags: 'immutable_cache',
           folder: 'ochoapp/voice_notes',
         },
-        (error: any, result: any) => {
+        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
           if (error) reject(error);
           else resolve(result);
         }
       );
       stream.end(buffer);
     });
-    voiceNoteUrl = (uploadResult as any).secure_url;
+    voiceNoteUrl = uploadResult.secure_url;
+    publicId = uploadResult.public_id;
   } catch (error) {
     throw new Error(`Failed to upload voice note: ${error}`);
   }
@@ -598,6 +633,7 @@ export async function handleSendSavedVoiceNote(
       await tx.voiceNote.create({
         data: {
           url: voiceNoteUrl,
+          publicId: publicId,
           duration: Math.round(duration * 1000), // Convertir en millisecondes
           messageId: msg.id,
         },
@@ -1080,7 +1116,7 @@ export async function handleSendVoiceNote(
   userId: string,
   username: string,
   io: Server,
-  cloudinary: any,
+  cloudinary: CloudinaryApi,
 ) {
   const { voiceNoteBase64, duration, roomId, tempId, recipientId } = data;
 
@@ -1114,8 +1150,9 @@ export async function handleSendVoiceNote(
 
   // Upload à Cloudinary
   let voiceNoteUrl = '';
+  let publicId = '';
   try {
-    const uploadResult = await new Promise((resolve, reject) => {
+    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'video',
@@ -1123,14 +1160,15 @@ export async function handleSendVoiceNote(
           flags: 'immutable_cache',
           folder: 'ochoapp/voice_notes',
         },
-        (error: any, result: any) => {
+        (error: UploadApiErrorResponse, result: UploadApiResponse) => {
           if (error) reject(error);
           else resolve(result);
         }
       );
       stream.end(buffer);
     });
-    voiceNoteUrl = (uploadResult as any).secure_url;
+    voiceNoteUrl = uploadResult.secure_url;
+    publicId = uploadResult.public_id;
   } catch (error) {
     throw new Error(`Failed to upload voice note: ${error}`);
   }
@@ -1151,6 +1189,7 @@ export async function handleSendVoiceNote(
       await tx.voiceNote.create({
         data: {
           url: voiceNoteUrl,
+          publicId: publicId,
           duration: Math.round(duration * 1000), // Convertir en millisecondes
           messageId: msg.id,
         },
