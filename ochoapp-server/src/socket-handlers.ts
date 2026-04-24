@@ -543,6 +543,87 @@ export async function handleSendSavedMessage(
   };
 }
 
+// --- HANDLE SEND SAVED VOICE NOTE ---
+export async function handleSendSavedVoiceNote(
+  data: SocketSendVoiceNoteEvent,
+  userId: string,
+  cloudinary: any,
+) {
+  const { voiceNoteBase64, duration } = data;
+
+  // Convertir base64 en buffer
+  const buffer = Buffer.from(voiceNoteBase64.replace(/^data:audio\/[a-z]+;base64,/, ''), 'base64');
+
+  // Upload à Cloudinary
+  let voiceNoteUrl = '';
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'video',
+          format: 'mp3',
+          flags: 'immutable_cache',
+          folder: 'ochoapp/voice_notes',
+        },
+        (error: any, result: any) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(buffer);
+    });
+    voiceNoteUrl = (uploadResult as any).secure_url;
+  } catch (error) {
+    throw new Error(`Failed to upload voice note: ${error}`);
+  }
+
+  // Créer le message et la note vocale
+  const createdMessage = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      const msg = await tx.message.create({
+        data: {
+          senderId: userId,
+          type: "VOICENOTE",
+        },
+      });
+
+      // Créer la note vocale
+      await tx.voiceNote.create({
+        data: {
+          url: voiceNoteUrl,
+          duration: Math.round(duration * 1000), // Convertir en millisecondes
+          messageId: msg.id,
+        },
+      });
+
+      // Mark saved voice note as delivered for the user
+      await tx.delivery.create({
+        data: {
+          userId,
+          messageId: msg.id,
+        },
+      });
+
+      return msg;
+    },
+  );
+
+  // Recharger le message avec toutes les données incluant voiceNote
+  const completeSavedMsg = await prisma.message.findUnique({
+    where: { id: createdMessage.id },
+    include: getMessageDataInclude(userId),
+  });
+
+  if (!completeSavedMsg) throw new Error("Failed to create saved voice note");
+
+  // Pour les saved rooms, on retourne le type comme "VOICENOTE" mais avec emission type "SAVED"
+  const newMessage = { ...completeSavedMsg, type: "VOICENOTE" } as MessageData;
+
+  return {
+    newMessage,
+  };
+}
+
 // --- HANDLE SEND NORMAL MESSAGE ---
 export async function handleSendNormalMessage(
   data: SocketSendMessageEvent,
@@ -793,11 +874,17 @@ export async function handleGetRoomDetails(
   const { roomId } = data;
 
   if (roomId === `saved-${userId}`) {
-    // Handle saved messages room
+    // Handle saved messages room - récupérer les messages SAVED texte et les VOICENOTE sans roomId
     const existingSavedMsgs = await prisma.message.findMany({
       where: {
         senderId: userId,
-        type: "SAVED",
+        OR: [
+          { type: "SAVED" },
+          { 
+            type: "VOICENOTE",
+            roomId: null, // VoiceNote sauvegardée (pas associée à une room)
+          },
+        ],
       },
       include: getMessageDataInclude(userId),
       take: 3,
@@ -894,7 +981,16 @@ export async function handleGetLastMessage(
 
   if (isSaved) {
     const lastSavedMessage = await prisma.message.findFirst({
-      where: { senderId: userId, type: "SAVED" },
+      where: {
+        senderId: userId,
+        OR: [
+          { type: "SAVED" },
+          { 
+            type: "VOICENOTE",
+            roomId: null, // VoiceNote sauvegardée (pas associée à une room)
+          },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       include: getMessageDataInclude(userId),
     });
@@ -904,7 +1000,7 @@ export async function handleGetLastMessage(
     }
 
     // Format saved messages
-    if (lastSavedMessage.content !== `create-${userId}`) {
+    if (lastSavedMessage.type === "SAVED" && lastSavedMessage.content !== `create-${userId}`) {
       return { ...lastSavedMessage, type: "CONTENT" };
     }
     return lastSavedMessage;
@@ -1037,7 +1133,6 @@ export async function handleSendVoiceNote(
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
         },
-        include: getMessageDataInclude(userId),
       });
 
       // Créer la note vocale
@@ -1072,10 +1167,16 @@ export async function handleSendVoiceNote(
     },
   );
 
-  const newMessage = createdMessage;
+  // Recharger le message avec toutes les données incluant voiceNote
+  const completeMessage = await prisma.message.findUnique({
+    where: { id: createdMessage.id },
+    include: getMessageDataInclude(userId),
+  });
+
+  if (!completeMessage) throw new Error("Failed to load created voice note message");
 
   return {
-    newMessage: createdMessage,
+    newMessage: completeMessage,
     tempId,
   };
 }

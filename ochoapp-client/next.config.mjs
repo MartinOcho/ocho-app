@@ -26,6 +26,10 @@ const nextConfig = {
                 hostname: "platform-lookaside.fbsbx.com",
             },
             {
+                protocol: "http",
+                hostname: "res.cloudinary.com",
+            },
+            {
                 protocol: "https",
                 hostname: "res.cloudinary.com",
             },

@@ -363,8 +363,18 @@ export async function getFormattedRooms(
     .filter((r): r is RoomData => r !== null);
 
   if (!cursor) {
+    // Chercher le dernier message sauvegardé (SAVED texte ou VOICENOTE sans room)
     const savedMessage = await prisma.message.findFirst({
-      where: { senderId: userId, type: "SAVED" },
+      where: {
+        senderId: userId,
+        OR: [
+          { type: "SAVED" },
+          { 
+            type: "VOICENOTE",
+            roomId: null, // VoiceNote sauvegardée (pas associée à une room)
+          },
+        ],
+      },
       include: getMessageDataInclude(userId),
       orderBy: { createdAt: "desc" },
     });
@@ -373,6 +383,8 @@ export async function getFormattedRooms(
       let type = "CONTENT";
       if (savedMessage.content === "create-" + userId) {
         type = "SAVED";
+      } else if (savedMessage.type === "VOICENOTE") {
+        type = "VOICENOTE";
       }
 
       const selfMessage = { ...savedMessage, type };

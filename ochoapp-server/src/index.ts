@@ -48,6 +48,7 @@ import {
   handleSendSavedMessage,
   handleSendNormalMessage,
   handleSendVoiceNote,
+  handleSendSavedVoiceNote,
   markUndeliveredMessages,
   handleGetRoomDetails,
   handleGetLastMessage,
@@ -1223,43 +1224,66 @@ io.on("connection", async (socket: Socket) => {
     console.log(chalk.green("Envoi d'une note vocale:", `${Math.round(data.duration)}s`));
 
     try {
-      const { newMessage } = await handleSendVoiceNote(
-        data,
-        userId,
-        username,
-        io,
-        cloudinary,
-      );
+      const isSavedRoom = roomId === `saved-${userId}`;
 
-      socket.join(roomId);
+      if (isSavedRoom) {
+        // --- BLOC NOTES VOCALES SAUVEGARDÉES ---
+        const { newMessage } = await handleSendSavedVoiceNote(
+          data,
+          userId,
+          cloudinary,
+        );
 
-      io.to(roomId).emit("receive_message", {
-        newMessage,
-        roomId,
-        tempId,
-      });
+        socket.join(roomId);
 
-      const updatedRooms = await getFormattedRooms(userId, username);
-      io.to(userId).emit("room_list_updated", updatedRooms);
+        io.to(roomId).emit("receive_message", {
+          newMessage,
+          roomId,
+          tempId,
+        });
 
-      // Émettre la mise à jour pour les autres membres
-      const members = await prisma.roomMember.findMany({
-        where: { roomId, userId: { not: userId }, leftAt: null },
-        select: { userId: true },
-      });
+        const updatedRooms = await getFormattedRooms(userId, username);
+        io.to(userId).emit("room_list_updated", updatedRooms);
+      } else {
+        // --- BLOC NOTES VOCALES NORMALES ---
+        const { newMessage } = await handleSendVoiceNote(
+          data,
+          userId,
+          username,
+          io,
+          cloudinary,
+        );
 
-      for (const member of members) {
-        if (member.userId) {
-          const user = await prisma.user.findUnique({
-            where: { id: member.userId },
-            select: { username: true },
-          });
-          if (user) {
-            const updatedRooms = await getFormattedRooms(
-              member.userId,
-              user.username,
-            );
-            io.to(member.userId).emit("room_list_updated", updatedRooms);
+        socket.join(roomId);
+
+        io.to(roomId).emit("receive_message", {
+          newMessage,
+          roomId,
+          tempId,
+        });
+
+        const updatedRooms = await getFormattedRooms(userId, username);
+        io.to(userId).emit("room_list_updated", updatedRooms);
+
+        // Émettre la mise à jour pour les autres membres
+        const members = await prisma.roomMember.findMany({
+          where: { roomId, userId: { not: userId }, leftAt: null },
+          select: { userId: true },
+        });
+
+        for (const member of members) {
+          if (member.userId) {
+            const user = await prisma.user.findUnique({
+              where: { id: member.userId },
+              select: { username: true },
+            });
+            if (user) {
+              const updatedRooms = await getFormattedRooms(
+                member.userId,
+                user.username,
+              );
+              io.to(member.userId).emit("room_list_updated", updatedRooms);
+            }
           }
         }
       }
