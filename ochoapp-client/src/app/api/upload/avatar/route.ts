@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
 import cloudinary from "@/lib/cloudinary";
 import { UploadApiResponse } from "cloudinary";
+import { UTApi } from "uploadthing/server";
 
 export async function POST(request: NextRequest) {
   const { user } = await validateRequest();
@@ -45,9 +46,27 @@ export async function POST(request: NextRequest) {
         stream.end(buffer);
       });
 
-    const uploadResult = await streamUpload(Buffer.from(await file.arrayBuffer()));
+    const uploadResult = await streamUpload(
+      Buffer.from(await file.arrayBuffer()),
+    );
     const url = uploadResult.url || uploadResult.secure_url || "";
     const public_id = uploadResult.public_id || null;
+
+    const avatarUrl = user.avatarUrl || "";
+
+    const key =
+      avatarUrl.split(`/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`)[1] ||
+      avatarUrl.split("/f/")[1];
+    if (key) {
+      try {
+        await new UTApi().deleteFiles(key);
+      } catch (error) {
+        console.error(
+          `Error deleting orphan avatar UploadThing file ${key}:`,
+          error,
+        );
+      }
+    }
 
     // Supprimer les anciens avatars de l'utilisateur (base et Cloudinary)
     const previousAvatars = await prisma.userAvatar.findMany({
@@ -55,7 +74,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, publicId: true },
     });
 
-    const newAvatar = await prisma.userAvatar.create({
+    await prisma.userAvatar.create({
       data: {
         userId: user.id,
         url,
@@ -81,9 +100,21 @@ export async function POST(request: NextRequest) {
     await Promise.all(
       previousAvatars.map(async (old) => {
         if (old.publicId) {
-          return cloudinary.uploader.destroy(old.publicId).catch((err) => {
-            console.error("Erreur lors de la suppression d'un ancien avatar Cloudinary:", err);
-          });
+          return cloudinary.uploader
+            .destroy(old.publicId, { invalidate: true }, (error, result) => {
+              if (error) {
+                console.error(
+                  "Erreur lors de la suppression d'un ancien avatar Cloudinary:",
+                  error,
+                );
+              }
+            })
+            .catch((err) => {
+              console.error(
+                "Erreur lors de la suppression d'un ancien avatar Cloudinary:",
+                err,
+              );
+            });
         }
         return Promise.resolve();
       }),

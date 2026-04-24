@@ -88,19 +88,28 @@ export async function GET(req: Request) {
     });
 
     console.log(unusedMessageAttachments);
-    
 
     // Supprimer les fichiers des pièces jointes de Cloudinary
     for (const attachment of unusedMessageAttachments) {
       if (attachment.publicId) {
         try {
-          await cloudinary.uploader.destroy(attachment.publicId, { invalidate: true }, (error, result) => {
-            if (error) {
-              console.error(`Error deleting orphan avatar ${attachment.publicId}:`, error);
-            }
-          });
+          await cloudinary.uploader.destroy(
+            attachment.publicId,
+            { invalidate: true },
+            (error, result) => {
+              if (error) {
+                console.error(
+                  `Error deleting orphan avatar ${attachment.publicId}:`,
+                  error,
+                );
+              }
+            },
+          );
         } catch (error) {
-          console.error(`Error deleting Cloudinary file ${attachment.publicId}:`, error);
+          console.error(
+            `Error deleting Cloudinary file ${attachment.publicId}:`,
+            error,
+          );
         }
       }
     }
@@ -156,11 +165,18 @@ export async function GET(req: Request) {
 
       if (avatar.publicId) {
         try {
-          await cloudinary.uploader.destroy(avatar.publicId, { invalidate: true }, (error, result) => {
-            if (error) {
-              console.error(`Error deleting orphan avatar ${avatar.publicId}:`, error);
-            }
-          });
+          await cloudinary.uploader.destroy(
+            avatar.publicId,
+            { invalidate: true },
+            (error, result) => {
+              if (error) {
+                console.error(
+                  `Error deleting orphan avatar ${avatar.publicId}:`,
+                  error,
+                );
+              }
+            },
+          );
         } catch (error) {
           console.error(
             `Error deleting orphan avatar ${avatar.publicId}:`,
@@ -168,9 +184,10 @@ export async function GET(req: Request) {
           );
         }
       } else {
-        const key = avatar.url.split(
-          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-        )[1];
+        const key =
+          avatar.url.split(
+            `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+          )[1] || avatar.url.split("/f/")[1];
         if (key) {
           try {
             await new UTApi().deleteFiles(key);
@@ -191,7 +208,7 @@ export async function GET(req: Request) {
         },
       },
     });
-    
+
     return new Response(null, { status: 200 });
   } catch (error) {
     console.error(error);
