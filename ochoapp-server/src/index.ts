@@ -1099,8 +1099,8 @@ io.on("connection", async (socket: Socket) => {
   socket.on("send_message", async (data: SocketSendMessageEvent) => {
     const { tempId, roomId } = data;
 
-    console.log(chalk.blue("Envoi du message:", data.content));
-    console.log(chalk.blue("Attachments:", data.attachmentIds));
+    console.log(chalk.cyanBright("Envoi du message:", data.content));
+    console.log(chalk.cyanBright("Attachments:", data.attachmentIds));
 
     try {
       const isSavedMessage = roomId === `saved-${userId}`;
