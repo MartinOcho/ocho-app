@@ -7,6 +7,7 @@ import {
   UserData,
   SocketTypingUpdateEvent,
   MessageData,
+  SocketRecordingUpdateEvent,
 } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import GroupAvatar from "@/components/GroupAvatar";
@@ -91,6 +92,14 @@ export default function RoomPreview({
       avatarUrl: string;
     }[];
   }>({ isTyping: false, typingUsers: [] });
+  const [recording, setRecording] = useState<{
+    isRecording: boolean;
+    recordingUsers: {
+      id: string;
+      displayName: string;
+      avatarUrl: string;
+    }[];
+  }>({ isRecording: false, recordingUsers: [] });
 
   const queryClient = useQueryClient();
 
@@ -156,6 +165,28 @@ export default function RoomPreview({
     };
   }, [socket, isConnected, room.id, loggedinUser?.id]);
 
+  useEffect(() => {
+    if (!socket || !isConnected || !room.id) return;
+
+    const handleRecordingUpdate = (data: SocketRecordingUpdateEvent) => {
+      if (data.roomId === room.id) {
+        const isRecording = !!data.recordingUsers.filter(
+          (u) => u.id !== loggedinUser?.id,
+        ).length;
+        const dataRecordingUsers = data.recordingUsers.filter(
+          (u) => u.id !== loggedinUser?.id,
+        );
+        const recording = { isRecording, recordingUsers: dataRecordingUsers };
+        setRecording(recording);
+      }
+    };
+
+    socket.on("recording_update", handleRecordingUpdate);
+    return () => {
+      socket.off("recording_update", handleRecordingUpdate);
+    };
+  }, [socket, isConnected, room.id, loggedinUser?.id]);
+
   const {
     appUser,
     groupChat,
@@ -201,6 +232,11 @@ export default function RoomPreview({
     threeUsersTyping,
     multipleTyping,
     voiceMessage,
+    isRecording,
+    userRecording,
+    twoUsersRecording,
+    threeUsersRecording,
+    multipleRecording,
   } = t();
 
   const typingText = !!typing.typingUsers.length
@@ -245,6 +281,49 @@ export default function RoomPreview({
                   typing.typingUsers[1].displayName.split(" ")[0],
                 )
                 .replace("[count]", (typing.typingUsers.length - 2).toString())
+    : "";
+  const recordingText = !!recording.recordingUsers.length
+    ? !room.isGroup
+      ? isRecording
+      : recording.recordingUsers.length === 1
+        ? userRecording.replace(
+            "[name]",
+            recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+          )
+        : recording.recordingUsers.length === 2
+          ? twoUsersRecording
+              .replace(
+                "[name]",
+                recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+              )
+              .replace(
+                "[name]",
+                recording.recordingUsers[1].displayName.split(" ")[0] || appUser,
+              )
+          : recording.recordingUsers.length === 3
+            ? threeUsersRecording
+                .replace(
+                  "[name]",
+                  recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  recording.recordingUsers[1].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  recording.recordingUsers[2].displayName.split(" ")[0] || appUser,
+                )
+            : multipleRecording
+                .replace(
+                  "[names]",
+                  recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+                )
+                .replace(
+                  "[name]",
+                  recording.recordingUsers[1].displayName.split(" ")[0],
+                )
+                .replace("[count]", (recording.recordingUsers.length - 2).toString())
     : "";
   const { startNavigation: navigate } = useProgress();
 
@@ -578,7 +657,7 @@ export default function RoomPreview({
             className={cn(
               "block truncate",
               isVerified && "flex items-center",
-              unreadCount && !typing.isTyping && "font-semibold",
+              unreadCount && !typing.isTyping && !recording.isRecording && "font-semibold",
             )}
           >
             {/* Surbrillance dans le nom */}
@@ -588,7 +667,7 @@ export default function RoomPreview({
           <div
             className={cn(
               "flex w-full items-center gap-1 text-sm text-muted-foreground",
-              unreadCount && !typing.isTyping && "font-semibold text-primary",
+              unreadCount && !typing.isTyping && !recording.isRecording && "font-semibold text-primary",
             )}
           >
             {showIconBefore && attachmentPreview?.icon && (
@@ -600,12 +679,15 @@ export default function RoomPreview({
               className={cn(
                 "line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
                 (!["CONTENT", "VOICENOTE"].includes(messageType) ||
-                  typing.isTyping) &&
+                  typing.isTyping ||
+                  recording.isRecording) &&
                   "text-xs text-primary",
-                typing.isTyping && "animate-pulse",
+                (typing.isTyping || recording.isRecording) && "animate-pulse",
               )}
             >
-              {typing.isTyping ? (
+              {recording.isRecording ? (
+                recordingText
+              ) : typing.isTyping ? (
                 typingText
               ) : showIconAfterSender &&
                 messagePreviewContent &&
@@ -655,7 +737,7 @@ export default function RoomPreview({
                 noMessage
               )}
             </span>
-            {!typing.isTyping && (
+            {!typing.isTyping && !recording.isRecording && (
               <>
                 <span className="flex-shrink-0">•</span>
                 <span className="line-clamp-1 min-w-fit flex-shrink-0 text-sm">

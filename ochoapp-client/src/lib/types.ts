@@ -422,6 +422,11 @@ export interface SocketTypingUpdateEvent {
   typingUsers: { id: string; displayName: string; avatarUrl: string }[];
 }
 
+export interface SocketRecordingUpdateEvent {
+  roomId: string;
+  recordingUsers: { id: string; displayName: string; avatarUrl: string }[];
+}
+
 export interface SocketMessageDeletedEvent {
   messageId: string;
   roomId: string;
