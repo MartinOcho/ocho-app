@@ -616,8 +616,8 @@ export default function RoomPreview({
                   )}
                 </>
               ) : (
-                (messagePreviewContent &&
-                  (messageType === "REACTION" ? (
+                (messagePreviewContent || messageType === "VOICENOTE") &&
+                  (messagePreviewContent ? (messageType === "REACTION" ? (
                     <>
                       {messagePreviewContent.split("[r]")[0]}
                       <span className="font-emoji">
@@ -625,21 +625,20 @@ export default function RoomPreview({
                       </span>
                       {messagePreviewContent.split("[r]")[1]}
                     </>
-                  ) : /* Surbrillance dans le dernier message si c'est du texte */
-                  messageType === "CONTENT" ? (
+                  ) : messageType === "CONTENT" ? (
                     <HighlightText
                       text={messagePreviewContent}
                       highlight={highlight}
                     />
-                  ) : (
-                    messageType === "VOICENOTE" ? (
+                  ) : "") : messageType === "VOICENOTE" ? (
                     <>
                       {showUserPreview && `${sender || appUser}: `}
                       <Mic className="inline h-4 w-4 align-text-bottom" />
                       {voiceMessage} ({voiceNoteDuration})
                     </>
-                  ) : messagePreviewContent
-                  ))) ||
+                  ) : (
+                    messagePreviewContent
+                  )) ||
                 noMessage
               )}
             </span>

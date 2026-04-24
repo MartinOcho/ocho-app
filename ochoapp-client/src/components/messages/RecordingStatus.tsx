@@ -100,7 +100,7 @@ export default function RecordingStatus({ roomId }: RecordingStatusProps) {
                 "w-fit select-none rounded-3xl bg-primary/10 p-3.5",
               )}
             >
-              <div className="flex gap-2 items-center justify-center h-6">
+              <div className="flex gap-2 items-center justify-center w-8">
                 <Mic className="h-5 w-5 text-primary animate-pulse" />
               </div>
             </div>
