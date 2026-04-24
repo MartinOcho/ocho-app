@@ -221,6 +221,7 @@ model VoiceNote {
   messageId String?  @unique
   message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
   url       String
+  publicId  String?
   duration  Int
   createdAt DateTime @default(now())
 
