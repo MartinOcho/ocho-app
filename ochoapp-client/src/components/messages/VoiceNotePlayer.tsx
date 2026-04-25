@@ -27,7 +27,6 @@ export default function VoiceNotePlayer({
   isSent,
   user,
 }: VoiceNotePlayerProps) {
-  console.log(duration);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -213,7 +212,7 @@ export default function VoiceNotePlayer({
               textColor,
             )}
           >
-            {formatTime(currentTime !== 0 ? currentTime : duration)}
+            {formatTime(isPlaying ? currentTime : duration)}
           </span>
         </div>
       </div>
