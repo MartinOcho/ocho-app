@@ -152,15 +152,18 @@ export default function VoiceNotePlayer({
 
   const progressPercentage = (currentTime / (duration || 1)) * 100;
 
-  const bgColor = isSent ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700";
-  const textColor = isSent ? "text-white" : "text-gray-700 dark:text-gray-300";
+  // Même design system que les bulles de messages
+  const bgColor = isSent
+    ? "bg-blue-600 dark:bg-neutral-800"
+    : "bg-white dark:bg-transparent dark:border-neutral-700";
+  const textColor = isSent ? "text-white" : "text-gray-800 dark:text-neutral-200";
   const waveBarColor = isSent ? "bg-white" : "bg-gray-400 dark:bg-gray-500";
   const buttonBgColor = isSent
     ? "bg-white/20 hover:bg-white/30"
     : "bg-gray-300 dark:bg-gray-500 hover:bg-gray-400 dark:hover:bg-gray-600";
   const buttonTextColor = isSent
     ? "text-white"
-    : "text-gray-700 dark:text-gray-300";
+    : "text-gray-800 dark:text-neutral-200";
 
   return (
     <div
