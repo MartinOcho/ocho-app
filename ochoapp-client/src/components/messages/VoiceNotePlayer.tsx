@@ -39,7 +39,7 @@ export default function VoiceNotePlayer({
   
   // Génération des barres une seule fois
   const [waveformBars] = useState<number[]>(() =>
-    Array.from({ length: 35 }, () => Math.random() * 100)
+    Array.from({ length: 25 }, () => Math.random() * 100)
   );
 
   // --- Nettoyage à la destruction du composant ---
