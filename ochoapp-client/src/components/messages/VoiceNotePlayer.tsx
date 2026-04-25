@@ -135,14 +135,15 @@ export default function VoiceNotePlayer({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 sm:gap-3 rounded-full px-3 sm:px-4 py-2 sm:py-3 max-sm:max-w-60 overflow-hidden",
+        "flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-60 sm:gap-3 sm:px-4 sm:py-3",
         bgColor,
+        !isSent && "flex-row-reverse",
         className,
       )}
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
-        <div className="h-8 w-8 sm:h-10 sm:w-10 overflow-hidden rounded-full border-2 border-white/20">
+        <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-white/20 sm:h-10 sm:w-10">
           <UserAvatar
             userId={""}
             avatarUrl={user.avatarUrl}
@@ -150,68 +151,73 @@ export default function VoiceNotePlayer({
             hideBadge={false}
           />
         </div>
-        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full border border-white bg-blue-500">
-          <Mic className="h-2 w-2 sm:h-3 sm:w-3 text-white" />
+        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-blue-500 sm:h-5 sm:w-5">
+          <Mic className="h-2 w-2 text-white sm:h-3 sm:w-3" />
         </div>
       </div>
-
-      {/* Bouton Play/Pause */}
-      <button
-        onClick={handlePlayPause}
-        disabled={isLoading}
-        className={cn(
-          "inline-flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full transition-all",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          buttonBgColor,
-          buttonTextColor,
-        )}
-      >
-        {isLoading ? (
-          <div
-            className={cn(
-              "h-3 w-3 sm:h-4 sm:w-4 animate-spin rounded-full border-2 border-current border-t-transparent",
-            )}
-          />
-        ) : isPlaying ? (
-          <Pause className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" />
-        ) : (
-          <Play className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" />
-        )}
-      </button>
-
-      {/* Zone Onde Sonore et Temps */}
-      {/* L'ajout de min-w-0 ici est crucial pour éviter que ce conteneur flex ne force la largeur de son parent */}
-      <div className="flex flex-1 items-center gap-1 sm:gap-2 min-w-0">
-        {/* L'onde sonore : utilisation de justify-between et d'espacements dynamiques */}
-        <div className="flex h-8 flex-1 items-center justify-between gap-[1px] sm:gap-1 overflow-hidden">
-          {waveformBars.map((bar, index) => {
-            const isActive =
-              (index / waveformBars.length) * 100 <= progressPercentage;
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "w-[1.5px] sm:w-0.5 flex-shrink-0 rounded-full transition-all",
-                  waveBarColor,
-                  isActive ? "opacity-100" : "opacity-40",
-                )}
-                style={{
-                  height: `${Math.max(8, bar * 0.6)}%`,
-                }}
-              />
-            );
-          })}
-        </div>
-        
-        {/* Temps restant/écoulé */}
-        <span
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Bouton Play/Pause */}
+        <button
+          onClick={handlePlayPause}
+          disabled={isLoading}
           className={cn(
-            "flex-shrink-0 whitespace-nowrap text-xs sm:text-sm font-medium",
-            textColor,
+            "inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-all sm:h-9 sm:w-9",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            buttonBgColor,
+            buttonTextColor,
           )}
         >
-          {formatTime(duration)}
-        </span>
+          {isLoading ? (
+            <div
+              className={cn(
+                "h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent sm:h-4 sm:w-4",
+              )}
+            />
+          ) : isPlaying ? (
+            <Pause className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" />
+          ) : (
+            <Play className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" />
+          )}
+        </button>
+
+        {/* Zone Onde Sonore et Temps */}
+        {/* L'ajout de min-w-0 ici est crucial pour éviter que ce conteneur flex ne force la largeur de son parent */}
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+          <div className="time-progress flex flex-col items-center gap-0.5">
+          {/* L'onde sonore : utilisation de justify-between et d'espacements dynamiques */}
+          <div className="flex h-8 flex-1 items-center justify-between gap-[1px] overflow-hidden sm:gap-1">
+            {waveformBars.map((bar, index) => {
+              const isActive =
+                (index / waveformBars.length) * 100 <= progressPercentage;
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-[1.5px] flex-shrink-0 rounded-full transition-all sm:w-0.5",
+                    waveBarColor,
+                    isActive ? "opacity-100" : "opacity-40",
+                  )}
+                  style={{
+                    height: `${Math.max(8, bar * 0.6)}%`,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <span className="text-xs text-muted">{formatTime(currentTime)}</span>
+
+          </div>
+
+          {/* Temps restant/écoulé */}
+          <span
+            className={cn(
+              "flex-shrink-0 whitespace-nowrap text-xs font-medium sm:text-sm",
+              textColor,
+            )}
+          >
+            {formatTime(duration)}
+          </span>
+        </div>
       </div>
     </div>
   );
