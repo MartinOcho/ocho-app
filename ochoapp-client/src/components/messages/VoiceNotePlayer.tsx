@@ -168,7 +168,7 @@ export default function VoiceNotePlayer({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-60 sm:gap-3 sm:px-4 sm:py-3",
+        "flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-64 sm:gap-3 sm:px-4 sm:py-3",
         bgColor,
         !isSent && "flex-row-reverse",
         className,
