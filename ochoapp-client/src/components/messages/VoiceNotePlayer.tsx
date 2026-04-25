@@ -213,7 +213,7 @@ export default function VoiceNotePlayer({
               textColor,
             )}
           >
-            {formatTime(currentTime ?? duration)}
+            {formatTime(currentTime !== 0 ? currentTime : duration)}
           </span>
         </div>
       </div>
