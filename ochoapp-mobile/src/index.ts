@@ -358,7 +358,7 @@ app.get("/api/check-update", (req: Request, res: Response) => {
         : iosVersionName,
   };
 
-  return Response.json({
+  return res.json({
     success: true,
     data,
     message: isUpToDate
