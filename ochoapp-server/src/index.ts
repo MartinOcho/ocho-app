@@ -109,14 +109,16 @@ const upload = multer({
 });
 
 app.get("/", (req, res) => {
-  const userAgent = req.get('User-Agent') || '';
+  const userAgent = req.get("User-Agent") || "";
   const isAndroid = /Android/i.test(userAgent);
   const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
   const isMobile = isAndroid || isIOS;
 
   // Page de bienvenue pour tous les appareils
   const title = isMobile ? "Ouvrez OchoApp mobile" : "Bienvenue sur OchoApp";
-  const description = isMobile ? "Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives." : "Accédez à OchoApp pour une expérience optimale.";
+  const description = isMobile
+    ? "Profitez d'une meilleure expérience sur OchoApp mobile avec des fonctionnalités exclusives."
+    : "Accédez à OchoApp pour une expérience optimale.";
   const html = `
     <!DOCTYPE html>
     <html lang="fr">
@@ -172,7 +174,10 @@ app.get("/", (req, res) => {
           </div>
         </div>
         <div class="buttons">
-          ${isMobile ? (isAndroid ? `
+          ${
+            isMobile
+              ? isAndroid
+                ? `
             <a href="ochoapp://home" class="button primary">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -189,17 +194,22 @@ app.get("/", (req, res) => {
               </svg>
               <span>Télécharger</span>
             </a>
-          ` : isIOS ? `
+          `
+                : isIOS
+                  ? `
             <div class="ios-message">
               <p>Disponible sur l'App Store</p>
               <p>Recherchez "OchoApp" sur l'App Store pour télécharger.</p>
             </div>
-          ` : '') : `
-            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="button primary">Accéder à l'accueil</a>
-          `}
+          `
+                  : ""
+              : `
+            <a href="${process.env.CLIENT_URL || "http://localhost:3000"}" class="button primary">Accéder à l'accueil</a>
+          `
+          }
         </div>
         <noscript>
-          <p>Version texte : ${description} Pour mobile Android, ouvrez l'application avec ochoapp://home ou téléchargez depuis https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk. Pour desktop, accédez à ${process.env.CLIENT_URL || 'http://localhost:3000'}.</p>
+          <p>Version texte : ${description} Pour mobile Android, ouvrez l'application avec ochoapp://home ou téléchargez depuis https://github.com/MartinOcho/ocho-app/releases/download/app/app-release.apk. Pour desktop, accédez à ${process.env.CLIENT_URL || "http://localhost:3000"}.</p>
         </noscript>
       </div>
     </body>
@@ -218,7 +228,10 @@ app.post("/api/cloudinary/upload", async (req, res) => {
 
     const fileSize = file.size;
 
-    const fileName = file.name || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
+    const fileName =
+      file.name ||
+      file.originalname ||
+      `ochoapp_${Date.now()}.${fileExtension}`;
 
     const uploadResult = await cloudinary.uploader.upload(file, {
       resource_type: "auto",
@@ -255,13 +268,11 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     });
   } catch (err) {
     console.error("Proxy upload error", err);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
-      });
+    return res.status(500).json({
+      success: false,
+      error: "Upload failed",
+      details: err instanceof Error ? err.message : undefined,
+    });
   }
 });
 
@@ -312,24 +323,22 @@ app.post(
         data: {
           type: attachmentType,
           url: uploadResult.url || uploadResult.secure_url || "",
-        }
-      })
+        },
+      });
 
       return res.json({
         success: true,
         attachmentId: mediaAttachment.id,
         attachmentUrl: mediaAttachment.url,
-        attachmentType: mediaAttachment.type
+        attachmentType: mediaAttachment.type,
       });
     } catch (err) {
       console.error("Proxy multipart upload error", err);
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: "Upload failed",
-          details: err instanceof Error ? err.message : undefined,
-        });
+      return res.status(500).json({
+        success: false,
+        error: "Upload failed",
+        details: err instanceof Error ? err.message : undefined,
+      });
     }
   },
 );
@@ -353,8 +362,11 @@ app.post(
 
       const fileSize = file.size;
 
-      const fileName = file.filename || file.originalname || `ochoapp_${Date.now()}.${fileExtension}`;
-      
+      const fileName =
+        file.filename ||
+        file.originalname ||
+        `ochoapp_${Date.now()}.${fileExtension}`;
+
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -368,17 +380,19 @@ app.post(
         });
 
       const uploadResult = await streamUpload(file.buffer);
-      
 
       const attachmentType =
-      uploadResult.resource_type &&
-      String(uploadResult.resource_type).startsWith("video")
-        ? "VIDEO"
-        : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
-            (uploadResult.secure_url &&
-              /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(uploadResult.secure_url))
-          ? "IMAGE"
-          : "DOCUMENT";
+        uploadResult.resource_type &&
+        String(uploadResult.resource_type).startsWith("video")
+          ? "VIDEO"
+          : (uploadResult.resource_type === "image" &&
+                fileExtension !== "pdf") ||
+              (uploadResult.secure_url &&
+                /\.(jpg|jpeg|png|gif|webp|avif)$/i.test(
+                  uploadResult.secure_url,
+                ))
+            ? "IMAGE"
+            : "DOCUMENT";
 
       const messageAttachment = await prisma.messageAttachment.create({
         data: {
@@ -529,7 +543,10 @@ app.post(
   upload.single("file"),
   async (req, res) => {
     try {
-      const { sessionId, roomId } = req.body as { sessionId?: string; roomId?: string };
+      const { sessionId, roomId } = req.body as {
+        sessionId?: string;
+        roomId?: string;
+      };
       if (!sessionId || !roomId) {
         return res
           .status(400)
@@ -610,7 +627,10 @@ app.post(
           try {
             await cloudinary.uploader.destroy(oldPublicId);
           } catch (error) {
-            console.error("Error deleting old group avatar from Cloudinary:", error);
+            console.error(
+              "Error deleting old group avatar from Cloudinary:",
+              error,
+            );
           }
         }
       }
@@ -633,83 +653,82 @@ app.post(
 );
 
 // --- VOICENOTE UPLOAD API ---
-app.post(
-  "/api/voicenotes/upload",
-  upload.single("audio"),
-  async (req, res) => {
-    try {
-      const { sessionId, duration } = req.body as { sessionId?: string; duration?: string };
-      if (!sessionId) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Missing sessionId" });
-      }
-
-      const session = await prisma.session.findUnique({
-        where: { id: sessionId },
-        include: { user: true },
-      });
-
-      if (!session || !session.user) {
-        return res
-          .status(401)
-          .json({ success: false, error: "Invalid session" });
-      }
-
-      const file = req.file;
-      if (!file || !file.buffer)
-        return res
-          .status(400)
-          .json({ success: false, error: "No file provided" });
-
-      const streamUpload = (buffer: Buffer) =>
-        new Promise<UploadApiResponse>((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            {
-              resource_type: "video",
-              format: "mp3",
-              flags: "immutable_cache",
-              folder: "ochoapp/voice_notes",
-            },
-            (error, result) => {
-              if (error) return reject(error);
-              resolve(result as UploadApiResponse);
-            },
-          );
-          stream.end(buffer);
-        });
-
-      const uploadResult = await streamUpload(file.buffer);
-
-      const voiceNoteUrl = uploadResult.secure_url || "";
-      const publicId = uploadResult.public_id || "";
-      const durationMs = Math.round((parseInt(duration || "0") || uploadResult.duration || 0) * 1000);
-
-      // Créer l'entrée VoiceNote en BD
-      const voiceNote = await prisma.voiceNote.create({
-        data: {
-          url: voiceNoteUrl,
-          publicId: publicId,
-          duration: durationMs,
-        },
-      });
-
-      return res.json({
-        success: true,
-        voiceNoteId: voiceNote.id,
-        voiceNoteUrl,
-        duration: voiceNote.duration,
-      });
-    } catch (err) {
-      console.error("Voicenote upload error", err);
-      return res.status(500).json({
-        success: false,
-        error: "Upload failed",
-        details: err instanceof Error ? err.message : undefined,
-      });
+app.post("/api/voicenotes/upload", upload.single("audio"), async (req, res) => {
+  try {
+    const { sessionId, duration } = req.body as {
+      sessionId?: string;
+      duration?: string;
+    };
+    if (!sessionId) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Missing sessionId" });
     }
-  },
-);
+
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true },
+    });
+
+    if (!session || !session.user) {
+      return res.status(401).json({ success: false, error: "Invalid session" });
+    }
+
+    const file = req.file;
+    if (!file || !file.buffer)
+      return res
+        .status(400)
+        .json({ success: false, error: "No file provided" });
+
+    const streamUpload = (buffer: Buffer) =>
+      new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "video",
+            format: "mp3",
+            flags: "immutable_cache",
+            folder: "ochoapp/voice_notes",
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result as UploadApiResponse);
+          },
+        );
+        stream.end(buffer);
+      });
+
+    const uploadResult = await streamUpload(file.buffer);
+
+    const voiceNoteUrl = uploadResult.secure_url || "";
+    const publicId = uploadResult.public_id || "";
+    const durationMs = Math.round(
+      (parseInt(duration || "0") || uploadResult.duration || 0) * 1000,
+    );
+
+    // Créer l'entrée VoiceNote en BD
+    const voiceNote = await prisma.voiceNote.create({
+      data: {
+        url: voiceNoteUrl,
+        publicId: publicId,
+        duration: durationMs,
+      },
+    });
+
+    return res.json({
+      success: true,
+      voiceNoteId: voiceNote.id,
+      voiceNoteUrl,
+      duration: voiceNote.duration,
+    });
+  } catch (err) {
+    console.error("Voicenote upload error", err);
+    return res.status(500).json({
+      success: false,
+      error: "Upload failed",
+      details: err instanceof Error ? err.message : undefined,
+    });
+  }
+});
 
 app.post("/api/auth/session", validateSession);
 
@@ -757,6 +776,19 @@ io.on("connection", async (socket: Socket) => {
 
   socket.join(userId);
 
+  typingUsersByRoom.forEach((typingUsers, room) => {
+    typingUsers.delete(userId);
+    io.to(room).emit("typing_stop", { roomId: room });
+  });
+
+  recordingUsersByRoom.forEach((recordingUsers, room) => {
+    recordingUsers.delete(userId);
+    io.to(room).emit("recording_update", {
+      roomId: room,
+      recordingUsers: Array.from(recordingUsers.values()),
+    });
+  });
+
   groupManagment(io, socket, { userId, username, displayName, avatarUrl });
 
   await markUndeliveredMessages(userId, io);
@@ -795,15 +827,27 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
-  socket.on("search_rooms", async (data: SocketSearchRoomsEvent): Promise<void> => {
-    const { query, roomId, cursor } = data;
-    try {
-      const response = await searchRooms(userId, username, query, roomId, cursor);
-      socket.emit("search_results", response);
-    } catch (error) {
-      socket.emit("error_message", "Impossible de rechercher les discussions.");
-    }
-  });
+  socket.on(
+    "search_rooms",
+    async (data: SocketSearchRoomsEvent): Promise<void> => {
+      const { query, roomId, cursor } = data;
+      try {
+        const response = await searchRooms(
+          userId,
+          username,
+          query,
+          roomId,
+          cursor,
+        );
+        socket.emit("search_results", response);
+      } catch (error) {
+        socket.emit(
+          "error_message",
+          "Impossible de rechercher les discussions.",
+        );
+      }
+    },
+  );
 
   socket.on("get_room_details", async (data: SocketGetRoomDetailsEvent) => {
     try {
@@ -811,7 +855,10 @@ io.on("connection", async (socket: Socket) => {
       socket.emit("room_details", roomDetails);
     } catch (error) {
       console.error("Erreur get_room_details:", error);
-      socket.emit("error_message", "Impossible de récupérer les détails de la discussion.");
+      socket.emit(
+        "error_message",
+        "Impossible de récupérer les détails de la discussion.",
+      );
     }
   });
 
@@ -821,7 +868,10 @@ io.on("connection", async (socket: Socket) => {
       socket.emit("last_message", lastMessage);
     } catch (error) {
       console.error("Erreur get_last_message:", error);
-      socket.emit("error_message", "Impossible de récupérer le dernier message.");
+      socket.emit(
+        "error_message",
+        "Impossible de récupérer le dernier message.",
+      );
     }
   });
 
@@ -927,7 +977,12 @@ io.on("connection", async (socket: Socket) => {
     roomRecording.set(userId, { id: userId, displayName, avatarUrl });
 
     const recordingUsers = Array.from(roomRecording.values());
-    console.log(chalk.greenBright(`📢 Broadcasting recording_update to ${roomId}, users:`, recordingUsers));
+    console.log(
+      chalk.greenBright(
+        `📢 Broadcasting recording_update to ${roomId}, users:`,
+        recordingUsers,
+      ),
+    );
 
     io.to(roomId).emit("recording_update", { roomId, recordingUsers });
   });
@@ -945,7 +1000,10 @@ io.on("connection", async (socket: Socket) => {
       const recordingList = Array.from(roomRecording?.values() || []).filter(
         (u) => u.id !== userId,
       );
-      io.to(roomId).emit("recording_update", { roomId, recordingUsers: recordingList });
+      io.to(roomId).emit("recording_update", {
+        roomId,
+        recordingUsers: recordingList,
+      });
     }
   });
 
@@ -984,7 +1042,10 @@ io.on("connection", async (socket: Socket) => {
         const roomDetails = await handleGetRoomDetails({ roomId }, userId);
         io.to(userId).emit("room_details", roomDetails);
       } catch (error) {
-        console.error("Error emitting room_details in mark_message_read:", error);
+        console.error(
+          "Error emitting room_details in mark_message_read:",
+          error,
+        );
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1368,7 +1429,9 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error) {
       console.error("Erreur send_voice_note:", error);
-      socket.emit("error", { message: "Erreur lors de l'envoi de la note vocale" });
+      socket.emit("error", {
+        message: "Erreur lors de l'envoi de la note vocale",
+      });
     }
   });
 
@@ -1381,10 +1444,13 @@ io.on("connection", async (socket: Socket) => {
     io.to(roomId).emit("user_recording_status", {
       userId,
       isRecording,
-      displayName: (await prisma.user.findUnique({
-        where: { id: userId },
-        select: { displayName: true },
-      }))?.displayName || "Utilisateur",
+      displayName:
+        (
+          await prisma.user.findUnique({
+            where: { id: userId },
+            select: { displayName: true },
+          })
+        )?.displayName || "Utilisateur",
     });
   });
 
@@ -1410,34 +1476,34 @@ io.on("connection", async (socket: Socket) => {
               { issuerId: issuerId || userId || undefined },
               { postId: postId || undefined },
               { commentId: commentId || undefined },
-            ]
+            ],
           },
-        })
+        });
         if (alreadyExists) {
           const notification = await prisma.notification.update({
             where: {
-              id: alreadyExists.id
+              id: alreadyExists.id,
             },
             data: {
               read: false,
-              createdAt: new Date()
+              createdAt: new Date(),
             },
-            include: notificationsInclude
-          })
+            include: notificationsInclude,
+          });
 
           io.to(recipientId).emit("notification_received", notification);
-        }else{
+        } else {
           const notification = await prisma.notification.create({
             data: {
               type,
               recipientId,
-              issuerId:  issuerId || userId,
+              issuerId: issuerId || userId,
               postId,
               commentId,
             },
             include: notificationsInclude,
           });
-          
+
           io.to(recipientId).emit("notification_received", notification);
         }
 
@@ -1452,27 +1518,30 @@ io.on("connection", async (socket: Socket) => {
   );
 
   // mark a single notification as read
-  socket.on("mark_notification_read", async (data: { notificationId: string }) => {
-    try {
-      const { notificationId } = data;
-      const notification = await prisma.notification.findUnique({
-        where: { id: notificationId, recipientId: userId },
-      });
-      if (notification && !notification.read) {
-        const updated = await prisma.notification.update({
-          where: { id: notificationId },
-          data: { read: true },
+  socket.on(
+    "mark_notification_read",
+    async (data: { notificationId: string }) => {
+      try {
+        const { notificationId } = data;
+        const notification = await prisma.notification.findUnique({
+          where: { id: notificationId, recipientId: userId },
         });
-        io.to(userId).emit("notification_read", updated);
-        const unreadCount = await prisma.notification.count({
-          where: { recipientId: userId, read: false },
-        });
-        io.to(userId).emit("notifications_unread_update", { unreadCount });
+        if (notification && !notification.read) {
+          const updated = await prisma.notification.update({
+            where: { id: notificationId },
+            data: { read: true },
+          });
+          io.to(userId).emit("notification_read", updated);
+          const unreadCount = await prisma.notification.count({
+            where: { recipientId: userId, read: false },
+          });
+          io.to(userId).emit("notifications_unread_update", { unreadCount });
+        }
+      } catch (e) {
+        console.error("Erreur mark_notification_read socket:", e);
       }
-    } catch (e) {
-      console.error("Erreur mark_notification_read socket:", e);
-    }
-  });
+    },
+  );
 
   // mark all notifications as read
   socket.on("mark_all_notifications_read", async () => {
@@ -1488,39 +1557,41 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
-  socket.on("delete_many_notifications", async (data: { postId?: string, commentId?: string }) => {
-    try {
-      const { postId, commentId } = data;
-      const notifications = await prisma.notification.findMany({
-        where: {
-          AND: [
-            { postId: postId || undefined },
-            { commentId: commentId || undefined },
-          ]
-        }
-      });
-
-      for (const notification of notifications) {
-        const notificationDeleted = await prisma.notification.delete({
+  socket.on(
+    "delete_many_notifications",
+    async (data: { postId?: string; commentId?: string }) => {
+      try {
+        const { postId, commentId } = data;
+        const notifications = await prisma.notification.findMany({
           where: {
-            id: notification.id,
+            AND: [
+              { postId: postId || undefined },
+              { commentId: commentId || undefined },
+            ],
           },
         });
 
-        if(notificationDeleted) {
-          io.to(notification.recipientId).emit("delete_notification", {
-            type: notification.type,
-            recipientId: notification.recipientId,
-            postId: notification.postId || undefined,
-            commentId: notification.commentId || undefined,
+        for (const notification of notifications) {
+          const notificationDeleted = await prisma.notification.delete({
+            where: {
+              id: notification.id,
+            },
           });
+
+          if (notificationDeleted) {
+            io.to(notification.recipientId).emit("delete_notification", {
+              type: notification.type,
+              recipientId: notification.recipientId,
+              postId: notification.postId || undefined,
+              commentId: notification.commentId || undefined,
+            });
+          }
         }
+      } catch (e) {
+        console.error("Erreur delete_many_notifications socket:", e);
       }
-      
-    } catch (e) {
-      console.error("Erreur delete_many_notifications socket:", e);
-    }
-  });
+    },
+  );
 
   socket.on(
     "delete_notification",
@@ -1543,15 +1614,15 @@ io.on("connection", async (socket: Socket) => {
             commentId: commentId || undefined,
           },
           include: notificationsInclude,
-        })
+        });
         if (notification) {
           await prisma.notification.delete({
             where: {
-              id: notification.id
-            }
-          })
+              id: notification.id,
+            },
+          });
           io.to(recipientId).emit("notification_deleted", notification);
-  
+
           const unreadCount = await prisma.notification.count({
             where: { recipientId, read: false },
           });
@@ -1581,38 +1652,37 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
-  socket.on(
-    "delete_room",
-    async (data: SocketDeleteRoomEvent) => {
-      try {
-        const { roomId } = data;
-        const room = await prisma.room.findUnique({
-          where: { id: roomId },
-          include: { members: true },
-        });
+  socket.on("delete_room", async (data: SocketDeleteRoomEvent) => {
+    try {
+      const { roomId } = data;
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        include: { members: true },
+      });
 
-        if (!room || room.isGroup) throw new Error("Room not found or is a group");
+      if (!room || room.isGroup)
+        throw new Error("Room not found or is a group");
 
-        const hasCurrentUser = room.members.some(
-          (member) => member.userId === userId,
-        );
-        const deletedInterlocutorMembers = room.members.filter(
-          (member) => member.userId === null,
-        );
+      const hasCurrentUser = room.members.some(
+        (member) => member.userId === userId,
+      );
+      const deletedInterlocutorMembers = room.members.filter(
+        (member) => member.userId === null,
+      );
 
-        if (!hasCurrentUser || deletedInterlocutorMembers.length !== 1) throw new Error("Room not found or invalid members");
+      if (!hasCurrentUser || deletedInterlocutorMembers.length !== 1)
+        throw new Error("Room not found or invalid members");
 
-        await prisma.room.delete({ where: { id: roomId } });
+      await prisma.room.delete({ where: { id: roomId } });
 
-        io.to(userId).emit("room_deleted", { roomId });
+      io.to(userId).emit("room_deleted", { roomId });
 
-        const userRooms = await getFormattedRooms(userId, "");
-        io.to(userId).emit("room_list_updated", userRooms);
-      } catch (error) {
-        console.error("Erreur delete_room:", error);
-      }
-    },
-  );
+      const userRooms = await getFormattedRooms(userId, "");
+      io.to(userId).emit("room_list_updated", userRooms);
+    } catch (error) {
+      console.error("Erreur delete_room:", error);
+    }
+  });
 
   socket.broadcast.emit("user_status_change", {
     userId: userId,
@@ -1641,10 +1711,13 @@ io.on("connection", async (socket: Socket) => {
 
     recordingUsersByRoom.forEach((recordingUsers, room) => {
       recordingUsers.delete(userId);
-      io.to(room).emit("recording_update", { roomId: room, recordingUsers: Array.from(recordingUsers.values()) });
+      io.to(room).emit("recording_update", {
+        roomId: room,
+        recordingUsers: Array.from(recordingUsers.values()),
+      });
     });
 
-    console.log(chalk.yellow(`${displayName} s'est déconnecté.`));
+    console.log(chalk.yellowBright(`${displayName} s'est déconnecté.`));
   });
 });
 
