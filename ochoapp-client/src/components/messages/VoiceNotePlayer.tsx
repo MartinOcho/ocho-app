@@ -16,7 +16,7 @@ interface VoiceNotePlayerProps {
   url: string;
   duration: number;
   className?: string;
-  isSent?: boolean;
+  isSent: boolean;
   user: UserProfile;
 }
 
@@ -24,7 +24,7 @@ export default function VoiceNotePlayer({
   url,
   duration,
   className,
-  isSent = false,
+  isSent,
   user,
 }: VoiceNotePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -144,7 +144,7 @@ export default function VoiceNotePlayer({
       <div className="relative flex-shrink-0">
         <div className="h-8 w-8 sm:h-10 sm:w-10 overflow-hidden rounded-full border-2 border-white/20">
           <UserAvatar
-            userId={user.id}
+            userId={""}
             avatarUrl={user.avatarUrl}
             size={40}
             hideBadge={false}

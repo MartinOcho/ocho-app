@@ -477,6 +477,7 @@ export const MessageBubbleContent = ({
             displayName: message.sender?.displayName || "",
             avatarUrl: message.sender?.avatarUrl || "",
           }}
+          isSent={isOwner}
         />
       )}
       
