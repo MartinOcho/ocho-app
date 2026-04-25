@@ -155,7 +155,7 @@ export default function VoiceNotePlayer({
   // Même design system que les bulles de messages
   const bgColor = isSent
     ? "bg-blue-600 dark:bg-neutral-800"
-    : "bg-white dark:bg-transparent dark:border-neutral-700";
+    : "bg-white dark:bg-transparent dark:border-neutral-700 dark:border";
   const textColor = isSent ? "text-white" : "text-gray-800 dark:text-neutral-200";
   const waveBarColor = isSent ? "bg-white" : "bg-gray-400 dark:bg-gray-500";
   const buttonBgColor = isSent
