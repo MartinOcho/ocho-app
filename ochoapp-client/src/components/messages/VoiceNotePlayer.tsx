@@ -27,6 +27,8 @@ export default function VoiceNotePlayer({
   isSent,
   user,
 }: VoiceNotePlayerProps) {
+  console.log(duration);
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
