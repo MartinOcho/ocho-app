@@ -838,7 +838,9 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                     status={msg.status}
                     onRetry={() => handleRetryMessage(msg)}
                     attachments={tempAttachments[msg.tempId] || []}
-                    type={msg.type} />
+                    type={msg.type}
+                    isVoiceNote={msg.isVoiceNote}
+                  />
                 )
               ))}
 
@@ -925,7 +927,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                       tempId,
                       content: "",
                       roomId,
-                      type: "VOICENOTE",
+                      type: "CONTENT",
                       status: "sending",
                       isVoiceNote: true,
                       voiceNoteProgress: {
@@ -1025,9 +1027,10 @@ interface SendingMessageProps {
   onRetry: () => void;
   attachments?: MessageAttachment[];
   type?: MessageType;
+  isVoiceNote?: boolean;
 }
 
-function SendingMessage({ content, status, onRetry, attachments, type }: SendingMessageProps) {
+function SendingMessage({ content, status, onRetry, attachments, type, isVoiceNote }: SendingMessageProps) {
   const { t } = useTranslation();
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -1038,7 +1041,7 @@ function SendingMessage({ content, status, onRetry, attachments, type }: Sending
     setTimeout(() => setIsRetrying(false), 2000);
   };
 
-  const displayText = type === "VOICENOTE" ? "📎 Envoi d'une note vocale..." : content;
+  const displayText = isVoiceNote ? "📎 Envoi d'une note vocale..." : content;
 
   return (
     <div className="relative flex w-full flex-col gap-3 duration-300">
