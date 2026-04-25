@@ -151,7 +151,7 @@ export default function VoiceNotePlayer({
             hideBadge={false}
           />
         </div>
-        <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white bg-blue-500 sm:h-5 sm:w-5">
+        <div className={cn("absolute -bottom-1  flex h-4 w-4 items-center justify-center rounded-full border border-white bg-blue-500 sm:h-5 sm:w-5", isSent ? "-right-1" : "-left-1")}>
           <Mic className="h-2 w-2 text-white sm:h-3 sm:w-3" />
         </div>
       </div>
@@ -183,7 +183,6 @@ export default function VoiceNotePlayer({
         {/* Zone Onde Sonore et Temps */}
         {/* L'ajout de min-w-0 ici est crucial pour éviter que ce conteneur flex ne force la largeur de son parent */}
         <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-          <div className="time-progress flex flex-col items-center gap-0.5">
           {/* L'onde sonore : utilisation de justify-between et d'espacements dynamiques */}
           <div className="flex h-8 flex-1 items-center justify-between gap-[1px] overflow-hidden sm:gap-1">
             {waveformBars.map((bar, index) => {
@@ -204,9 +203,6 @@ export default function VoiceNotePlayer({
               );
             })}
           </div>
-          <span className="text-xs text-muted">{formatTime(currentTime)}</span>
-
-          </div>
 
           {/* Temps restant/écoulé */}
           <span
@@ -215,7 +211,7 @@ export default function VoiceNotePlayer({
               textColor,
             )}
           >
-            {formatTime(duration)}
+            {formatTime(currentTime ?? duration)}
           </span>
         </div>
       </div>
