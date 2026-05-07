@@ -392,6 +392,8 @@ export async function getMessages(req: Request, res: Response) {
           return message;
         });
       }
+      console.log(messages);
+      
     } else {
       if (!member) {
         return res.json({

@@ -60,6 +60,8 @@ export async function GET(
           return m;
         });
       }
+      console.log(messages);
+      
 
     } else {     
       // 1. Récupérer les infos de la room

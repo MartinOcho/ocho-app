@@ -357,6 +357,7 @@ export function getMessageDataInclude(loggedInUserId: string) {
         url: true,
         duration: true,
         createdAt: true,
+        waves: true,
       },
     },
     mentions: {
