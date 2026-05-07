@@ -688,6 +688,7 @@ app.post("/api/voicenotes/upload", upload.single("audio"), async (req, res) => {
 
       // Upload à Cloudinary
       const uniqueId = randomUUID();
+      const publicId = `voice_${uniqueId}`;
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -696,7 +697,7 @@ app.post("/api/voicenotes/upload", upload.single("audio"), async (req, res) => {
               format: "mp3",
               flags: "immutable_cache",
               folder: "ochoapp/voice_notes",
-              public_id: `voice_${uniqueId}`,
+              public_id: publicId,
             },
             (error, result) => {
               if (error) return reject(error);
@@ -709,7 +710,6 @@ app.post("/api/voicenotes/upload", upload.single("audio"), async (req, res) => {
     const uploadResult = await streamUpload(file.buffer);
 
       const voiceNoteUrl = uploadResult.secure_url || "";
-      const publicId = uploadResult.public_id || "";
       const durationMs = Math.round((durationSeconds || uploadResult.duration || 0) * 1000);
 
       // Créer l'entrée VoiceNote en BD avec les waves générées
