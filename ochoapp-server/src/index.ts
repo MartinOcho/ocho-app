@@ -103,6 +103,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+export { cloudinary };
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 200 * 1024 * 1024 },
@@ -1377,7 +1379,6 @@ io.on("connection", async (socket: Socket) => {
         const { newMessage } = await handleSendSavedVoiceNote(
           data,
           userId,
-          cloudinary,
         );
 
         socket.join(roomId);

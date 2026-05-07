@@ -18,6 +18,7 @@ import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageRea
 import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
 import { Server } from "socket.io";
 import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
+import { cloudinary } from ".";
 
 
 interface CloudinaryApi {
@@ -407,7 +408,6 @@ export async function handleRemoveReaction(
 export async function handleDeleteMessage(
   data: SocketDeleteMessageEvent,
   userId: string,
-  cloudinary?: CloudinaryApi,
 ) {
   const { messageId, roomId } = data;
 
@@ -438,7 +438,8 @@ export async function handleDeleteMessage(
   });
 
   // Delete voice note from Cloudinary if exists
-  if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId && cloudinary) {
+  if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId) {
+
     try {
       await new Promise<void>((resolve, reject) => {
         cloudinary.uploader.destroy(
@@ -587,7 +588,6 @@ export async function handleSendSavedMessage(
 export async function handleSendSavedVoiceNote(
   data: SocketSendVoiceNoteEvent,
   userId: string,
-  cloudinary: CloudinaryApi,
 ) {
   const { voiceNoteId } = data;
 
