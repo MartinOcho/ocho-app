@@ -74,14 +74,14 @@ export async function getMessageRooms(req: Request, res: Response) {
     // 3. Injection de la "Self Room" (Messages Enregistrés)
     if (!cursor) {
       const savedMessage = await prisma.message.findFirst({
-        where: { senderId: userId, type: "SAVED" },
+        where: { senderId: userId, OR: [{ type: "SAVED" }, { type: "VOICENOTE", roomId: null }] },
         include: getMessageDataInclude(userId),
         orderBy: { createdAt: "desc" },
       });
 
       if (savedMessage) {
         // Logique visuelle : si le contenu est technique "create-userId", on le garde en SAVED (caché/système)
-        let type = "CONTENT";
+        let type = savedMessage.type === "VOICENOTE" ? "VOICENOTE" : "CONTENT";
         if (savedMessage.content === "create-" + userId) {
           type = "SAVED";
         }
