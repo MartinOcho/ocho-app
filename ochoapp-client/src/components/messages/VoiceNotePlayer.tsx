@@ -40,8 +40,8 @@ export default function VoiceNotePlayer({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   
-  // Fonction pour compacter les waves à 25 points
-  const resampleWaves = (sourceWaves: number[], targetCount: number = 25): number[] => {
+  // Fonction pour compacter les waves à 35 points
+  const resampleWaves = (sourceWaves: number[], targetCount: number = 35): number[] => {
     if (sourceWaves.length <= targetCount) {
       return sourceWaves;
     }
@@ -62,11 +62,11 @@ export default function VoiceNotePlayer({
     return result;
   };
   
-  // Utiliser les waves de la BD compactées à 25, sinon générer un fallback
+  // Utiliser les waves de la BD compactées à 35, sinon générer un fallback
   const [waveformBars] = useState<number[]>(() =>
     waves && waves.length > 0
-      ? resampleWaves(waves, 25)
-      : Array.from({ length: 25 }, () => 5)
+      ? resampleWaves(waves, 35)
+      : Array.from({ length: 35 }, () => 5)
   );
 
   // --- Nettoyage à la destruction du composant ---
