@@ -323,7 +323,7 @@ export function formatSavedMessages(
   message: MessageData,
   userId: string,
 ): MessageData {
-  if (message.content !== `create-${userId}`) {
+  if (message.content !== `create-${userId}` && message.type == "SAVED") {
     return { ...message, type: "CONTENT" };
   }
   return { ...message };
@@ -386,7 +386,7 @@ export async function getMessages(req: Request, res: Response) {
       if (messages[0]) {
         // modifier les types des messages qui n'ont pas "created" comme contenu et qui ne sont pas en premier message en "CONTENT"
         messages = messages.map((message) => {
-          if (message.content !== `create-${user.id}`) {
+          if (message.content !== `create-${user.id}` && message.type == "SAVED") {
             message.type = "CONTENT";
           }
           return message;

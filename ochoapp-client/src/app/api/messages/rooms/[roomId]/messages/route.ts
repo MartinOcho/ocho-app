@@ -54,7 +54,7 @@ export async function GET(
       // Transformation des types pour l'affichage
       if (messages.length > 0) {
         messages = messages.map((m) => {
-          if (m.content !== `create-${user.id}`) {
+          if (m.content !== `create-${user.id}`  && m.type == "SAVED") {
             m.type = "CONTENT";
           }
           return m;
