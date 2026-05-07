@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
       if (savedMessage) {
         // Logique visuelle : si le contenu est technique "create-userId", on le garde en SAVED (caché/système)
-        let type = "CONTENT";
+        let type = savedMessage.type === "VOICENOTE" ? "VOICENOTE" : "CONTENT";
         if (savedMessage.content === "create-" + userId) {
           type = "SAVED";
         }
