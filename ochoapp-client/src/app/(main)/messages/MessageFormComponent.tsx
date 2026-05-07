@@ -378,7 +378,7 @@ export function MessageFormComponent({
     <div
       className={cn(
         "relative flex z-20 w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
-        expanded || voiceRecorder.isRecording ? "" : "aspect-square w-fit rounded-full p-0",
+        expanded || voiceRecorder.isRecording ? "" : "aspect-square w-fit rounded-full p-0 border-none bg-transparent",
       )}
     >
       <input
@@ -416,7 +416,7 @@ export function MessageFormComponent({
       </Button>
       )}
 
-      <div className={cn("flex w-full flex-col gap-2 border-r border-border", !expanded || voiceRecorder.isRecording ? "hidden" : "")}>
+      <div className={cn("flex w-full flex-col gap-2 border-r border-border", (!expanded || voiceRecorder.isRecording) && "hidden")}>
         {attachments.length > 0 && (
           <div className="flex w-full flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
             {attachments.map((a, i) => (
