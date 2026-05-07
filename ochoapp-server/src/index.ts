@@ -687,7 +687,7 @@ app.post("/api/voicenotes/upload", upload.single("audio"), async (req, res) => {
       const { waves } = await generateWavesFromAudio(file.buffer, durationSeconds);
 
       // Upload à Cloudinary
-      const uniqueId = randomUUID();
+      const uniqueId = randomUUID().replace(/-/g, "_");
       const publicId = `voice_${uniqueId}`;
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {

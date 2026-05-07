@@ -3,6 +3,7 @@ import prisma from "./prisma";
 import { generateWavesFromAudio, base64ToBuffer } from "./audio-utils";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentUser } from "./auth";
+import { randomUUID } from "node:crypto";
 
 interface CloudinaryApi {
   uploader: {
@@ -186,13 +187,15 @@ export async function deleteVoiceNote(req: Request, res: Response) {
 async function uploadToCloudinary(
   audioBuffer: Buffer
 ): Promise<{ url: string; publicId: string }> {
+  const uniqueId = randomUUID().replace(/-/g, "_");
+      const publicId = `voice_${uniqueId}`;
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         resource_type: "video", // Les fichiers audio sont traités comme video dans Cloudinary
         media_type: "audio",
         folder: "voice_notes",
-        public_id: `voice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        public_id: publicId,
       },
       (error, result) => {
         if (error) {

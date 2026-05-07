@@ -807,7 +807,7 @@ app.post(
       const durationSeconds = Math.round(parseInt(duration || "0") || 0);
       const { waves } = await generateWavesFromAudio(file.buffer, durationSeconds);
 
-      const uniqueId = randomUUID();
+      const uniqueId = randomUUID().replace(/-/g, "_");
       const publicId = `voice_${uniqueId}`;
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
