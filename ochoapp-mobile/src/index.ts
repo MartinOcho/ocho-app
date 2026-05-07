@@ -807,6 +807,7 @@ app.post(
       const durationSeconds = Math.round(parseInt(duration || "0") || 0);
       const { waves } = await generateWavesFromAudio(file.buffer, durationSeconds);
 
+      const uniqueId = randomUUID();
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -815,6 +816,7 @@ app.post(
               format: "mp3",
               flags: "immutable_cache",
               folder: "ochoapp/voice_notes",
+              public_id: `voice_${uniqueId}`,
             },
             (error, result) => {
               if (error) return reject(error);
