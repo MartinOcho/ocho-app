@@ -39,10 +39,32 @@ export default function VoiceNotePlayer({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   
-  // Utiliser les waves de la BD, sinon générer un fallback
+  // Fonction pour compacter les waves à 25 points
+  const resampleWaves = (sourceWaves: number[], targetCount: number = 25): number[] => {
+    if (sourceWaves.length <= targetCount) {
+      return sourceWaves;
+    }
+    
+    const result: number[] = [];
+    const groupSize = sourceWaves.length / targetCount;
+    
+    for (let i = 0; i < targetCount; i++) {
+      const startIndex = Math.floor(i * groupSize);
+      const endIndex = Math.floor((i + 1) * groupSize);
+      const group = sourceWaves.slice(startIndex, endIndex);
+      
+      // Calculer la moyenne du groupe
+      const average = group.reduce((a, b) => a + b, 0) / group.length;
+      result.push(Math.round(average));
+    }
+    
+    return result;
+  };
+  
+  // Utiliser les waves de la BD compactées à 25, sinon générer un fallback
   const [waveformBars] = useState<number[]>(() =>
-    waves && waves.length
-      ? waves
+    waves && waves.length > 0
+      ? resampleWaves(waves, 25)
       : Array.from({ length: 25 }, () => 5)
   );
 
