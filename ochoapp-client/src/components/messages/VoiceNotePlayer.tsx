@@ -14,6 +14,7 @@ interface UserProfile {
 interface VoiceNotePlayerProps {
   url: string;
   duration: number; // en secondes
+  waves?: number[]; // waves de la BD
   className?: string;
   isSent: boolean;
   user: UserProfile;
@@ -22,6 +23,7 @@ interface VoiceNotePlayerProps {
 export default function VoiceNotePlayer({
   url,
   duration,
+  waves,
   className,
   isSent,
   user,
@@ -37,9 +39,11 @@ export default function VoiceNotePlayer({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   
-  // Génération des barres une seule fois
+  // Utiliser les waves de la BD, sinon générer un fallback
   const [waveformBars] = useState<number[]>(() =>
-    Array.from({ length: 25 }, () => Math.random() * 100)
+    waves && waves.length
+      ? waves
+      : Array.from({ length: 25 }, () => 5)
   );
 
   // --- Nettoyage à la destruction du composant ---
@@ -220,7 +224,8 @@ export default function VoiceNotePlayer({
           <div className="flex h-8 flex-1 items-center justify-between gap-[1px] overflow-hidden sm:gap-1">
             {waveformBars.map((bar, index) => {
               const isActive =
-                (index / waveformBars.length) * 100 <= progressPercentage;
+                (index / Math.max(1, waveformBars.length - 1)) * 100 <=
+                progressPercentage;
               return (
                 <div
                   key={index}

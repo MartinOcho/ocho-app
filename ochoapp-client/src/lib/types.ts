@@ -191,6 +191,7 @@ export function getMessageDataSelect() {
         url: true,
         duration: true,
         createdAt: true,
+        waves: true,
       },
     },
     mentions: {

@@ -471,6 +471,7 @@ export const MessageBubbleContent = ({
         <VoiceNotePlayer
           url={message.voiceNote.url}
           duration={message.voiceNote.duration / 1000} // Convertir en secondes
+          waves={message.voiceNote.waves}
           className={cn(isOwner ? "mr-0" : "ml-0")}
           user={{
             id: message.sender?.id || "",
