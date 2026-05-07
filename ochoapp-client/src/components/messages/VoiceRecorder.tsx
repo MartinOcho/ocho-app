@@ -189,10 +189,10 @@ export const useVoiceRecorder = (roomId: string, onVoiceNoteSent?: () => void) =
   }
 
   return (
-    <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950 px-3 py-2 rounded-full">
+    <div className="flex items-center gap-2 bg-secondary dark:bg-secondary px-3 py-2 rounded-full border-none outline-none">
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-sm font-medium text-red-700 dark:text-red-300 whitespace-nowrap">
+        <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+        <span className="text-sm font-medium text-secondary-foreground dark:text-secondary-foreground whitespace-nowrap">
           {formatTime(recordingTime)}
         </span>
       </div>
@@ -201,26 +201,26 @@ export const useVoiceRecorder = (roomId: string, onVoiceNoteSent?: () => void) =
         <button
           onClick={cancelRecording}
           disabled={isSending}
-          className="inline-flex items-center justify-center h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-full hover:bg-secondary/80 dark:hover:bg-secondary/80 transition-colors disabled:opacity-50 border-none outline-none"
           title="Annuler l'enregistrement"
         >
-          <X className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <X className="h-4 w-4 text-secondary-foreground dark:text-secondary-foreground" />
         </button>
 
         <button
           onClick={stopRecording}
           disabled={isSending}
-          className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 border-none outline-none"
           title="Arrêter l'enregistrement"
         >
-          <Square className="h-4 w-4 text-white fill-white" />
+          <Square className="h-4 w-4 text-primary-foreground fill-primary-foreground" />
         </button>
 
         {recordingTime > 0 && !isRecording && (
           <button
             onClick={sendVoiceNote}
             disabled={isSending}
-            className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-green-500 hover:bg-green-600 transition-colors disabled:opacity-50"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-colors disabled:opacity-50 border-none outline-none"
             title="Envoyer la note vocale"
           >
             <Send className="h-4 w-4 text-white" />
