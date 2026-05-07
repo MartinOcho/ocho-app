@@ -3,10 +3,21 @@
  * Génère des waves (tableau d'entiers) à partir de données audio
  */
 
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegStatic from 'ffmpeg-static';
+import { createWriteStream, readFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { randomUUID } from 'crypto';
+import { tmpdir } from 'os';
+
+// Configurer ffmpeg avec le chemin statique
+if (ffmpegStatic) {
+  ffmpeg.setFfmpegPath(ffmpegStatic);
+}
+
 /**
  * Interface représentant les waves audio converties
- * - Valeurs entre 20-100 basées sur la durée
- * - Valeurs entre 1-100 basées sur l'intensité
+ * - Valeurs entre 1-100 basées sur l'intensité audio
  */
 export interface AudioWaves {
   waves: number[];
@@ -15,18 +26,50 @@ export interface AudioWaves {
 
 /**
  * Convertit un buffer audio en tableau de waves
+ * Décode correctement les fichiers audio compressés (WebM, OGG, MP3, etc.)
  * 
- * @param audioBuffer - Buffer contenant les données audio (WAV ou WebM)
- * @param duration - Durée de l'audio en secondes
+ * @param audioBuffer - Buffer contenant les données audio (WAV, WebM, OGG, MP3, etc.)
+ * @param duration - Durée estimée de l'audio en secondes
  * @returns Objet contenant le tableau des waves et la durée
  */
 export async function generateWavesFromAudio(
   audioBuffer: Buffer,
   duration: number
 ): Promise<AudioWaves> {
+  let tempInputPath = '';
+  let tempOutputPath = '';
+  
   try {
-    // Extraire les données PCM du buffer audio
-    const pcmData = extractPCMData(audioBuffer);
+    // Créer des fichiers temporaires
+    const tempDir = tmpdir();
+    const tempId = randomUUID();
+    tempInputPath = join(tempDir, `audio_${tempId}.webm`);
+    tempOutputPath = join(tempDir, `audio_${tempId}.wav`);
+    
+    // Écrire le buffer d'entrée dans un fichier temporaire
+    await new Promise<void>((resolve, reject) => {
+      const stream = createWriteStream(tempInputPath);
+      stream.write(audioBuffer);
+      stream.end();
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
+    
+    // Décoder avec ffmpeg
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(tempInputPath)
+        .toFormat('wav')
+        .audioCodec('pcm_s16le')
+        .on('error', reject)
+        .on('end', () => resolve())
+        .save(tempOutputPath);
+    });
+    
+    // Lire le fichier WAV décodé
+    const wavBuffer = readFileSync(tempOutputPath);
+    
+    // Extraire les données PCM du WAV
+    const pcmData = extractWavPCM(wavBuffer);
     
     // Générer les waves basées sur les données audio
     const waves = processAudioToPeaks(pcmData, duration);
@@ -39,40 +82,27 @@ export async function generateWavesFromAudio(
     console.error("Erreur lors de la génération des waves:", error);
     // Retourner des waves par défaut si erreur
     return generateDefaultWaves(duration);
-  }
-}
-
-/**
- * Extrait les données PCM d'un buffer audio
- * Supporte les formats WAV et WebM/OGG
- */
-function extractPCMData(audioBuffer: Buffer): Int16Array {
-  try {
-    // Vérifier si c'est un fichier WAV
-    if (isWavFile(audioBuffer)) {
-      return extractWavPCM(audioBuffer);
+  } finally {
+    // Nettoyer les fichiers temporaires
+    try {
+      if (tempInputPath) {
+        try {
+          unlinkSync(tempInputPath);
+        } catch (e) {
+          // Ignorer
+        }
+      }
+      if (tempOutputPath) {
+        try {
+          unlinkSync(tempOutputPath);
+        } catch (e) {
+          // Ignorer
+        }
+      }
+    } catch (e) {
+      // Ignorer les erreurs de suppression
     }
-    
-    // Pour WebM/OGG et autres formats, utiliser une approximation
-    // basée sur les bytes du fichier
-    return approximatePCMFromBuffer(audioBuffer);
-  } catch (error) {
-    console.error("Erreur lors de l'extraction PCM:", error);
-    return new Int16Array(0);
   }
-}
-
-/**
- * Vérifie si le buffer est un fichier WAV
- */
-function isWavFile(buffer: Buffer): boolean {
-  // Vérifier la signature WAV (RIFF....WAVE)
-  if (buffer.length < 12) return false;
-  
-  const riff = buffer.toString("ascii", 0, 4);
-  const wave = buffer.toString("ascii", 8, 12);
-  
-  return riff === "RIFF" && wave === "WAVE";
 }
 
 /**
@@ -107,73 +137,72 @@ function extractWavPCM(buffer: Buffer): Int16Array {
 }
 
 /**
- * Approxime les données PCM à partir d'un buffer quelconque
- * Utilisé pour les formats compressés (WebM, OGG, etc.)
- */
-function approximatePCMFromBuffer(buffer: Buffer): Int16Array {
-  // Créer un tableau de 16-bit à partir des octets disponibles
-  const length = Math.min(buffer.length / 2, 8192); // Limiter à 8KB
-  const pcm = new Int16Array(length);
-  
-  for (let i = 0; i < length; i++) {
-    // Interpréter les bytes comme des int16 signés
-    const byte1 = buffer[i * 2];
-    const byte2 = buffer[i * 2 + 1];
-    pcm[i] = (byte2 << 8) | byte1;
-  }
-  
-  return pcm;
-}
-
-/**
  * Convertit les données PCM en tableau de peaks pour les waves
- * Génère un point toutes les 300ms (0.3 secondes)
+ * Utilise la méthode RMS (Root Mean Square) pour déterminer l'intensité audio
+ * Génère un point toutes les 100ms (0.1 secondes)
  * Chaque point entre 1 et 100 selon l'intensité audio
  */
 function processAudioToPeaks(pcmData: Int16Array, duration: number): number[] {
   const peaks: number[] = [];
   
   if (pcmData.length === 0) {
-    // Retourner au minimum 20 points par défaut
-    const minPoints = 20;
+    // Retourner au minimum 10 points par défaut (silence)
+    const minPoints = 10;
     for (let i = 0; i < minPoints; i++) {
-      peaks.push(Math.floor(Math.random() * 30) + 1);
+      peaks.push(1);
     }
     return peaks;
   }
   
   // Calculer la sample rate basée sur la durée et la longueur du PCM
-  const sampleRate = pcmData.length / duration;
+  const sampleRate = Math.round(pcmData.length / duration);
   
-  // Génération toutes les 300ms (0.3 secondes)
-  const intervalSeconds = 0.3;
+  // Génération toutes les 100ms (0.1 secondes) pour plus de détails
+  const intervalSeconds = 0.1;
   const samplesPerInterval = Math.max(1, Math.floor(sampleRate * intervalSeconds));
   
-  // Seuil minimum pour filtrer les bruits parasites (2% de 32767)
-  const noiseThreshold = 655;
+  // RMS (Root Mean Square) pour l'énergie audio
+  let maxRMS = 0;
+  const rmsValues: number[] = [];
   
-  // Extraire les pics à chaque intervalle de 300ms
+  // Calculer le RMS pour chaque intervalle
   for (let i = 0; i < pcmData.length; i += samplesPerInterval) {
     const endIndex = Math.min(i + samplesPerInterval, pcmData.length);
     
-    let maxIntensity = 0;
+    let sumOfSquares = 0;
     for (let j = i; j < endIndex; j++) {
-      maxIntensity = Math.max(maxIntensity, Math.abs(pcmData[j]));
+      sumOfSquares += pcmData[j] * pcmData[j];
     }
     
-    // Filtrer les bruits parasites et normaliser sur 1-100
-    // Si intensité < seuil, on la met à 1
+    const rms = Math.sqrt(sumOfSquares / (endIndex - i));
+    rmsValues.push(rms);
+    maxRMS = Math.max(maxRMS, rms);
+  }
+  
+  // Normaliser les RMS values entre 1 et 100
+  if (maxRMS === 0) {
+    // Si aucun son détecté, retourner des 1
+    return rmsValues.map(() => 1);
+  }
+  
+  // Normaliser: 1 à 100
+  // Utiliser une courbe logarithmique pour une meilleure répartition visuelle
+  const minThreshold = maxRMS * 0.02; // 2% du max RMS comme seuil de bruit
+  
+  for (const rms of rmsValues) {
     let normalized;
-    if (maxIntensity < noiseThreshold) {
+    
+    if (rms < minThreshold) {
+      // Silence détecté
       normalized = 1;
     } else {
-      // Normaliser seulement à partir du seuil de bruit
-      const adjustedIntensity = maxIntensity - noiseThreshold;
-      const maxAdjusted = 32767 - noiseThreshold;
-      normalized = Math.max(1, Math.round((adjustedIntensity / maxAdjusted) * 100));
+      // Normaliser en soustrayant le seuil
+      const adjustedRMS = rms - minThreshold;
+      const maxAdjusted = maxRMS - minThreshold;
+      normalized = Math.max(1, Math.round((adjustedRMS / maxAdjusted) * 100));
     }
     
-    peaks.push(normalized);
+    peaks.push(Math.min(100, normalized));
   }
   
   return peaks;
@@ -183,17 +212,20 @@ function processAudioToPeaks(pcmData: Int16Array, duration: number): number[] {
  * Génère un tableau de waves par défaut en cas d'erreur
  */
 function generateDefaultWaves(duration: number): AudioWaves {
-  const numPoints = Math.max(20, Math.min(100, Math.ceil(duration * 10)));
+  const numPoints = Math.max(10, Math.min(50, Math.ceil(duration * 10)));
   const waves: number[] = [];
   
   // Générer une forme d'onde lissée
   for (let i = 0; i < numPoints; i++) {
+    // Silence au début et à la fin, du bruit au milieu
     const progress = i / numPoints;
-    // Créer une courbe en forme de cloche avec variation
-    const bellCurve = Math.sin(progress * Math.PI) * 50 + 50;
-    const variation = Math.sin(i * 0.5) * 10;
-    const value = Math.max(1, Math.min(100, Math.round(bellCurve + variation)));
-    waves.push(value);
+    if (progress < 0.1 || progress > 0.9) {
+      // Silence
+      waves.push(1);
+    } else {
+      // Son
+      waves.push(Math.floor(Math.random() * 40) + 30);
+    }
   }
   
   return {
