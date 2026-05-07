@@ -135,6 +135,7 @@ export const useVoiceRecorder = (
         if (audioChunksRef.current.length === 0) {
           console.warn('[VoiceRecorder] No audio data collected!');
           setIsSending(false);
+          setIsRecording(false);
           toast({
             title: 'Erreur',
             description: 'Aucune donnée audio enregistrée.',
@@ -235,6 +236,7 @@ export const useVoiceRecorder = (
           setRecordingTime(0);
           setIsSending(false);
           setUploadProgress(0);
+          setIsRecording(false);
 
           onVoiceNoteSent?.();
 
@@ -248,6 +250,7 @@ export const useVoiceRecorder = (
           console.error('[VoiceRecorder] Error:', error);
           setIsSending(false);
           setUploadProgress(0);
+          setIsRecording(false);
           
           const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la note vocale.';
           
