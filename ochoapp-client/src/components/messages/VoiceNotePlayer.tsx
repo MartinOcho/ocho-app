@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserAvatar from "../UserAvatar";
+import kyInstance from "@/lib/ky";
 
 interface UserProfile {
   id: string;
@@ -133,7 +134,7 @@ export default function VoiceNotePlayer({
       const audioContext = await initAudioContext();
 
       // Fetch et décodage
-      const response = await fetch(url);
+      const response = await kyInstance(url);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
