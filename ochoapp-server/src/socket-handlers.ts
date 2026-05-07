@@ -446,8 +446,8 @@ export async function handleDeleteMessage(
           messageToDelete.voiceNote!.publicId!,
           { invalidate: true },
           (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-            if (error) {reject(error); console.log(result);}
-            else {resolve(); console.log(result);}
+            if (error) {reject(error); console.warn("Something went wrong",result);}
+            else {resolve(); console.log("Voice note deleted", result);}
           }
         );
       });
