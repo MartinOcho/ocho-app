@@ -109,6 +109,9 @@ export default function AccountSwitcher({ currentUserId }: AccountSwitcherProps)
       
       // Utiliser router.refresh() pour une meilleure intégration Next.js
       router.refresh();
+      if (location) {
+        location.reload();
+      }
     } catch (error) {
       console.error("Erreur lors du changement de compte:", error);
       toast({
