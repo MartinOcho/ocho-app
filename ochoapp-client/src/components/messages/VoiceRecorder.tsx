@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Mic, Square, Send, X } from "lucide-react";
+import { Mic, Square, Send, X, Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useSession } from "@/app/(main)/SessionProvider";
@@ -378,10 +378,7 @@ export const useVoiceRecorder = (
             variant="default"
             title="Mettre en pause"
           >
-            <div className="h-4 w-4 flex items-center justify-center gap-1">
-              <div className="h-3 w-1 bg-white rounded-sm" />
-              <div className="h-3 w-1 bg-white rounded-sm" />
-            </div>
+            <Pause className="h-4 w-4 text-white"/>
           </Button>
         ) : (
           <Button
@@ -391,13 +388,7 @@ export const useVoiceRecorder = (
             variant="default"
             title="Reprendre l'enregistrement"
           >
-            <svg 
-              className="h-4 w-4 fill-white" 
-              viewBox="0 0 24 24" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
+            <Play className="h-4 w-4 text-white"/>
           </Button>
         )}
 
