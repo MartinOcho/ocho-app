@@ -10,6 +10,7 @@ import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
+import { generateWavesFromAudio } from "./audio-utils";
 
 import {
   loginUser,
@@ -87,6 +88,11 @@ import {
   searchHashtags,
   searchPostsFiltered,
 } from "./search";
+import {
+  uploadVoiceNote,
+  getVoiceNote,
+  deleteVoiceNote,
+} from "./voice";
 import { ApiResponse, VoiceNote } from "./types";
 import { FileLike, getFileExtension } from "./files";
 
@@ -330,6 +336,11 @@ app.get("/api/activity/rooms/joined", getUserRoomJoins);
 app.get("/api/activity/rooms/left", getUserRoomLeaves);
 app.get("/api/activity/rooms/created", getUserRoomCreations);
 app.get("/api/activity/searches", getUserSearches);
+
+// Routes pour les notes vocales
+app.post("/api/voice-notes", uploadVoiceNote);
+app.get("/api/voice-notes/:voiceNoteId", getVoiceNote);
+app.delete("/api/voice-notes/:voiceNoteId", deleteVoiceNote);
 
 app.get("/api/check-update", (req: Request, res: Response) => {
   const version = (req.query.version || "").toString();
@@ -792,6 +803,10 @@ app.post(
 
       const { duration } = req.body as { duration?: string };
 
+      // Générer les waves à partir du buffer audio
+      const durationSeconds = Math.round(parseInt(duration || "0") || 0);
+      const { waves } = await generateWavesFromAudio(file.buffer, durationSeconds);
+
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -813,14 +828,15 @@ app.post(
 
       const voiceNoteUrl = uploadResult.secure_url || "";
       const publicId = uploadResult.public_id || "";
-      const durationMs = Math.round((parseInt(duration || "0") || uploadResult.duration || 0) * 1000);
+      const durationMs = Math.round((durationSeconds || uploadResult.duration || 0) * 1000);
 
-      // Créer l'entrée VoiceNote en BD
+      // Créer l'entrée VoiceNote en BD avec les waves générées
       const voiceNote = await prisma.voiceNote.create({
         data: {
           url: voiceNoteUrl,
           publicId: publicId,
           duration: durationMs,
+          waves, // Stocker les waves générées
         },
       });
 
@@ -832,6 +848,7 @@ app.post(
           url: voiceNote.url,
           duration: voiceNote.duration,
           publicId: voiceNote.publicId,
+          waves: voiceNote.waves,
           createdAt: voiceNote.createdAt.getTime(),
         }
       } as ApiResponse<VoiceNote>);

@@ -115,34 +115,51 @@ export const useVoiceRecorder = (roomId: string, onVoiceNoteSent?: () => void) =
     try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64String = e.target?.result as string;
+      // 1. Upload le fichier audio à l'API pour générer les waves
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'voice_note.webm');
+      formData.append('duration', recordingTime.toString());
+      formData.append('sessionId', user.id); // Utiliser l'ID utilisateur comme session pour maintenant
 
-        socket.emit('send_voice_note', {
-          voiceNoteBase64: base64String,
-          duration: recordingTime,
-          roomId,
-          tempId: `temp-${Date.now()}`,
-        });
+      const uploadResponse = await fetch('/api/voicenotes/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-        // Réinitialiser l'enregistrement
-        audioChunksRef.current = [];
-        setRecordingTime(0);
-        setIsSending(false);
+      if (!uploadResponse.ok) {
+        throw new Error('Erreur lors de l\'upload de la note vocale');
+      }
 
-        toast({
-          title: 'Succès',
-          description: 'Note vocale envoyée.',
-        });
-      };
-      reader.readAsDataURL(audioBlob);
+      const uploadData = await uploadResponse.json();
+      
+      if (!uploadData.success || !uploadData.voiceNoteId) {
+        throw new Error(uploadData.error || 'Erreur lors de la création de la note vocale');
+      }
+
+      // 2. Envoyer le voiceNoteId au socket pour créer le message
+      socket.emit('send_voice_note', {
+        voiceNoteId: uploadData.voiceNoteId,
+        roomId,
+        tempId: `temp-${Date.now()}`,
+      });
+
+      // Réinitialiser l'enregistrement
+      audioChunksRef.current = [];
+      setRecordingTime(0);
+      setIsSending(false);
+
+      toast({
+        title: 'Succès',
+        description: 'Note vocale envoyée.',
+      });
+
+      onVoiceNoteSent?.();
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la note vocale:', error);
       setIsSending(false);
       toast({
         title: 'Erreur',
-        description: 'Erreur lors de l\'envoi de la note vocale.',
+        description: error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la note vocale.',
         variant: 'destructive',
       });
     }

@@ -54,7 +54,7 @@ import {
   handleGetLastMessage,
 } from "./socket-handlers";
 import { FileLike, getFileExtension } from "./files";
-import { th } from "zod/locales";
+import { generateWavesFromAudio } from "./audio-utils";
 
 dotenv.config();
 
@@ -662,6 +662,11 @@ app.post(
           .status(400)
           .json({ success: false, error: "No file provided" });
 
+      // Générer les waves à partir du buffer audio
+      const durationSeconds = Math.round(parseInt(duration || "0") || 0);
+      const { waves } = await generateWavesFromAudio(file.buffer, durationSeconds);
+
+      // Upload à Cloudinary
       const streamUpload = (buffer: Buffer) =>
         new Promise<UploadApiResponse>((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
@@ -683,14 +688,15 @@ app.post(
 
       const voiceNoteUrl = uploadResult.secure_url || "";
       const publicId = uploadResult.public_id || "";
-      const durationMs = Math.round((parseInt(duration || "0") || uploadResult.duration || 0) * 1000);
+      const durationMs = Math.round((durationSeconds || uploadResult.duration || 0) * 1000);
 
-      // Créer l'entrée VoiceNote en BD
+      // Créer l'entrée VoiceNote en BD avec les waves générées
       const voiceNote = await prisma.voiceNote.create({
         data: {
           url: voiceNoteUrl,
           publicId: publicId,
           duration: durationMs,
+          waves, // Stocker les waves générées
         },
       });
 
@@ -699,6 +705,7 @@ app.post(
         voiceNoteId: voiceNote.id,
         voiceNoteUrl,
         duration: voiceNote.duration,
+        waves: voiceNote.waves,
       });
     } catch (err) {
       console.error("Voicenote upload error", err);
