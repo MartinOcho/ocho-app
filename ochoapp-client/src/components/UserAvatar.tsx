@@ -30,13 +30,13 @@ export default function UserAvatar({
   return (
     <span
       className={cn(
-        `relative flex aspect-square h-fit min-h-fit w-fit min-w-fit items-center justify-center rounded-full bg-muted`,
+        `relative max-w-full max-h-full flex aspect-square h-fit min-h-fit w-fit min-w-fit items-center justify-center rounded-full bg-muted`,
         className,
       )}
     >
       <UserRound
         className={cn(
-          "absolute left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%] rounded-full text-muted-foreground",
+          "absolute max-w-full max-h-full left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%] rounded-full text-muted-foreground",
           avatarUrl && "pointer-events-none opacity-0",
         )}
         size={size > 32 ? size - 16 : size - 4}
@@ -47,7 +47,7 @@ export default function UserAvatar({
         className={cn(
           "aspect-square h-fit flex-none rounded-full bg-secondary object-cover",
           (!avatarUrl || isImageErr) && "pointer-events-none opacity-0",
-          `max-w-[${size}px] min-w-[${size}px] max-h-[${size}px] min-h-[${size}px]`,
+          `max-w-[${size}px] min-w-[${size}px] max-h-[${size}px] min-h-[${size}px] max-w-full max-h-full`,
         )}
         width={size}
         height={size}
