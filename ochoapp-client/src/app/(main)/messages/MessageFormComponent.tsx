@@ -378,7 +378,8 @@ export function MessageFormComponent({
     <div
       className={cn(
         "relative flex z-20 w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
-        expanded || voiceRecorder.isRecording ? "" : "aspect-square w-fit rounded-full p-0 border-none bg-transparent",
+        !(expanded || voiceRecorder.isRecording) && "aspect-square w-fit",
+        voiceRecorder.isRecording && "rounded-full p-0 border-none bg-transparent ring-0",
       )}
     >
       <input
