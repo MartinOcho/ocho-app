@@ -127,41 +127,52 @@ function approximatePCMFromBuffer(buffer: Buffer): Int16Array {
 
 /**
  * Convertit les données PCM en tableau de peaks pour les waves
- * Génère un tableau avec:
- * - Entre 20 et 100 points selon la durée
- * - Chaque point entre 1 et 100 selon l'intensité audio
+ * Génère un point toutes les 300ms (0.3 secondes)
+ * Chaque point entre 1 et 100 selon l'intensité audio
  */
 function processAudioToPeaks(pcmData: Int16Array, duration: number): number[] {
-  // Déterminer le nombre de points basé sur la durée
-  // Entre 20 et 100 points
-  const numPoints = Math.max(20, Math.min(100, Math.ceil(duration * 10)));
-  
   const peaks: number[] = [];
   
   if (pcmData.length === 0) {
-    // Retourner des pics par défaut si pas de données PCM
-    for (let i = 0; i < numPoints; i++) {
-      peaks.push(Math.floor(Math.random() * 100) + 1);
+    // Retourner au minimum 20 points par défaut
+    const minPoints = 20;
+    for (let i = 0; i < minPoints; i++) {
+      peaks.push(Math.floor(Math.random() * 30) + 1);
     }
     return peaks;
   }
   
-  // Calculer la taille de chaque groupe de samples
-  const samplesPerGroup = Math.max(1, Math.floor(pcmData.length / numPoints));
+  // Calculer la sample rate basée sur la durée et la longueur du PCM
+  const sampleRate = pcmData.length / duration;
   
-  // Extraire les pics de chaque groupe
-  for (let i = 0; i < numPoints; i++) {
-    const startIndex = i * samplesPerGroup;
-    const endIndex = Math.min(startIndex + samplesPerGroup, pcmData.length);
+  // Génération toutes les 300ms (0.3 secondes)
+  const intervalSeconds = 0.3;
+  const samplesPerInterval = Math.max(1, Math.floor(sampleRate * intervalSeconds));
+  
+  // Seuil minimum pour filtrer les bruits parasites (2% de 32767)
+  const noiseThreshold = 655;
+  
+  // Extraire les pics à chaque intervalle de 300ms
+  for (let i = 0; i < pcmData.length; i += samplesPerInterval) {
+    const endIndex = Math.min(i + samplesPerInterval, pcmData.length);
     
     let maxIntensity = 0;
-    for (let j = startIndex; j < endIndex; j++) {
+    for (let j = i; j < endIndex; j++) {
       maxIntensity = Math.max(maxIntensity, Math.abs(pcmData[j]));
     }
     
-    // Normaliser l'intensité sur une échelle 1-100
-    // La valeur max d'un int16 signé est 32767
-    const normalized = Math.max(1, Math.round((maxIntensity / 32767) * 100));
+    // Filtrer les bruits parasites et normaliser sur 1-100
+    // Si intensité < seuil, on la met à 1
+    let normalized;
+    if (maxIntensity < noiseThreshold) {
+      normalized = 1;
+    } else {
+      // Normaliser seulement à partir du seuil de bruit
+      const adjustedIntensity = maxIntensity - noiseThreshold;
+      const maxAdjusted = 32767 - noiseThreshold;
+      normalized = Math.max(1, Math.round((adjustedIntensity / maxAdjusted) * 100));
+    }
+    
     peaks.push(normalized);
   }
   
