@@ -376,7 +376,7 @@ export async function getMessages(req: Request, res: Response) {
       messages = await prisma.message.findMany({
         where: {
           senderId: userId,
-          type: "SAVED",
+          OR: [{ type: "SAVED" }, { type: "VOICENOTE", roomId: null }],
         },
         include: getMessageDataInclude(user.id),
         orderBy: { createdAt: "desc" },

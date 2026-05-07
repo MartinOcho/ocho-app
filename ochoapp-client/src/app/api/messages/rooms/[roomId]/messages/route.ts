@@ -38,7 +38,7 @@ export async function GET(
       messages = await prisma.message.findMany({
         where: {
           senderId: user.id,
-          type: "SAVED",
+          OR: [{ type: "SAVED" }, { type: "VOICENOTE", roomId: null }],
         },
         include: getMessageDataInclude(user.id),
         // CORRECTION MAJEURE: Ajout de l'ID pour un tri stable
@@ -60,7 +60,6 @@ export async function GET(
           return m;
         });
       }
-      console.log(messages);
       
 
     } else {     
