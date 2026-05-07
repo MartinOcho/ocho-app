@@ -836,8 +836,7 @@ app.post(
           url: voiceNoteUrl,
           publicId: publicId,
           duration: durationMs / 1000,
-          duration: durationMs,
-          waves, // Stocker les waves générées
+          waves, 
         },
       });
 
