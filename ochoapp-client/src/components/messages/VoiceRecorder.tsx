@@ -370,7 +370,7 @@ export const useVoiceRecorder = (
           <X className="h-4 w-4 text-secondary-foreground dark:text-secondary-foreground" />
         </Button>
 
-        {!isPaused ? (
+        {!isPaused && (
           <Button
             onClick={pauseRecording}
             disabled={isSending}
@@ -380,7 +380,9 @@ export const useVoiceRecorder = (
           >
             <Pause className="h-4 w-4 text-white"/>
           </Button>
-        ) : (
+        )}
+
+        {isPaused && (
           <Button
             onClick={resumeRecording}
             disabled={isSending}
