@@ -445,9 +445,16 @@ export async function handleDeleteMessage(
         cloudinary.uploader.destroy(
           messageToDelete.voiceNote!.publicId!,
           { resource_type: 'video', invalidate: true },
-          (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-            if (error) {reject(error); console.warn("Something went wrong",result);}
-            else {resolve(); console.log("Voice note deleted", result);}
+          (error: any, result: {result: string}) => {
+            if (error || result.result !== "ok") {reject(error); console.warn("Something went wrong",result);}
+            else {
+              prisma.voiceNote.delete({
+                where: {
+                  id: messageToDelete.voiceNote!.id!,
+                },
+              })
+              resolve(); 
+            }
           }
         );
       });
