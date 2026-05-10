@@ -3,6 +3,7 @@
 import { Loader2, AlertCircle, Mic } from 'lucide-react';
 import { useSession } from '@/app/(main)/SessionProvider';
 import { cn } from '@/lib/utils';
+import UserAvatar from '../UserAvatar';
 
 interface SendingVoiceNoteProps {
   tempId: string;
@@ -21,108 +22,145 @@ export function SendingVoiceNote({
 }: SendingVoiceNoteProps) {
   const { user } = useSession();
 
+  // Générer des waveform bars basées sur la progression
+  const generateProgressBars = (progressPercent: number): number[] => {
+    const bars = Array.from({ length: 35 }, (_, i) => {
+      const barProgress = (i / 34) * 100;
+      // Les bars remplissent progressivement selon la progression
+      return barProgress <= progressPercent ? 10 : 5;
+    });
+    return bars;
+  };
+
+  const waveformBars = generateProgressBars(progress);
+
   const getStatusMessage = () => {
     switch (status) {
       case 'uploading':
-        return `Upload en cours... ${progress}%`;
+        return `${progress}%`;
       case 'sending':
-        return 'Envoi du message...';
+        return 'Envoi...';
       case 'sent':
         return 'Envoyé';
       case 'error':
-        return error || 'Erreur lors de l\'envoi';
+        return error || 'Erreur';
       default:
         return 'Envoi...';
     }
   };
 
-  const getProgressDisplay = () => {
-    if (status === 'uploading') {
-      return `${progress}%`;
-    } else if (status === 'sending') {
-      return '95%';
-    }
-    return null;
-  };
+  const bgColor =
+    status === 'error'
+      ? 'bg-red-100 dark:bg-red-950'
+      : 'bg-blue-600 dark:bg-neutral-800';
+
+  const textColor =
+    status === 'error'
+      ? 'text-red-800 dark:text-red-200'
+      : 'text-white';
+
+  const waveBarColor =
+    status === 'error'
+      ? 'bg-red-400 dark:bg-red-500'
+      : 'bg-white';
+
+  const buttonBgColor =
+    status === 'error'
+      ? 'bg-red-200/30 dark:bg-red-900/30'
+      : 'bg-white/20 hover:bg-white/30';
+
+  const buttonTextColor = status === 'error' ? 'text-red-800 dark:text-red-200' : 'text-white';
 
   return (
-    <div className="flex items-start gap-3 pr-2">
-      <div className="flex-1 flex flex-col gap-1">
+    <div
+      className={cn(
+        'flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-72 sm:gap-3 sm:px-4 sm:py-3',
+        bgColor,
+      )}
+    >
+      {/* Avatar */}
+      <div className="relative flex-shrink-0">
+        <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-white/20 sm:h-10 sm:w-10">
+          <UserAvatar
+            userId={user?.id || ''}
+            avatarUrl={user?.avatarUrl}
+            size={40}
+            hideBadge={false}
+          />
+        </div>
         <div
           className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-full max-w-xs',
-            status === 'error'
-              ? 'bg-red-100 dark:bg-red-950'
-              : 'bg-blue-100 dark:bg-blue-950'
+            'absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-white sm:h-5 sm:w-5',
+            status === 'error' ? 'bg-red-500' : 'bg-blue-500'
           )}
         >
-          <Mic className="h-4 w-4 flex-shrink-0" />
-          <span
-            className={cn(
-              'text-sm font-medium',
-              status === 'error'
-                ? 'text-red-700 dark:text-red-300'
-                : 'text-blue-700 dark:text-blue-300'
-            )}
-          >
-            Note vocale
-          </span>
-        </div>
-
-        {/* Barre de progression */}
-        {status === 'uploading' || status === 'sending' ? (
-          <div className="flex items-center gap-2 px-4">
-            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
-                style={{
-                  width: `${status === 'uploading' ? progress : 95}%`,
-                }}
-              />
-            </div>
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 min-w-fit">
-              {getProgressDisplay()}
-            </span>
-          </div>
-        ) : null}
-
-        {/* Message de statut */}
-        <div className="flex items-center gap-2 px-4">
-          {status === 'uploading' || status === 'sending' ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin text-blue-600 dark:text-blue-400" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">
-                {getStatusMessage()}
-              </span>
-            </>
-          ) : status === 'error' ? (
-            <>
-              <AlertCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
-              <span className="text-xs text-red-600 dark:text-red-400">
-                {getStatusMessage()}
-              </span>
-              {onRetry && (
-                <button
-                  onClick={onRetry}
-                  className="text-xs font-medium text-red-700 dark:text-red-300 hover:underline ml-auto"
-                >
-                  Réessayer
-                </button>
-              )}
-            </>
-          ) : null}
+          {status === 'error' ? (
+            <AlertCircle className="h-2 w-2 text-white sm:h-3 sm:w-3" />
+          ) : (
+            <Mic className="h-2 w-2 text-white sm:h-3 sm:w-3" />
+          )}
         </div>
       </div>
 
-      {/* Avatar utilisateur */}
-      {user?.avatarUrl ? (
-        <img
-          src={user.avatarUrl}
-          alt={user.displayName}
-          className="h-8 w-8 rounded-full flex-shrink-0"
-        />
-      ) : (
-        <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Loader ou statut */}
+        <div
+          className={cn(
+            'inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-all sm:h-9 sm:w-9',
+            buttonBgColor,
+            buttonTextColor,
+          )}
+        >
+          {status === 'uploading' || status === 'sending' ? (
+            <div
+              className={cn(
+                'h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent sm:h-4 sm:w-4',
+              )}
+            />
+          ) : status === 'error' ? (
+            <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+          ) : (
+            <Mic className="h-3 w-3 sm:h-4 sm:w-4" fill="currentColor" />
+          )}
+        </div>
+
+        {/* Zone Onde Sonore et Progression */}
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+          {/* Les waveform bars : utilisation de justify-between et d'espacements dynamiques */}
+          <div className="flex h-8 flex-1 items-center justify-between gap-[1px] overflow-hidden sm:gap-1">
+            {waveformBars.map((bar, index) => {
+              const isActive = (index / Math.max(1, waveformBars.length - 1)) * 100 <= progress;
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    'w-[1.5px] flex-shrink-0 rounded-full transition-all sm:w-0.5',
+                    waveBarColor,
+                    isActive ? 'opacity-100' : 'opacity-40',
+                  )}
+                  style={{
+                    height: `${Math.max(8, bar * 0.6)}%`,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Affichage de la progression ou statut */}
+          <span className={cn('flex-shrink-0 whitespace-nowrap text-xs font-medium sm:text-sm', textColor)}>
+            {getStatusMessage()}
+          </span>
+        </div>
+      </div>
+
+      {/* Bouton Retry en cas d'erreur */}
+      {status === 'error' && onRetry && (
+        <button
+          onClick={onRetry}
+          className="flex-shrink-0 ml-2 text-xs font-medium text-red-700 dark:text-red-300 hover:underline"
+        >
+          Réessayer
+        </button>
       )}
     </div>
   );
