@@ -443,7 +443,7 @@ export async function handleDeleteMessage(
     try {
       await new Promise<void>((resolve, reject) => {
         cloudinary.uploader.destroy(
-          `ochoapp/voice_notes/${messageToDelete.voiceNote!.publicId!}`,
+          messageToDelete.voiceNote!.publicId!,
           { resource_type: 'video', invalidate: true },
           (error: UploadApiErrorResponse, result: UploadApiResponse) => {
             if (error) {reject(error); console.warn("Something went wrong",result);}
