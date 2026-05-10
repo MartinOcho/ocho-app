@@ -14,17 +14,35 @@ import {
   SocketGetRoomDetailsEvent,
   SocketGetLastMessageEvent,
 } from "./types";
-import { getFormattedRooms, getMessageReads, getMessageDeliveries, getMessageReactions, getUnreadRoomsCount } from "./utils";
-import { parseMentions, validateMentions, createMessageMentions } from "./mention-utils";
+import {
+  getFormattedRooms,
+  getMessageReads,
+  getMessageDeliveries,
+  getMessageReactions,
+  getUnreadRoomsCount,
+} from "./utils";
+import {
+  parseMentions,
+  validateMentions,
+  createMessageMentions,
+} from "./mention-utils";
 import { Server } from "socket.io";
 import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
 import { cloudinary } from ".";
-
+import { th } from "zod/locales";
+import chalk from "chalk";
 
 interface CloudinaryApi {
   uploader: {
-    upload_stream: (options: any, callback: (error: any, result: any) => void) => NodeJS.WritableStream;
-    destroy: (publicId: string, options?: any, callback?: (error: any, result: any) => void) => Promise<any> | void;
+    upload_stream: (
+      options: any,
+      callback: (error: any, result: any) => void,
+    ) => NodeJS.WritableStream;
+    destroy: (
+      publicId: string,
+      options?: any,
+      callback?: (error: any, result: any) => void,
+    ) => Promise<any> | void;
   };
 }
 
@@ -64,47 +82,49 @@ export async function handleStartChat(
     }
   }
 
-  const newRoom = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const room = await tx.room.create({
-      data: {
-        name: isGroup ? name : null,
-        isGroup: isGroup,
-        members: {
-          create: uniqueMemberIds.map((id) => ({
-            userId: id,
-            type: isGroup && id === userId ? "OWNER" : "MEMBER",
-          })),
+  const newRoom = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      const room = await tx.room.create({
+        data: {
+          name: isGroup ? name : null,
+          isGroup: isGroup,
+          members: {
+            create: uniqueMemberIds.map((id) => ({
+              userId: id,
+              type: isGroup && id === userId ? "OWNER" : "MEMBER",
+            })),
+          },
         },
-      },
-      include: getChatRoomDataInclude(),
-    });
-
-    const message = await tx.message.create({
-      data: {
-        content: "created",
-        roomId: room.id,
-        senderId: userId,
-        type: "CREATE",
-      },
-      include: getMessageDataInclude(userId),
-    });
-
-    for (const memberId of uniqueMemberIds) {
-      await tx.lastMessage.upsert({
-        where: {
-          userId_roomId: { userId: memberId, roomId: room.id },
-        },
-        update: { messageId: message.id, createdAt: message.createdAt },
-        create: {
-          userId: memberId,
-          roomId: room.id,
-          messageId: message.id,
-        },
+        include: getChatRoomDataInclude(),
       });
-    }
 
-    return { ...room, messages: [message] };
-  });
+      const message = await tx.message.create({
+        data: {
+          content: "created",
+          roomId: room.id,
+          senderId: userId,
+          type: "CREATE",
+        },
+        include: getMessageDataInclude(userId),
+      });
+
+      for (const memberId of uniqueMemberIds) {
+        await tx.lastMessage.upsert({
+          where: {
+            userId_roomId: { userId: memberId, roomId: room.id },
+          },
+          update: { messageId: message.id, createdAt: message.createdAt },
+          create: {
+            userId: memberId,
+            roomId: room.id,
+            messageId: message.id,
+          },
+        });
+      }
+
+      return { ...room, messages: [message] };
+    },
+  );
 
   return {
     newRoom: newRoom as RoomData,
@@ -332,8 +352,7 @@ export async function handleRemoveReaction(
   });
   if (!message) throw new Error("Message not found");
 
-  if (!message.reactions[0])
-    throw new Error("Reaction not found");
+  if (!message.reactions[0]) throw new Error("Reaction not found");
 
   const reactionId = message.reactions[0].id;
   const originalSenderId = message.senderId;
@@ -439,28 +458,31 @@ export async function handleDeleteMessage(
 
   // Delete voice note from Cloudinary if exists
   if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId) {
-
     try {
-      await new Promise<void>((resolve, reject) => {
-        cloudinary.uploader.destroy(
-          messageToDelete.voiceNote!.publicId!,
-          { resource_type: 'video', invalidate: true },
-          (error: any, result: {result: string}) => {
-            if (error || result.result !== "ok") {reject(error); console.warn("Something went wrong",result);}
-            else {
-              prisma.voiceNote.delete({
-                where: {
-                  id: messageToDelete.voiceNote!.id!,
-                },
-              })
-              resolve(); 
-            }
+      cloudinary.uploader.destroy(
+        messageToDelete.voiceNote!.publicId!,
+        { resource_type: "video", invalidate: true },
+        async (error: any, result: { result: string }) => {
+          if (error || result.result !== "ok") {
+            console.log(
+              chalk.red(
+                "Something went wrong while deleting voice note from Cloudinary",
+              ),
+              result,
+            );
+            throw new Error(error);
+          } else {
+            await prisma.voiceNote.delete({
+              where: {
+                id: messageToDelete.voiceNote!.id!,
+              },
+            });
+            console.log(chalk.cyanBright("Voicenote deleted from Cloudinary"));
           }
-        );
-      });
+        },
+      );
     } catch (error) {
-      console.error(`Failed to delete voice note from Cloudinary: ${error}`);
-      // Continue with message deletion even if Cloudinary delete fails
+      console.log(chalk.redBright(`Failed to delete voice note from Cloudinary: ${error}`));
     }
   }
 
@@ -530,32 +552,34 @@ export async function handleSendSavedMessage(
 ) {
   const { content, roomId, attachmentIds = [] } = data;
 
-  const createdSavedMessage = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const msg = await tx.message.create({
-      data: {
-        content,
-        senderId: userId,
-        type: "SAVED",
-      },
-    });
-
-    if (attachmentIds && attachmentIds.length > 0) {
-      await tx.messageAttachment.updateMany({
-        where: { id: { in: attachmentIds } },
-        data: { messageId: msg.id },
+  const createdSavedMessage = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
+      const msg = await tx.message.create({
+        data: {
+          content,
+          senderId: userId,
+          type: "SAVED",
+        },
       });
-    }
 
-    // Mark saved message as delivered for the user (saved messages are always delivered)
-    await tx.delivery.create({
-      data: {
-        userId,
-        messageId: msg.id,
-      },
-    });
+      if (attachmentIds && attachmentIds.length > 0) {
+        await tx.messageAttachment.updateMany({
+          where: { id: { in: attachmentIds } },
+          data: { messageId: msg.id },
+        });
+      }
 
-    return msg;
-  });
+      // Mark saved message as delivered for the user (saved messages are always delivered)
+      await tx.delivery.create({
+        data: {
+          userId,
+          messageId: msg.id,
+        },
+      });
+
+      return msg;
+    },
+  );
 
   const completeSavedMsg = await prisma.message.findUnique({
     where: { id: createdSavedMessage.id },
@@ -616,7 +640,7 @@ export async function handleSendSavedVoiceNote(
             connect: {
               id: voiceNoteId,
             },
-          }
+          },
         },
       });
 
@@ -655,7 +679,7 @@ export async function handleSendNormalMessage(
   username: string,
   io: Server,
 ) {
-  const { content, roomId, type, recipientId, attachmentIds = []} = data;
+  const { content, roomId, type, recipientId, attachmentIds = [] } = data;
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
@@ -677,7 +701,9 @@ export async function handleSendNormalMessage(
   let calculatedRecipientId = recipientId;
   if (!room.isGroup && type === "CONTENT") {
     // Pour un DM: trouver l'autre utilisateur
-    const otherMember = room.members.find(m => m.userId && m.userId !== userId);
+    const otherMember = room.members.find(
+      (m) => m.userId && m.userId !== userId,
+    );
     if (otherMember?.userId) {
       calculatedRecipientId = otherMember.userId;
     }
@@ -695,7 +721,7 @@ export async function handleSendNormalMessage(
         },
         include: getMessageDataInclude(userId),
       });
-      
+
       if (attachmentIds && attachmentIds.length > 0) {
         const existingAttachments = await tx.messageAttachment.findMany({
           where: {
@@ -774,7 +800,7 @@ export async function handleSendNormalMessage(
         // Validate mentions (check user exists and is room member)
         const { valid: validMentions } = await validateMentions(
           parsedMentions,
-          roomId
+          roomId,
         );
 
         // Create MessageMention records for display in message details
@@ -822,11 +848,7 @@ export async function markUndeliveredMessages(
       where: {
         members: {
           some: {
-            AND: [
-              { userId },
-              { type: { not: "BANNED" } },
-              { leftAt: null },
-            ],
+            AND: [{ userId }, { type: { not: "BANNED" } }, { leftAt: null }],
           },
         },
       },
@@ -890,7 +912,7 @@ export async function markUndeliveredMessages(
   } catch (error) {
     console.error(
       "Erreur markUndeliveredMessages lors de la connexion:",
-      error
+      error,
     );
   }
 }
@@ -909,7 +931,7 @@ export async function handleGetRoomDetails(
         senderId: userId,
         OR: [
           { type: "SAVED" },
-          { 
+          {
             type: "VOICENOTE",
             roomId: null, // VoiceNote sauvegardée (pas associée à une room)
           },
@@ -985,7 +1007,9 @@ export async function handleGetRoomDetails(
           none: { userId },
         },
         senderId: { not: userId },
-        ...(isFormerMember && membership.leftAt ? { createdAt: { lt: membership.leftAt } } : {}),
+        ...(isFormerMember && membership.leftAt
+          ? { createdAt: { lt: membership.leftAt } }
+          : {}),
       },
       include: getMessageDataInclude(userId),
       take: 3,
@@ -1014,7 +1038,7 @@ export async function handleGetLastMessage(
         senderId: userId,
         OR: [
           { type: "SAVED" },
-          { 
+          {
             type: "VOICENOTE",
             roomId: null, // VoiceNote sauvegardée (pas associée à une room)
           },
@@ -1029,7 +1053,10 @@ export async function handleGetLastMessage(
     }
 
     // Format saved messages
-    if (lastSavedMessage.type === "SAVED" && lastSavedMessage.content !== `create-${userId}`) {
+    if (
+      lastSavedMessage.type === "SAVED" &&
+      lastSavedMessage.content !== `create-${userId}`
+    ) {
       return { ...lastSavedMessage, type: "CONTENT" };
     }
     return lastSavedMessage;
@@ -1087,7 +1114,6 @@ export async function handleGetLastMessage(
     },
   });
 
-
   return lastMessage;
 }
 
@@ -1127,7 +1153,9 @@ export async function handleSendVoiceNote(
   // Calculer le recipientId pour les messages directs
   let calculatedRecipientId = recipientId;
   if (!room.isGroup) {
-    const otherMember = room.members.find(m => m.userId && m.userId !== userId);
+    const otherMember = room.members.find(
+      (m) => m.userId && m.userId !== userId,
+    );
     if (otherMember?.userId) {
       calculatedRecipientId = otherMember.userId;
     }
@@ -1146,7 +1174,7 @@ export async function handleSendVoiceNote(
             connect: {
               id: voiceNoteId,
             },
-          }
+          },
         },
       });
 
@@ -1179,7 +1207,8 @@ export async function handleSendVoiceNote(
     include: getMessageDataInclude(userId),
   });
 
-  if (!completeMessage) throw new Error("Failed to load created voice note message");
+  if (!completeMessage)
+    throw new Error("Failed to load created voice note message");
 
   return {
     newMessage: completeMessage,
