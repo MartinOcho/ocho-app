@@ -40,12 +40,37 @@ export default function VoiceNotePlayer({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   
-  // Fonction pour compacter les waves à 35 points
+  // Fonction pour resample les waves à 35 points (compacter ou interpoler)
   const resampleWaves = (sourceWaves: number[], targetCount: number = 35): number[] => {
-    if (sourceWaves.length <= targetCount) {
+    if (sourceWaves.length === targetCount) {
       return sourceWaves;
     }
     
+    // Si les waves sont trop courts, interpoler pour atteindre targetCount
+    if (sourceWaves.length < targetCount) {
+      const result: number[] = [];
+      
+      for (let i = 0; i < targetCount; i++) {
+        const position = (i / (targetCount - 1)) * (sourceWaves.length - 1);
+        const lowerIndex = Math.floor(position);
+        const upperIndex = Math.ceil(position);
+        const fraction = position - lowerIndex;
+        
+        if (lowerIndex === upperIndex) {
+          result.push(sourceWaves[lowerIndex]);
+        } else {
+          // Interpolation linéaire entre deux points
+          const interpolated = 
+            sourceWaves[lowerIndex] * (1 - fraction) + 
+            sourceWaves[upperIndex] * fraction;
+          result.push(Math.round(interpolated));
+        }
+      }
+      
+      return result;
+    }
+    
+    // Si les waves sont trop longs, compacter
     const result: number[] = [];
     const groupSize = sourceWaves.length / targetCount;
     
