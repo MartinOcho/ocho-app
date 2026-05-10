@@ -444,7 +444,7 @@ export async function handleDeleteMessage(
       await new Promise<void>((resolve, reject) => {
         cloudinary.uploader.destroy(
           `ochoapp/voice_notes/${messageToDelete.voiceNote!.publicId!}`,
-          { invalidate: true },
+          { resource_type: 'video', invalidate: true },
           (error: UploadApiErrorResponse, result: UploadApiResponse) => {
             if (error) {reject(error); console.warn("Something went wrong",result);}
             else {resolve(); console.log("Voice note deleted", result);}
