@@ -252,9 +252,85 @@ app.get("/", (req, res) => {
   res.send(html);
 });
 
+// Fonction pour enregistrer un appareil
+async function registerDevice(req: Request, res: Response) {
+  try {
+    const { deviceId, type, model } = req.body;
+    const ip = req.ip || req.connection.remoteAddress || null;
+
+    if (!deviceId || !type) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+        message: "deviceId and type are required"
+      });
+    }
+
+    // Valider le type d'appareil
+    const validTypes = ["ANDROID", "IOS", "WEB", "DESKTOP", "UNKNOWN"];
+    if (!validTypes.includes(type)) {
+      return res.json({
+        success: false,
+        error: "Invalid device type",
+        message: `Device type must be one of: ${validTypes.join(", ")}`
+      });
+    }
+
+    // Vérifier si le device existe
+    let device = await prisma.device.findUnique({
+      where: { deviceId }
+    });
+
+    if (device) {
+      // Mettre à jour le device existant
+      device = await prisma.device.update({
+        where: { deviceId },
+        data: {
+          type,
+          model: model || device.model,
+          ip: ip || device.ip,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      // Créer un nouveau device
+      device = await prisma.device.create({
+        data: {
+          deviceId,
+          type,
+          model: model || null,
+          ip: ip || null,
+          location: null
+        }
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Appareil enregistré avec succès",
+      data: {
+        id: device.id,
+        deviceId: device.deviceId,
+        type: device.type,
+        model: device.model,
+        createdAt: device.createdAt,
+        updatedAt: device.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Device registration error", error);
+    return res.json({
+      success: false,
+      error: "Internal server error",
+      message: "Une erreur s'est produite lors de l'enregistrement de l'appareil"
+    });
+  }
+}
+
 app.post("/api/signup", signupUser);
 app.post("/api/login", loginUser);
 app.post("/api/session/refresh", createSession);
+app.post("/api/devices/register", registerDevice);
 
 app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
