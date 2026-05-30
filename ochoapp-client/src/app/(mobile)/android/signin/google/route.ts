@@ -8,10 +8,13 @@ import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
     try {
-        // Récupérer le deviceId depuis les headers
-        const deviceId = req.headers.get("X-Device-ID");
+        // Récupérer les paramètres depuis l'URL (Query Parameters)
+        const url = new URL(req.url);
+        const deviceId = url.searchParams.get("device_id") || req.headers.get("X-Device-ID");
+        const deviceType = url.searchParams.get("device_type") || req.headers.get("X-Device-Type") || "ANDROID";
+        const deviceModel = url.searchParams.get("device_model") || req.headers.get("X-Device-Model") || null;
         
-        console.warn(req.headers);
+        console.warn("Device info:", { deviceId, deviceType, deviceModel });
 
         if (!deviceId) {
             return NextResponse.redirect(
@@ -26,15 +29,13 @@ export async function GET(req: Request) {
         
         // Si l'appareil n'existe pas, l'enregistrer automatiquement
         if (!device) {
-            const deviceType = "ANDROID";
-            
             try {
                 device = await prisma.device.create({
                     data: {
                         deviceId,
-                        type: deviceType,
+                        type: deviceType as any,
                         ip: req.headers.get("x-forwarded-for") || "unknown",
-                        model: null,
+                        model: deviceModel,
                         location: null
                     }
                 });
@@ -49,19 +50,48 @@ export async function GET(req: Request) {
         const state = generateState();
         const codeVerifier = generateCodeVerifier();
 
-        const url = await google.createAuthorizationURL(state, codeVerifier, {
+        const url_google = await google.createAuthorizationURL(state, codeVerifier, {
             scopes: ["profile", "email"]
         });
 
-    const cookieCall = await cookies()
+        const cookieCall = await cookies()
 
-    cookieCall.set("state", state, {
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 600,
-        sameSite: "lax",
-    });
+        // 🔑 CRUCIAL: Stocker les infos du device dans des cookies sécurisés
+        // Ces données seront lues au retour de Google pour finaliser la session
+        cookieCall.set("device_id", deviceId, {
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+            maxAge: 600,
+            sameSite: "lax",
+        });
+        
+        cookieCall.set("device_type", deviceType, {
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+            maxAge: 600,
+            sameSite: "lax",
+        });
+
+        if (deviceModel) {
+            cookieCall.set("device_model", deviceModel, {
+                path: "/",
+                secure: process.env.NODE_ENV === "production",
+                httpOnly: true,
+                maxAge: 600,
+                sameSite: "lax",
+            });
+        }
+
+        cookieCall.set("state", state, {
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+            maxAge: 600,
+            sameSite: "lax",
+        });
+        
         cookieCall.set("code_verifier", codeVerifier, {
             path: "/",
             secure: process.env.NODE_ENV === "production",
@@ -70,7 +100,7 @@ export async function GET(req: Request) {
             sameSite: "lax",
         });
         
-        return NextResponse.redirect(url);
+        return NextResponse.redirect(url_google);
     } catch (error) {
         console.error("Erreur during Google signin:", error);
         return NextResponse.redirect(

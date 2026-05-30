@@ -23,6 +23,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // 🔑 Récupérer les infos du device depuis les cookies
+    const deviceId = cookieCall.get("device_id")?.value;
+    const deviceType = cookieCall.get("device_type")?.value;
+    const deviceModel = cookieCall.get("device_model")?.value;
+    
+    console.warn("Device info from cookies:", { deviceId, deviceType, deviceModel });
+
     const tokens = await github.validateAuthorizationCode(code);
 
     const githubUser = await kyInstance
@@ -69,6 +76,15 @@ export async function GET(req: NextRequest) {
 
     if (existingUser) {
       const session = await lucia.createSession(existingUser.id, {});
+      
+      // 🔑 Associer le deviceId à la session si disponible
+      if (deviceId) {
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { deviceId }
+        });
+      }
+      
       const sessionCookie = lucia.createSessionCookie(session.id);
 
       cookieCall.set(
@@ -167,6 +183,15 @@ export async function GET(req: NextRequest) {
     });
 
     const session = await lucia.createSession(userId, {});
+    
+    // 🔑 Associer le deviceId à la session si disponible
+    if (deviceId) {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { deviceId }
+      });
+    }
+    
     const sessionCookie = lucia.createSessionCookie(session.id);
     cookieCall.set(
       sessionCookie.name,

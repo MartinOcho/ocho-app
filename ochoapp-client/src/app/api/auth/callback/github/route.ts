@@ -27,6 +27,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // 🔑 Récupérer les infos du device depuis les cookies (si disponible)
+    const deviceId = cookieCall.get("device_id")?.value;
+    
+    console.warn("Device info from cookies:", { deviceId });
+
     const tokens = await github.validateAuthorizationCode(code);
 
     const githubUser = await kyInstance
@@ -47,6 +52,15 @@ export async function GET(req: NextRequest) {
 
     if (existingUser) {
       const session = await lucia.createSession(existingUser.id, {});
+      
+      // 🔑 Associer le deviceId à la session si disponible
+      if (deviceId) {
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { deviceId }
+        });
+      }
+      
       const sessionCookie = lucia.createSessionCookie(session.id);
 
       cookieCall.set(
@@ -57,6 +71,9 @@ export async function GET(req: NextRequest) {
 
       // Nettoyer les cookies OAuth
       cookieCall.delete("state");
+      cookieCall.delete("device_id");
+      cookieCall.delete("device_type");
+      cookieCall.delete("device_model");
 
       // Set custom cookie indicating third-party auth
       cookieCall.set("third_party_auth", "github", {
@@ -158,6 +175,15 @@ export async function GET(req: NextRequest) {
     });
 
     const session = await lucia.createSession(userId, {});
+    
+    // 🔑 Associer le deviceId à la session si disponible
+    if (deviceId) {
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { deviceId }
+      });
+    }
+    
     const sessionCookie = lucia.createSessionCookie(session.id);
     cookieCall.set(
       sessionCookie.name,
@@ -167,6 +193,9 @@ export async function GET(req: NextRequest) {
 
     // Nettoyer les cookies OAuth
     cookieCall.delete("state");
+    cookieCall.delete("device_id");
+    cookieCall.delete("device_type");
+    cookieCall.delete("device_model");
 
     // Set custom cookie indicating third-party auth
     cookieCall.set("third_party_auth", "github", {
@@ -187,6 +216,9 @@ export async function GET(req: NextRequest) {
 
     // Nettoyer les cookies en cas d'erreur
     cookieCall.delete("state");
+    cookieCall.delete("device_id");
+    cookieCall.delete("device_type");
+    cookieCall.delete("device_model");
 
     if (error instanceof OAuth2RequestError) {
       return new Response(null, {
