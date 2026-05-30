@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { github } from "../../auth";
 import { generateState } from "arctic";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 
 
@@ -14,8 +15,8 @@ export async function GET(req: Request) {
         console.warn(req.headers);
 
         if (!deviceId) {
-            return Response.redirect(
-                `/android/signin/auth-error?error=DEVICE_NOT_REGISTERED&message=Appareil%20non%20enregistr%C3%A9`
+            return NextResponse.redirect(
+                new URL(`/android/signin/auth-error?error=DEVICE_NOT_REGISTERED&message=Appareil%20non%20enregistr%C3%A9`, req.url)
             );
         }
         
@@ -40,8 +41,8 @@ export async function GET(req: Request) {
                 });
             } catch (error) {
                 console.error("Erreur lors de l'enregistrement du device:", error);
-                return Response.redirect(
-                    `/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`
+                return NextResponse.redirect(
+                    new URL(`/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`, req.url)
                 );
             }
         }
@@ -61,11 +62,11 @@ export async function GET(req: Request) {
             sameSite: "lax",
         });
         
-        return Response.redirect(url);
+        return NextResponse.redirect(url);
     } catch (error) {
         console.error("Erreur during GitHub signin:", error);
-        return Response.redirect(
-            `/android/signin/auth-error?error=INTERNAL_ERROR&message=Une%20erreur%20interne%20est%20survenue.`
+        return NextResponse.redirect(
+            new URL(`/android/signin/auth-error?error=INTERNAL_ERROR&message=Une%20erreur%20interne%20est%20survenue.`, req.url)
         )
     }
 }

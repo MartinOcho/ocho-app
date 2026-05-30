@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { google } from "../../auth";
 import { generateCodeVerifier, generateState } from "arctic";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 
 
@@ -13,8 +14,8 @@ export async function GET(req: Request) {
         console.warn(req.headers);
 
         if (!deviceId) {
-            return Response.redirect(
-                `/android/signin/auth-error?error=DEVICE_NOT_REGISTERED&message=Appareil%20non%20enregistr%C3%A9`
+            return NextResponse.redirect(
+                new URL(`/android/signin/auth-error?error=DEVICE_NOT_REGISTERED&message=Appareil%20non%20enregistr%C3%A9`, req.url)
             );
         }
         
@@ -39,8 +40,8 @@ export async function GET(req: Request) {
                 });
             } catch (error) {
                 console.error("Erreur lors de l'enregistrement du device:", error);
-                return Response.redirect(
-                    `/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`
+                return NextResponse.redirect(
+                    new URL(`/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`, req.url)
                 );
             }
         }
@@ -69,11 +70,11 @@ export async function GET(req: Request) {
             sameSite: "lax",
         });
         
-        return Response.redirect(url);
+        return NextResponse.redirect(url);
     } catch (error) {
         console.error("Erreur during Google signin:", error);
-        return Response.redirect(
-            `/android/signin/auth-error?error=GOOGLE_SIGNIN_FAILED&message=Impossible%20de%20se%20connecter%20avec%20Google.`
+        return NextResponse.redirect(
+            new URL(`/android/signin/auth-error?error=GOOGLE_SIGNIN_FAILED&message=Impossible%20de%20se%20connecter%20avec%20Google.`, req.url)
         );
     }
 }
