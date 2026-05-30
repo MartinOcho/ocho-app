@@ -10,6 +10,7 @@ export async function GET(req: Request) {
         // Récupérer le deviceId depuis les headers
         const deviceId = req.headers.get("X-Device-ID");        
         
+        
         console.warn(req.headers);
 
         if (!deviceId) {
@@ -39,20 +40,11 @@ export async function GET(req: Request) {
                 });
             } catch (error) {
                 console.error("Erreur lors de l'enregistrement du device:", error);
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        error: "DEVICE_REGISTRATION_FAILED",
-                        message: "Impossible d'enregistrer l'appareil."
-                    }),
-                    {
-                        status: 500,
-                        headers: { "Content-Type": "application/json" }
-                    }
+                return Response.redirect(
+                    `/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`
                 );
             }
         }
-        
         
         const state = generateState();
 
@@ -72,16 +64,8 @@ export async function GET(req: Request) {
         return Response.redirect(url);
     } catch (error) {
         console.error("Erreur during GitHub signin:", error);
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: "INTERNAL_ERROR",
-                message: "Une erreur s'est produite lors de l'authentification."
-            }),
-            {
-                status: 500,
-                headers: { "Content-Type": "application/json" }
-            }
-        );
+        return Response.redirect(
+            `/android/signin/auth-error?error=INTERNAL_ERROR&message=Une%20erreur%20interne%20est%20survenue.`
+        )
     }
 }

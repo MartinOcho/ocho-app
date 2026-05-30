@@ -9,7 +9,6 @@ export async function GET(req: Request) {
     try {
         // Récupérer le deviceId depuis les headers
         const deviceId = req.headers.get("X-Device-ID");
-        const userAgent = req.headers.get("user-agent") || "";
         
         console.warn(req.headers);
 
@@ -40,16 +39,8 @@ export async function GET(req: Request) {
                 });
             } catch (error) {
                 console.error("Erreur lors de l'enregistrement du device:", error);
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        error: "DEVICE_REGISTRATION_FAILED",
-                        message: "Impossible d'enregistrer l'appareil."
-                    }),
-                    {
-                        status: 500,
-                        headers: { "Content-Type": "application/json" }
-                    }
+                return Response.redirect(
+                    `/android/signin/auth-error?error=DEVICE_REGISTRATION_FAILED&message=Impossible%20d'enregistrer%20l'appareil.`
                 );
             }
         }
@@ -81,16 +72,8 @@ export async function GET(req: Request) {
         return Response.redirect(url);
     } catch (error) {
         console.error("Erreur during Google signin:", error);
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: "INTERNAL_ERROR",
-                message: "Une erreur s'est produite lors de l'authentification."
-            }),
-            {
-                status: 500,
-                headers: { "Content-Type": "application/json" }
-            }
+        return Response.redirect(
+            `/android/signin/auth-error?error=GOOGLE_SIGNIN_FAILED&message=Impossible%20de%20se%20connecter%20avec%20Google.`
         );
     }
 }

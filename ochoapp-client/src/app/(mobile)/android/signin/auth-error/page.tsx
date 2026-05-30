@@ -24,6 +24,22 @@ export default function AuthErrorPage() {
             }
           ]
         };
+      case "DEVICE_REGISTRATION_FAILED":
+        return {
+          title: "Enregistrement de l'appareil impossible",
+          message: "Une erreur s'est produite lors de l'enregistrement de l'appareil.",
+          description: "Veuillez réessayer plus tard ou contacter le support si le problème persiste.",
+          icon: "❌",
+          actions: []
+        };
+      case "GOOGLE_SIGNIN_FAILED":
+        return {
+          title: "Authentification Google impossible",
+          message: "Une erreur s'est produite lors de l'authentification avec Google.",
+          description: "Veuillez réessayer plus tard ou contacter le support si le problème persiste.",
+          icon: "❌",
+          actions: []
+        };
       case "INTERNAL_ERROR":
         return {
           title: "Erreur d'authentification",
