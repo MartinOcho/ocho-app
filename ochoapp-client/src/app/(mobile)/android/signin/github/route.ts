@@ -8,21 +8,13 @@ import { cookies } from "next/headers";
 export async function GET(req: Request) {
     try {
         // Récupérer le deviceId depuis les headers
-        const deviceId = req.headers.get("X-Device-ID");
-        const userAgent = req.headers.get("user-agent") || "";
+        const deviceId = req.headers.get("X-Device-ID");        
         
+        console.warn(req.headers);
+
         if (!deviceId) {
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    error: "DEVICE_NOT_REGISTERED",
-                    message: "Votre appareil n'est pas enregistré. Veuillez mettre à jour l'application.",
-                    code: "ERR_DEVICE_NOT_FOUND"
-                }),
-                {
-                    status: 403,
-                    headers: { "Content-Type": "application/json" }
-                }
+            return Response.redirect(
+                `/android/signin/auth-error?error=DEVICE_NOT_REGISTERED&message=Appareil%20non%20enregistr%C3%A9`
             );
         }
         
@@ -33,11 +25,7 @@ export async function GET(req: Request) {
         
         // Si l'appareil n'existe pas, l'enregistrer automatiquement
         if (!device) {
-            const deviceType = userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iOS")
-                ? "IOS"
-                : userAgent.includes("Android")
-                ? "ANDROID"
-                : "UNKNOWN";
+            const deviceType = "ANDROID";
             
             try {
                 device = await prisma.device.create({
@@ -64,6 +52,7 @@ export async function GET(req: Request) {
                 );
             }
         }
+        
         
         const state = generateState();
 
