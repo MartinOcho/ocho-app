@@ -18,6 +18,11 @@ import {
   logoutUser,
 } from "./auth";
 import {
+  getActiveSessions,
+  removeSession,
+  removeAllOtherSessions,
+} from "./sessions";
+import {
   getUserProfile,
   updateUserProfile,
   toggleFollow,
@@ -945,6 +950,11 @@ app.post(
     }
   },
 );
+
+// --- SESSIONS MANAGEMENT API ---
+app.get("/api/auth/active-sessions", getActiveSessions);
+app.delete("/api/auth/active-sessions/:sessionId", removeSession);
+app.delete("/api/auth/active-sessions/remove/all", removeAllOtherSessions);
 
 // 404 handler: always JSON
 app.use((req, res) => {

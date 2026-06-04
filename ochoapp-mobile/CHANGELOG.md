@@ -24,6 +24,6 @@
 - **Version Code**: 2
 - **Plateforme**: Android & iOS
 
-## v0.1.004 (Build 1)
+## v0.1.004 (Build 2)
 
-Version initiale de l'application.
+Version précédente de l'application.
