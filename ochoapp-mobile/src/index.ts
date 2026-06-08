@@ -427,9 +427,15 @@ app.get("/api/check-update", (req: Request, res: Response) => {
   const version = (req.query.version || "").toString();
   const platform = (req.query.platform || "").toString();
   const androidCurrentVersion = 2;
+<<<<<<< HEAD
   const androidVersionName = "0.1.007";
   const iosCurrentVersion = 2;
   const iosVersionName = "0.1.007";
+=======
+  const androidVersionName = "0.1.005";
+  const iosCurrentVersion = 2;
+  const iosVersionName = "0.1.005";
+>>>>>>> parent of b8943fd (Update version)
   let isUpToDate = true;
   if (platform.toLowerCase() === "android") {
     isUpToDate = parseInt(version) >= androidCurrentVersion;
