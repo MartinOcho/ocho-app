@@ -38,7 +38,7 @@ To use OchoApp features including messaging, posting, and social interactions, y
 
 - **Device Management**: We track devices associated with your account for security purposes. You can review and manage your connected devices in your security settings.
 
-- **Unauthorized Use**: If you notice that someone is using your account without your permission, you must inform us immediately at ochokom@ochotouchsolution.onmicrosoft.com.
+- **Unauthorized Use**: If you notice that someone is using your account without your permission, you must inform us immediately at contact@ochokom.com.
 
 - **Multiple Accounts**: Creating multiple accounts to circumvent restrictions, manipulate engagement, or evade enforcement actions is prohibited.
 
@@ -174,14 +174,14 @@ We may update these terms at any time. New terms become effective when published
 ## 13. Dispute Resolution
 
 If you have a dispute with us:
-1. Try to resolve it by contacting us at ochokom@ochotouchsolution.onmicrosoft.com
+1. Try to resolve it by contacting us at contact@ochokom.com
 2. If unresolved, disputes shall be governed by the laws of the jurisdiction where OchoApp operates
 3. You agree to attempt amicable resolution before legal action
 
 ## 14. Contact Us
 
 For questions about these terms or to report violations, contact us at:
-**Email**: ochokom@ochotouchsolution.onmicrosoft.com
+**Email**: contact@ochokom.com
 
 We will respond within a reasonable timeframe.
 

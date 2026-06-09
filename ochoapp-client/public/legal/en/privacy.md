@@ -178,7 +178,7 @@ In accordance with data protection laws (such as GDPR and CCPA), you have:
 - **Right to Withdraw Consent**: Withdraw consent for data processing based on consent.
 - **Right to Restrict Processing**: Request restriction of data processing in certain circumstances.
 
-To exercise these rights, contact us at: ochokom@ochotouchsolution.onmicrosoft.com
+To exercise these rights, contact us at: contanct@ochokom.com
 
 We will respond within 30 days or as required by law.
 
@@ -219,7 +219,7 @@ We may update this privacy policy at any time. Changes become effective when pub
 
 For questions about this privacy policy or to exercise your rights:
 
-**Email**: ochokom@ochotouchsolution.onmicrosoft.com
+**Email**: contanct@ochokom.com
 
 We are committed to addressing your concerns promptly.
 
