@@ -57,7 +57,7 @@ export default function MobileAppToast() {
             onClick={() => window.open(deeplink)}
             className="flex w-full items-center justify-center gap-2 bg-primary-foreground font-semibold text-primary transition-colors hover:bg-primary-foreground/50"
           >
-            <AppLogo size={18} logo="LOGO"/>
+            <AppLogo size={40} logo="LOGO"/>
             <span>Ouvrir OchoApp</span>
           </Button>
           <Button
