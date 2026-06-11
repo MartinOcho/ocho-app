@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { UsersPage, UserData } from "@/lib/types";
 import { Loader2, Check } from "lucide-react";
 import UserAvatar from "../UserAvatar";
@@ -21,6 +22,7 @@ interface UsersListProps {
   canSelect?: boolean;
   selectedUsers?: UserData[];
   onSelect: (user: UserData) => void;
+  actions?: (user: UserData) => ReactNode;
 }
 
 export default function UsersList({
@@ -30,6 +32,7 @@ export default function UsersList({
   selectedUsers = [],
   canSelect = true,
   onSelect,
+  actions,
 }: UsersListProps) {
 
   const { t } = useTranslation();
@@ -42,33 +45,36 @@ export default function UsersList({
   return (
     <>
       {!!data?.pages[0].users.length && (
-        <li className="w-full px-4 text-xs font-bold text-muted-foreground">
+        <div className="w-full px-4 text-xs font-bold text-muted-foreground">
           {title}
-        </li>
+        </div>
       )}
       {isFetching && !isFetchingNextPage && (
-        <li className="flex w-full justify-center py-5">
+        <div className="flex w-full justify-center py-5">
           <Loader2 className="animate-spin" />
-        </li>
+        </div>
       )}
       {data.pages.map((page, pageIndex) =>
         page.users.map((user) => (
-          <li
+          <div
             key={`${pageIndex}-${user.id}`}
             className={cn(
-              "w-full cursor-pointer rounded-xl p-3 px-4 hover:bg-primary/5 active:bg-primary/5",
+              "flex justify-between flex-wrap gap-3 w-full rounded-xl p-3 px-4 hover:bg-primary/5 active:bg-primary/5",
               !canSelect && "opacity-70",
             )}
-            onClick={() => {
-              if (!canSelect) {
-                toast({
-                  description: cantSelectMoreUsers,
-                });
-              }
-              onSelect(user);
-            }}
           >
-            <div className="flex flex-shrink-0 items-center gap-2">
+            <div
+              className="flex flex-shrink-0 items-center gap-2"
+              onClick={() => {
+                if (!canSelect) {
+                  toast({
+                    description: cantSelectMoreUsers,
+                  });
+                  return;
+                }
+                onSelect(user);
+              }}
+            >
               <div className="relative flex-shrink-0">
                 <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} />
                 {!!selectedUsers.find(
@@ -88,21 +94,26 @@ export default function UsersList({
                 )}
               </div>
             </div>
-          </li>
+            {actions && (
+              <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                {actions(user)}
+              </div>
+            )}
+          </div>
         )),
       )}
       {isFetchingNextPage && (
-        <li className="flex w-full justify-center py-5">
+        <div className="flex w-full justify-center py-5">
           <Loader2 className="animate-spin" />
-        </li>
+        </div>
       )}
       {hasNextPage && !isFetchingNextPage && (
-        <li
+        <div
           className="flex w-full cursor-pointer justify-center pb-2 text-primary hover:underline max-sm:underline"
           onClick={fetchNextPage}
         >
           {showMore}
-        </li>
+        </div>
       )}
     </>
   );

@@ -5,19 +5,21 @@ import {
   Loader2,
   UsersRound,
   XIcon,
+  SearchIcon,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useSession } from "../SessionProvider";
 import UserAvatar from "@/components/UserAvatar";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
-import { UserData, UsersPage, RoomData } from "@/lib/types";
+import { FollowerInfo, UserData, UsersPage, RoomData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingButton from "@/components/LoadingButton";
 import UsersList from "@/components/messages/UsersList";
+import FollowButton from "@/components/FollowButton";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -105,8 +107,26 @@ export default function NewChat({
     setSelectedUsers([]);
   };
 
-  const canAddUser = (user: UserData, bypassSearch = false) => {
+  const hasRelationship = (user: UserData) => {
+    const isFollower = (user.followers?.length ?? 0) > 0;
+    const isFollowing = (user.following?.length ?? 0) > 0;
+    return isFollower || isFollowing;
+  };
+
+  const canInteractWithUser = (user: UserData, bypassSearch = false) => {
     if (bypassSearch) return true;
+    if (hasRelationship(user)) return true;
+
+    const cachedFollowerInfo = queryClient.getQueryData<FollowerInfo>([
+      "follower-info",
+      user.id,
+    ]);
+    if (
+      cachedFollowerInfo?.isFollowedByUser ||
+      cachedFollowerInfo?.isFolowing
+    ) {
+      return true;
+    }
 
     const findInQuery = (q: any) => {
       if (!q || !q.data || !q.data.pages) return false;
@@ -117,19 +137,15 @@ export default function NewChat({
       });
     };
 
-    if (
+    return (
       findInQuery(friendsQuery) ||
       findInQuery(followersQuery) ||
       findInQuery(followingQuery)
-    ) {
-      return true;
-    }
-
-    return false;
+    );
   };
 
   const addUser = (user: UserData, bypassSearch = false) => {
-    if (!canAddUser(user, bypassSearch)) {
+    if (!canInteractWithUser(user, bypassSearch)) {
       toast({
         variant: "destructive",
         description:
@@ -179,9 +195,21 @@ export default function NewChat({
     followingQuery.isError ||
     suggestionsQuery.isError;
 
-  const handleChatStart = (user: UserData | null = null) => {
+  const handleChatStart = (
+    user: UserData | null = null,
+    bypassAuthorization = false,
+  ) => {
     if (isPending) return;
     if (!socket) return;
+
+    if (user && !bypassAuthorization && !canInteractWithUser(user)) {
+      toast({
+        variant: "destructive",
+        description:
+          "Vous devez vous abonner à cet utilisateur avant de démarrer la discussion. Utilisez le bouton suivre sur les suggestions.",
+      });
+      return;
+    }
 
     setIsPending(true);
 
@@ -268,7 +296,7 @@ export default function NewChat({
       ></div>
       <div
         className={cn(
-          "absolute flex h-fit w-full flex-1 flex-col bg-background shadow-sm max-sm:h-full sm:inset-1 sm:max-h-[90%] sm:max-w-72 sm:rounded-2xl",
+          "absolute flex h-fit w-full flex-1 flex-col bg-background shadow-sm max-sm:h-full sm:inset-1 sm:max-h-[90%] sm:max-w-96 lg:max-w-[32rem] sm:rounded-2xl",
           className,
         )}
       >
@@ -297,26 +325,32 @@ export default function NewChat({
             </div>
           )}
         </div>
-        <div className="w-full p-3 px-4">
-          <div className="flex items-center gap-2">
-            <input
+        <div className="flex flex-col gap-3 w-full p-1">
+          <form
+            className="relative p-1"
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
+              e.preventDefault();
+              performSearch(searchTerm);
+            }}
+          >
+            <Input
+              placeholder={t().searchByNameOrUsername}
+              className="rounded-3xl pe-10 ps-4"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && performSearch(searchTerm)}
-              placeholder={t().searchByNameOrUsername}
-              className="b w-full rounded-md border px-2 py-1"
             />
-            <button
-              className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
-              onClick={() => performSearch(searchTerm)}
-              disabled={isSearching || !searchTerm}
-            >
-              {isSearching ? <Loader2 className="animate-spin" /> : "OK"}
-            </button>
-          </div>
+            {isSearching ? (
+              <Loader2 className="absolute right-3 top-1/2 size-5 -translate-y-1/2 transform animate-spin text-muted-foreground" />
+            ) : (
+              <SearchIcon
+                className="absolute right-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground hover:text-primary cursor-pointer"
+                onClick={() => performSearch(searchTerm)}
+              />
+            )}
+          </form>
 
           {searchResults && (
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="flex flex-col gap-1">
               {searchResults.map((u) => (
                 <li
                   key={u.id}
@@ -347,7 +381,7 @@ export default function NewChat({
                       <button
                         className="rounded-md bg-primary px-2 py-1 text-primary-foreground"
                         onClick={() => {
-                          handleChatStart(u);
+                          handleChatStart(u, true);
                           onClose();
                         }}
                       >
@@ -424,26 +458,47 @@ export default function NewChat({
                     <h2 className="text-xl">{dataError}</h2>
                   </li>
                 )}
-                <UsersList
-                  query={friendsQuery}
-                  title={friends}
-                  onSelect={handleChatStart}
-                />
-                <UsersList
-                  query={followersQuery}
-                  title={followers}
-                  onSelect={handleChatStart}
-                />
-                <UsersList
-                  query={followingQuery}
-                  title={followings}
-                  onSelect={handleChatStart}
-                />
-                <UsersList
-                  query={suggestionsQuery}
-                  title={suggestions}
-                  onSelect={handleChatStart}
-                />
+                <li className="w-full">
+                  <UsersList
+                    query={friendsQuery}
+                    title={friends}
+                    onSelect={handleChatStart}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={followersQuery}
+                    title={followers}
+                    onSelect={handleChatStart}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={followingQuery}
+                    title={followings}
+                    onSelect={handleChatStart}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={suggestionsQuery}
+                    title={suggestions}
+                    onSelect={handleChatStart}
+                    actions={(user) => (
+                      <FollowButton
+                        userId={user.id}
+                        initialState={{
+                          followers: user._count?.followers ?? 0,
+                          isFollowedByUser: (user.followers?.length ?? 0) > 0,
+                          isFolowing: (user.following?.length ?? 0) > 0,
+                          isFriend:
+                            (user.followers?.length ?? 0) > 0 &&
+                            (user.following?.length ?? 0) > 0,
+                        }}
+                      />
+                    )}
+                  />
+                </li>
               </ul>
             </li>
           </ul>
@@ -530,48 +585,71 @@ export default function NewChat({
             )}
             <li className="flex-1 overflow-y-auto">
               <ul className="flex flex-col gap-1">
-                <UsersList
-                  query={friendsQuery}
-                  title={friends}
-                  isGroup
-                  selectedUsers={selectedUsers}
-                  onSelect={addUser}
-                />
-                <UsersList
-                  query={followersQuery}
-                  title={followers}
-                  isGroup
-                  selectedUsers={selectedUsers}
-                  onSelect={addUser}
-                />
-                <UsersList
-                  query={followingQuery}
-                  title={followings}
-                  isGroup
-                  selectedUsers={selectedUsers}
-                  onSelect={addUser}
-                />
-                <UsersList
-                  query={suggestionsQuery}
-                  title={suggestions}
-                  isGroup
-                  selectedUsers={selectedUsers}
-                  onSelect={addUser}
-                />
+                <li className="w-full">
+                  <UsersList
+                    query={friendsQuery}
+                    title={friends}
+                    isGroup
+                    selectedUsers={selectedUsers}
+                    onSelect={addUser}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={followersQuery}
+                    title={followers}
+                    isGroup
+                    selectedUsers={selectedUsers}
+                    onSelect={addUser}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={followingQuery}
+                    title={followings}
+                    isGroup
+                    selectedUsers={selectedUsers}
+                    onSelect={addUser}
+                  />
+                </li>
+                <li className="w-full">
+                  <UsersList
+                    query={suggestionsQuery}
+                    title={suggestions}
+                    isGroup
+                    selectedUsers={selectedUsers}
+                    onSelect={addUser}
+                    actions={(user) => (
+                      <FollowButton
+                        userId={user.id}
+                        initialState={{
+                          followers: user._count?.followers ?? 0,
+                          isFollowedByUser: (user.followers?.length ?? 0) > 0,
+                          isFolowing: (user.following?.length ?? 0) > 0,
+                          isFriend:
+                            (user.followers?.length ?? 0) > 0 &&
+                            (user.following?.length ?? 0) > 0,
+                        }}
+                      />
+                    )}
+                  />
+                </li>
               </ul>
             </li>
-            <button
-              className={cn(
-                "absolute bottom-7 right-7 aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground max-sm:flex sm:hidden",
-                (isPending || !selectedUsers.length) &&
-                  "bg-primary-foreground text-primary",
-              )}
-              title={startNewChat}
-              onClick={() => handleChatStart()}
-              disabled={isPending || !selectedUsers.length}
-            >
-              {!isPending ? <Check /> : <Loader2 className="animate-spin" />}
-            </button>
+            <li className="relative">
+              <button
+                className={cn(
+                  "absolute bottom-7 right-7 aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground max-sm:flex sm:hidden",
+                  (isPending || !selectedUsers.length) &&
+                    "bg-primary-foreground text-primary",
+                )}
+                title={startNewChat}
+                onClick={() => handleChatStart()}
+                disabled={isPending || !selectedUsers.length}
+              >
+                {!isPending ? <Check /> : <Loader2 className="animate-spin" />}
+              </button>
+            </li>
           </ul>
         </div>
       </div>

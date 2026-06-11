@@ -227,13 +227,15 @@ export function AddMemberForm({ onAdd, room }: AddMemberFormProps) {
         )}
         {status !== "success" && !query && <UsersListSkeleton />}
         <ul className="max-h-[300px] flex-1 justify-center overflow-y-auto">
-          <UsersList
-            query={userQuery}
-            onSelect={addUser}
-            title={availableUsers}
-            selectedUsers={selectedUsers}
-            canSelect={status === "success"}
-          />
+          <li className="w-full">
+            <UsersList
+              query={userQuery}
+              onSelect={addUser}
+              title={availableUsers}
+              selectedUsers={selectedUsers}
+              canSelect={status === "success"}
+            />
+          </li>
         </ul>
       </div>
     </div>
