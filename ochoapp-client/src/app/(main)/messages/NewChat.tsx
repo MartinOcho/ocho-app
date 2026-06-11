@@ -13,6 +13,7 @@ import kyInstance from "@/lib/ky";
 import { UserData, UsersPage, RoomData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRef, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import LoadingButton from "@/components/LoadingButton";
@@ -48,6 +49,9 @@ export default function NewChat({
   const [selectedUsers, setSelectedUsers] = useState<UserData[]>([]);
   const { socket } = useSocket(); // Récupérer le socket
   const [isPending, setIsPending] = useState(false); // Gérer l'état de chargement localement
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<UserData[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const {
     newChat,
@@ -68,6 +72,28 @@ export default function NewChat({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!searchTerm) setSearchResults(null);
+  }, [searchTerm]);
+
+  async function performSearch(q: string) {
+    if (!q) {
+      setSearchResults(null);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await kyInstance
+        .get("/api/users/search", { searchParams: { q } })
+        .json<UserData[]>();
+      setSearchResults(res);
+    } catch (err) {
+      toast({ variant: "destructive", description: "Erreur de recherche" });
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     setName(e.target.value);
   }
@@ -79,7 +105,39 @@ export default function NewChat({
     setSelectedUsers([]);
   };
 
-  const addUser = (user: UserData) => {
+  const canAddUser = (user: UserData, bypassSearch = false) => {
+    if (bypassSearch) return true;
+
+    const findInQuery = (q: any) => {
+      if (!q || !q.data || !q.data.pages) return false;
+      return q.data.pages.some((page: any) => {
+        const arr = page.users || page.items || page.results || page;
+        if (!arr) return false;
+        return arr.some((u: any) => u && u.id === user.id);
+      });
+    };
+
+    if (
+      findInQuery(friendsQuery) ||
+      findInQuery(followersQuery) ||
+      findInQuery(followingQuery)
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const addUser = (user: UserData, bypassSearch = false) => {
+    if (!canAddUser(user, bypassSearch)) {
+      toast({
+        variant: "destructive",
+        description:
+          "Vous devez vous abonner à cet utilisateur pour l'ajouter au groupe. Recherchez-le pour l'ajouter sans abonnement.",
+      });
+      return;
+    }
+
     if (!selectedUsers.find((selected) => selected.id === user.id)) {
       setSelectedUsers([...selectedUsers, user]);
     } else {
@@ -134,11 +192,8 @@ export default function NewChat({
       // si c'est un chat 1v1, on cache l'utilisateur destinataire
       if (!isGroup && user) {
         // Cache l'ID de l'utilisateur pour utilisation future
-        queryClient.setQueryData(
-          ["user", user.id],
-          user
-        );
-        
+        queryClient.setQueryData(["user", user.id], user);
+
         // Stocke également l'ID en sessionStorage pour accès rapide
         sessionStorage.setItem(
           `chat_user_cache_${room.id}`,
@@ -147,7 +202,7 @@ export default function NewChat({
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
             timestamp: Date.now(),
-          })
+          }),
         );
       }
 
@@ -195,12 +250,9 @@ export default function NewChat({
     } else if (isGroup && selectedUsers.length) {
       // Cas 2 : Groupe - cache tous les utilisateurs sélectionnés
       selectedUsers.forEach((selectedUser) => {
-        queryClient.setQueryData(
-          ["user", selectedUser.id],
-          selectedUser
-        );
+        queryClient.setQueryData(["user", selectedUser.id], selectedUser);
       });
-      
+
       socket.emit("start_chat", {
         name,
         isGroup: true,
@@ -243,6 +295,69 @@ export default function NewChat({
             >
               <XIcon />
             </div>
+          )}
+        </div>
+        <div className="w-full p-3 px-4">
+          <div className="flex items-center gap-2">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && performSearch(searchTerm)}
+              placeholder={t().searchByNameOrUsername}
+              className="b w-full rounded-md border px-2 py-1"
+            />
+            <button
+              className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
+              onClick={() => performSearch(searchTerm)}
+              disabled={isSearching || !searchTerm}
+            >
+              {isSearching ? <Loader2 className="animate-spin" /> : "OK"}
+            </button>
+          </div>
+
+          {searchResults && (
+            <ul className="mt-2 flex flex-col gap-1">
+              {searchResults.map((u) => (
+                <li
+                  key={u.id}
+                  className="flex items-center justify-between rounded-md p-2 hover:bg-primary/5"
+                >
+                  <div className="flex items-center gap-2">
+                    <UserAvatar
+                      userId={u.id}
+                      avatarUrl={u.avatarUrl}
+                      size={36}
+                    />
+                    <div>
+                      <p>{u.displayName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {u.username || ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    {isGroup ? (
+                      <button
+                        className="rounded-md bg-secondary px-2 py-1 text-muted-foreground"
+                        onClick={() => addUser(u, true)}
+                      >
+                        +
+                      </button>
+                    ) : (
+                      <button
+                        className="rounded-md bg-primary px-2 py-1 text-primary-foreground"
+                        onClick={() => {
+                          handleChatStart(u);
+                          onClose();
+                        }}
+                      >
+                        {startNewChat}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <div className="relative flex w-full flex-1 select-none overflow-y-auto overflow-x-hidden">
