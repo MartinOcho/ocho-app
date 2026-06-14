@@ -12,7 +12,8 @@ import { verify, hash } from "@node-rs/argon2";
 import { randomUUID } from "crypto";
 import { upSaveDevice } from "./devices";
 import { DeviceType } from "@prisma/client";
-import { de } from "zod/locales";
+import { OAuth2Client } from "google-auth-library";
+import { slugify } from "./utils";
 
 export function checkVerification(userData: UserData): VerifiedUser {
   const userVerifiedData = userData.verified?.[0];
@@ -162,6 +163,140 @@ export async function loginUser(req: Request, res: Response) {
       },
     },
   });
+}
+
+export async function handleGoogleNativeLogin(req: Request, res: Response) {
+  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+  const { idToken, deviceId } = req.body;
+
+  try {
+    // 1. Vérifier le token avec Google
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.json({
+        success: false,
+        message: "Authentification Google échouée",
+      });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // 2. Trouver ou créer l'utilisateur avec Prisma
+    let user = await prisma.user.findUnique({ where: { googleId } });
+
+    if (!user) {
+      const userId = randomUUID();
+      const username = await validatedUsername(name || "ochoapp_user");
+
+      const userData = await prisma.user.create({
+        data: {
+          id: userId,
+          username,
+          displayName: name || username,
+          email,
+          googleId,
+          avatarUrl: picture,
+        },
+      });
+
+      if (!userData) {
+        return res.json({
+          success: false,
+          message: "Erreur lors de la création de l'utilisateur",
+        });
+      }
+
+      const session = await newSession(userId, {
+        deviceId: deviceId || "",
+        deviceType: req.headers["x-device-type"] as string,
+        deviceModel: req.headers["x-device-model"] as string,
+      }, (req.headers["x-forwarded-for"] as string) || (req.headers["x-real-ip"] as string) || "unknown");
+
+      if (!session.success) {
+        return res.json({
+          success: false,
+          message: "Erreur lors de la création de la session",
+        });
+      }
+
+      const user = await formatUserResponse(userData as unknown as UserData);
+
+      return res.json({
+        success: true,
+        message: "Authentification réussie.",
+        data: {
+          user,
+          session: session.data?.session,
+        },
+      });
+    }
+    
+    const session = await newSession(user.id, {
+      deviceId: deviceId || "",
+      deviceType: req.headers["x-device-type"] as string,
+      deviceModel: req.headers["x-device-model"] as string,
+    }, (req.headers["x-forwarded-for"] as string) || (req.headers["x-real-ip"] as string) || "unknown");
+
+    if (!session.success) {
+      return res.json({
+        success: false,
+        message: "Erreur lors de la création de la session",
+      });
+    }
+
+    const userResponse = await formatUserResponse(user as unknown as UserData);
+
+    return res.json({
+      success: true,
+      message: "Authentification réussie.",
+      data: {
+        user: userResponse,
+        session: session.data?.session,
+      },
+    });
+
+  } catch (error) {
+    res
+      .status(401)
+      .json({ success: false, message: "Authentification Google échouée" });
+  }
+}
+
+async function validatedUsername(username: string): Promise<string> {
+  const baseUsername = slugify(username);
+  let validatedUsername = baseUsername;
+
+  // Chercher tous les noms d'utilisateur qui commencent par le nom de base
+  const similarUsernames = await prisma.user.findMany({
+    where: {
+      username: {
+        startsWith: baseUsername,
+      },
+    },
+    select: { username: true },
+  });
+
+  if (similarUsernames.length === 0) {
+    // Si aucun nom d'utilisateur similaire, le nom est disponible
+    return validatedUsername;
+  }
+
+  // Extraire uniquement les suffixes numériques
+  const usernameSet = new Set(similarUsernames.map((u) => u.username));
+  let number = 1;
+
+  // Trouver le premier suffixe disponible
+  while (usernameSet.has(validatedUsername)) {
+    validatedUsername = `${baseUsername}${number}`;
+    number++;
+  }
+
+  return validatedUsername;
 }
 
 export async function signupUser(req: Request, res: Response) {

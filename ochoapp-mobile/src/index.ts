@@ -80,6 +80,7 @@ import {
   getLastMessage,
   getUnreadRoomsCount,
   validateUser,
+  handleGoogleNativeLogin,
 } from "./utils";
 import {
   getSearchHistory,
@@ -334,6 +335,7 @@ async function registerDevice(req: Request, res: Response) {
 
 app.post("/api/signup", signupUser);
 app.post("/api/login", loginUser);
+app.post("/api/auth/google/native", handleGoogleNativeLogin);
 app.post("/api/session/refresh", createSession);
 app.post("/api/devices/register", registerDevice);
 

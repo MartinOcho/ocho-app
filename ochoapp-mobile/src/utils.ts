@@ -8,3 +8,11 @@ export * from "./devices";
 export * from "./messages";
 export * from "./search";
 export * from "./trending";
+
+
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/ /g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+}
