@@ -1,19 +1,27 @@
 import admin from "firebase-admin";
 import prisma from "./prisma";
 import chalk from "chalk";
+import { MessageData, NotificationData } from "./types";
 
 // Initialiser Firebase Admin (s'il n'est pas déjà initialisé)
 if (!admin.apps.length) {
   try {
-    const serviceAccountKey : admin.ServiceAccount | null = process.env.FCM_PRIVATE_KEY_ID && process.env.FCM_CLIENT_EMAIL
-      ? {
+    const keys = {
             projectId: process.env.FCM_PROJECT_ID,
             privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
             clientEmail: process.env.FCM_CLIENT_EMAIL
-          } : null;
+          }
+    const serviceAccountKey : admin.ServiceAccount | null = (keys.projectId && keys.privateKey && keys.clientEmail) 
+      ? {
+            projectId: process.env.FCM_PROJECT_ID,
+            privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+                clientEmail: process.env.FCM_CLIENT_EMAIL
+            } : null;
 
     if (!serviceAccountKey) {
         console.log(chalk.redBright("Clé de service Firebase non configurée. Veuillez définir les variables d'environnement FCM_PROJECT_ID, FCM_PRIVATE_KEY et FCM_CLIENT_EMAIL."));
+        console.log(keys);
+        
         
       throw new Error(
         "Clé de service Firebase non configurée. Veuillez définir les variables d'environnement FCM_PROJECT_ID, FCM_PRIVATE_KEY et FCM_CLIENT_EMAIL."
@@ -34,9 +42,9 @@ const messaging = admin.messaging();
 
 export interface FCMNotificationPayload {
   type: "NOTIFICATION" | "MESSAGE";
-  notification?: any;
-  room?: any;
-  message?: any;
+  notification?: NotificationData;
+  room?: { id: string };
+  message?: MessageData;
 }
 
 /**
@@ -74,7 +82,7 @@ export async function sendFCMNotification(
     };
 
     // Envoyer le message multicast
-    const response = await messaging.sendMulticast(message as any);
+    const response = await messaging.sendMulticast(message as admin.messaging.MulticastMessage);
 
     console.log(
       chalk.greenBright(`[FCM] ${response.successCount}/${tokens.length} messages envoyés à l'utilisateur ${userId}`)
@@ -107,8 +115,8 @@ export async function sendFCMNotification(
  */
 export async function sendMessageNotificationFCM(
   recipientId: string,
-  room: any,
-  message: any
+  room: { id: string },
+  message: MessageData
 ) {
   await sendFCMNotification(recipientId, {
     type: "MESSAGE",
@@ -122,7 +130,7 @@ export async function sendMessageNotificationFCM(
  */
 export async function sendNotificationFCM(
   recipientId: string,
-  notification: any
+  notification: NotificationData
 ) {
   await sendFCMNotification(recipientId, {
     type: "NOTIFICATION",

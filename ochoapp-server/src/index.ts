@@ -810,7 +810,7 @@ async function subscribeTokenToUserTopic(userId: string, token: string) {
   try {
     await admin.messaging().subscribeToTopic([token], topic);
   } catch (error) {
-    console.error(`Erreur d'abonnement FCM pour le topic ${topic}:`, error);
+    console.error(chalk.redBright(`Erreur d'abonnement FCM pour le topic ${topic}:`), error);
   }
 }
 
@@ -826,7 +826,7 @@ async function sendFCMDataToUser(userId: string, data: Record<string, string>) {
       },
     });
   } catch (error) {
-    console.error(`Erreur d'envoi FCM à l'utilisateur ${userId}:`, error);
+    console.error(chalk.redBright(`Erreur d'envoi FCM à l'utilisateur ${userId}:`), error);
   }
 }
 
