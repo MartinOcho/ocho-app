@@ -10,6 +10,7 @@ import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
+import admin from "firebase-admin";
 import { generateWavesFromAudio } from "./audio-utils";
 
 import {
@@ -101,6 +102,7 @@ import {
 } from "./voice";
 import { ApiResponse, VoiceNote } from "./types";
 import { FileLike, getFileExtension } from "./files";
+import { registerFCMToken } from "./fcm-utils";
 
 dotenv.config();
 
@@ -338,6 +340,108 @@ app.post("/api/login", loginUser);
 app.post("/api/auth/google/native", handleGoogleNativeLogin);
 app.post("/api/session/refresh", createSession);
 app.post("/api/devices/register", registerDevice);
+
+
+// Endpoint pour enregistrer le token FCM
+app.post("/api/users/fcm-token", async (req, res) => {
+  try {
+    const { token, sessionId, deviceId } = req.body as {
+      token?: string;
+      sessionId?: string;
+      deviceId?: string;
+    };
+
+    if (!token || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: "Token FCM et sessionId sont requis",
+      });
+    }
+
+    // Récupérer la session et l'utilisateur
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true },
+    });
+
+    if (!session || !session.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Session invalide",
+      });
+    }
+
+    // Enregistrer le token FCM
+    await registerFCMToken(session.user.id, token, deviceId);
+    await subscribeTokenToUserTopic(session.user.id, token);
+
+    return res.json({
+      success: true,
+      message: "Token FCM enregistré avec succès",
+    });
+  } catch (error) {
+    console.error("Erreur lors de l'enregistrement du token FCM:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Erreur lors de l'enregistrement du token FCM",
+      details: error instanceof Error ? error.message : undefined,
+    });
+  }
+});
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+async function subscribeTokenToUserTopic(userId: string, token: string) {
+  const topic = `user_${userId}`;
+  try {
+    await admin.messaging().subscribeToTopic([token], topic);
+  } catch (error) {
+    console.error(chalk.redBright(`Erreur d'abonnement FCM pour le topic ${topic}:`), error);
+  }
+}
+
+async function sendFCMDataToUser(userId: string, data: Record<string, string>) {
+  const topic = `user_${userId}`;
+  try {
+    await admin.messaging().send({
+      topic,
+      data,
+      android: { priority: "high" },
+      apns: {
+        headers: { "apns-priority": "10" },
+      },
+    });
+  } catch (error) {
+    console.error(chalk.redBright(`Erreur d'envoi FCM à l'utilisateur ${userId}:`), error);
+  }
+}
+
+async function sendFCMDataToRoom(
+  roomId: string,
+  data: Record<string, string>,
+  excludeUserId?: string,
+) {
+  const members = await prisma.roomMember.findMany({
+    where: {
+      roomId,
+      type: { not: "BANNED" },
+      leftAt: null,
+    },
+    select: { userId: true },
+  });
+
+  const recipientIds = members
+    .map((member) => member.userId)
+    .filter((id) => id && id !== excludeUserId)
+    .filter(id=> typeof id === "string") as string[];
+
+  await Promise.all(
+    recipientIds.map((recipientId) => sendFCMDataToUser(recipientId, data)),
+  );
+}
+
 
 app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
