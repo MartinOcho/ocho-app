@@ -65,7 +65,7 @@ export async function sendFCMNotification(
       console.log(chalk.yellowBright(`[FCM] Aucun token FCM pour l'utilisateur ${userId}`));
       return;
     }
-
+ 
     const tokens = fcmTokens.map((t) => t.token);
 
     // Construire le message FCM
