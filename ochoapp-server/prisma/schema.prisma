@@ -50,6 +50,7 @@ model User {
   userPrivacies       UserPrivacy[]
   deliveries          Delivery[]
   userAvatars         UserAvatar[]
+  fcmTokens           FCMToken[]
 
   @@map("users")
 }
@@ -519,4 +520,17 @@ model UserPrivacy {
 
   @@unique([userId, privacyId])
   @@map("user_privacy")
+}
+
+model FCMToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  deviceId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("fcm_tokens")
 }

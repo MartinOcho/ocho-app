@@ -11,3 +11,6 @@ AUDIO_WAVES_IMPLEMENTATION.md
 DEVICE_SECURITY_IMPLEMENTATION.md
 SESSIONS_API.md
 testers.csv
+ochoapp-server/FCM_SETUP.md
+ochoapp-server/prisma/migrations/migration_lock.toml
+ochoapp-server/prisma/migrations/add_fcm_tokens/migration.sql
