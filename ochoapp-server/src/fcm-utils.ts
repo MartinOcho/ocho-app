@@ -55,6 +55,7 @@ export async function sendFCMNotification(
   payload: FCMNotificationPayload
 ) {
   try {
+    console.log(chalk.blueBright(`[FCM] Envoi de la notification FCM ${payload} à l'utilisateur ${userId}²`));
     // Récupérer les tokens FCM de l'utilisateur
     const fcmTokens = await prisma.fCMToken.findMany({
       where: { userId },
