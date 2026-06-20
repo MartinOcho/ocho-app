@@ -1529,7 +1529,19 @@ io.on("connection", async (socket: Socket) => {
               // Envoyer une notification FCM du nouveau message
               await sendMessageNotificationFCM(
                 affectedId,
-                newRoom || { id: roomId },
+                newRoom
+                  ? {
+                      id: newRoom.id,
+                      name: newRoom.name ?? null,
+                      avatarUrl: newRoom.groupAvatarUrl ?? null,
+                      isGroup: Boolean(newRoom.isGroup),
+                    }
+                  : {
+                      id: roomId,
+                      name: null,
+                      avatarUrl: null,
+                      isGroup: false,
+                    },
                 newMessage
               );
             }
@@ -1606,11 +1618,26 @@ io.on("connection", async (socket: Socket) => {
                 user.username,
               );
               io.to(member.userId).emit("room_list_updated", updatedRooms);
-              
+
+              const room = await prisma.room.findUnique({
+                where: { id: roomId },
+                select: {
+                  id: true,
+                  name: true,
+                  isGroup: true,
+                  groupAvatarUrl: true,
+                },
+              });
+
               // Envoyer une notification FCM pour la note vocale
               await sendMessageNotificationFCM(
                 member.userId,
-                { id: roomId },
+                {
+                  id: room?.id ?? roomId,
+                  name: room?.name ?? null,
+                  avatarUrl: room?.groupAvatarUrl ?? null,
+                  isGroup: Boolean(room?.isGroup),
+                },
                 newMessage
               );
             }

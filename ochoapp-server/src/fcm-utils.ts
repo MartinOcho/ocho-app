@@ -41,11 +41,112 @@ if (!getApps().length) {
 
 const messaging = getMessaging();
 
-export interface FCMNotificationPayload {
-  type: "NOTIFICATION" | "MESSAGE";
-  notification?: NotificationData;
-  room?: { id: string };
-  message?: MessageData;
+export interface FCMRoomPayload {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+  isGroup: boolean;
+}
+
+export interface FCMPersonPayload {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface FCMVoiceNotePayload {
+  id: string;
+  url: string;
+  duration: number;
+  createdAt: string;
+}
+
+export interface FCMAttachmentPayload {
+  id: string;
+  type: string;
+  url: string;
+  publicId: string | null;
+  fileName: string | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  resourceType: string | null;
+}
+
+export interface FCMMessageData {
+  id: string;
+  type: string;
+  content: string | null;
+  createdAt: string;
+  sender: FCMPersonPayload;
+  recipient: FCMPersonPayload;
+  voiceNote?: FCMVoiceNotePayload;
+  attachments?: FCMAttachmentPayload[];
+}
+
+export type FCMNotificationPayload =
+  | {
+      type: "NOTIFICATION";
+      notification: NotificationData;
+      room?: undefined;
+      message?: undefined;
+    }
+  | {
+      type: "MESSAGE";
+      notification?: undefined;
+      room: FCMRoomPayload;
+      message: FCMMessageData;
+    };
+
+function getMinimalFCMMessage(message: MessageData): FCMMessageData {
+  if (!message.sender || !message.recipient) {
+    throw new Error("FCM message payload requires sender and recipient");
+  }
+
+  const fcmMessage: FCMMessageData = {
+    id: message.id,
+    type: message.type,
+    content: message.content ?? null,
+    createdAt: new Date(message.createdAt).toISOString(),
+    sender: {
+      id: message.sender.id,
+      username: message.sender.username,
+      displayName: message.sender.displayName,
+      avatarUrl: message.sender.avatarUrl,
+    },
+    recipient: {
+      id: message.recipient.id,
+      username: message.recipient.username,
+      displayName: message.recipient.displayName,
+      avatarUrl: message.recipient.avatarUrl,
+    },
+  };
+
+  if (message.voiceNote) {
+    fcmMessage.voiceNote = {
+      id: message.voiceNote.id,
+      url: message.voiceNote.url,
+      duration: message.voiceNote.duration,
+      createdAt: new Date(message.voiceNote.createdAt).toISOString(),
+    };
+  }
+
+  if (message.attachments && message.attachments.length > 0) {
+    fcmMessage.attachments = message.attachments.map((attachment) => ({
+      id: attachment.id,
+      type: attachment.type,
+      url: attachment.url,
+      publicId: attachment.publicId ?? null,
+      fileName: attachment.fileName ?? null,
+      width: attachment.width ?? null,
+      height: attachment.height ?? null,
+      format: attachment.format ?? null,
+      resourceType: attachment.resourceType ?? null,
+    }));
+  }
+
+  return fcmMessage;
 }
 
 /**
@@ -86,6 +187,11 @@ export async function sendFCMNotification(
 
     // Envoyer le message multicast
     const response = await messaging.sendEachForMulticast(message);
+    response.responses.forEach((resp, index) => {
+      if (!resp.success) {
+        console.error(chalk.redBright(`[FCM] Erreur lors de l'envoi du message à ${tokens[index]}: ${resp.error?.message}`));
+      }
+    });
 
     console.log(
       chalk.greenBright(`[FCM] ${response.successCount}/${tokens.length} messages envoyés à l'utilisateur ${userId}`)
@@ -100,7 +206,7 @@ export async function sendFCMNotification(
     });
 
     // Supprimer les tokens invalides
-    if (failedTokens.length > 0) {
+    if (failedTokens.length) {
       await prisma.fCMToken.deleteMany({
         where: { token: { in: failedTokens } },
       });
@@ -118,13 +224,13 @@ export async function sendFCMNotification(
  */
 export async function sendMessageNotificationFCM(
   recipientId: string,
-  room: { id: string },
+  room: FCMRoomPayload,
   message: MessageData
 ) {
   await sendFCMNotification(recipientId, {
     type: "MESSAGE",
     room,
-    message,
+    message: getMinimalFCMMessage(message),
   });
 }
 
