@@ -1533,13 +1533,13 @@ io.on("connection", async (socket: Socket) => {
                   ? {
                       id: newRoom.id,
                       name: newRoom.name ?? null,
-                      avatarUrl: newRoom.groupAvatarUrl ?? null,
+                      groupAvatarUrl: newRoom.groupAvatarUrl ?? null,
                       isGroup: Boolean(newRoom.isGroup),
                     }
                   : {
                       id: roomId,
                       name: null,
-                      avatarUrl: null,
+                      groupAvatarUrl: null,
                       isGroup: false,
                     },
                 newMessage
@@ -1635,7 +1635,7 @@ io.on("connection", async (socket: Socket) => {
                 {
                   id: room?.id ?? roomId,
                   name: room?.name ?? null,
-                  avatarUrl: room?.groupAvatarUrl ?? null,
+                  groupAvatarUrl: room?.groupAvatarUrl ?? null,
                   isGroup: Boolean(room?.isGroup),
                 },
                 newMessage

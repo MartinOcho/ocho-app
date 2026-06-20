@@ -44,7 +44,7 @@ const messaging = getMessaging();
 export interface FCMRoomPayload {
   id: string;
   name: string | null;
-  avatarUrl: string | null;
+  groupAvatarUrl: string | null;
   isGroup: boolean;
 }
 
@@ -81,6 +81,7 @@ export interface FCMMessageData {
   createdAt: string;
   sender: FCMPersonPayload;
   recipient: FCMPersonPayload;
+  room: FCMRoomPayload;
   voiceNote?: FCMVoiceNotePayload;
   attachments?: FCMAttachmentPayload[];
 }
@@ -89,17 +90,15 @@ export type FCMNotificationPayload =
   | {
       type: "NOTIFICATION";
       notification: NotificationData;
-      room?: undefined;
       message?: undefined;
     }
   | {
       type: "MESSAGE";
       notification?: undefined;
-      room: FCMRoomPayload;
       message: FCMMessageData;
     };
 
-function getMinimalFCMMessage(message: MessageData): FCMMessageData {
+function getMinimalFCMMessage(message: MessageData, room: FCMRoomPayload): FCMMessageData {
   if (!message.sender || !message.recipient) {
     throw new Error("FCM message payload requires sender and recipient");
   }
@@ -120,6 +119,12 @@ function getMinimalFCMMessage(message: MessageData): FCMMessageData {
       username: message.recipient.username,
       displayName: message.recipient.displayName,
       avatarUrl: message.recipient.avatarUrl,
+    },
+    room: {
+      id: room.id,
+      name: room.name,
+      groupAvatarUrl: room.groupAvatarUrl,
+      isGroup: room.isGroup,
     },
   };
 
@@ -177,7 +182,6 @@ export async function sendFCMNotification(
         ...(payload.notification && {
           notification: JSON.stringify(payload.notification),
         }),
-        ...(payload.room && { room: JSON.stringify(payload.room) }),
         ...(payload.message && { message: JSON.stringify(payload.message) }),
       },
       tokens,
@@ -187,6 +191,11 @@ export async function sendFCMNotification(
 
     // Envoyer le message multicast
     const response = await messaging.sendEachForMulticast(message);
+    response.responses.forEach((resp, index) => {
+      if (!resp.success) {
+        console.error(chalk.redBright(`[FCM] Erreur lors de l'envoi du message à ${tokens[index]}: ${resp.error?.message}`));
+      }
+    });
 
     console.log(
       chalk.greenBright(`[FCM] ${response.successCount}/${tokens.length} messages envoyés à l'utilisateur ${userId}`)
@@ -201,7 +210,7 @@ export async function sendFCMNotification(
     });
 
     // Supprimer les tokens invalides
-    if (failedTokens.length > 0) {
+    if (failedTokens.length) {
       await prisma.fCMToken.deleteMany({
         where: { token: { in: failedTokens } },
       });
@@ -224,8 +233,7 @@ export async function sendMessageNotificationFCM(
 ) {
   await sendFCMNotification(recipientId, {
     type: "MESSAGE",
-    room,
-    message: getMinimalFCMMessage(message),
+    message: getMinimalFCMMessage(message, room),
   });
 }
 

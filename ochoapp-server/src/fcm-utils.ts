@@ -44,7 +44,7 @@ const messaging = getMessaging();
 export interface FCMRoomPayload {
   id: string;
   name: string | null;
-  avatarUrl: string | null;
+  groupAvatarUrl: string | null;
   isGroup: boolean;
 }
 
@@ -81,6 +81,7 @@ export interface FCMMessageData {
   createdAt: string;
   sender: FCMPersonPayload;
   recipient: FCMPersonPayload;
+  room: FCMRoomPayload;
   voiceNote?: FCMVoiceNotePayload;
   attachments?: FCMAttachmentPayload[];
 }
@@ -89,17 +90,15 @@ export type FCMNotificationPayload =
   | {
       type: "NOTIFICATION";
       notification: NotificationData;
-      room?: undefined;
       message?: undefined;
     }
   | {
       type: "MESSAGE";
       notification?: undefined;
-      room: FCMRoomPayload;
       message: FCMMessageData;
     };
 
-function getMinimalFCMMessage(message: MessageData): FCMMessageData {
+function getMinimalFCMMessage(message: MessageData, room: FCMRoomPayload): FCMMessageData {
   if (!message.sender || !message.recipient) {
     throw new Error("FCM message payload requires sender and recipient");
   }
@@ -120,6 +119,12 @@ function getMinimalFCMMessage(message: MessageData): FCMMessageData {
       username: message.recipient.username,
       displayName: message.recipient.displayName,
       avatarUrl: message.recipient.avatarUrl,
+    },
+    room: {
+      id: room.id,
+      name: room.name,
+      groupAvatarUrl: room.groupAvatarUrl,
+      isGroup: room.isGroup,
     },
   };
 
@@ -177,7 +182,6 @@ export async function sendFCMNotification(
         ...(payload.notification && {
           notification: JSON.stringify(payload.notification),
         }),
-        ...(payload.room && { room: JSON.stringify(payload.room) }),
         ...(payload.message && { message: JSON.stringify(payload.message) }),
       },
       tokens,
@@ -229,8 +233,7 @@ export async function sendMessageNotificationFCM(
 ) {
   await sendFCMNotification(recipientId, {
     type: "MESSAGE",
-    room,
-    message: getMinimalFCMMessage(message),
+    message: getMinimalFCMMessage(message, room),
   });
 }
 
