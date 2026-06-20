@@ -99,8 +99,8 @@ export type FCMNotificationPayload =
     };
 
 function getMinimalFCMMessage(message: MessageData, room: FCMRoomPayload): FCMMessageData {
-  if (!message.sender || !message.recipient) {
-    throw new Error("FCM message payload requires sender and recipient");
+  if (!message.sender) {
+    throw new Error("FCM message payload requires sender information");
   }
 
   const fcmMessage: FCMMessageData = {
@@ -115,10 +115,10 @@ function getMinimalFCMMessage(message: MessageData, room: FCMRoomPayload): FCMMe
       avatarUrl: message.sender.avatarUrl,
     },
     recipient: {
-      id: message.recipient.id,
-      username: message.recipient.username,
-      displayName: message.recipient.displayName,
-      avatarUrl: message.recipient.avatarUrl,
+      id: message.recipient?.id ?? "",
+      username: message.recipient?.username ?? "",
+      displayName: message.recipient?.displayName ?? "",
+      avatarUrl: message.recipient?.avatarUrl ?? "",
     },
     room: {
       id: room.id,
