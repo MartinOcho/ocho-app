@@ -1,17 +1,18 @@
-import admin from "firebase-admin";
+import { cert, getApps, initializeApp, ServiceAccount } from "firebase-admin/app";
+import { getMessaging, MulticastMessage } from "firebase-admin/messaging";
 import prisma from "./prisma";
 import chalk from "chalk";
 import { MessageData, NotificationData } from "./types";
 
 // Initialiser Firebase Admin (s'il n'est pas déjà initialisé)
-if (!admin.apps.length) {
+if (!getApps().length) {
   try {
     const keys = {
             projectId: process.env.FCM_PROJECT_ID,
             privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
             clientEmail: process.env.FCM_CLIENT_EMAIL
           }
-    const serviceAccountKey : admin.ServiceAccount | null = (keys.projectId && keys.privateKey && keys.clientEmail) 
+    const serviceAccountKey: ServiceAccount | null = (keys.projectId && keys.privateKey && keys.clientEmail)
       ? {
             projectId: process.env.FCM_PROJECT_ID,
             privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
@@ -28,8 +29,8 @@ if (!admin.apps.length) {
       );
     }
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountKey),
+    initializeApp({
+      credential: cert(serviceAccountKey),
     });
     console.log(chalk.greenBright("[FCM] Firebase Admin initialisé"));
   } catch (error) {
@@ -38,7 +39,7 @@ if (!admin.apps.length) {
   }
 }
 
-const messaging = admin.messaging();
+const messaging = getMessaging();
 
 export interface FCMNotificationPayload {
   type: "NOTIFICATION" | "MESSAGE";
@@ -79,12 +80,12 @@ export async function sendFCMNotification(
         ...(payload.message && { message: JSON.stringify(payload.message) }),
       },
       tokens,
-    };
+    } as MulticastMessage;
 
     console.log(chalk.blueBright(`[FCM] Envoi de la notification ${JSON.stringify(message)} à l'utilisateur ${userId}`));
 
     // Envoyer le message multicast
-    const response = await messaging.sendMulticast(message as admin.messaging.MulticastMessage);
+    const response = await messaging.sendEachForMulticast(message);
 
     console.log(
       chalk.greenBright(`[FCM] ${response.successCount}/${tokens.length} messages envoyés à l'utilisateur ${userId}`)
@@ -92,7 +93,7 @@ export async function sendFCMNotification(
 
     // Gérer les tokens invalides
     const failedTokens: string[] = [];
-    response.responses.forEach((resp, index) => {
+    response.responses.forEach((resp: import('firebase-admin/messaging').SendResponse, index: number) => {
       if (!resp.success) {
         failedTokens.push(tokens[index]);
       }

@@ -61,7 +61,8 @@ import {
   registerFCMToken,
 } from "./fcm-utils";
 
-import admin from "firebase-admin";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getMessaging } from "firebase-admin/messaging";
 
 dotenv.config();
 
@@ -801,14 +802,14 @@ app.post("/api/users/fcm-token", async (req, res) => {
   }
 });
 
-if (!admin.apps.length) {
-  admin.initializeApp();
+if (!getApps().length) {
+  initializeApp();
 }
 
 async function subscribeTokenToUserTopic(userId: string, token: string) {
   const topic = `user_${userId}`;
   try {
-    await admin.messaging().subscribeToTopic([token], topic);
+    await getMessaging().subscribeToTopic([token], topic);
   } catch (error) {
     console.error(chalk.redBright(`Erreur d'abonnement FCM pour le topic ${topic}:`), error);
   }
@@ -817,7 +818,7 @@ async function subscribeTokenToUserTopic(userId: string, token: string) {
 async function sendFCMDataToUser(userId: string, data: Record<string, string>) {
   const topic = `user_${userId}`;
   try {
-    await admin.messaging().send({
+    await getMessaging().send({
       topic,
       data,
       android: { priority: "high" },
