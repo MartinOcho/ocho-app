@@ -55,7 +55,6 @@ export async function sendFCMNotification(
   payload: FCMNotificationPayload
 ) {
   try {
-    console.log(chalk.blueBright(`[FCM] Envoi de la notification FCM ${JSON.stringify(payload)} à l'utilisateur ${userId}²`));
     // Récupérer les tokens FCM de l'utilisateur
     const fcmTokens = await prisma.fCMToken.findMany({
       where: { userId },
@@ -81,6 +80,8 @@ export async function sendFCMNotification(
       },
       tokens,
     };
+
+    console.log(chalk.blueBright(`[FCM] Envoi de la notification ${JSON.stringify(message)} à l'utilisateur ${userId}`));
 
     // Envoyer le message multicast
     const response = await messaging.sendMulticast(message as admin.messaging.MulticastMessage);
