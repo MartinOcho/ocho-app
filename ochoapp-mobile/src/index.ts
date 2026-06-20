@@ -10,7 +10,7 @@ import prisma from "./prisma";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
-import admin from "firebase-admin";
+import admin, { cert, getApps, initializeApp, ServiceAccount } from "firebase-admin";
 import { generateWavesFromAudio } from "./audio-utils";
 
 import {
@@ -103,6 +103,7 @@ import {
 import { ApiResponse, VoiceNote } from "./types";
 import { FileLike, getFileExtension } from "./files";
 import { registerFCMToken } from "./fcm-utils";
+import { getMessaging } from "firebase-admin/messaging";
 
 dotenv.config();
 
@@ -389,14 +390,45 @@ app.post("/api/users/fcm-token", async (req, res) => {
   }
 });
 
-if (!admin.apps.length) {
-  admin.initializeApp();
+// Initialiser Firebase Admin (s'il n'est pas déjà initialisé)
+if (!getApps().length) {
+  try {
+    const keys = {
+            projectId: process.env.FCM_PROJECT_ID,
+            privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+            clientEmail: process.env.FCM_CLIENT_EMAIL
+          }
+    const serviceAccountKey: ServiceAccount | null = (keys.projectId && keys.privateKey && keys.clientEmail)
+      ? {
+            projectId: process.env.FCM_PROJECT_ID,
+            privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+                clientEmail: process.env.FCM_CLIENT_EMAIL
+            } : null;
+
+    if (!serviceAccountKey) {
+        console.log(chalk.redBright("Clé de service Firebase non configurée. Veuillez définir les variables d'environnement FCM_PROJECT_ID, FCM_PRIVATE_KEY et FCM_CLIENT_EMAIL."));
+        console.log(keys);
+        
+        
+      throw new Error(
+        "Clé de service Firebase non configurée. Veuillez définir les variables d'environnement FCM_PROJECT_ID, FCM_PRIVATE_KEY et FCM_CLIENT_EMAIL."
+      );
+    }
+
+    initializeApp({
+      credential: cert(serviceAccountKey),
+    });
+    console.log(chalk.greenBright("[FCM] Firebase Admin initialisé"));
+  } catch (error) {
+    console.log(chalk.redBright("[FCM] Erreur lors de l'initialisation de Firebase Admin:"));
+    console.error(error);
+  }
 }
 
 async function subscribeTokenToUserTopic(userId: string, token: string) {
   const topic = `user_${userId}`;
   try {
-    await admin.messaging().subscribeToTopic([token], topic);
+    await getMessaging().subscribeToTopic([token], topic);
   } catch (error) {
     console.error(chalk.redBright(`Erreur d'abonnement FCM pour le topic ${topic}:`), error);
   }
@@ -405,7 +437,7 @@ async function subscribeTokenToUserTopic(userId: string, token: string) {
 async function sendFCMDataToUser(userId: string, data: Record<string, string>) {
   const topic = `user_${userId}`;
   try {
-    await admin.messaging().send({
+    await getMessaging().send({
       topic,
       data,
       android: { priority: "high" },
