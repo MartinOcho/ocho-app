@@ -15,6 +15,8 @@ import LikeButton from "./LikeButton";
 import BookmarkButton from "./BookmarkButton";
 import { useEffect, useRef, useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   Maximize2,
   MessageSquareIcon,
   MessageSquareMore,
@@ -30,6 +32,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "../ui/carousel";
 import Zoomable from "../Zoomable";
 import Verified from "../Verified";
@@ -50,6 +53,7 @@ export default function Post({ post }: PostProps) {
   const [firstCommentRender, setFirstCommentRender] = useState(false);
   const [targetComment, setTargetComment] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
+  const [isCarouselFullscreen, setIsCarouselFullscreen] = useState(false);
 
   const { t } = useTranslation();
 
@@ -122,7 +126,12 @@ export default function Post({ post }: PostProps) {
 
 
   return (
-    <article className="group/post z-0 flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card">
+    <article
+      className={cn(
+        "group/post relative flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card",
+        isCarouselFullscreen && "z-50",
+      )}
+    >
       <div className="flex justify-between gap-3 p-5">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user} verified={verifiedCheck}>
@@ -190,7 +199,7 @@ export default function Post({ post }: PostProps) {
           >
             <div
               className={cn(
-                "z-10 whitespace-pre-line break-words",
+                "z-10 whitespace-pre-line wrap-break-word",
                 canShowGradient &&
                 `${gradient} px-8 max-sm:rounded-none sm:rounded-md`,
                 !post.attachments.length &&
@@ -207,7 +216,12 @@ export default function Post({ post }: PostProps) {
           </Linkify>
         )}
         {!!post.attachments.length && (
-          <MediaPreviews attachments={post.attachments} />
+          <MediaPreviews
+            attachments={post.attachments}
+            onFullscreenChange={(_index, isFullscreen) => {
+              setIsCarouselFullscreen(isFullscreen);
+            }}
+          />
         )}
       </div>
       <hr className="text-muted-foreground" />
@@ -268,16 +282,60 @@ export default function Post({ post }: PostProps) {
 
 interface MediaPreviewsProps {
   attachments: Media[];
+  startIndex?: number;
+  onFullscreenChange?: (index: number, isFullscreen: boolean) => void;
 }
 
-function MediaPreviews({ attachments }: MediaPreviewsProps) {
+function MediaPreviews({
+  attachments,
+  startIndex = 0,
+  onFullscreenChange,
+}: MediaPreviewsProps) {
   const { t } = useTranslation();
   const [showCarousel, setShowCarousel] = useState(false);
+  const [index, setIndex] = useState(startIndex);
+  const [api, setApi] = useState<CarouselApi | null>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
   const maxVisibleAttachments = 3;
 
-  const handleShowMore = () => {
+  useEffect(() => {
+    onFullscreenChange?.(index, showCarousel);
+  }, [index, showCarousel, onFullscreenChange]);
+
+  const handleShowMore = (nextIndex = startIndex) => {
+    setIndex(nextIndex);
     setShowCarousel(true);
   };
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    const onSelect = () => {
+      setIndex(api.selectedScrollSnap());
+      setCanScrollPrev(api.canScrollPrev());
+      setCanScrollNext(api.canScrollNext());
+    };
+
+    onSelect();
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
+    };
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    api.scrollTo(index);
+  }, [api, index]);
 
   const [isFullscreen, setIsFullscreen] = useState<Record<number, boolean>>({});
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -323,13 +381,13 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
           attachments.length > 1 && "grid grid-cols-2",
         )}
       >
-        {attachments.slice(0, maxVisibleAttachments).map((m) => (
+        {attachments.slice(0, maxVisibleAttachments).map((m, i) => (
           <div
             className={cn(
-              "relative flex flex-shrink-0 items-center overflow-hidden rounded-xl text-primary",
+              "relative flex shrink-0 items-center overflow-hidden rounded-xl text-primary",
               attachments.length > maxVisibleAttachments && "aspect-square",
             )}
-            onClick={handleShowMore}
+            onClick={() => handleShowMore(i)}
             key={m.id}
           >
             <MediaPreview
@@ -345,7 +403,7 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
         {/* Afficher le bouton "Voir plus" si le nombre de pièces jointes dépasse la limite */}
         {attachments.length > maxVisibleAttachments && (
           <div
-            onClick={handleShowMore}
+            onClick={() => handleShowMore(maxVisibleAttachments)}
             className="relative flex aspect-square items-center overflow-hidden rounded-xl border-primary text-white underline"
           >
             <MediaPreview
@@ -369,7 +427,11 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
           )}
         >
           <div className="relative flex h-full w-full items-center justify-center">
-            <Carousel className="flex h-full w-full items-center *:w-full">
+            <Carousel
+              className="flex h-full w-full items-center *:w-full"
+              opts={{ startIndex: index }}
+              setApi={setApi}
+            >
               <div
                 className="fixed h-full w-full"
                 onClick={() => setShowCarousel(false)}
@@ -430,9 +492,22 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
                 ))}
               </CarouselContent>
               {attachments.length > 1 && (
-                <div className="absolute w-full max-w-[100vw] p-3">
-                  <CarouselPrevious />
-                  <CarouselNext />
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between p-4">
+                  {canScrollPrev && (
+                    <div className="w-10 h-10 bg-muted border-2 border-input text-muted-foreground rounded-full flex justify-center items-center cursor-pointer pointer-events-auto"  onClick={() => {
+                      api?.scrollPrev();
+                    }}>
+                      <ChevronLeft className="" />
+                    </div>
+                  )}
+                  <div />
+                  {canScrollNext && (
+                    <div className="w-10 h-10 bg-muted border-2 border-input text-muted-foreground rounded-full flex justify-center items-center cursor-pointer pointer-events-auto"  onClick={() => {
+                      api?.scrollNext();
+                    }}>
+                      <ChevronRight className="" />
+                    </div>
+                  )}
                 </div>
               )}
             </Carousel>
@@ -497,7 +572,7 @@ function MediaPreview({
           width={500}
           height={500}
           className={cn(
-            "h-full w-full rounded-xl bg-background object-cover shadow-sm outline outline-2 outline-muted max-sm:max-w-[500px]",
+            "h-full w-full rounded-xl bg-background object-cover shadow-sm outline-2 outline-muted max-sm:max-w-[500px]",
             isFullscreen
               ? "max-h-screen max-w-[100vw]"
               : "max-h-[90vh] max-w-[90vw]",

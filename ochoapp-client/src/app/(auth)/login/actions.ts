@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { loginSchema, LoginValues } from "@/lib/validation";
 import { verify } from "@node-rs/argon2";
-import { lucia } from "@/auth";
+import { authSessionManager } from "@/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import kyInstance from "@/lib/ky";
@@ -45,8 +45,8 @@ export async function login(
       };
     }
 
-    const session = await lucia.createSession(existingUser.id, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const session = await authSessionManager.createSession(existingUser.id, {});
+    const sessionCookie = authSessionManager.createSessionCookie(session.id);
     const cookieCall = await cookies()
 
     cookieCall.set(

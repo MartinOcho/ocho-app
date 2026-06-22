@@ -49,9 +49,7 @@ export async function GET(req: Request) {
         
         const state = generateState();
 
-        const url_github = await github.createAuthorizationURL(state, {
-            scopes: ["user"]
-        });
+        const url_github = await github.createAuthorizationURL(state, ["user"]);
 
         const cookieCall = await cookies()
 

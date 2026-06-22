@@ -202,7 +202,7 @@ interface MediaCarouselProps {
     total: number;
     isZoomed: boolean;
     setIsZoomed: (v: boolean) => void;
-    containerRef: React.RefObject<HTMLDivElement> | null;
+    containerRef: React.RefObject<HTMLDivElement | null>;
   }) {
     const x = useMotionValue(0);
     const scale = useMotionValue(1);

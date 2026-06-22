@@ -8,9 +8,7 @@ export async function GET() {
     const state = generateState();
 
 
-    const url = await facebook.createAuthorizationURL(state, {
-        scopes: ["public_profile", "email"]
-    });
+    const url = await facebook.createAuthorizationURL(state, ["public_profile", "email"]);
     const cookieCall = await cookies()
 
     cookieCall.set("state", state, {

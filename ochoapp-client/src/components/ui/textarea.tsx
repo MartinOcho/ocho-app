@@ -72,7 +72,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           else if (ref) ref.current = node;
         }}
         value={value}
-        onInput={handleInput}
+        onChange={handleInput}
         {...props}
       />
     );

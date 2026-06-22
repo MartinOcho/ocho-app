@@ -1,12 +1,12 @@
 "use client";
 
 import { LanguageProvider } from "@/context/LanguageContext";
-import { Session, User } from "lucia";
+import type { AuthSession, AuthUser } from "@/auth";
 import { createContext, useContext } from "react";
 
 interface SessionContext {
-  user: User;
-  session: Session;
+  user: AuthUser;
+  session: AuthSession;
   token?: string;
 }
 
@@ -35,8 +35,8 @@ export function useSession() {
 
 export function EmptySession({ children }: React.PropsWithChildren) {
   const session = {
-    user: {} as User,
-    session: {} as Session,
+    user: {} as AuthUser,
+    session: {} as AuthSession,
   };
   return (
     <SessionProvider value={session}>

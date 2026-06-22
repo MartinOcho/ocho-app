@@ -8,9 +8,7 @@ export async function GET() {
     const state = generateState();
 
 
-    const url = await github.createAuthorizationURL(state, {
-        scopes: ["user"]
-    });
+    const url = await github.createAuthorizationURL(state, ["user"]);
     const cookieCall = await cookies()
 
     cookieCall.set("state", state, {

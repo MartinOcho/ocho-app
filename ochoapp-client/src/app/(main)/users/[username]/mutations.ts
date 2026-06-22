@@ -22,7 +22,6 @@ import {
   LocalUpload,
   PostsPage,
 } from "@/lib/types";
-import { useUploadThing } from "@/lib/uploadthing";
 import kyInstance from "@/lib/ky";
 import { useSession } from "../../SessionProvider";
 import { useProgress } from "@/context/ProgressContext";
@@ -31,7 +30,7 @@ import { useTranslation } from "@/context/LanguageContext";
 async function uploadAvatar(file: File): Promise<LocalUpload[] | null> {
   return new Promise<LocalUpload[] | null>(async (resolve, reject) => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("avatar", file);
   
       const response = await kyInstance.post('/api/upload/avatar', {
           body: formData,
@@ -55,7 +54,7 @@ async function uploadGroupAvatar({
 }): Promise<LocalUpload[] | null> {
   return new Promise<LocalUpload[] | null>(async (resolve) => {
     const formData: FormData = new FormData();
-    formData.append("avatar", file);
+    formData.append("file", file);
     formData.append("id", roomId);
 
     const response = await kyInstance
@@ -77,21 +76,13 @@ export function useUpdateProfileMutation() {
   const { toast } = useToast();
   const { startNavigation: navigate } = useProgress();
   const queryClient = useQueryClient();
-  const { startUpload: startAvatarUpload } =
-    useUploadThing("avatar");
 
     const { t } = useTranslation();
 
   const { profileUpdated, profileUpdateError } = t();
 
   async function upload(file: File) {
-    // const uploadResult = null;
     const uploadResult = await uploadAvatar(file);
-
-    if (!uploadResult?.[0]) {
-      const utUpload = startAvatarUpload([file]);
-      return utUpload;
-    }
     return uploadResult;
   }
 
@@ -228,8 +219,6 @@ export function useUpdateGroupChatMutation({
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  const { startUpload: startAvatarUpload } =
-    useUploadThing("group-chat-avatar");
   const { user } = useSession();
 
   const { groupUpdated, groupUpdateError } = t();
@@ -238,13 +227,7 @@ export function useUpdateGroupChatMutation({
   const queryClient = useQueryClient();
 
   async function upload(file: File) {
-    // const uploadResult = null;
     const uploadResult = await uploadGroupAvatar({ file, roomId });
-
-    if (!uploadResult?.[0]) {
-      const utUpload = startAvatarUpload([file], { roomId });
-      return utUpload;
-    }
     return uploadResult;
   }
 

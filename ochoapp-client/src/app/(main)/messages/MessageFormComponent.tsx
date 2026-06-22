@@ -113,7 +113,7 @@ export function MessageFormComponent({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isMediaFullscreen } = useActiveRoom(); 
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   // Notifier le parent chaque fois que la validité change
   useEffect(() => {

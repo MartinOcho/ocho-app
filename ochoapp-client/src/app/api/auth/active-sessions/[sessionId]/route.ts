@@ -1,6 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { lucia } from "@/auth";
+import { authSessionManager } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalider la session côté Lucia
-    await lucia.invalidateSession(sessionId);
+    await authSessionManager.invalidateSession(sessionId);
 
     return NextResponse.json({
       success: true,

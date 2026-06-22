@@ -1,3 +1,5 @@
+@reference "./globals.css";
+
 .gadient-post {
   @apply flex;
   @apply items-center;

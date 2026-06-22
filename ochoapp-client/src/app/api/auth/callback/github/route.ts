@@ -1,10 +1,9 @@
-import { github, lucia } from "@/auth";
+import { generateUserId, github, authSessionManager } from "@/auth";
 import kyInstance from "@/lib/ky";
 import prisma from "@/lib/prisma";
 import { LocalUpload } from "@/lib/types";
 import { slugify } from "@/lib/utils";
 import { OAuth2RequestError } from "arctic";
-import { generateIdFromEntropySize } from "lucia";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -37,7 +36,7 @@ export async function GET(req: NextRequest) {
     const githubUser = await kyInstance
       .get("https://api.github.com/user", {
         headers: {
-          Authorization: `Bearer ${tokens.accessToken}`,
+          Authorization: `Bearer ${tokens.accessToken()}`,
         },
       })
       .json<{ id: string; login: string; avatar_url: string }>();
@@ -51,7 +50,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (existingUser) {
-      const session = await lucia.createSession(existingUser.id, {});
+      const session = await authSessionManager.createSession(existingUser.id, {});
       
       // 🔑 Associer le deviceId à la session si disponible
       if (deviceId) {
@@ -61,7 +60,7 @@ export async function GET(req: NextRequest) {
         });
       }
       
-      const sessionCookie = lucia.createSessionCookie(session.id);
+      const sessionCookie = authSessionManager.createSessionCookie(session.id);
 
       cookieCall.set(
         sessionCookie.name,
@@ -91,7 +90,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const userId = generateIdFromEntropySize(10);
+    const userId = generateUserId();
 
     async function validatedUsername() {
       const baseUsername = slugify(githubUsername);
@@ -147,15 +146,6 @@ export async function GET(req: NextRequest) {
         .json<LocalUpload[] | null>();
 
       if (!response?.[0]?.serverData?.avatarUrl) {
-        const avatar = await kyInstance
-          .post(`${baseUrl}/api/uploadthing`, {
-            body: formData,
-            throwHttpErrors: false,
-          })
-          .json<LocalUpload[] | null>();
-
-        console.log(avatar);
-
         return null;
       }
       const result = response[0].appUrl;
@@ -174,7 +164,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const session = await lucia.createSession(userId, {});
+    const session = await authSessionManager.createSession(userId, {});
     
     // 🔑 Associer le deviceId à la session si disponible
     if (deviceId) {
@@ -184,7 +174,7 @@ export async function GET(req: NextRequest) {
       });
     }
     
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const sessionCookie = authSessionManager.createSessionCookie(session.id);
     cookieCall.set(
       sessionCookie.name,
       sessionCookie.value,

@@ -1,9 +1,8 @@
-import { google, lucia } from "@/auth";
+import { generateUserId, google, authSessionManager } from "@/auth";
 import kyInstance from "@/lib/ky";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { OAuth2RequestError } from "arctic";
-import { generateIdFromEntropySize } from "lucia";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
         const googleUser = await kyInstance
             .get("https://www.googleapis.com/oauth2/v1/userinfo/", {
                 headers: {
-                    Authorization: `Bearer ${tokens.accessToken}`
+                    Authorization: `Bearer ${tokens.accessToken()}`
                 }
             })
             .json<{ id: string; name: string; email: string; }>();
@@ -48,7 +47,7 @@ export async function GET(req: NextRequest) {
         })
 
         if (existingUser) {
-            const session = await lucia.createSession(existingUser.id, {});
+            const session = await authSessionManager.createSession(existingUser.id, {});
             
             // 🔑 Associer le deviceId à la session si disponible
             if (deviceId) {
@@ -58,7 +57,7 @@ export async function GET(req: NextRequest) {
                 });
             }
             
-            const sessionCookie = lucia.createSessionCookie(session.id);
+            const sessionCookie = authSessionManager.createSessionCookie(session.id);
 
             cookieCall.set(
                 sessionCookie.name,
@@ -90,7 +89,7 @@ export async function GET(req: NextRequest) {
 
         }
 
-        const userId = generateIdFromEntropySize(10);
+        const userId = generateUserId();
         
 
         async function validatedUsername() {
@@ -139,7 +138,7 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const session = await lucia.createSession(userId, {});
+        const session = await authSessionManager.createSession(userId, {});
         
         // 🔑 Associer le deviceId à la session si disponible
         if (deviceId) {
@@ -149,7 +148,7 @@ export async function GET(req: NextRequest) {
             });
         }
         
-        const sessionCookie = lucia.createSessionCookie(session.id);
+        const sessionCookie = authSessionManager.createSessionCookie(session.id);
         cookieCall.set(
             sessionCookie.name,
             sessionCookie.value,

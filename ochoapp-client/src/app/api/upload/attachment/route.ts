@@ -1,14 +1,21 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/prisma"; // Assure-toi que le chemin est correct
-
-const uploadDir = path.resolve("data/uploads/attachments");
+import { validateRequest } from "@/auth";
+import cloudinary from "@/lib/cloudinary";
+import { UploadApiResponse } from "cloudinary";
 
 export async function POST(request: NextRequest) {
+  const { user } = await validateRequest();
+  if (!user) {
+    return NextResponse.json(
+      { error: "Action non autorisée" },
+      { status: 403 },
+    );
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -17,20 +24,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const filename = `${uuidv4()}_${file.name}`;
-    const filepath = path.join(uploadDir, filename);
+    const publicId = `post_attachments/${user.id}_${uuidv4()}`;
+    const streamUpload = (buffer: Buffer) =>
+      new Promise<UploadApiResponse>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: "auto",
+            folder: "post_attachments",
+            public_id: publicId,
+            overwrite: true,
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result as UploadApiResponse);
+          },
+        );
+        stream.end(buffer);
+      });
 
-    // Ensure the directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Write the file to the upload directory asynchronously
-    await fs.promises.writeFile(filepath, buffer);
-
-    const fileUrl = `/api/uploads/attachments/${filename}`; // URL servie via une route API
+    const uploadResult = await streamUpload(
+      Buffer.from(await file.arrayBuffer()),
+    );
+    const fileUrl = uploadResult.secure_url || uploadResult.url || "";
 
     // Save the file metadata in the database
     const media = await prisma.media.create({

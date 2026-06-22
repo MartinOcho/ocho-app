@@ -1,10 +1,9 @@
 "use server";
 
-import { lucia } from "@/auth";
+import { authSessionManager, generateUserId } from "@/auth";
 import prisma from "@/lib/prisma";
 import { signupSchema, SignupValues } from "@/lib/validation";
 import { hash } from "@node-rs/argon2";
-import { generateIdFromEntropySize } from "lucia";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import kyInstance from "@/lib/ky";
@@ -23,7 +22,7 @@ export async function signUp(
       parallelism: 1,
     });
 
-    const userId = generateIdFromEntropySize(10);
+    const userId = generateUserId();
 
     const existingUsername = await prisma.user.findFirst({
       where: {
@@ -66,8 +65,8 @@ export async function signUp(
       },
     });
 
-    const session = await lucia.createSession(userId, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const session = await authSessionManager.createSession(userId, {});
+    const sessionCookie = authSessionManager.createSessionCookie(session.id);
 
     const cookieCall = await cookies()
 

@@ -1,6 +1,4 @@
-// components/posts/editors/useMediaUpload.ts
 import { useToast } from "@/components/ui/use-toast";
-import { useUploadThing } from "@/lib/uploadthing";
 import { VocabularyObject } from "@/lib/vocabulary";
 import { useState } from "react";
 
@@ -12,45 +10,28 @@ export interface Attachment {
 }
 
 export default function useMediaUpload() {
-  const MAX_FILE_SIZE_MB = 30; // Limite de taille de fichier en Mo
-  const MAX_IMAGE_SIZE_MB = 4; // Limite de taille de fichier en Mo
+  const MAX_FILE_SIZE_MB = 30;
+  const MAX_IMAGE_SIZE_MB = 4;
 
   const { toast } = useToast();
   const [attachments, setAttachment] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentFile, setCurrentFile] = useState<Attachment | null>(null);
 
-  const { startUpload: startAttachmentUpload } = useUploadThing("attachment", {
-    onUploadProgress: (progress) => {
-      if (currentFile) {
-        setAttachment((prev) =>
-          prev.map((a) =>
-            a.mediaId === currentFile.mediaId ? { ...a, progress } : a,
-          ),
-        );
-      }
-    },
-  });
-
-  async function uploadOnLocalServer(
+  async function uploadToCloudinary(
     file: File,
     onProgress: (progress: number) => void,
   ): Promise<{ mediaId: string } | null> {
     return new Promise((resolve) => {
-      if (process.env.NODE_ENV === "production") {
-        resolve(null); // Simuler une réponse null pour le serveur local
-        return;
-      }
       const xhr = new XMLHttpRequest();
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("file", file);
 
       xhr.open("POST", "/api/upload/attachment", true);
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
+          onProgress(Math.round((event.loaded / event.total) * 100));
         }
       };
 
@@ -63,10 +44,7 @@ export default function useMediaUpload() {
         }
       };
 
-      xhr.onerror = () => {
-        resolve(null);
-      };
-
+      xhr.onerror = () => resolve(null);
       xhr.send(formData);
     });
   }
@@ -75,54 +53,20 @@ export default function useMediaUpload() {
     file: File,
     onProgress: (progress: number) => void,
   ): Promise<{ mediaId: string }> {
-    return new Promise(async (resolve, reject) => {
-      // Try to upload on local
-      const localUpload = await uploadOnLocalServer(file, (progress) => {
-        onProgress(progress);
-      });
-      if (localUpload) {
-        resolve(localUpload);
-      } else {
-        const uploadResult = startAttachmentUpload([file]);
-        
-        uploadResult.then((result) => {
-          const mediaId = result?.[0].serverData.mediaId;
-          if (!result || !result?.length || !mediaId) {
-            reject(
-              `Failed to upload attachment ${currentFile?.file.name ?? ""} check your connection or file size`,
-            );
-            setCurrentFile(null);
-            return;
-          }
-          setAttachment((prev) =>
-            prev.map((a) =>
-              a.mediaId === currentFile?.mediaId
-                ? { ...a, mediaId, isUploading: false, progress: 100 }
-                : a,
-            ),
-          );
-          resolve({ mediaId });
-          setCurrentFile(null);
-          setIsUploading(false);
-        }).catch((error) => {
-          console.warn(error);
-          reject(
-            `Failed to upload attachment ${currentFile?.file.name ?? ""}`,
-          );
-          setCurrentFile(null);
-          setIsUploading(false)
-        })
-      }
-    });
+    const uploadResult = await uploadToCloudinary(file, onProgress);
+    if (!uploadResult?.mediaId) {
+      throw new Error(
+        `Failed to upload attachment ${currentFile?.file.name ?? ""}`,
+      );
+    }
+    return uploadResult;
   }
 
-  async function handleStartUpload(files: File[], t :VocabularyObject) {
+  async function handleStartUpload(files: File[], t: VocabularyObject) {
     const { fileMaxSizeReached } = t;
     setIsUploading(true);
-    const newAttachments: Attachment[] = [];
 
     for (const file of files) {
-      // Vérifier la taille du fichier
       const fileSizeMB = file.size / 1024 ** 2;
       if (
         fileSizeMB > MAX_FILE_SIZE_MB ||
@@ -137,28 +81,25 @@ export default function useMediaUpload() {
               `${file.type.startsWith("image/") ? MAX_IMAGE_SIZE_MB : MAX_FILE_SIZE_MB} Mo.`,
             ),
         });
-        setAttachment(
-          attachments.filter(
+        setAttachment((prev) =>
+          prev.filter(
             (a) => a.file.name === file.name && a.file.size === file.size,
           ),
         );
-        continue; // Passer au fichier suivant
+        continue;
       }
 
       try {
         const attachment = { file, isUploading: true, progress: 0 };
-        newAttachments.push(attachment);
         setAttachment((prev) => [...prev, attachment]);
         setCurrentFile(attachment);
+
         const { mediaId } = await uploadAttachment(file, (progress) => {
           setAttachment((prev) =>
             prev.map((a) =>
               a.file.name === file.name ? { ...a, progress } : a,
             ),
           );
-        }).catch((error) => {
-          console.error(error);
-          throw new Error(error);
         });
 
         setAttachment((prev) =>

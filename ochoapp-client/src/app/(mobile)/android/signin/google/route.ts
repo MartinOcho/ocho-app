@@ -50,9 +50,7 @@ export async function GET(req: Request) {
         const state = generateState();
         const codeVerifier = generateCodeVerifier();
 
-        const url_google = await google.createAuthorizationURL(state, codeVerifier, {
-            scopes: ["profile", "email"]
-        });
+        const url_google = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
 
         const cookieCall = await cookies()
 

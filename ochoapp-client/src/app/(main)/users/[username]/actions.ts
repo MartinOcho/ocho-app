@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 import fs from "fs";
 import path from "path";
 import cloudinary from "@/lib/cloudinary";
-import { UTApi, UTFile } from "uploadthing/server";
 import {
   getChatRoomDataInclude,
   getUserDataSelect,
@@ -79,16 +78,6 @@ export async function deleteUserAvatar() {
         return;
       }
 
-      const key = avatar.url.split(
-        `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-      )[1];
-      if (key) {
-        try {
-          await new UTApi().deleteFiles(key);
-        } catch (error) {
-          console.error("Error deleting avatar from UploadThing:", error);
-        }
-      }
     }),
   );
 
@@ -229,27 +218,8 @@ export async function uploadGroupAvatarFile({
     // Retourner l'URL relative pour accéder au fichier
     let url = `/api/uploads/avatars/${filename}`;
 
-    // Enregistrer le fichier localement
     const buffer = Buffer.from(await file.arrayBuffer());
-    // await fs.promises.writeFile(filepath, buffer).catch(async (err) => {
-    // });
-    const utapi = new UTApi();
-
-    const utFile = new UTFile(["group-chat-avatar"], file.name);
-    const utResponse = await utapi.uploadFiles([utFile]);
-    if (!utResponse?.[0].data?.url) {
-      throw new Error("Url introuvable");
-    }
-    if (utResponse[0].error) {
-      throw new Error("Erreur lors de l'enregistrement du fichier");
-    }
-    const addAppUrl = !utResponse[0].data.url
-      .split("https://")[1]
-      .startsWith(process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID || "");
-    url = addAppUrl ?utResponse[0].data.url.replace(
-      "/f/",
-      `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-    ) : utResponse[0].data.url;
+    await fs.promises.writeFile(filepath, buffer);
     const name = filename;
     const appUrl = url;
     const size = file.size;
@@ -275,16 +245,6 @@ export async function uploadGroupAvatarFile({
             );
           }
         }
-      } else {
-        const key = oldAvatarUrl.split(
-          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-        )[1];
-        await new UTApi().deleteFiles(key).catch((err) => {
-          console.error(
-            "Erreur lors de la suppression du fichier distant:",
-            err,
-          );
-        });
       }
     }
 
@@ -371,17 +331,10 @@ export async function deleteGroupChatAvatar({
       room.groupAvatarUrl.split("/uploads/avatars/")[1],
     );
   } else {
-    const key = room.groupAvatarUrl?.split(
-      `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-    )[1];
-    if (!key) {
-      throw new Error("Fichier introuvable");
-    }
-    try {
-      new UTApi().deleteFiles(key);
-    } catch (error) {
-      console.log(error);
-    }
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { groupAvatarUrl: null },
+    });
     return;
   }
 

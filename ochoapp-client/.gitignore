@@ -42,3 +42,4 @@ next-env.d.ts
 
 verceldb_backup.sql
 verceldb_final.sql
+/src/generated/prisma

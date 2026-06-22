@@ -2,7 +2,7 @@
 
 import { useSession } from "@/app/(main)/SessionProvider";
 import { FollowerInfo, UserData } from "@/lib/types";
-import { PropsWithChildren, useEffect, useState } from "react";
+import { JSX, PropsWithChildren, useEffect, useState } from "react";
 import {
   Tooltip,
   TooltipContent,

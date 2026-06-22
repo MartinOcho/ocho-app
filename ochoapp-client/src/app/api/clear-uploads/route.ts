@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
 import fs from "fs";
 import path from "path";
-import { UTApi } from "uploadthing/server";
 
 // Base directories for different types of uploads
 const attachmentDir = path.resolve("data/uploads/attachments");
@@ -38,7 +37,7 @@ export async function GET(req: Request) {
 
     // Supprimer les fichiers locaux pour les avatars et les pièces jointes
     unusedMedia.forEach((media) => {
-      let filePath: string;
+      let filePath: string = "";
 
       if (media.url.includes("/uploads/attachments/")) {
         // If it's an attachment
@@ -46,12 +45,6 @@ export async function GET(req: Request) {
           attachmentDir,
           media.url.split("/uploads/attachments/")[1],
         );
-      } else {
-        const key = media.url.split(
-          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-        )[1];
-        new UTApi().deleteFiles(key);
-        return;
       }
 
       // Supprimer le fichier s'il existe
@@ -182,21 +175,6 @@ export async function GET(req: Request) {
             `Error deleting orphan avatar ${avatar.publicId}:`,
             error,
           );
-        }
-      } else {
-        const key =
-          avatar.url.split(
-            `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
-          )[1] || avatar.url.split("/f/")[1];
-        if (key) {
-          try {
-            await new UTApi().deleteFiles(key);
-          } catch (error) {
-            console.error(
-              `Error deleting orphan avatar UploadThing file ${key}:`,
-              error,
-            );
-          }
         }
       }
     }

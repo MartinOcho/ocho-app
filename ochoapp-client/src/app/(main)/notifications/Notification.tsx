@@ -7,6 +7,7 @@ import { AtSign, Heart, MessageSquareMore, User2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
+import { JSX } from "react/jsx-runtime";
 
 interface NotificationProps {
   notification: NotificationData;

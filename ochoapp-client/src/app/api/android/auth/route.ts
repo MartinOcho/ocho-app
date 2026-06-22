@@ -1,4 +1,4 @@
-import { lucia } from "@/auth";
+import { authSessionManager } from "@/auth";
 import prisma from "@/lib/prisma";
 import { DeviceType } from "@prisma/client";
 import { cookies } from "next/headers";
@@ -141,8 +141,8 @@ export async function GET(req: NextRequest) {
       });
     }
     const userData = existingUser;
-    const session = await lucia.createSession(existingUser.id, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const session = await authSessionManager.createSession(existingUser.id, {});
+    const sessionCookie = authSessionManager.createSessionCookie(session.id);
 
     const cookieCall = await cookies()
 

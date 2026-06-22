@@ -1,8 +1,10 @@
 import type { Config } from "tailwindcss";
-import { withUt } from "uploadthing/tw";
+import animate from "tailwindcss-animate";
+import scrollbar from "tailwind-scrollbar";
+import containerQueries from "@tailwindcss/container-queries";
 
 const config = {
-  darkMode: ["class"],
+  darkMode: ["class", 'dark'],
   content: [
     "./src/**/*.{ts,tsx}",
   ],
@@ -129,10 +131,10 @@ const config = {
     },
   },
   plugins: [
-    require("tailwindcss-animate"),
-    require("tailwind-scrollbar")({ nocompatible: true }),
-    require("@tailwindcss/container-queries"),
+    animate,
+    scrollbar({ nocompatible: true }),
+    containerQueries,
   ],
 } satisfies Config;
 
-export default withUt(config);
+export default config;

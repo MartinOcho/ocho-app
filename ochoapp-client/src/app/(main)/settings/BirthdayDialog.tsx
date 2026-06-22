@@ -39,7 +39,6 @@ export default function BirthdayDialog() {
   const minimumYear = currentYear - 13;
 
   const currentBirthday = user?.birthday;
-  console.log(currentBirthday);
   
   const [selectedDate, setSelectedDate] = useState<Date>(
     currentBirthday ?? new Date(minimumYear, today.getMonth(), today.getDate()),

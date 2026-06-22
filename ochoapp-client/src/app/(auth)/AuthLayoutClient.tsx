@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import type { User } from "lucia";
+import type { AuthUser } from "@/auth";
 import { useTranslation } from "@/context/LanguageContext";
 import { Language } from "@/lib/vocabulary";
 import { Check } from "lucide-react";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface AuthLayoutClientProps {
-  user: User | null;
+  user: AuthUser | null;
   children: React.ReactNode;
 }
 

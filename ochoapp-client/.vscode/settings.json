@@ -8,5 +8,5 @@
    "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
    "WillLuke.nextjs.addTypesOnSave": true,
    "WillLuke.nextjs.hasPrompted": true,
-   "prisma.pinToPrisma6": true,
+   "prisma.pinToPrisma6": false,
 }

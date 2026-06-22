@@ -6,12 +6,17 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { useSubmitPostMutation } from "./mutations";
 import LoadingButton from "@/components/LoadingButton";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
-import { ClipboardEvent, useEffect, useRef, useState } from "react";
+import {
+  ClipboardEvent,
+  DragEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useDropzone } from "@uploadthing/react";
 import { Textarea } from "@/components/ui/textarea";
 import { VocabularyObject } from "@/lib/vocabulary";
 import { useTranslation } from "@/context/LanguageContext";
@@ -21,6 +26,7 @@ export default function PostEditor() {
   const [input, setInput] = useState("");
   const [gradient, setGradient] = useState<string | null>(null);
   const [triggerResize, setTriggerResize] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -45,12 +51,6 @@ export default function PostEditor() {
   function uploadFiles(files: File[]) {
     startUpload(files, { fileMaxSizeReached } as VocabularyObject);
   }
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: uploadFiles,
-  });
-
-  const { onClick, ...rootProps } = getRootProps();
 
   const maxGradientLength = 100;
 
@@ -91,11 +91,32 @@ export default function PostEditor() {
     }
   }
 
+  function onDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragActive(true);
+  }
+
+  function onDragLeave(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragActive(false);
+  }
+
+  function onDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragActive(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) {
+      uploadFiles(files);
+    }
+  }
+
   const placeholder = wtsup.replace("[name]", user.displayName.split(" ")[0]);
 
   return (
     <div
-      {...rootProps}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       className="flex flex-col gap-5 bg-card/50 p-5 shadow-sm max-sm:border-t-8 max-sm:border-solid max-sm:border-background sm:rounded-md sm:bg-card"
     >
       <div
@@ -144,7 +165,6 @@ export default function PostEditor() {
             onChange={({ target: { value } }) => setInput(value)}
             triggerResize={triggerResize}
           />
-          <input {...getInputProps()} />
         </div>
       </div>
       {!!attachments.length && (

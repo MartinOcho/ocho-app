@@ -1,10 +1,9 @@
-import { lucia } from "@/auth";
+import { authSessionManager, generateTokenId, generateUserId } from "@/auth";
 import kyInstance from "@/lib/ky";
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "@/app/(mobile)/android/auth";
-import { generateId, generateIdFromEntropySize } from "lucia";
 import { slugify } from "@/lib/utils";
 import { deleteOldSessionsForAccountOnDevice } from "@/lib/session-utils";
 import { detectGeoLocationFromIP } from "@/lib/geolocation-utils";
@@ -37,7 +36,7 @@ export async function GET(req: NextRequest) {
     const googleUser = await kyInstance
       .get("https://www.googleapis.com/oauth2/v1/userinfo/", {
         headers: {
-          Authorization: `Bearer ${tokens.accessToken}`,
+          Authorization: `Bearer ${tokens.accessToken()}`,
         },
       })
       .json<{ id: string; name: string; email: string; picture: string | null }>();
@@ -69,7 +68,7 @@ export async function GET(req: NextRequest) {
         passwordHash: true,
       },
     });
-    const authCode = generateId(20);
+    const authCode = generateTokenId(20);
     await prisma.authCode.create({
       data: {
         id: authCode,
@@ -79,8 +78,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (existingUser) {
-      const session = await lucia.createSession(existingUser.id, {});
-      const sessionCookie = lucia.createSessionCookie(session.id);
+      const session = await authSessionManager.createSession(existingUser.id, {});
+      const sessionCookie = authSessionManager.createSessionCookie(session.id);
 
       cookieCall.set(
         sessionCookie.name,
@@ -147,7 +146,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const userId = generateIdFromEntropySize(10);
+    const userId = generateUserId();
 
     async function validatedUsername() {
       const baseUsername = slugify(googleUser.name);
@@ -193,8 +192,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const session = await lucia.createSession(userId, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
+    const session = await authSessionManager.createSession(userId, {});
+    const sessionCookie = authSessionManager.createSessionCookie(session.id);
     cookieCall.set(
       sessionCookie.name,
       sessionCookie.value,

@@ -7,7 +7,6 @@ import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
 import cloudinary from "@/lib/cloudinary";
 import { UploadApiResponse } from "cloudinary";
-import { UTApi } from "uploadthing/server";
 
 export async function POST(request: NextRequest) {
   const { user } = await validateRequest();
@@ -53,20 +52,6 @@ export async function POST(request: NextRequest) {
     const public_id = uploadResult.public_id || null;
 
     const avatarUrl = user.avatarUrl || "";
-
-    const key =
-      avatarUrl.split(`/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`)[1] ||
-      avatarUrl.split("/f/")[1];
-    if (key) {
-      try {
-        await new UTApi().deleteFiles(key);
-      } catch (error) {
-        console.error(
-          `Error deleting orphan avatar UploadThing file ${key}:`,
-          error,
-        );
-      }
-    }
 
     // Supprimer les anciens avatars de l'utilisateur (base et Cloudinary)
     const previousAvatars = await prisma.userAvatar.findMany({

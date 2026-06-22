@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
+import { Inter, Inter_Tight } from "next/font/google";
 import localFont from "next/font/local";
-import { ThemeProvider } from "next-themes";
-import "./gradients.css";
 import "./globals.css";
+import { ThemeProvider } from "next-themes";
 import ReactQueryProvider from "./ReactQueryProvider";
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin"
-import { extractRouterConfig } from "uploadthing/server";
-import { fileRouter } from "./api/uploadthing/core";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
+const interSans = Inter({
+  variable: "--font-inter-sans",
+  subsets: ["latin"],
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
+
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  subsets: ["latin"],
 });
 
 const emojiFont = localFont({
@@ -24,7 +22,8 @@ const emojiFont = localFont({
   display: 'swap',
 });
 
-export const isXmas = (): boolean => {
+
+const isXmas = (): boolean => {
   const today = new Date();
   const start = new Date(today.getFullYear(), 11, 24); // 24 décembre
   const end = new Date(today.getFullYear() + 1, 0, 2, 23, 59, 59); // 2 janvier inclus
@@ -44,12 +43,60 @@ const favicons = isXmas()
       { url: '/favicon.png', type: 'image/png' },
     ];
 
+
 export const metadata: Metadata = {
+  // 1. Informations de base
   title: {
-    template: "%s - OchoApp",
-    default: "OchoApp"
+    default: "OchoApp - Connectez-vous et partagez à l'infini avec vos amis et partagez vos moments.",
+    template: "%s | OchoApp", 
   },
-  description: "The social media app for power nerd", 
+  description: "Connectez-vous avec vos amis, partagez vos moments, vos photos avec Cloudinary et discutez en temps réel sur OchoApp.",
+  keywords: ["OchoApp", "réseau social", "communauté", "ochokom", "nextjs", "partage", "messagerie"],
+  authors: [{ name: "Martin Ocho", url: "https://ochoapp.ochokom.com" }],
+  creator: "Martin Ocho",
+
+  // 2. Configuration pour les moteurs de recherche (SEO)
+  robots: {
+    index: true,
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+
+  // 3. Open Graph (Affichage sur Facebook, Discord, WhatsApp, LinkedIn)
+  openGraph: {
+    title: "OchoApp - Connectez-vous et partagez",
+    description: "Rejoignez OchoApp pour découvrir des publications captivantes, échanger en temps réel et suivre vos créateurs préférés.",
+    url: "https://ochoapp.ochokom.com",
+    siteName: "OchoApp",
+    locale: "fr_FR",
+    type: "website",
+    images: [
+      {
+        url: "https://ochoapp.ochokom.com/og-image.png", // Image par défaut à mettre dans votre dossier public
+        width: 1200,
+        height: 630,
+        alt: "Aperçu de la plateforme OchoApp",
+      },
+    ],
+  },
+
+  // 4. Configuration pour X (anciennement Twitter)
+  twitter: {
+    card: "summary_large_image",
+    title: "OchoApp - Connectez-vous et partagez",
+    description: "Découvrez ce qui se passe en ce moment sur OchoApp. Discutez, partagez et restez connecté.",
+    creator: "@ochomartin13", // Optionnel : Votre handle X
+    images: ["https://ochoapp.ochokom.com/og-image.png"],
+  },
+
+  // 5. Icônes du site (Favicons)
   icons: {
     icon: favicons,
   },
@@ -62,8 +109,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning={true}>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${emojiFont.variable}`}>
-        <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)}/>
+      <body className={`${interSans.variable} ${interTight.variable} ${emojiFont.variable}`}>
         <ReactQueryProvider>
           <ThemeProvider
           attribute="class"

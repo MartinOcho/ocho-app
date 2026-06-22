@@ -1,6 +1,6 @@
 "use server";
 
-import { lucia, validateRequest } from "@/auth";
+import { authSessionManager, validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,9 +17,9 @@ export async function logout() {
     },
   });
 
-  await lucia.invalidateSession(session.id);
+  await authSessionManager.invalidateSession(session.id);
 
-  const sessionCookie = lucia.createBlankSessionCookie();
+  const sessionCookie = authSessionManager.createBlankSessionCookie();
 
   const cookieCall = await cookies();
 
@@ -50,7 +50,7 @@ export async function switchAccount(sessionId: string) {
   }
 
   // Créer le cookie de session pour basculer vers ce compte
-  const sessionCookie = lucia.createSessionCookie(sessionId);
+  const sessionCookie = authSessionManager.createSessionCookie(sessionId);
 
   cookieCall.set(
     sessionCookie.name,
