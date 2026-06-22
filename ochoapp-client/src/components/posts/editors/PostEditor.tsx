@@ -148,9 +148,9 @@ export default function PostEditor() {
         </div>
         <div
           className={cn(
-            "flex-1",
+            "flex-1 max-w-full aspect-video",
             canShowGradient &&
-              `gadient-post ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+              `gradient-post ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
           )}
         >
           <Textarea
@@ -192,7 +192,7 @@ export default function PostEditor() {
                     setTriggerResize((prev) => !prev);
                   }}
                   size="icon"
-                  className={`gadient-post ${gradient} min-h-0 animate-scale bg-[hsl(var(--gradient-4-default))] text-[hsl(var(--gradient-4-foreground))] hover:bg-[hsl(var(--gradient-4-default))]`}
+                  className={`gradient-post ${gradient} min-h-0 animate-scale bg-[hsl(var(--gradient-4-default))] text-[hsl(var(--gradient-4-foreground))] hover:bg-[hsl(var(--gradient-4-default))]`}
                 >
                   {" "}
                 </Button>

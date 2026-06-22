@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./gradients.css";
 import { ThemeProvider } from "next-themes";
 import ReactQueryProvider from "./ReactQueryProvider";
 
