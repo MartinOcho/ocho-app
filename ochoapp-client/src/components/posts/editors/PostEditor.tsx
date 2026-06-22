@@ -148,9 +148,9 @@ export default function PostEditor() {
         </div>
         <div
           className={cn(
-            "flex-1 max-w-full aspect-video",
+            "flex-1 max-w-full",
             canShowGradient &&
-              `gradient-post ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+              `aspect-video gradient-post ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
           )}
         >
           <Textarea
