@@ -1,12 +1,14 @@
 import { google } from "@/auth";
 import { generateCodeVerifier, generateState } from "arctic";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 
-
-
-export async function GET() {
+export async function GET(req: NextRequest) {
     const state = generateState();
     const codeVerifier = generateCodeVerifier();
+    const switching =
+        req.nextUrl.searchParams.get("switching") === "true" ||
+        req.nextUrl.searchParams.get("switching") === "1";
 
 
     const url = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
@@ -26,6 +28,17 @@ export async function GET() {
         maxAge: 900, // 15 minutes au lieu de 10
         sameSite: "lax",
     });
-    
-    return Response.redirect(url)
+    cookieCall.set(
+        "oauth_switching",
+        switching ? "true" : "false",
+        {
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+            maxAge: 900,
+            sameSite: "lax",
+        },
+    );
+
+    return Response.redirect(url);
 }

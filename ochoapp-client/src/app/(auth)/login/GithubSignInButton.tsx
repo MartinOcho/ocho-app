@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 
 interface GithubSignInButtonProps {
   supported: boolean;
+  switchingParam?: string;
 }
 
 export default function GithubSignInButton({
   supported,
+  switchingParam = "",
 }: GithubSignInButtonProps) {
   return (
     <Button
@@ -20,7 +22,7 @@ export default function GithubSignInButton({
       size="icon"
     >
       <a
-        href="/login/github"
+        href={`/login/github${switchingParam}`}
         className="flex aspect-square h-full w-full items-center justify-center gap-2"
       >
         <GithubIcon />

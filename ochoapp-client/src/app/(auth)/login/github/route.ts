@@ -1,11 +1,13 @@
 import { github } from "@/auth";
 import { generateState } from "arctic";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 
-
-
-export async function GET() {
+export async function GET(req: NextRequest) {
     const state = generateState();
+    const switching =
+        req.nextUrl.searchParams.get("switching") === "true" ||
+        req.nextUrl.searchParams.get("switching") === "1";
 
 
     const url = await github.createAuthorizationURL(state, ["user"]);
@@ -15,9 +17,20 @@ export async function GET() {
         path: "/",
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        maxAge: 900, // 15 minutes au lieu de 10
+        maxAge: 900,
         sameSite: "lax",
     });
-    
-    return Response.redirect(url)
+    cookieCall.set(
+        "oauth_switching",
+        switching ? "true" : "false",
+        {
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+            maxAge: 900,
+            sameSite: "lax",
+        },
+    );
+
+    return Response.redirect(url);
 }

@@ -16,6 +16,9 @@ export async function GET(req: NextRequest) {
 
     const storedState = cookieCall.get("state")?.value;
     const storedCodeVerifier = cookieCall.get("code_verifier")?.value;
+    const shouldKeepSwitching =
+        cookieCall.get("oauth_switching")?.value === "true" ||
+        cookieCall.get("oauth_switching")?.value === "1";
 
     if (
         !code || !state || !storedState || !storedCodeVerifier || state !== storedState
@@ -23,6 +26,7 @@ export async function GET(req: NextRequest) {
         // Nettoyer les cookies avant de retourner l'erreur
         cookieCall.delete("state");
         cookieCall.delete("code_verifier");
+        cookieCall.delete("oauth_switching");
         return new Response(null, { status: 400 })
     }
 
@@ -71,6 +75,7 @@ export async function GET(req: NextRequest) {
             cookieCall.delete("device_id");
             cookieCall.delete("device_type");
             cookieCall.delete("device_model");
+            cookieCall.delete("oauth_switching");
 
             // Set custom cookie indicating third-party auth
             cookieCall.set("third_party_auth", "google", {
@@ -130,6 +135,10 @@ export async function GET(req: NextRequest) {
         cookieCall.delete("device_type");
         cookieCall.delete("device_model");
 
+        const onboardingRedirect = shouldKeepSwitching
+            ? "/oauth-complete?switching=true"
+            : "/oauth-complete";
+
         cookieCall.set(
             "oauth_pending",
             JSON.stringify({
@@ -151,7 +160,7 @@ export async function GET(req: NextRequest) {
         return new Response(null, {
             status: 302,
             headers: {
-                Location: "/oauth-complete",
+                Location: onboardingRedirect,
             }
         })
     } catch (error) {

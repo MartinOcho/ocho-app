@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 
 interface GoogleSignInButtonProps {
   supported: boolean;
+  switchingParam?: string;
 }
 
 export default function GoogleSignInButton({
   supported,
+  switchingParam = "",
 }: GoogleSignInButtonProps) {
   return (
     <Button
@@ -20,7 +22,7 @@ export default function GoogleSignInButton({
       title={supported ? "Connexion avec google" : "Google non pris en charge"}
     >
       <a
-        href="/login/google"
+        href={`/login/google${switchingParam}`}
         className="flex w-full h-full items-center justify-center gap-2"
       >
         <GoogleIcon />
