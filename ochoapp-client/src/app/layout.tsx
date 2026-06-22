@@ -48,7 +48,7 @@ const favicons = isXmas()
 export const metadata: Metadata = {
   // 1. Informations de base
   title: {
-    default: "OchoApp - Connectez-vous et partagez à l'infini avec vos amis et partagez vos moments.",
+    default: "OchoApp - Partagez à l'infini vos moments avec vos amis.",
     template: "%s | OchoApp", 
   },
   description: "Connectez-vous avec vos amis, partagez vos moments, vos photos avec Cloudinary et discutez en temps réel sur OchoApp.",
