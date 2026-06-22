@@ -1,4 +1,4 @@
-import { generateUserId, google, authSessionManager } from "@/auth";
+import { google, authSessionManager } from "@/auth";
 import kyInstance from "@/lib/ky";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
                     Authorization: `Bearer ${tokens.accessToken()}`
                 }
             })
-            .json<{ id: string; name: string; email: string; }>();
+            .json<{ id: string; name: string; email: string; picture?: string }>();
 
         const existingUser = await prisma.user.findUnique({
             where: { googleId: googleUser.id }
@@ -89,9 +89,6 @@ export async function GET(req: NextRequest) {
 
         }
 
-        const userId = generateUserId();
-        
-
         async function validatedUsername() {
             const baseUsername = slugify(googleUser.name);
             let validatedUsername = baseUsername;
@@ -125,55 +122,36 @@ export async function GET(req: NextRequest) {
         }
         
         const username = await validatedUsername();
-        const email = googleUser.email;
 
-
-        await prisma.user.create({
-            data: {
-                id: userId,
-                username,
-                email,
-                displayName: googleUser.name,
-                googleId: googleUser.id
-            },
-        });
-
-        const session = await authSessionManager.createSession(userId, {});
-        
-        // 🔑 Associer le deviceId à la session si disponible
-        if (deviceId) {
-            await prisma.session.update({
-                where: { id: session.id },
-                data: { deviceId }
-            });
-        }
-        
-        const sessionCookie = authSessionManager.createSessionCookie(session.id);
-        cookieCall.set(
-            sessionCookie.name,
-            sessionCookie.value,
-            sessionCookie.attributes,
-        );
-
-        // Nettoyer les cookies OAuth
+        // Nettoyer les cookies OAuth et stocker les infos pour l'étape d'onboarding
         cookieCall.delete("state");
         cookieCall.delete("code_verifier");
         cookieCall.delete("device_id");
         cookieCall.delete("device_type");
         cookieCall.delete("device_model");
 
-        // Set custom cookie indicating third-party auth
-        cookieCall.set("third_party_auth", "google", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30, // 30 days
-        });
+        cookieCall.set(
+            "oauth_pending",
+            JSON.stringify({
+                provider: "google",
+                userId: googleUser.id,
+                email: googleUser.email,
+                displayName: googleUser.name,
+                avatarUrl: googleUser.picture,
+                usernameSuggestion: username,
+            }),
+            {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                maxAge: 60 * 5,
+            }
+        );
 
         return new Response(null, {
             status: 302,
             headers: {
-                Location: "/",
+                Location: "/oauth-complete",
             }
         })
     } catch (error) {

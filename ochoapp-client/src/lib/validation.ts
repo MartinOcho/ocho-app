@@ -26,6 +26,16 @@ export const signupSchema = z.object({
 
 export type SignupValues = z.infer<typeof signupSchema>;
 
+export const oauthCompleteSchema = z.object({
+  username: requiredThreeChars.regex(
+    /^[a-zA-Z0-9_-]+$/,
+    "Nom d'utilisateur doit contenir uniquement des lettres, des chiffres, des tirets ou des tirets bas",
+  ),
+  displayName: requiredString.min(2, "Le nom affiché doit contenir au moins 2 caractères"),
+});
+
+export type OAuthCompleteValues = z.infer<typeof oauthCompleteSchema>;
+
 export const loginSchema = z.object({
   username: requiredString,
   password: requiredString,

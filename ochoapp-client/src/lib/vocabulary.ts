@@ -14,6 +14,10 @@ export const english = {
   exampleMail: "example@xyz.com",
   yourPassword: "Your Password",
   createPassword: "Create a password for your security",
+  completeProfile: "Complete your profile",
+  completeProfileDescription:
+    "A few details are needed to finish setting up your account.",
+  finishAccount: "Finish account",
   unsupportedEnv:
     "Unsupported environment. Update your browser or app, or visit the official site to log in.",
   appUser: "OchoApp User",
@@ -508,6 +512,10 @@ export const french: Vocabulary = {
   exampleMail: "exemple@xyz.com",
   yourPassword: "Votre mot de passe",
   createPassword: "Créer un mot de passe pour votre securite",
+  completeProfile: "Complétez votre profil",
+  completeProfileDescription:
+    "Quelques informations sont nécessaires pour finaliser votre compte.",
+  finishAccount: "Finaliser le compte",
   unsupportedEnv:
     "Environnement non supporté. Mettez à jour votre navigateur ou application, ou visitez le site officiel pour vous connecter.",
   appUser: "Utilisateur OchoApp",

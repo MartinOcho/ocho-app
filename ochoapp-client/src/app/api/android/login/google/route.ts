@@ -146,13 +146,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const userId = generateUserId();
-
     async function validatedUsername() {
       const baseUsername = slugify(googleUser.name);
       let validatedUsername = baseUsername;
 
-      // Chercher tous les noms d'utilisateur qui commencent par le nom de base
       const similarUsernames = await prisma.user.findMany({
         where: {
           username: {
@@ -163,15 +160,12 @@ export async function GET(req: NextRequest) {
       });
 
       if (similarUsernames.length === 0) {
-        // Si aucun nom d'utilisateur similaire, le nom est disponible
         return validatedUsername;
       }
 
-      // Extraire uniquement les suffixes numériques
       const usernameSet = new Set(similarUsernames.map((u) => u.username));
       let number = 1;
 
-      // Trouver le premier suffixe disponible
       while (usernameSet.has(validatedUsername)) {
         validatedUsername = `${baseUsername}${number}`;
         number++;
@@ -181,76 +175,36 @@ export async function GET(req: NextRequest) {
     }
 
     const username = await validatedUsername();
-    const email = googleUser.email;
-    const avatarUrl = await prisma.user.create({
-      data: {
-        id: userId,
-        username,
-        email,
-        displayName: googleUser.name,
-        googleId: googleUser.id,
-      },
-    });
 
-    const session = await authSessionManager.createSession(userId, {});
-    const sessionCookie = authSessionManager.createSessionCookie(session.id);
+    cookieCall.delete("state");
+    cookieCall.delete("code_verifier");
+    cookieCall.delete("device_id");
+    cookieCall.delete("device_type");
+    cookieCall.delete("device_model");
+
     cookieCall.set(
-      sessionCookie.name,
-      sessionCookie.value,
-      sessionCookie.attributes,
+      "oauth_pending",
+      JSON.stringify({
+        provider: "google",
+        userId: googleUser.id,
+        email: googleUser.email,
+        displayName: googleUser.name,
+        avatarUrl: googleUser.picture ?? null,
+        usernameSuggestion: username,
+        authCode,
+      }),
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 5,
+      },
     );
-
-    // Gestion du device pour Android
-    if (deviceId && deviceTypeHeader) {
-      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-      const geoLocation = await detectGeoLocationFromIP(ip, req.headers as any);
-
-      let device = await prisma.device.findUnique({
-        where: { deviceId: deviceId },
-      });
-
-      if (!device) {
-        device = await prisma.device.create({
-          data: {
-            deviceId: deviceId,
-            type: (deviceTypeHeader as DeviceType) || "UNKNOWN",
-            model: deviceModel || "Unknown Model",
-            ip: ip,
-            location: geoLocation.city && geoLocation.countryCode 
-              ? `${geoLocation.city}, ${geoLocation.countryCode}` 
-              : geoLocation.countryCode || null,
-          },
-        });
-        console.log("Nouvel appareil enregistré:", device);
-      } else {
-        // Mettre à jour l'IP et la localisation à chaque appel
-        device = await prisma.device.update({
-          where: { deviceId: deviceId },
-          data: {
-            ip: ip,
-            location: geoLocation.city && geoLocation.countryCode 
-              ? `${geoLocation.city}, ${geoLocation.countryCode}` 
-              : geoLocation.countryCode || device.location,
-            updatedAt: new Date(),
-          },
-        });
-      }
-
-      // Associer la session au device
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { deviceId: deviceId },
-      });
-      console.log("Session associée au device:", session.id);
-
-      // Supprimer les anciennes sessions de ce compte sur ce device
-      await deleteOldSessionsForAccountOnDevice(userId, deviceId, session.id);
-    }
 
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `/redirect?provider=google&userId=${googleUser.id}&code=${authCode}`,
+        Location: "/oauth-complete",
       },
     });
   } catch (error) {

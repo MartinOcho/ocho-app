@@ -42,7 +42,12 @@ export async function GET(req: NextRequest) {
           Authorization: `Bearer ${tokens.accessToken()}`,
         },
       })
-      .json<{ id: string; login: string; avatar_url: string }>();
+      .json<{
+        id: string;
+        login: string;
+        avatar_url: string;
+        email?: string | null;
+      }>();
 
     const githubId = githubUser.id.toString();
     const githubUsername = githubUser.login.toString();
@@ -104,13 +109,10 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-    const userId = generateUserId();
-
     async function validatedUsername() {
       const baseUsername = slugify(githubUsername);
       let validatedUsername = baseUsername;
 
-      // Chercher tous les noms d'utilisateur qui commencent par le nom de base
       const similarUsernames = await prisma.user.findMany({
         where: {
           username: {
@@ -121,15 +123,12 @@ export async function GET(req: NextRequest) {
       });
 
       if (similarUsernames.length === 0) {
-        // Si aucun nom d'utilisateur similaire, le nom est disponible
         return validatedUsername;
       }
 
-      // Extraire uniquement les suffixes numériques
       const usernameSet = new Set(similarUsernames.map((u) => u.username));
       let number = 1;
 
-      // Trouver le premier suffixe disponible
       while (usernameSet.has(validatedUsername)) {
         validatedUsername = `${baseUsername}${number}`;
         number++;
@@ -140,64 +139,34 @@ export async function GET(req: NextRequest) {
 
     const username = await validatedUsername();
 
-    // Étape 1: Récupérer l'image de Facebook
-    const avatarResponse = await kyInstance.get(githubAvatarUrl);
-    const avatarBlob = await avatarResponse.blob();
+    cookieCall.delete("state");
+    cookieCall.delete("device_id");
+    cookieCall.delete("device_type");
+    cookieCall.delete("device_model");
 
-    // Fonction pour uploader l'avatar via fetch
-    async function uploadAvatar(blob: Blob): Promise<string | null> {
-      const file = new File([blob], `avatar-${userId}.webp`, {
-        type: "image/webp",
-      });
-      const formData = new FormData();
-      formData.append("avatar", file);
-
-      let response = await kyInstance
-        .post("/api/upload/avatar", {
-          body: formData,
-          throwHttpErrors: false,
-        })
-        .json<LocalUpload[] | null>();
-
-      if (!response?.[0]?.serverData?.avatarUrl) {
-        return null;
-      }
-      const result = response[0].appUrl;
-      return result;
-    }
-
-    const avatarUrl = await uploadAvatar(avatarBlob);
-
-    await prisma.user.create({
-      data: {
-        id: userId,
-        username,
-        displayName: githubUsername,
-        githubId,
-        avatarUrl,
-      },
-    });
-
-    const session = await authSessionManager.createSession(userId, {});
-    
-    // 🔑 Associer le deviceId à la session si disponible
-    if (deviceId) {
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { deviceId }
-      });
-    }
-    
-    const sessionCookie = authSessionManager.createSessionCookie(session.id);
     cookieCall.set(
-      sessionCookie.name,
-      sessionCookie.value,
-      sessionCookie.attributes,
+      "oauth_pending",
+      JSON.stringify({
+        provider: "github",
+        userId: githubId,
+        email: githubUser.email ?? null,
+        displayName: githubUsername,
+        avatarUrl: githubAvatarUrl,
+        usernameSuggestion: username,
+        authCode,
+      }),
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 5,
+      },
     );
+
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `/redirect?provider=github&userId=${githubId}&code=${authCode}`,
+        Location: "/oauth-complete",
       },
     });
   } catch (error) {
