@@ -32,7 +32,9 @@ export default function AuthLayoutClient({
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
 
-  const isSwitching = searchParams.get("switching") === "true";
+  const isSwitching =
+    searchParams.get("switching") === "true" ||
+    searchParams.get("switching") === "1";
   const isLogoutAccountsPage = pathname?.includes("/logout-accounts");
   const isLegalPage =
     pathname?.includes("/terms-of-use") || pathname?.includes("/privacy");

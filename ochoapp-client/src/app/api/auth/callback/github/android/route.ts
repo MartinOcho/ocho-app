@@ -166,7 +166,7 @@ export async function GET(req: NextRequest) {
     return new Response(null, {
       status: 302,
       headers: {
-        Location: "/oauth-complete",
+        Location: "/oauth-complete?switching=true",
       },
     });
   } catch (error) {

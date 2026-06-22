@@ -3,13 +3,19 @@ import { redirect } from "next/navigation";
 import OAuthCompleteForm from "./OAuthCompleteForm";
 import { getTranslation } from "@/lib/language";
 
-export default async function OAuthCompletePage() {
+export default async function OAuthCompletePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ switching?: string }>;
+}) {
+  const params = await searchParams;
+  const switchingParam = params.switching ? `?switching=${params.switching}` : "";
   const cookieStore = await cookies();
   const pendingData = cookieStore.get("oauth_pending")?.value;
   const { completeProfile, completeProfileDescription } = await getTranslation();
 
   if (!pendingData) {
-    redirect("/login");
+    redirect(`/login${switchingParam}`);
   }
 
   let parsedData;
@@ -17,11 +23,11 @@ export default async function OAuthCompletePage() {
   try {
     parsedData = JSON.parse(pendingData);
   } catch {
-    redirect("/login");
+    redirect(`/login${switchingParam}`);
   }
 
   if (!parsedData || typeof parsedData !== "object") {
-    redirect("/login");
+    redirect(`/login${switchingParam}`);
   }
 
   return (
