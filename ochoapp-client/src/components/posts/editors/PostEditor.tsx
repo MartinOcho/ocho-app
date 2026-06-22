@@ -157,8 +157,8 @@ export default function PostEditor() {
             ref={textareaRef}
             placeholder={placeholder}
             className={cn(
-              "max-h-[15rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
-              canShowGradient && "max-w-fit text-center",
+              "max-h-[14rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
+              canShowGradient && "text-center", canShowGradient && input.trim().length && "max-w-fit",
             )}
             rows={1}
             value={input}
