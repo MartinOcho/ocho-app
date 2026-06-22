@@ -14,3 +14,5 @@ testers.csv
 ochoapp-server/FCM_SETUP.md
 ochoapp-server/prisma/migrations/migration_lock.toml
 ochoapp-server/prisma/migrations/add_fcm_tokens/migration.sql
+ochoapp-server/scripts/.artificial-likes-state.json
+ochoapp-server/scripts/artificial-likes.ts
