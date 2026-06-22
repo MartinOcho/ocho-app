@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     default: "OchoApp - Partagez à l'infini vos moments avec vos amis.",
     template: "%s | OchoApp", 
   },
-  description: "Connectez-vous avec vos amis, partagez vos moments, vos photos avec Cloudinary et discutez en temps réel sur OchoApp.",
+  description: "Connectez-vous avec vos amis, partagez vos moments et discutez sur OchoApp.",
   keywords: ["OchoApp", "réseau social", "communauté", "ochokom", "nextjs", "partage", "messagerie"],
   authors: [{ name: "Martin Ocho", url: "https://ochoapp.ochokom.com" }],
   creator: "Martin Ocho",
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
   // 3. Open Graph (Affichage sur Facebook, Discord, WhatsApp, LinkedIn)
   openGraph: {
     title: "OchoApp - Connectez-vous et partagez",
-    description: "Rejoignez OchoApp pour découvrir des publications captivantes, échanger en temps réel et suivre vos créateurs préférés.",
+    description: "Rejoignez OchoApp pour découvrir des publications captivantes et suivre vos créateurs préférés.",
     url: "https://ochoapp.ochokom.com",
     siteName: "OchoApp",
     locale: "fr_FR",
