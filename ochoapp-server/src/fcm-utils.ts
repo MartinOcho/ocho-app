@@ -3,8 +3,11 @@ import { getMessaging, MulticastMessage } from "firebase-admin/messaging";
 import prisma from "./prisma";
 import chalk from "chalk";
 import { MessageData, NotificationData } from "./types";
+import dotenv from "dotenv"
 
-// Initialiser Firebase Admin (s'il n'est pas déjà initialisé)
+dotenv.config();
+
+
 if (!getApps().length) {
   try {
     const keys = {

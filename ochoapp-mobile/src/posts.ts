@@ -60,7 +60,7 @@ export function calculateRelevanceScore(
 }
 
 export async function getPost(req: Request, res: Response) {
-  const { postId } = req.params;
+  const { postId } = <{ postId: string }>req.params;
   try {
     const { user: currentUser, message } = await getCurrentUser(req.headers);
     if (!currentUser) {
@@ -87,7 +87,7 @@ export async function getPost(req: Request, res: Response) {
     const [allScores, post] = await prisma.$transaction([
       prisma.postUserScore.findMany({
         where: {
-          postId: postId,
+          postId,
         },
         select: {
           userId: true,
@@ -204,7 +204,7 @@ export async function getPost(req: Request, res: Response) {
 }
 
 export async function deletePost(req: Request, res: Response) {
-  const { postId } = req.params;
+  const { postId } = <{ postId: string }>req.params;
   try {
     const { user, message } = await getCurrentUser(req.headers);
     if (!user) {
@@ -257,7 +257,7 @@ export async function deletePost(req: Request, res: Response) {
 }
 
 export async function toggleLike(req: Request, res: Response) {
-  const { postId } = req.params;
+  const { postId } = <{ postId: string }>req.params;
   try {
     const { user, message } = await getCurrentUser(req.headers);
     if (!user) {
@@ -273,7 +273,7 @@ export async function toggleLike(req: Request, res: Response) {
 
     await prisma.$transaction(async (prisma) => {
       const existingLike = await prisma.like.findFirst({
-        where: { postId: postId, userId: userId },
+        where: { postId, userId: userId },
       });
 
       if (existingLike) {
@@ -330,7 +330,7 @@ export async function toggleLike(req: Request, res: Response) {
 }
 
 export async function toggleBookmark(req: Request, res: Response) {
-  const { postId } = req.params;
+  const { postId } = <{ postId: string }>req.params;
   try {
     const { user, message } = await getCurrentUser(req.headers);
     if (!user) {
@@ -865,7 +865,7 @@ export async function createPost(req: Request, res: Response) {
 }
 
 export async function getUserPosts(req: Request, res: Response) {
-  const { userId } = req.params;
+  const { userId } = <{ userId: string }>req.params;
   try {
     const { user, message } = await getCurrentUser(req.headers);
     if (!user) {

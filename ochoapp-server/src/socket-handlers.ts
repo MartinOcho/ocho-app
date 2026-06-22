@@ -31,6 +31,7 @@ import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
 import { cloudinary } from ".";
 import { th } from "zod/locales";
 import chalk from "chalk";
+import prisma from "./prisma";
 
 interface CloudinaryApi {
   uploader: {
@@ -46,7 +47,6 @@ interface CloudinaryApi {
   };
 }
 
-const prisma = new PrismaClient();
 
 // --- HANDLE START CHAT ---
 export async function handleStartChat(

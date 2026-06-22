@@ -68,7 +68,6 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-// SUPPRIMÉ: const prisma = new PrismaClient(); -> On utilise l'import singleton
 
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";

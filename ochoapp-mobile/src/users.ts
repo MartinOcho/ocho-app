@@ -11,7 +11,7 @@ import { checkVerification, getCurrentUser } from "./auth";
 import { log } from "console";
 
 export async function getUserProfile(req: Request, res: Response) {
-  const { userId } = req.params;
+  const { userId } = <{ userId: string }>req.params;
   try {
     const { user: loggedUser, message } = await getCurrentUser(req.headers);
     if (!loggedUser) {
@@ -252,7 +252,7 @@ export async function updateUserProfile(req: Request, res: Response) {
 }
 
 export async function toggleFollow(req: Request, res: Response) {
-  const { userId } = req.params;
+  const { userId } = <{ userId: string }>req.params;
   try {
     const { user: loggedUser, message } = await getCurrentUser(req.headers);
     if (!loggedUser) {

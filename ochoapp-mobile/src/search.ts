@@ -583,7 +583,7 @@ export async function deleteSearchQuery(req: Request, res: Response) {
       });
     }
 
-    const searchId = req.params.queryId;
+    const searchId = <string>req.params.queryId;
     if (!searchId) {
       return res.json({
         success: false,

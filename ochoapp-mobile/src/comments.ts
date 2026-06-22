@@ -14,7 +14,7 @@ import { createCommentSchema } from "./validation";
 
 export async function sendComment(req: Request, res: Response) {
   try {
-    const { postId } = req.params;
+    const { postId } = <{ postId: string }>req.params;
     const { user: loggedUser, message } = await getCurrentUser(req.headers);
     if (!loggedUser) {
       return res.json({
@@ -146,7 +146,7 @@ export async function sendComment(req: Request, res: Response) {
 }
 
 export async function getComments(req: Request, res: Response) {
-  const { postId } = req.params;
+  const { postId } = <{ postId: string }>req.params;
   try {
     const { user, message } = await getCurrentUser(req.headers);
     if (!user) {
@@ -440,7 +440,7 @@ export async function sendCommentReply(req: Request, res: Response) {
 }
 
 export async function getCommentReplies(req: Request, res: Response) {
-  const { commentId } = req.params;
+  const { commentId } = <{ commentId: string }>req.params;
   try {
     const { user: loggedUser, message } = await getCurrentUser(req.headers);
     if (!loggedUser) {
@@ -611,7 +611,7 @@ export async function getCommentReplies(req: Request, res: Response) {
 }
 
 export async function likeComment(req: Request, res: Response) {
-  const { commentId } = req.params;
+  const { commentId } = <{ commentId: string }>req.params;
 
   try {
     const { user, message } = await getCurrentUser(req.headers);
@@ -701,7 +701,7 @@ export async function likeComment(req: Request, res: Response) {
 }
 
 export async function deleteComment(req: Request, res: Response) {
-  const { commentId } = req.params;
+  const { commentId } = <{ commentId: string }>req.params;
 
   try {
     const { user, message } = await getCurrentUser(req.headers);

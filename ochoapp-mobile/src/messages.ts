@@ -132,7 +132,7 @@ export async function getMessageRooms(req: Request, res: Response) {
 }
 
 export async function getRoom(req: Request, res: Response) {
-  const roomId = req.params.roomId;
+  const roomId = <string>req.params.roomId;
   try {
     const { userData, user } = await validateUser(req, res);
     if (!user || !userData) {
@@ -330,7 +330,7 @@ export function formatSavedMessages(
 }
 
 export async function getMessages(req: Request, res: Response) {
-  const roomId = req.params.roomId;
+  const roomId = <string>req.params.roomId;
   const cursor = (req.query.cursor as string) || undefined;
   const pageSize = 10;
 
@@ -468,7 +468,7 @@ export async function getMessages(req: Request, res: Response) {
 }
 
 export async function getLastMessage(req: Request, res: Response) {
-  const roomId = req.params.roomId;
+  const roomId = <string>req.params.roomId;
   try {
     const { userData, user } = await validateUser(req, res);
 
@@ -586,7 +586,7 @@ export async function getLastMessage(req: Request, res: Response) {
 }
 
 export async function getRoomMedias(req: Request, res: Response) {
-  const roomId = req.params.roomId;
+  const roomId = <string>req.params.roomId;
   const cursor = (req.query.cursor as string) || undefined;
   const pageSize = 12;
 
@@ -774,7 +774,7 @@ export async function getUnreadRoomsCount(req: Request, res: Response) {
 }
 
 export async function getUnreadMessagesCount(req: Request, res: Response) {
-  const roomId = req.params.roomId;
+  const roomId = <string>req.params.roomId;
 
   try {
     const { userData, user } = await validateUser(req, res);
@@ -991,7 +991,7 @@ export async function searchMessageUsers(req: Request, res: Response) {
 }
 
 export async function getMessageDeliveries(req: Request, res: Response) {
-  const { messageId } = req.params;
+  const { messageId } = <{ messageId: string }>req.params;
   const { user: loggedInUser, message } = await getCurrentUser(req.headers);
   if (!loggedInUser) {
     return res.json({
@@ -1045,7 +1045,7 @@ export async function getMessageDeliveries(req: Request, res: Response) {
 }
 
 export async function getMessageReactions(req: Request, res: Response) {
-  const { messageId } = req.params;
+  const { messageId } = <{ messageId: string }>req.params;
   try {
     const { user: loggedInUser, message: msg } = await getCurrentUser(
       req.headers,
@@ -1145,7 +1145,7 @@ export async function getMessageReactions(req: Request, res: Response) {
 }
 
 export async function getMessageReads(req: Request, res: Response) {
-  const { messageId } = req.params;
+  const { messageId } = <{ messageId: string }>req.params;
   const { user: loggedInUser, message } = await getCurrentUser(req.headers);
   if (!loggedInUser) {
     return res.json({
@@ -1199,7 +1199,7 @@ export async function getMessageReads(req: Request, res: Response) {
 }
 
 export async function updateRoom(req: Request, res: Response) {
-  const { roomId } = req.params;
+  const { roomId } = <{ roomId: string }>req.params;
   const { name, description, groupAvatarUrl } = req.body;
 
   try {

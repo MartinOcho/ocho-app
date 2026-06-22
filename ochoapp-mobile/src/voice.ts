@@ -20,10 +20,7 @@ interface CloudinaryApi {
  */
 export async function uploadVoiceNote(req: Request, res: Response) {
   try {
-    const { voiceNoteBase64, duration } = req.body as {
-      voiceNoteBase64?: string;
-      duration?: number;
-    };
+    const { voiceNoteBase64, duration } = <{ voiceNoteBase64?: string; duration?: number }>req.body;
 
     // Valider l'authentification
     const { user } = await getCurrentUser(req.headers);
@@ -99,7 +96,7 @@ export async function uploadVoiceNote(req: Request, res: Response) {
  */
 export async function getVoiceNote(req: Request, res: Response) {
   try {
-    const { voiceNoteId } = req.params;
+    const { voiceNoteId } = <{ voiceNoteId: string }>req.params;
 
     const voiceNote = await prisma.voiceNote.findUnique({
       where: { id: voiceNoteId },
@@ -131,7 +128,7 @@ export async function getVoiceNote(req: Request, res: Response) {
  */
 export async function deleteVoiceNote(req: Request, res: Response) {
   try {
-    const { voiceNoteId } = req.params;
+    const { voiceNoteId } = <{ voiceNoteId: string }>req.params;
 
     // Valider l'authentification
     const { user } = await getCurrentUser(req.headers);

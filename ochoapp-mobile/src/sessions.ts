@@ -162,7 +162,7 @@ export async function getActiveSessions(req: Request, res: Response) {
  */
 export async function removeSession(req: Request, res: Response) {
   try {
-    const { sessionId } = req.params;
+    const { sessionId } = <{ sessionId: string }>req.params;
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {

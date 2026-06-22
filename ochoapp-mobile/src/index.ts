@@ -907,9 +907,9 @@ app.post(
 app.post(
   "/api/:roomId/cloudinary/upload-group-avatar",
   upload.single("file"),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
-      const roomId = req.params.roomId;
+      const roomId = <string>req.params.roomId;
 
       const { userData, user } = await validateUser(req, res);
       if (!user || !userData) {
