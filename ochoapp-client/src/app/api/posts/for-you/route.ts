@@ -26,65 +26,41 @@ export async function GET(req: NextRequest) {
       take: !cursor ? 3 : 0,
     });
 
-    // Récupérer d'abord les posts des auteurs suivis, puis un pool de posts populaires
-    const followedPosts = await prisma.post.findMany({
+    // Récupérer les posts suivants triés par pertinence
+    const relevantPosts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
+      orderBy: [
+        {
+          relevanceScore: "desc",
+        },
+        {
+          createdAt: "desc",
+        },
+      ],
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
       where: {
-        AND: [
-          {
-            user: {
-              followers: {
-                some: { followerId: user.id },
-              },
-            },
-          },
-          {
-            id: { notIn: latestPosts.map((post) => post.id) },
-          },
-        ],
+        id: {
+          notIn: latestPosts.map(post => post.id), // Exclure les posts déjà récupérés
+        },
       },
-      orderBy: { createdAt: "desc" },
-      take: pageSize * 3,
     });
 
-    const popularPosts = await prisma.post.findMany({
-      include: getPostDataIncludes(user.id),
-      where: {
-        id: { notIn: [...latestPosts, ...followedPosts].map((post) => post.id) },
-      },
-      orderBy: { relevanceScore: "desc" },
-      take: pageSize * 3,
-    });
+    const posts = [...latestPosts, ...relevantPosts];
 
-    const posts = [...latestPosts, ...followedPosts, ...popularPosts];
-    const uniquePosts = Array.from(new Map(posts.map((post) => [post.id, post])).values());
-
-    const postsWithScores = uniquePosts.map((post) => {
-      const baseScore = post.relevance?.[0]?.relevanceScore ?? 0;
-      const computedScore = calculateRelevanceScore(
+    const postsWithScores = posts.slice(0, pageSize).map((post) => ({
+      ...post,
+      relevanceScore: calculateRelevanceScore(
         post,
         user,
-        uniquePosts[0]?.id || undefined,
-      );
-
-      return {
-        ...post,
-        relevanceScore: computedScore * 0.8 + baseScore * 1.2 + Math.random() * 0.01,
-      };
-    });
+        posts[0]?.id || undefined,
+      ),
+    }));
 
     const sortedPosts = postsWithScores
-      .sort((a, b) => {
-        const diff = b.relevanceScore - a.relevanceScore;
-        return diff !== 0
-          ? diff
-          : b.createdAt.getTime() - a.createdAt.getTime();
-      })
-      .slice(0, pageSize);
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-    const nextCursor = uniquePosts.length > pageSize + latestPosts.length
-      ? uniquePosts[pageSize + latestPosts.length].id
-      : null;
+    const nextCursor = posts.length > pageSize + latestPosts.length ? posts[pageSize + latestPosts.length].id : null;
 
     const data: PostsPage = {
       posts: sortedPosts,
