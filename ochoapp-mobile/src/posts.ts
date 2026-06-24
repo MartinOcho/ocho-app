@@ -421,14 +421,13 @@ export async function getPostsForYou(req: Request, res: Response) {
       take: !cursor ? 3 : 0,
     });
 
-    // Récupérer les posts suivants triés par pertinence
+    // Récupérer un pool de candidats qui sera ensuite classé de manière personnalisée
     const relevantPosts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
-      orderBy: [
-        { relevanceScore: "desc" },
-        { createdAt: "desc" },
-      ],
-      take: pageSize + 1,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: pageSize * 4,
       cursor: cursor ? { id: cursor } : undefined,
       where: {
         id: {
@@ -440,11 +439,12 @@ export async function getPostsForYou(req: Request, res: Response) {
     const allPosts = [...latestPosts, ...relevantPosts];
 
     const scoredPosts = allPosts.map((post) => {
+      const baseScore = post.relevance?.[0]?.relevanceScore ?? 0;
       const relevance = calculateRelevanceScore(
         post,
         user,
         allPosts[0]?.id,
-      );
+      ) + baseScore * 0.2;
 
       const userVerifiedData = post.user.verified?.[0];
       const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
