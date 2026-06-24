@@ -499,7 +499,7 @@ export async function getPostsForYou(req: Request, res: Response) {
       success: true,
       message: "Posts retrieved successfully",
       data: {
-        posts: sortedPosts,
+        posts: sortedPosts.sort(() => Math.random() - 0.5),
         nextCursor,
       },
     });

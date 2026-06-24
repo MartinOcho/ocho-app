@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const nextCursor = posts.length > pageSize + latestPosts.length ? posts[pageSize + latestPosts.length].id : null;
 
     const data: PostsPage = {
-      posts: sortedPosts,
+      posts: sortedPosts.sort(() => Math.random() - 0.5),
       nextCursor,
     };
 
