@@ -62,7 +62,7 @@ export default function MobileAppToast() {
           </Button>
           <Button
             onClick={() => window.open(playStoreUrl, "_blank")}
-            className="flex w-full items-center justify-center gap-2 bg-green-600 font-semibold text-white transition-colors hover:bg-green-700"
+            className="flex w-full items-center justify-center gap-2 bg-gray-600 font-semibold text-white transition-colors hover:bg-green-700"
           >
             <div className="flex h-5 w-5 items-center justify-center">
               <img
