@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     const posts = [...latestPosts, ...relevantPosts];
 
-    const postsWithScores = posts.slice(0, pageSize).map((post) => ({
+    const postsWithScores = posts.map((post) => ({
       ...post,
       relevanceScore: calculateRelevanceScore(
         post,
@@ -58,9 +58,12 @@ export async function GET(req: NextRequest) {
     }));
 
     const sortedPosts = postsWithScores
-      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, pageSize);
 
-    const nextCursor = posts.length > pageSize + latestPosts.length ? posts[pageSize + latestPosts.length].id : null;
+    const nextCursor = posts.length > pageSize + latestPosts.length
+      ? posts[pageSize + latestPosts.length].id
+      : null;
 
     const data: PostsPage = {
       posts: sortedPosts,
