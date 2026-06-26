@@ -77,6 +77,16 @@ model OldUserData {
   @@map("old_user_data")
 }
 
+model AccountDeletionRequest {
+  id                  String   @id @default(cuid())
+  email               String
+  details             String?
+  scheduledDeletionAt DateTime
+  createdAt           DateTime @default(now())
+
+  @@map("account_deletion_requests")
+}
+
 model Device {
   id        String     @id @default(cuid())
   deviceId  String     @unique
