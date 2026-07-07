@@ -132,11 +132,12 @@ export default function RoomHeader({
   } = t();
   const queryClient = useQueryClient();
   const { checkUserStatus, onlineStatus } = useSocket();
-  const queryKey = ["room", "head", roomId];
+  const queryKey = useMemo(() => ["room", "head", roomId], [roomId]);
   const { data, status, error } = useQuery({
     queryKey,
     queryFn: () =>
       kyInstance.get(`/api/messages/rooms/${roomId}/header`).json<RoomData>(),
+    enabled: !!roomId,
     staleTime: Infinity,
   });
 
@@ -152,11 +153,11 @@ export default function RoomHeader({
   }, [activeRoomId]);
 
   useEffect(() => {
-    if (roomId) {
-      setRoom(normalizedInitialRoom);
-      queryClient.invalidateQueries({ queryKey });
-    }
-  }, [roomId, normalizedInitialRoom, queryClient, queryKey]);
+    if (!roomId) return;
+
+    setRoom(normalizedInitialRoom);
+    void queryClient.invalidateQueries({ queryKey });
+  }, [roomId, queryClient, queryKey]);
 
   useEffect(() => {
     if (data) {
