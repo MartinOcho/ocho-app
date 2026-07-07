@@ -177,7 +177,7 @@ export async function validateSession(
 }
 
 export async function socketHandler(
-  socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>,
+  socket: Socket,
   next: (err?: ExtendedError | undefined) => void,
 ) {
   try {
@@ -205,7 +205,7 @@ export async function socketHandler(
     });
 
     if (!session || !session.user) {
-      console.log(chalk.red("Impossible de connecter le client"));
+      console.log(chalk.redBright("Impossible de connecter le client"));
       return next(new Error("Session introuvable"));
     }
 
@@ -651,6 +651,27 @@ export function groupManagment(
         const newMembers = members.filter(
           (memberId) => !existingMembers.some((em) => em.userId === memberId),
         );
+
+        const validFollowers = await prisma.follow.findMany({
+          where: {
+            followerId: { in: newMembers },
+            followingId: userId,
+          },
+          select: { followerId: true },
+        });
+
+        const validFollowerIds = new Set(
+          validFollowers.map((item) => item.followerId),
+        );
+        const invalidMembers = newMembers.filter(
+          (mid) => !validFollowerIds.has(mid),
+        );
+
+        if (invalidMembers.length > 0) {
+          throw new Error(
+            "Seuls les utilisateurs qui vous suivent peuvent être ajoutés au groupe.",
+          );
+        }
 
         const newMembersCreated = await prisma.roomMember.createMany({
           data: newMembers.map((mid) => ({ userId: mid, roomId })),

@@ -33,6 +33,74 @@ import { th } from "zod/locales";
 import chalk from "chalk";
 import prisma from "./prisma";
 
+async function doesUserFollow(
+  followerId: string,
+  followingId: string,
+): Promise<boolean> {
+  const follow = await prisma.follow.findUnique({
+    where: {
+      followerId_followingId: {
+        followerId,
+        followingId,
+      },
+    },
+  });
+  return Boolean(follow);
+}
+
+async function validateGroupMembersAreFollowers(
+  userId: string,
+  memberIds: string[],
+) {
+  if (!memberIds.length) return;
+
+  const follows = await prisma.follow.findMany({
+    where: {
+      followerId: { in: memberIds },
+      followingId: userId,
+    },
+    select: { followerId: true },
+  });
+
+  const followerIds = new Set(follows.map((row) => row.followerId));
+  const invalidMemberIds = memberIds.filter((id) => !followerIds.has(id));
+
+  if (invalidMemberIds.length > 0) {
+    throw new Error(
+      "Seuls les utilisateurs qui vous suivent peuvent être ajoutés au groupe.",
+    );
+  }
+}
+
+async function hasPendingRequestMessage(
+  roomId: string,
+  senderId: string,
+  recipientId: string,
+): Promise<boolean> {
+  const lastSenderMessage = await prisma.message.findFirst({
+    where: {
+      roomId,
+      senderId,
+      type: { not: "CREATE" },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!lastSenderMessage) return false;
+
+  const recipientReply = await prisma.message.findFirst({
+    where: {
+      roomId,
+      senderId: recipientId,
+      type: { not: "CREATE" },
+      createdAt: { gt: lastSenderMessage.createdAt },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return !Boolean(recipientReply);
+}
+
 interface CloudinaryApi {
   uploader: {
     upload_stream: (
@@ -80,6 +148,22 @@ export async function handleStartChat(
     if (existingRoom) {
       return existingRoom as unknown as RoomData;
     }
+
+    if (!targetUserId) {
+      throw new Error("Utilisateur cible requis.");
+    }
+
+    const targetFollowsMe = await doesUserFollow(targetUserId, userId);
+    if (!targetFollowsMe) {
+      throw new Error(
+        "Vous ne pouvez démarrer une discussion qu'avec un utilisateur qui vous suit.",
+      );
+    }
+  }
+
+  if (isGroup) {
+    const otherMemberIds = uniqueMemberIds.filter((id) => id !== userId);
+    await validateGroupMembersAreFollowers(userId, otherMemberIds);
   }
 
   const newRoom = await prisma.$transaction(
@@ -251,6 +335,15 @@ export async function handleAddReaction(
     throw new Error("Invalid message state: senderId is not set");
   }
 
+  if (originalMessage.roomId) {
+    const membership = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId: originalMessage.roomId, userId } },
+    });
+    if (!membership || membership.type === "BANNED" || membership.leftAt) {
+      throw new Error("Non autorisé");
+    }
+  }
+
   const reaction = await prisma.reaction.upsert({
     where: {
       userId_messageId: {
@@ -351,6 +444,15 @@ export async function handleRemoveReaction(
     },
   });
   if (!message) throw new Error("Message not found");
+
+  if (message.roomId) {
+    const membership = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId: message.roomId, userId } },
+    });
+    if (!membership || membership.type === "BANNED" || membership.leftAt) {
+      throw new Error("Non autorisé");
+    }
+  }
 
   if (!message.reactions[0]) throw new Error("Reaction not found");
 
@@ -697,6 +799,33 @@ export async function handleSendNormalMessage(
 
   if (!room) throw new Error("Room not found");
 
+  if (!room.isGroup) {
+    const otherMember = room.members.find(
+      (m) => m.userId && m.userId !== userId,
+    );
+
+    if (otherMember?.userId) {
+      const recipientFollowsSender = await doesUserFollow(
+        otherMember.userId,
+        userId,
+      );
+
+      if (!recipientFollowsSender) {
+        const pendingRequest = await hasPendingRequestMessage(
+          roomId,
+          userId,
+          otherMember.userId,
+        );
+
+        if (pendingRequest) {
+          throw new Error(
+            "Vous devez attendre que votre interlocuteur réponde avant d'envoyer un autre message.",
+          );
+        }
+      }
+    }
+  }
+
   // Calculer le recipientId pour les messages directs (1v1)
   let calculatedRecipientId = recipientId;
   if (!room.isGroup && type === "CONTENT") {
@@ -998,7 +1127,47 @@ export async function handleGetRoomDetails(
 
     if (!room) throw new Error("Room not found");
 
-    // Get 3 latest unread messages (before leftAt for former members)
+    let unreadLimit = 3;
+
+    if (!room.isGroup) {
+      const otherMember = room.members.find(
+        (member) => member.userId && member.userId !== userId,
+      );
+
+      if (otherMember?.userId) {
+        const otherFollowsMe = await doesUserFollow(
+          otherMember.userId,
+          userId,
+        );
+
+        if (!otherFollowsMe) {
+          const hasPendingRequest = await hasPendingRequestMessage(
+            roomId,
+            userId,
+            otherMember.userId,
+          );
+
+          if (hasPendingRequest) {
+            const latestRequestMessage = await prisma.message.findFirst({
+              where: {
+                roomId,
+                senderId: userId,
+                type: { not: "CREATE" },
+              },
+              orderBy: { createdAt: "desc" },
+              include: getMessageDataInclude(userId),
+            });
+
+            return {
+              ...room,
+              messages: latestRequestMessage ? [latestRequestMessage] : [],
+            };
+          }
+        }
+      }
+    }
+
+    // Get latest unread messages (before leftAt for former members)
     const unreadMessages = await prisma.message.findMany({
       where: {
         roomId,
@@ -1150,13 +1319,32 @@ export async function handleSendVoiceNote(
 
   if (!room) throw new Error("Room not found");
 
-  // Calculer le recipientId pour les messages directs
   let calculatedRecipientId = recipientId;
   if (!room.isGroup) {
     const otherMember = room.members.find(
       (m) => m.userId && m.userId !== userId,
     );
+
     if (otherMember?.userId) {
+      const recipientFollowsSender = await doesUserFollow(
+        otherMember.userId,
+        userId,
+      );
+
+      if (!recipientFollowsSender) {
+        const pendingRequest = await hasPendingRequestMessage(
+          roomId,
+          userId,
+          otherMember.userId,
+        );
+
+        if (pendingRequest) {
+          throw new Error(
+            "Vous devez attendre que votre interlocuteur réponde avant d'envoyer une autre note vocale.",
+          );
+        }
+      }
+
       calculatedRecipientId = otherMember.userId;
     }
   }

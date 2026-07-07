@@ -98,6 +98,7 @@ export default function RoomHeader({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isTransitioningRef = useRef(false);
+  const hasSocketRoomDataRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMediaFullscreen } = useActiveRoom();
@@ -133,11 +134,16 @@ export default function RoomHeader({
   const queryClient = useQueryClient();
   const { checkUserStatus, onlineStatus } = useSocket();
   const queryKey = ["room", "head", roomId];
-  const { data, status, error } = useQuery({
+  const { data, status, error } = useQuery<RoomData>({
     queryKey,
     queryFn: () =>
       kyInstance.get(`/api/messages/rooms/${roomId}/header`).json<RoomData>(),
+    initialData: queryClient.getQueryData<RoomData>(queryKey),
     staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    enabled: !!roomId,
   });
 
   const { user: loggedUser } = useSession();
@@ -152,21 +158,61 @@ export default function RoomHeader({
   }, [activeRoomId]);
 
   useEffect(() => {
-    if (roomId) {
-      setRoom(normalizedInitialRoom);
-      queryClient.invalidateQueries({ queryKey });
-    }
-  }, [roomId, normalizedInitialRoom, queryClient, queryKey]);
+    if (!roomId) return;
+
+    hasSocketRoomDataRef.current = false;
+    setRoom((prev) => {
+      const baseRoom = prev?.id === normalizedInitialRoom?.id ? prev : normalizedInitialRoom;
+      return {
+        ...baseRoom,
+        members: Array.isArray(normalizedInitialRoom?.members) ? normalizedInitialRoom.members : [],
+      } as RoomData;
+    });
+  }, [roomId, normalizedInitialRoom]);
 
   useEffect(() => {
-    if (data) {
+    if (!socket || !roomId) return;
+
+    const applyRoomUpdate = (payload: RoomData) => {
+      const normalizedPayload = {
+        ...payload,
+        members: Array.isArray(payload?.members) ? payload.members : [],
+      } as RoomData;
+
+      hasSocketRoomDataRef.current = true;
+      queryClient.setQueryData(queryKey, normalizedPayload);
+      setRoom((prev) => {
+        if (!prev || prev.id !== normalizedPayload.id) {
+          return normalizedPayload;
+        }
+
+        return {
+          ...prev,
+          ...normalizedPayload,
+          members: normalizedPayload.members,
+        } as RoomData;
+      });
+    };
+
+    socket.on("room_details", applyRoomUpdate);
+    socket.on("room_updated", applyRoomUpdate);
+
+    return () => {
+      socket.off("room_details", applyRoomUpdate);
+      socket.off("room_updated", applyRoomUpdate);
+    };
+  }, [socket, roomId, queryClient, queryKey]);
+
+  useEffect(() => {
+    if (data && !hasSocketRoomDataRef.current) {
       const normalizedData = {
         ...data,
         members: Array.isArray(data?.members) ? data.members : [],
       };
+      queryClient.setQueryData(queryKey, normalizedData);
       setRoom(normalizedData);
     }
-  }, [data]);
+  }, [data, queryClient, queryKey]);
 
   useEffect(() => {
     setRoom(normalizedInitialRoom);
@@ -225,7 +271,7 @@ export default function RoomHeader({
   if (!room) {
     if (status === "pending") {
       return (
-        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
+        <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 *:shrink-0">
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex w-full flex-col gap-2">
             <Skeleton className="h-3 w-40 max-w-full" />
@@ -236,7 +282,7 @@ export default function RoomHeader({
     }
     if (status === "error") {
       return (
-        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
+        <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 *:shrink-0">
           <UserAvatar userId={""} avatarUrl={null} size={40} />
           <div className="flex w-full flex-col gap-2">
             {isGroup ? group : "OchoApp User"}
@@ -520,7 +566,7 @@ export default function RoomHeader({
                 "flex cursor-pointer items-center rounded-3xl border transition-all duration-300",
                 "shadow-lg backdrop-blur-md xl:w-fit",
                 active && !isScrolled
-                  ? "absolute left-2 top-2 z-[60] bg-background/80"
+                  ? "absolute left-2 top-2 z-60 bg-background/80"
                   : "relative bg-card/30",
                 active && isScrolled && "p-2",
                 !active && "bg-card/30 p-2",
@@ -706,7 +752,7 @@ export default function RoomHeader({
                   {room.isGroup ? (
                     <>
                       {room.description ? (
-                        <p className="whitespace-pre-line break-words px-4 py-2">
+                        <p className="whitespace-pre-line wrap-break-word px-4 py-2">
                           {room.description}
                         </p>
                       ) : loggedinMember?.type === "ADMIN" ||
@@ -728,7 +774,7 @@ export default function RoomHeader({
                     </>
                   ) : (
                     !!otherUser?.bio && (
-                      <p className="whitespace-pre-line break-words px-4 py-2 w-full">
+                      <p className="whitespace-pre-line wrap-break-word px-4 py-2 w-full">
                         {otherUser.bio}
                       </p>
                     )
@@ -1108,7 +1154,7 @@ export function GroupUserPopover({
         <div className="flex flex-col gap-3">
           <div className="divide-y-2">
             <div
-              className={`flex max-w-80 items-center gap-3 break-words px-1 py-2.5 md:min-w-52`}
+              className={`flex max-w-80 items-center gap-3 wrap-break-word px-1 py-2.5 md:min-w-52`}
             >
               <div className={`flex items-center justify-center gap-2`}>
                 <OchoLink href={`/users/${user.username}`}>

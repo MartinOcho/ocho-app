@@ -11,6 +11,6 @@
 		}
 	],
 	"settings": {
-		"prisma.pinToPrisma6": true
+		"prisma.pinToPrisma6": false
 	}
 }
