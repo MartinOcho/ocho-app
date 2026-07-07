@@ -64,6 +64,7 @@ export default function ChatSideBar({
 
   // --- SOCKET & STATE ---
   const { socket, isConnected, retryConnection } = useSocket();
+  const [rooms, setRooms] = useState<RoomData[]>([]);
 
   // --- RECHERCHE LOCALE ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,44 +82,40 @@ export default function ChatSideBar({
   const roomsRef = useRef<RoomData[]>([]);
   const joinedRoomsRef = useRef<Set<string>>(new Set());
   const fetchedCursorsRef = useRef<Set<string | null>>(new Set());
-  const hasSocketDataRef = useRef(false);
 
   const userId = loggedinUser.id;
   const queryClient = useQueryClient();
 
   const queryKey = ["rooms", "sidebar", userId];
 
-  const [rooms, setRooms] = useState<RoomData[]>(() => {
-    return queryClient.getQueryData<RoomData[]>(queryKey) ?? [];
-  });
-
-  // --- REQUÊTE HTTP (FALLBACK + CACHE REACT QUERY) ---
+  // --- REQUÊTE HTTP (PRIORITAIRE) ---
   const {
     data: httpRooms,
     isLoading: isHttpLoading,
     isError: isHttpError,
     refetch: refetchHttp,
-  } = useQuery<RoomData[]>({
-    queryKey,
+  } = useQuery({
+    queryKey: queryKey,
     queryFn: () => kyInstance.get("/api/messages/rooms/").json<RoomData[]>(),
-    initialData: queryClient.getQueryData<RoomData[]>(queryKey),
     staleTime: Infinity,
   });
-
+  
   // --- SYNCHRONISATION HTTP -> STATE LOCAL ---
   useEffect(() => {
     if (httpRooms) {
-      queryClient.setQueryData(queryKey, httpRooms);
-
-      if (!hasSocketDataRef.current) {
-        setRooms((prev) => (prev.length > 0 ? prev : httpRooms));
-        setStatus("success");
-        setIsLoading(false);
-      }
-    } else if (isHttpError && rooms.length === 0) {
-      setStatus("error");
+      setRooms((prev) => {
+        // Si on a déjà des données via socket, on évite de les écraser brutalement
+        // sauf si la liste locale est vide
+        if (prev.length > 0) return prev;
+        return httpRooms;
+      });
+      setStatus("success");
+      setIsLoading(false);
+    } else if (isHttpError) {
+      // Gérer l'erreur si nécessaire
+      if (rooms.length === 0) setStatus("error");
     }
-  }, [httpRooms, isHttpError, queryClient, queryKey, rooms.length]);
+  }, [httpRooms, isHttpError, rooms.length]);
 
   useEffect(() => {
     roomsRef.current = rooms;
@@ -144,7 +141,6 @@ export default function ChatSideBar({
   );
 
   const handleRetry = () => {
-    hasSocketDataRef.current = false;
     setIsLoading(true);
     setStatus("pending");
     if (socket && !isConnected) {
@@ -161,8 +157,6 @@ export default function ChatSideBar({
       rooms: RoomData[];
       nextCursor: string | null;
     }) => {
-      hasSocketDataRef.current = true;
-
       setRooms((prev) => {
         const existingIds = new Set(prev.map((r) => r.id));
         const newRooms = response.rooms.filter((r) => !existingIds.has(r.id));
@@ -188,8 +182,6 @@ export default function ChatSideBar({
     // Handler 1: Mise à jour via LISTE (envoi/suppression message)
     // Le backend renvoie { rooms: RoomData[], nextCursor: ... }
     const handleRoomListUpdate = (payload: RoomListPayload) => {
-      hasSocketDataRef.current = true;
-
       setRooms((prev) => {
         // Les rooms renvoyées par le backend sont déjà triées (les plus récentes en premier)
         const newTopRooms = payload.rooms;
@@ -211,7 +203,6 @@ export default function ChatSideBar({
     // Handler 2: Mise à jour via SINGLE ROOM (création)
     // Le backend renvoie un objet RoomData unique
     const handleSingleRoomUpdate = (newRoom: RoomData) => {
-      hasSocketDataRef.current = true;
       console.log("Socket: single room update", newRoom);
 
       setRooms((prev) => {
@@ -245,8 +236,8 @@ export default function ChatSideBar({
 
     socket.on("error_fetching_rooms", handleError);
 
-    // Initial fetch via Socket même si le cache HTTP existe, pour éviter de laisser le socket derrière
-    if (!hasSocketDataRef.current && !isHttpLoading) {
+    // Initial fetch via Socket si on n'a pas encore de données HTTP
+    if (rooms.length === 0 && !isHttpLoading) {
       fetchRooms(null);
     }
 

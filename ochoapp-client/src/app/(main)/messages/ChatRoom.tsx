@@ -201,7 +201,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const { unableToLoadChat, noMessage, dataError, search } = t();
   const queryClient = useQueryClient();
   const { user: loggedUser } = useSession();
-  const hasSocketMessagesRef = useRef(false);
 
   // --- ÉTAT POUR LES UTILISATEURS QUI ÉCRIVENT ---
   const [typingUsers, setTypingUsers] = useState<
@@ -210,7 +209,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
   // --- NOUVEAU : RESET DES ÉTATS AU CHANGEMENT DE ROOM ---
   useEffect(() => {
-    hasSocketMessagesRef.current = false;
     setNewMessages([]);
     setSentMessages([]);
     setTypingUsers([]);
@@ -242,8 +240,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
         console.warn("Message en attente invalide:", data.newMessage);
         return;
       }
-
-      hasSocketMessagesRef.current = true;
 
       // Mettre à jour le cache React Query
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
@@ -301,7 +297,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
         // 1. Mettre à jour le cache React Query directement
         if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
-        hasSocketMessagesRef.current = true;
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
           (oldData) => {
@@ -347,7 +342,6 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
       // 1. Mettre à jour les "newMessages" (ceux reçus via socket avant refresh)
       setNewMessages((prev) => prev.filter((msg) => msg.id !== data.messageId));
-      hasSocketMessagesRef.current = true;
 
       // 2. Mettre à jour le cache React Query (Infinite Query)
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
@@ -438,41 +432,21 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   }, [pathname]);
 
   // --- DATA FETCHING ---
-  const roomQueryKey = ["room", "data", roomId];
-  const [roomState, setRoomState] = useState<RoomData | undefined>(() => {
-    return initialData ?? queryClient.getQueryData<RoomData>(roomQueryKey) ?? undefined;
-  });
-
   const {
-    data: httpRoom,
+    data: room,
     isError: isRoomError,
     isLoading,
-  } = useQuery<RoomData>({
-    queryKey: roomQueryKey,
+  } = useQuery({
+    queryKey: ["room", "data", roomId],
     queryFn: () =>
       kyInstance.get(`/api/messages/rooms/${roomId}/`).json<RoomData>(),
-    initialData: roomState ?? initialData,
+    initialData,
     staleTime: Infinity,
     throwOnError: false,
     refetchOnWindowFocus: false,
     enabled: !!roomId,
   });
 
-  useEffect(() => {
-    if (initialData) {
-      queryClient.setQueryData(roomQueryKey, initialData);
-      setRoomState(initialData);
-    }
-  }, [initialData, queryClient, roomQueryKey]);
-
-  useEffect(() => {
-    if (httpRoom) {
-      queryClient.setQueryData(roomQueryKey, httpRoom);
-      setRoomState((prev) => (prev && prev.id === httpRoom.id ? prev : httpRoom));
-    }
-  }, [httpRoom, queryClient, roomQueryKey]);
-
-  const room = roomState ?? httpRoom;
   const roomName = room?.name || roomId || "Chat";
 
   useEffect(() => {
@@ -488,27 +462,16 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
     }
   }, [isLoading, room, isRoomError, loggedUser, onClose, roomId, unableToLoadChat]);
 
-  const messagesQueryKey = ["room", "messages", roomId];
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
-    useInfiniteQuery<MessagesSection, Error, InfiniteData<MessagesSection>, typeof messagesQueryKey, string | null>({
-      queryKey: messagesQueryKey,
-      queryFn: async ({ pageParam }) => {
-        const cachedData = queryClient.getQueryData<InfiniteData<MessagesSection>>(messagesQueryKey);
-
-        if (hasSocketMessagesRef.current && pageParam === null && cachedData?.pages?.[0]) {
-          return cachedData.pages[0];
-        }
-
-        const response = await kyInstance
+    useInfiniteQuery({
+      queryKey: ["room", "messages", roomId],
+      queryFn: ({ pageParam }) =>
+        kyInstance
           .get(
             `/api/messages/rooms/${roomId}/messages`,
-            pageParam ? { searchParams: { cursor: String(pageParam) } } : {},
+            pageParam ? { searchParams: { cursor: pageParam } } : {},
           )
-          .json<MessagesSection>();
-
-        return response;
-      },
-      initialData: queryClient.getQueryData<InfiniteData<MessagesSection, string | null>>(messagesQueryKey),
+          .json<MessagesSection>(),
       initialPageParam: null as string | null,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: Infinity,
@@ -813,7 +776,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
           }}
           reversed
         >
-          {!data?.pages?.length && <MessagesSkeleton />}
+          {status === "pending" && <MessagesSkeleton />}
 
           {/* État vide : Seulement si aucun message TOTAL (pas juste le filtre) */}
           {status === "success" &&
