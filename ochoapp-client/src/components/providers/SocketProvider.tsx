@@ -390,12 +390,12 @@ export default function SocketProvider({
         )}
       >
         {isConnected ? (
-          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/75 px-4 py-2 text-emerald-600 shadow-md dark:border-emerald-800 dark:bg-emerald-900/75 dark:text-emerald-400">
+          <div className="flex items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/5 px-4 py-2 text-emerald-600 shadow-md dark:border-emerald-800 dark:bg-emerald-900/75 dark:text-emerald-400">
             <Wifi className="h-4 w-4" />
             <span className="text-xs font-semibold">{t().connected}</span>
           </div>
         ) : isConnecting ? (
-          <div className="flex animate-pulse items-center gap-2 rounded-full border border-amber-200 bg-amber-500/10 px-4 py-2 text-amber-600 shadow-md dark:border-amber-800 dark:bg-amber-900/50">
+          <div className="flex animate-pulse items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-amber-600 shadow-md dark:border-amber-800 dark:bg-amber-900/50">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-xs font-semibold">{t().reconnecting}</span>
           </div>
