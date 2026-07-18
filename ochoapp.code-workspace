@@ -4,10 +4,10 @@
 			"path": "./ochoapp-server"
 		},
 		{
-			"path": "./ochoapp-mobile"
+			"path": "./ochoapp-client"
 		},
 		{
-			"path": "./ochoapp-client"
+			"path": "./ochoapp-mobile"
 		}
 	],
 	"settings": {

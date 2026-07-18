@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import { randomUUID } from "crypto";
 import { NotificationType, MediaType } from "@prisma/client";
 import prisma from "./prisma";
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import cookieParser from "cookie-parser";
 import chalk from "chalk";
 import {
@@ -1582,10 +1582,7 @@ io.on("connection", async (socket: Socket) => {
         // --- BLOC NOTES VOCALES NORMALES ---
         const { newMessage } = await handleSendVoiceNote(
           data,
-          userId,
-          username,
-          io,
-          cloudinary,
+          userId
         );
 
         socket.join(roomId);

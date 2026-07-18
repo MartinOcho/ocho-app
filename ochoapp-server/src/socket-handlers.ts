@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import {
   getChatRoomDataInclude,
   getMessageDataInclude,
@@ -27,8 +27,7 @@ import {
   createMessageMentions,
 } from "./mention-utils";
 import { Server } from "socket.io";
-import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
-import { cloudinary } from ".";
+import { v2 as cloudinary } from "cloudinary";
 import { th } from "zod/locales";
 import chalk from "chalk";
 import prisma from "./prisma";
@@ -99,20 +98,6 @@ async function hasPendingRequestMessage(
   });
 
   return !Boolean(recipientReply);
-}
-
-interface CloudinaryApi {
-  uploader: {
-    upload_stream: (
-      options: any,
-      callback: (error: any, result: any) => void,
-    ) => NodeJS.WritableStream;
-    destroy: (
-      publicId: string,
-      options?: any,
-      callback?: (error: any, result: any) => void,
-    ) => Promise<any> | void;
-  };
 }
 
 
@@ -561,7 +546,7 @@ export async function handleDeleteMessage(
   // Delete voice note from Cloudinary if exists
   if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId) {
     try {
-      cloudinary.uploader.destroy(
+      await cloudinary.uploader.destroy(
         messageToDelete.voiceNote!.publicId!,
         { resource_type: "video", invalidate: true },
         async (error: any, result: { result: string }) => {
@@ -1290,9 +1275,6 @@ export async function handleGetLastMessage(
 export async function handleSendVoiceNote(
   data: SocketSendVoiceNoteEvent,
   userId: string,
-  username: string,
-  io: Server,
-  cloudinary: CloudinaryApi,
 ) {
   const { voiceNoteId, roomId, tempId, recipientId } = data;
 
