@@ -1072,7 +1072,7 @@ export default function Message({
       } else {
         return (
           <div className="flex w-full select-none justify-center py-6">
-            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-muted/50 p-4 px-8 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
               <div className="relative">
                 <UserAvatar
                   userId={otherUser?.user?.id || ""}
