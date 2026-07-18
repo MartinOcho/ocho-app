@@ -328,7 +328,16 @@ export default function ChatSideBar({
           </span>
         </div>
       </div>
-      <ul className="sticky top-0 dark:bg-card/30 p-2 py-1.5 sm:bg-background/50">
+      <InfiniteScrollContainer
+        className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col overflow-y-auto dark:bg-card"
+        onBottomReached={() => {
+          // On ne fetch plus que si on n'est pas en train de rechercher
+          if (hasMore && !isFetchingMore && !showSkeleton && !searchQuery) {
+            fetchRooms(cursor);
+          }
+        }}
+      >
+      <ul className="z-30 sticky top-0">
         <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
           <div className="relative w-full">
             <Input
@@ -352,15 +361,7 @@ export default function ChatSideBar({
           </div>
         </li>
       </ul>
-      <InfiniteScrollContainer
-        className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto dark:bg-card/30 sm:bg-background/50"
-        onBottomReached={() => {
-          // On ne fetch plus que si on n'est pas en train de rechercher
-          if (hasMore && !isFetchingMore && !showSkeleton && !searchQuery) {
-            fetchRooms(cursor);
-          }
-        }}
-      >
+
         {showSkeleton && <RoomsLoadingSkeleton />}
 
         {/* Cas 1 : Vraiment aucune room (cache vide) */}
