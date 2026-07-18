@@ -55,23 +55,23 @@ export default function Messages() {
     }
   };
   return (
-    <div className="flex h-full flex-col sm:rounded-2xl bg-card/50 shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen overflow-hidden">
+    <div className="flex h-full flex-col sm:rounded-2xl bg-card shadow-sm transition-all max-sm:relative max-sm:h-full max-sm:w-screen overflow-hidden">
       {!isConnected && !isConnecting && (
-        <div className="flex w-full flex-none items-center justify-between bg-destructive/10 px-4 py-2 text-sm text-destructive dark:bg-destructive/20">
+        <div className="flex w-full flex-none items-center justify-between bg-amber-500/10 px-4 py-2 text-sm text-amber-500 dark:bg-destructive/20">
           <div className="flex items-center gap-2">
             <WifiOff size={16} />
             <span className="font-medium">
-              Serveur déconnecté.
+              {t("connectionLost")}
             </span>
             <span className="hidden opacity-80 sm:inline">
-               L'envoi de messages peut être limité.
+              {t("youAreOffline")}
             </span>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={handleRetryConnection}
-            className="h-7 border-destructive/50 bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground flex items-center gap-2 active:scale-95 duration-200"
+            className="h-7 border-amber-500/50 bg-transparent text-amber-500 hover:bg-amber-500 hover:text-amber-foreground flex items-center gap-2 active:scale-95 duration-200"
           >
             <RefreshCw size={14} className={cn(isConnecting && "animate-spin")} />
             {t("retry")}

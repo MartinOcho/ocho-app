@@ -216,6 +216,8 @@ export const english = {
   reconnecting: "Connecting...",
   connected: "Connected",
   realtimeServerOffline: "Realtime server is offline",
+  connectionLost: "Connection lost",
+  youAreOffline: "You are offline. Some features may be limited.",
   // Reactions
   reactText: "React",
   reactions: "Reactions",
@@ -736,6 +738,8 @@ export const french: Vocabulary = {
   reconnecting: "Reconnexion...",
   connected: "Connecté",
   realtimeServerOffline: "Le serveur de temps reel est hors ligne",
+  connectionLost: "Connexion perdue",
+  youAreOffline: "Vous êtes hors ligne. Certaines fonctionnalités peuvent être limitées.",
   // Reactions
   reactText: "Réagir",
   reactions: "Réactions",
