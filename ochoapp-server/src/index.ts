@@ -259,7 +259,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
     const messageAttachment = await prisma.messageAttachment.create({
       data: {
         type: attachmentType,
-        url: uploadResult.url || uploadResult.secure_url || "",
+        url: uploadResult.secure_url || uploadResult.url || "",
         fileName,
         publicId: uploadResult.public_id || null,
         width: uploadResult.width || null,
@@ -331,7 +331,7 @@ app.post(
       const mediaAttachment = await prisma.media.create({
         data: {
           type: attachmentType,
-          url: uploadResult.url || uploadResult.secure_url || "",
+          url: uploadResult.secure_url || uploadResult.url || "",
         },
       });
 
@@ -407,7 +407,7 @@ app.post(
         data: {
           fileName,
           type: attachmentType,
-          url: uploadResult.url || uploadResult.secure_url || "",
+          url: uploadResult.secure_url || uploadResult.url || "",
           publicId: uploadResult.public_id || null,
           width: uploadResult.width || null,
           height: uploadResult.height || null,
@@ -625,7 +625,7 @@ app.post(
 
       const uploadResult = await streamUpload(file.buffer);
 
-      const url = uploadResult.url || uploadResult.secure_url || "";
+      const url = uploadResult.secure_url || uploadResult.url || "";
       const public_id = uploadResult.public_id || null;
 
       // Supprimer l'ancien avatar du groupe si présent

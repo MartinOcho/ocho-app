@@ -315,7 +315,7 @@ export default function ChatSideBar({
   const showSkeleton = (isLoading || isHttpLoading) && rooms.length === 0 && status === "pending";
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full flex-col z-0">
       <div className="flex h-[60px] items-center justify-between p-4 text-lg font-bold shadow-sm max-sm:bg-card/50">
         <span>{chats}</span>
         <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ export default function ChatSideBar({
         )}
       </InfiniteScrollContainer>
 
-      <div className={cn("absolute bottom-24 right-5 flex gap-2 sm:hidden", activeRoomId && "max-sm:-ml-[100vw]")}>
+      <div className={cn("absolute bottom-24 right-5 flex gap-2 sm:hidden", activeRoomId && "max-sm:ml-[-100vw]")}>
         <div
           className="flex aspect-square h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary-foreground hover:text-primary hover:shadow-lg hover:shadow-primary/30"
           onClick={onNewChat}
