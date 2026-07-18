@@ -26,7 +26,7 @@ export default function ChatLoadingSkeleton({
             <Skeleton className="h-2 w-20 max-w-full" />
         </div>
       </div>
-      <div className="relative flex flex-1 flex-col-reverse space-y-4 overflow-y-auto overflow-x-hidden px-2 py-4 shadow-inner scrollbar-track-primary scrollbar-track-rounded-full sm:bg-background/50 pb-16">
+      <div className="relative flex flex-1 flex-col-reverse space-y-4 overflow-y-auto overflow-x-hidden px-2 py-4 shadow-inner sm:bg-background/50 pb-16">
         <MessagesLoadingSkeleton />
       </div>
       <div className="p-2 bg-gradient-to-t from-card/80 to-transparent absolute w-full bottom-0 flex gap-3">

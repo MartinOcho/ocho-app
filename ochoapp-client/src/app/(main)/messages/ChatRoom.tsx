@@ -766,7 +766,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner scrollbar-track-primary scrollbar-track-rounded-full has-[.reaction-open]:z-50 sm:bg-background/50 z-0">
+      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner has-[.reaction-open]:z-50 sm:bg-background/50 z-0">
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7 max-sm:pb-12"
           onBottomReached={() => {

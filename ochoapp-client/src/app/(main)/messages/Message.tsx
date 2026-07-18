@@ -24,7 +24,6 @@ import {
   LogOut,
   ShieldAlert,
   Info,
-  Sparkles,
   UserRoundPlus,
   Trash2,
 } from "lucide-react";
@@ -1057,9 +1056,6 @@ export default function Message({
                   size={80}
                   className="border-2 border-background shadow-md"
                 />
-                <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-background bg-primary p-1 text-primary-foreground">
-                  <Sparkles size={12} fill="currentColor" />
-                </div>
               </div>
               <div className="space-y-1 text-center">
                 <h3 className="line-clamp-1 text-sm font-bold text-foreground">
@@ -1084,9 +1080,6 @@ export default function Message({
                   size={80}
                   className="border-2 border-background shadow-md"
                 />
-                <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-background bg-primary p-1 text-primary-foreground">
-                  <Sparkles size={12} fill="currentColor" />
-                </div>
               </div>
               <div className="space-y-1 text-center">
                 <h3 className="line-clamp-1 text-sm font-bold text-foreground">

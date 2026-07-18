@@ -328,7 +328,7 @@ export default function ChatSideBar({
           </span>
         </div>
       </div>
-      <ul className="sticky top-0 bg-card/30 p-2 py-1.5 sm:bg-background/50">
+      <ul className="sticky top-0 dark:bg-card/30 p-2 py-1.5 sm:bg-background/50">
         <li className="relative flex w-full items-center gap-2 p-2 animate-in fade-in slide-in-from-top-2">
           <div className="relative w-full">
             <Input
@@ -353,7 +353,7 @@ export default function ChatSideBar({
         </li>
       </ul>
       <InfiniteScrollContainer
-        className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto bg-card/30 sm:bg-background/50"
+        className="relative max-sm:pb-24 flex max-w-full flex-1 flex-col space-y-5 overflow-y-auto dark:bg-card/30 sm:bg-background/50"
         onBottomReached={() => {
           // On ne fetch plus que si on n'est pas en train de rechercher
           if (hasMore && !isFetchingMore && !showSkeleton && !searchQuery) {
