@@ -440,7 +440,7 @@ export const MessageBubbleContent = ({
   return (
     <div
       className={cn(
-        "group/bubble relative flex w-fit flex-col gap-1",
+        "font-emoji group/bubble relative flex w-fit flex-col gap-1",
         isClone && "h-full",
         isOwner ? "items-end" : "items-start",
         isMediaFullscreen && "invisible",
