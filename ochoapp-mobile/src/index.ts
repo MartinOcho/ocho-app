@@ -843,7 +843,7 @@ app.post(
 
       const uploadResult = await streamUpload(file.buffer);
 
-      const url = uploadResult.url || uploadResult.secure_url || "";
+      const url = uploadResult.secure_url || uploadResult.url || "";
       const public_id = uploadResult.public_id || null;
       const resourceType = uploadResult.resource_type || null;
 

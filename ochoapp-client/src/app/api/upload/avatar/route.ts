@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const uploadResult = await streamUpload(
       Buffer.from(await file.arrayBuffer()),
     );
-    const url = uploadResult.url || uploadResult.secure_url || "";
+    const url = uploadResult.secure_url || uploadResult.url || "";
     const public_id = uploadResult.public_id || null;
 
     const avatarUrl = user.avatarUrl || "";
