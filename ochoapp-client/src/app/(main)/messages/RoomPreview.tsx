@@ -294,36 +294,45 @@ export default function RoomPreview({
           ? twoUsersRecording
               .replace(
                 "[name]",
-                recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+                recording.recordingUsers[0].displayName.split(" ")[0] ||
+                  appUser,
               )
               .replace(
                 "[name]",
-                recording.recordingUsers[1].displayName.split(" ")[0] || appUser,
+                recording.recordingUsers[1].displayName.split(" ")[0] ||
+                  appUser,
               )
           : recording.recordingUsers.length === 3
             ? threeUsersRecording
                 .replace(
                   "[name]",
-                  recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+                  recording.recordingUsers[0].displayName.split(" ")[0] ||
+                    appUser,
                 )
                 .replace(
                   "[name]",
-                  recording.recordingUsers[1].displayName.split(" ")[0] || appUser,
+                  recording.recordingUsers[1].displayName.split(" ")[0] ||
+                    appUser,
                 )
                 .replace(
                   "[name]",
-                  recording.recordingUsers[2].displayName.split(" ")[0] || appUser,
+                  recording.recordingUsers[2].displayName.split(" ")[0] ||
+                    appUser,
                 )
             : multipleRecording
                 .replace(
                   "[names]",
-                  recording.recordingUsers[0].displayName.split(" ")[0] || appUser,
+                  recording.recordingUsers[0].displayName.split(" ")[0] ||
+                    appUser,
                 )
                 .replace(
                   "[name]",
                   recording.recordingUsers[1].displayName.split(" ")[0],
                 )
-                .replace("[count]", (recording.recordingUsers.length - 2).toString())
+                .replace(
+                  "[count]",
+                  (recording.recordingUsers.length - 2).toString(),
+                )
     : "";
   const { startNavigation: navigate } = useProgress();
 
@@ -655,9 +664,12 @@ export default function RoomPreview({
         <div className="flex-1 overflow-hidden">
           <span
             className={cn(
-              "block truncate",
+              "block truncate font-emoji",
               isVerified && "flex items-center",
-              unreadCount && !typing.isTyping && !recording.isRecording && "font-semibold",
+              unreadCount &&
+                !typing.isTyping &&
+                !recording.isRecording &&
+                "font-semibold",
             )}
           >
             {/* Surbrillance dans le nom */}
@@ -667,11 +679,14 @@ export default function RoomPreview({
           <div
             className={cn(
               "flex w-full items-center gap-1 text-sm text-muted-foreground",
-              unreadCount && !typing.isTyping && !recording.isRecording && "font-semibold text-primary",
+              unreadCount &&
+                !typing.isTyping &&
+                !recording.isRecording &&
+                "font-semibold text-primary",
             )}
           >
             {showIconBefore && attachmentPreview?.icon && (
-              <span className="flex-shrink-0 text-muted-foreground">
+              <span className="flex-shrink-0 text-inherit">
                 {attachmentPreview.icon}
               </span>
             )}
@@ -709,15 +724,7 @@ export default function RoomPreview({
               ) : (
                 ((messagePreviewContent || messageType === "VOICENOTE") &&
                   (messagePreviewContent ? (
-                    messageType === "REACTION" ? (
-                      <>
-                        {messagePreviewContent.split("[r]")[0]}
-                        <span className="font-emoji">
-                          {messagePreview.content}
-                        </span>
-                        {messagePreviewContent.split("[r]")[1]}
-                      </>
-                    ) : messageType === "CONTENT" ? (
+                    messageType === "REACTION" ? messagePreviewContent.replace("[r]", messagePreview.content) : messageType === "CONTENT" ? (
                       <HighlightText
                         text={messagePreviewContent}
                         highlight={highlight}

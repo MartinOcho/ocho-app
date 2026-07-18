@@ -126,7 +126,7 @@ const config = {
         'left-right': '0% 50%',
       },
       fontFamily: {
-        emoji: ["var(--font-emoji)", "sans-serif"],
+        emoji: ["var(--font-emoji)", "Inter", "sans-serif"],
       }
     },
   },
