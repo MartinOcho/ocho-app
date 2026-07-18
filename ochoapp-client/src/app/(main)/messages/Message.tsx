@@ -1049,7 +1049,7 @@ export default function Message({
       if (room.isGroup) {
         return (
           <div className="flex w-full select-none justify-center py-6">
-            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-muted/50 p-4 px-8 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
               <div className="relative">
                 <GroupAvatar
                   avatarUrl={room.groupAvatarUrl}
@@ -1110,7 +1110,7 @@ export default function Message({
     if (systemContent) {
       return (
         <div className={SystemWrapperClass}>
-          <div className="flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm dark:border-muted/50 dark:bg-muted/60 dark:text-muted-foreground/80">
+          <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
             {systemIcon}
             <span className="font-medium">{systemContent}</span>
             <span className="ml-1 border-l border-foreground/10 pl-1 text-[10px] opacity-60">

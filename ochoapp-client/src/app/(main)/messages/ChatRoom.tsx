@@ -162,7 +162,7 @@ function DateHeader({ date }: { date: Date | string }) {
   if (!date) return null;
   return (
     <div className="pointer-events-none flex w-full select-none justify-center pt-4">
-      <div className="rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+      <div className="rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
         <Time time={new Date(date)} calendar />
       </div>
     </div>
