@@ -8,6 +8,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "../ui/button";
 import kyInstance from "@/lib/ky";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface VoiceRecorderProps {
   roomId: string;
@@ -33,6 +34,7 @@ export const useVoiceRecorder = (
   const streamRef = useRef<MediaStream | null>(null);
   const { socket } = useSocket();
   const { user } = useSession();
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,6 +47,15 @@ export const useVoiceRecorder = (
 
   const startRecording = async () => {
     try {
+      // Demander l'accès au microphone
+      const permission = await navigator.permissions.query({ name: "microphone" as PermissionName });
+      if (permission.state === "denied") {
+        toast({
+          title: t().deniedAccess,
+          description: t().microphoneAccessDenied,
+        });
+        throw new Error("L'accès au microphone est refusé.");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
@@ -80,9 +91,9 @@ export const useVoiceRecorder = (
     } catch (error) {
       console.error("Erreur lors de l'accès au microphone:", error);
       toast({
-        title: "Erreur",
+        title: t().error,
         description:
-          "Impossible d'accéder au microphone. Vérifiez les permissions.",
+          t().anErrorOccurredWhileRecording,
         variant: "destructive",
       });
     }
@@ -277,6 +288,11 @@ export const useVoiceRecorder = (
       });
 
       if (!uploadResponse.ok) {
+        toast({
+          title: t().uploadError,
+          description: t().unableToUploadVoiceNote,
+          variant: "destructive",
+        });
         throw new Error("Erreur lors de l'upload de la note vocale");
       }
 
@@ -287,8 +303,14 @@ export const useVoiceRecorder = (
       }>();
 
       if (!uploadData.success || !uploadData.voiceNoteId) {
+        toast({
+          title: t().uploadError,
+          description:
+          t().unableToUploadVoiceNote,
+          variant: "destructive",
+        });
         throw new Error(
-          uploadData.error || "Erreur lors de la création de la note vocale",
+          uploadData.error || t().unableToUploadVoiceNote,
         );
       }
 
@@ -314,11 +336,11 @@ export const useVoiceRecorder = (
       console.error("Erreur lors de l'envoi de la note vocale:", error);
       setIsSending(false);
       toast({
-        title: "Erreur",
+        title: t().error,
         description:
           error instanceof Error
             ? error.message
-            : "Erreur lors de l'envoi de la note vocale.",
+            : t().unableToUploadVoiceNote,
         variant: "destructive",
       });
     }
