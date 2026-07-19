@@ -114,7 +114,7 @@ model Session {
   userId    String
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceId  String? // Référence au Device via son deviceId unique
+  deviceId  String?
   device    Device?  @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
 
   @@map("sessions")
@@ -211,7 +211,7 @@ model Message {
   mentions     MessageMention[]
   createdAt    DateTime            @default(now())
 
-  @@index([roomId, createdAt]) // Optimisation performance
+  @@index([roomId, createdAt])
   @@map("messages")
 }
 

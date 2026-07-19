@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         issuerId: loggedInUser.id,
         recipientId,
         postId,
-        type: NotificationType.IDENTIFY,
+        type: "IDENTIFY",
       },
     });
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         issuerId: loggedInUser.id,
         recipientId,
         postId,
-        type: type as NotificationType,
+        type: "IDENTIFY",
       },
     });
 

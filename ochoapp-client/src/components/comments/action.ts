@@ -30,17 +30,6 @@ export async function submitComment({
     include: getCommentDataIncludes(user.id),
   });
 
-  user.id !== post.userId &&
-    (await prisma.notification.create({
-      data: {
-        issuerId: user.id,
-        recipientId: post.userId,
-        postId: post.id,
-        commentId: newComment.id,
-        type: "COMMENT",
-      },
-    }));
-
   return newComment;
 }
 export interface SubmitReply {
@@ -73,17 +62,6 @@ export async function submitReply({
     },
     include: getCommentDataIncludes(user.id),
   });
-
-  user.id !== comment.userId &&
-    (await prisma.notification.create({
-      data: {
-        issuerId: user.id,
-        recipientId: comment.userId,
-        postId: firstLevelComment.postId,
-        commentId: newComment.id,
-        type: "COMMENT_REPLY",
-      },
-    }));
   return newComment;
 }
 

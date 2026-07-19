@@ -1683,13 +1683,11 @@ io.on("connection", async (socket: Socket) => {
 
         const alreadyExists = await prisma.notification.findFirst({
           where: {
-            AND: [
-              { type: type },
-              { recipientId: recipientId },
-              { issuerId: issuerId || userId || undefined },
-              { postId: postId || undefined },
-              { commentId: commentId || undefined },
-            ],
+            type,
+            recipientId,
+            issuerId: issuerId || userId || undefined,
+            postId,
+            commentId,
           },
         });
         if (alreadyExists) {

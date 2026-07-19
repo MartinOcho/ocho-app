@@ -90,28 +90,19 @@ export async function POST(
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
-    await prisma.$transaction([
-      prisma.follow.upsert({
-        where: {
-          followerId_followingId: {
-            followerId: loggedInUser.id,
-            followingId: userId,
-          },
-        },
-        create: {
+    await prisma.follow.upsert({
+      where: {
+        followerId_followingId: {
           followerId: loggedInUser.id,
           followingId: userId,
         },
-        update: {},
-      }),
-      prisma.notification.create({
-        data: {
-          issuerId: loggedInUser.id,
-          recipientId: userId,
-          type: "FOLLOW",
-        },
-      }),
-    ]);
+      },
+      create: {
+        followerId: loggedInUser.id,
+        followingId: userId,
+      },
+      update: {},
+    });
 
     const existingRoom: RoomData | null = await prisma.room.findFirst({
       where: {

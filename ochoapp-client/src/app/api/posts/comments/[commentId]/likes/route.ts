@@ -86,33 +86,19 @@ export async function POST(
       );
     }
 
-    await prisma.$transaction([
-      prisma.commentLike.upsert({
-        where: {
-          userId_commentId: {
-            userId: loggedInUser.id,
-            commentId,
-          },
-        },
-        create: {
+    await prisma.commentLike.upsert({
+      where: {
+        userId_commentId: {
           userId: loggedInUser.id,
           commentId,
         },
-        update: {},
-      }),
-      ...(loggedInUser.id !== comment.userId
-        ? [
-            prisma.notification.create({
-              data: {
-                issuerId: loggedInUser.id,
-                recipientId: comment.userId,
-                commentId,
-                type: "COMMENT_LIKE",
-              },
-            }),
-          ]
-        : []),
-    ]);
+      },
+      create: {
+        userId: loggedInUser.id,
+        commentId,
+      },
+      update: {},
+    });
 
     return new Response();
   } catch (error) {
