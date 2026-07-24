@@ -38,7 +38,7 @@ Pour utiliser les fonctionnalités de OchoApp (messagerie, publication, interact
 
 - **Gestion des appareils** : Nous suivons les appareils associés à votre compte à des fins de sécurité. Vous pouvez consulter et gérer vos appareils connectés dans les paramètres de sécurité.
 
-- **Utilisation non autorisée** : Si vous remarquez que quelqu'un utilise votre compte sans permission, informez-nous immédiatement à ochokom@ochotouchsolution.onmicrosoft.com.
+- **Utilisation non autorisée** : Si vous remarquez que quelqu'un utilise votre compte sans permission, informez-nous immédiatement à contact@ochokom.com.
 
 - **Comptes multiples** : La création de plusieurs comptes pour contourner des restrictions, manipuler l'engagement ou esquiver les actions d'application est interdite.
 
@@ -174,14 +174,14 @@ Nous pouvons mettre à jour ces conditions à tout moment. Les nouvelles conditi
 ## 13. Résolution des Litiges
 
 En cas de litige avec nous :
-1. Essayez de le résoudre en nous contactant à ochokom@ochotouchsolution.onmicrosoft.com
+1. Essayez de le résoudre en nous contactant à contact@ochokom.com
 2. Si non résolu, les litiges seront régis par les lois de la juridiction où OchoApp opère
 3. Vous acceptez d'essayer une résolution amiable avant une action légale
 
 ## 14. Nous Contacter
 
 Pour des questions sur ces conditions ou pour signaler des violations, contactez-nous à :
-**Email** : ochokom@ochotouchsolution.onmicrosoft.com
+**Email** : contact@ochokom.com
 
 Nous répondrons dans un délai raisonnable.
 

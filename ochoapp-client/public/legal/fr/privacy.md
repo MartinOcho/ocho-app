@@ -178,7 +178,7 @@ Conformément aux lois sur la protection des données (comme RGPD et CCPA), vous
 - **Droit de Retirer Consentement** : Retirer consentement au traitement des données basé sur consentement.
 - **Droit de Restreindre le Traitement** : Demander la restriction du traitement des données dans certaines circonstances.
 
-Pour exercer ces droits, contactez-nous à : ochokom@ochotouchsolution.onmicrosoft.com
+Pour exercer ces droits, contactez-nous à : contact@ochokom.com
 
 Nous répondrons dans 30 jours ou comme exigé par la loi.
 
@@ -219,7 +219,7 @@ Nous pouvons mettre à jour cette politique à tout moment. Les changements entr
 
 Pour des questions sur cette politique ou pour exercer vos droits :
 
-**Email** : ochokom@ochotouchsolution.onmicrosoft.com
+**Email** : contact@ochokom.com
 
 Nous nous engageons à traiter vos préoccupations rapidement.
 
