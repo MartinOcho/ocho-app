@@ -28,12 +28,14 @@ export function calculateRelevanceScore(
     } else if (postAgeHours > 168) {
       timeFactor = engagementScore > 0 ? 0.85 : 0.6; // Post ancien (> 7 jours)
     }
+    // Bonus pour le dernier post
+    const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
     // Calcul du score de proximité
     const proximityScore = post.user.followers.some(
       (follower) => follower.followerId === userId,
     )
-      ? 100
+      ? latestPostBonus > 0 ? 1000 : 100
       : 0;
 
     // Bonus pour les types de contenu
@@ -46,8 +48,6 @@ export function calculateRelevanceScore(
         ? 1.5
         : 1;
 
-    // Bonus pour le dernier post
-    const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
     // Calcul final
     return (
