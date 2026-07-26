@@ -3,6 +3,7 @@ import { google } from "../../auth";
 import { generateCodeVerifier, generateState } from "arctic";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { DeviceType } from "@prisma/client";
 
 
 
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
                 device = await prisma.device.create({
                     data: {
                         deviceId,
-                        type: deviceType as any,
+                        type: deviceType as DeviceType,
                         ip: req.headers.get("x-forwarded-for") || "unknown",
                         model: deviceModel,
                         location: null

@@ -1,5 +1,4 @@
 import { validateRequest } from "@/auth";
-import { redirect } from "next/navigation";
 import SessionProvider from "./SessionProvider";
 import { MenuBarProvider } from "@/context/MenuBarContext";
 import Navbar from "./Navbar";
@@ -13,6 +12,8 @@ import { ProgressProvider } from "@/context/ProgressContext";
 import SocketProvider from "@/components/providers/SocketProvider";
 import { Toaster } from "@/components/ui/toaster";
 import MobileAppToast from "@/components/MobileAppToast";
+import LandingPage from "./LandingPage";
+import DeviceInitializer from "@/components/DeviceInitializer";
 
 export default async function Layout({
   children,
@@ -21,7 +22,18 @@ export default async function Layout({
 }) {
   const session = await validateRequest();
 
-  if (!session.user) redirect("/login");
+  if (!session.user) {
+    return (
+      <ProgressProvider>
+        <div className="min-h-screen w-full bg-background">
+          <main className="min-h-screen">
+            <LandingPage />
+          </main>
+        </div>
+      </ProgressProvider>
+    );
+  }
+
   const authToken = session.session.id;
 
   // On prépare l'objet de session enrichi avec le token
@@ -34,6 +46,7 @@ export default async function Layout({
     <ProgressProvider>
       <SessionProvider value={sessionValue}>
         {/* Le SocketProvider enveloppe les enfants pour activer le temps réel partout */}
+        <DeviceInitializer />
         <LanguageProvider>
           <SocketProvider>
             <Toaster />

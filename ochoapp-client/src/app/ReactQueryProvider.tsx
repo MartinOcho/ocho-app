@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import DeviceInitializer from "@/components/DeviceInitializer";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 export default function ReactQueryProvider({
@@ -42,7 +40,6 @@ export default function ReactQueryProvider({
   }));
 
   return <QueryClientProvider client={client}>
-    <DeviceInitializer />
     <OfflineIndicator />
     {children}
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}

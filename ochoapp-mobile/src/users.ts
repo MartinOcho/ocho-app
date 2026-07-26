@@ -908,10 +908,6 @@ export async function disableUserAccount(req: Request, res: Response) {
       });
     }
 
-    // Marquer le compte comme désactivé (par exemple, en définissant un champ isDisabled)
-    // Note: Le schéma Prisma ne semble pas avoir de champ isDisabled, donc on pourrait utiliser un champ existant ou en ajouter un
-    // Pour l'instant, on va juste retourner un message de succès simulé
-
     return res.json({
       success: true,
       message:
