@@ -75,6 +75,9 @@ export function getUserDataSelect(
         expiresAt: true,
       },
     },
+    profileVisibility: true,
+    messagePrivacy: true,
+    showOnlineStatus: true,
     followers: {
       where: {
         followerId: loggedInUserId,

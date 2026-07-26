@@ -7,20 +7,35 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
 
+enum MessagingPrivacy {
+  EVERYONE
+  FOLLOWERS
+  NO_ONE
+}
 
 model User {
-  id                   String         @id @default(cuid())
-  username             String         @unique
-  displayName          String
-  email                String?        @unique
-  passwordHash         String?
-  birthday             DateTime?
-  googleId             String?        @unique
-  githubId             String?        @unique
-  facebookId           String?        @unique
-  avatarUrl            String?
-  bio                  String?
+  id           String    @id @default(cuid())
+  username     String    @unique
+  displayName  String
+  email        String?   @unique
+  passwordHash String?
+  birthday     DateTime?
+  googleId     String?   @unique
+  githubId     String?   @unique
+  facebookId   String?   @unique
+  avatarUrl    String?
+  bio          String?
+
+  profileVisibility Visibility       @default(PUBLIC)
+  messagePrivacy    MessagingPrivacy @default(FOLLOWERS)
+  showOnlineStatus  Boolean          @default(true)
+
   session              Session[]
   following            Follow[]       @relation("Following")
   followers            Follow[]       @relation("Followers")
@@ -47,7 +62,6 @@ model User {
   oldUserData         OldUserData[]
   searches            SearchHistory[]
   mentionedInMessages MessageMention[] @relation("MentionedInMessage")
-  userPrivacies       UserPrivacy[]
   deliveries          Delivery[]
   userAvatars         UserAvatar[]
   fcmTokens           FCMToken[]
@@ -323,6 +337,7 @@ model Post {
   comments            Comment[]
   bookmarks           Bookmark[]
   linkedNotifications Notification[]
+  visibility          Visibility     @default(PUBLIC)
 
   createdAt      DateTime        @default(now())
   relevanceScore Int             @default(0)
@@ -496,42 +511,6 @@ model SearchHistory {
   createdAt DateTime @default(now())
 
   @@map("search_history")
-}
-
-model Privacy {
-  id          String        @id @default(cuid())
-  type        PrivacyType
-  value       PrivacyValue
-  userPrivacy UserPrivacy[]
-
-  @@unique([type, value])
-  @@map("privacy")
-}
-
-enum PrivacyType {
-  PROFILE_VISIBILITY
-  POST_VISIBILITY
-  MESSAGE_PRIVACY
-  ONLINE_STATUS_VISIBILITY
-}
-
-enum PrivacyValue {
-  PUBLIC
-  FOLLOWERS
-  PRIVATE
-  EVERYONE
-  NO_ONE
-}
-
-model UserPrivacy {
-  id        String  @id @default(cuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  privacyId String
-  privacy   Privacy @relation(fields: [privacyId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, privacyId])
-  @@map("user_privacy")
 }
 
 model FCMToken {

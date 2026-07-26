@@ -13,6 +13,7 @@ import {
   SocketSendVoiceNoteEvent,
   SocketGetRoomDetailsEvent,
   SocketGetLastMessageEvent,
+  UserData,
 } from "./types";
 import {
   getFormattedRooms,
@@ -32,43 +33,66 @@ import { th } from "zod/locales";
 import chalk from "chalk";
 import prisma from "./prisma";
 
-async function doesUserFollow(
-  followerId: string,
-  followingId: string,
-): Promise<boolean> {
-  const follow = await prisma.follow.findUnique({
-    where: {
-      followerId_followingId: {
-        followerId,
-        followingId,
-      },
-    },
-  });
-  return Boolean(follow);
+function validatePrivacy(user: UserData, currentId: string) {
+  const targetFollowsMe = user.followers.some(
+    (f) => f.followerId === currentId,
+  );
+  const isAccountPrivate =
+    user.messagePrivacy === "NO_ONE" || user.profileVisibility === "PRIVATE";
+  const isAccountFollowersOnly =
+    user.messagePrivacy === "FOLLOWERS" ||
+    user.profileVisibility === "FOLLOWERS";
+
+  if (isAccountPrivate) {
+    console.log(
+      chalk.yellow(`${user.displayName} n'authorise pas les messages directs.`),
+    );
+    throw new Error("account_private");
+  }
+
+  if (!targetFollowsMe && isAccountFollowersOnly) {
+    console.log(
+      chalk.yellow(
+        `Vous devez vous abonner à ${user.displayName} pour envoyer des mesages.`,
+      ),
+    );
+    throw new Error("authorized_follower_only");
+  }
+  return;
 }
 
-async function validateGroupMembersAreFollowers(
-  userId: string,
-  memberIds: string[],
-) {
-  if (!memberIds.length) return;
+function validatePrivacies(
+  users: UserData[],
+  currentId: string,
+): {
+  validUsers: UserData[];
+  invalidUsers: UserData[];
+} {
+  if (!users.length)
+    return {
+      validUsers: [],
+      invalidUsers: [],
+    };
 
-  const follows = await prisma.follow.findMany({
-    where: {
-      followerId: { in: memberIds },
-      followingId: userId,
-    },
-    select: { followerId: true },
+  const invalidUsers = users.filter((user) => {
+    const targetFollowsMe = user.followers.some(
+      (f) => f.followerId === currentId,
+    );
+    const isAccountPrivate =
+      user.messagePrivacy === "NO_ONE" || user.profileVisibility === "PRIVATE";
+    const isAccountFollowersOnly =
+      user.messagePrivacy === "FOLLOWERS" ||
+      user.profileVisibility === "FOLLOWERS";
+
+    return isAccountPrivate || (!targetFollowsMe && isAccountFollowersOnly);
   });
 
-  const followerIds = new Set(follows.map((row) => row.followerId));
-  const invalidMemberIds = memberIds.filter((id) => !followerIds.has(id));
+  const validUsers = users.filter((user) => !invalidUsers.includes(user));
 
-  if (invalidMemberIds.length > 0) {
-    throw new Error(
-      "Seuls les utilisateurs qui vous suivent peuvent être ajoutés au groupe.",
-    );
-  }
+  return {
+    validUsers,
+    invalidUsers,
+  };
 }
 
 async function hasPendingRequestMessage(
@@ -99,7 +123,6 @@ async function hasPendingRequestMessage(
 
   return !Boolean(recipientReply);
 }
-
 
 // --- HANDLE START CHAT ---
 export async function handleStartChat(
@@ -135,20 +158,30 @@ export async function handleStartChat(
     }
 
     if (!targetUserId) {
-      throw new Error("Utilisateur cible requis.");
+      throw new Error("no_target_user_id");
     }
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: getUserDataSelect(userId),
+    });
 
-    const targetFollowsMe = await doesUserFollow(targetUserId, userId);
-    if (!targetFollowsMe) {
-      throw new Error(
-        "Vous ne pouvez démarrer une discussion qu'avec un utilisateur qui vous suit.",
-      );
+    if (!targetUser) {
+      throw new Error("target_user_not_found");
     }
+    validatePrivacy(targetUser, userId);
   }
 
   if (isGroup) {
     const otherMemberIds = uniqueMemberIds.filter((id) => id !== userId);
-    await validateGroupMembersAreFollowers(userId, otherMemberIds);
+    const membersAccount = await prisma.user.findMany({
+      where: { id: { in: otherMemberIds } },
+      include: getUserDataSelect(userId),
+    });
+    const { validUsers } = validatePrivacies(membersAccount, userId);
+
+    if (!validUsers.length) {
+      throw new Error("private_propfiles_found");
+    }
   }
 
   const newRoom = await prisma.$transaction(
@@ -569,7 +602,11 @@ export async function handleDeleteMessage(
         },
       );
     } catch (error) {
-      console.log(chalk.redBright(`Failed to delete voice note from Cloudinary: ${error}`));
+      console.log(
+        chalk.redBright(
+          `Failed to delete voice note from Cloudinary: ${error}`,
+        ),
+      );
     }
   }
 
@@ -790,10 +827,12 @@ export async function handleSendNormalMessage(
     );
 
     if (otherMember?.userId) {
-      const recipientFollowsSender = await doesUserFollow(
-        otherMember.userId,
-        userId,
-      );
+      const recipientFollowsSender = await prisma.follow.findFirst({
+        where: {
+          followerId: otherMember.userId,
+          followingId: userId,
+        },
+      });
 
       if (!recipientFollowsSender) {
         const pendingRequest = await hasPendingRequestMessage(
@@ -803,9 +842,7 @@ export async function handleSendNormalMessage(
         );
 
         if (pendingRequest) {
-          throw new Error(
-            "Vous devez attendre que votre interlocuteur réponde avant d'envoyer un autre message.",
-          );
+          throw new Error("invitation_not_replied");
         }
       }
     }
@@ -1120,10 +1157,12 @@ export async function handleGetRoomDetails(
       );
 
       if (otherMember?.userId) {
-        const otherFollowsMe = await doesUserFollow(
-          otherMember.userId,
-          userId,
-        );
+        const otherFollowsMe = await prisma.follow.findFirst({
+          where: {
+            followerId: otherMember.userId,
+            followingId: userId,
+          },
+        });
 
         if (!otherFollowsMe) {
           const hasPendingRequest = await hasPendingRequestMessage(
@@ -1308,10 +1347,12 @@ export async function handleSendVoiceNote(
     );
 
     if (otherMember?.userId) {
-      const recipientFollowsSender = await doesUserFollow(
-        otherMember.userId,
-        userId,
-      );
+      const recipientFollowsSender = await prisma.follow.findFirst({
+          where: {
+            followerId: otherMember.userId,
+            followingId: userId,
+          },
+        })
 
       if (!recipientFollowsSender) {
         const pendingRequest = await hasPendingRequestMessage(
@@ -1322,7 +1363,7 @@ export async function handleSendVoiceNote(
 
         if (pendingRequest) {
           throw new Error(
-            "Vous devez attendre que votre interlocuteur réponde avant d'envoyer une autre note vocale.",
+            "invitation_not_replied",
           );
         }
       }
