@@ -226,7 +226,7 @@ export default function RoomHeader({
   if (!room) {
     if (status === "pending") {
       return (
-        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
+        <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 *:shrink-0">
           <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex w-full flex-col gap-2">
             <Skeleton className="h-3 w-40 max-w-full" />
@@ -237,7 +237,7 @@ export default function RoomHeader({
     }
     if (status === "error") {
       return (
-        <div className="flex w-full flex-shrink-0 items-center gap-2 px-4 py-3 *:flex-shrink-0">
+        <div className="flex w-full shrink-0 items-center gap-2 px-4 py-3 *:shrink-0">
           <UserAvatar userId={""} avatarUrl={null} size={40} />
           <div className="flex w-full flex-col gap-2">
             {isGroup ? group : "OchoApp User"}
@@ -269,6 +269,9 @@ export default function RoomHeader({
     avatarUrl: "",
     verified: [],
     bio: null,
+    profileVisibility: "PUBLIC",
+    messagePrivacy: "NO_ONE",
+    showOnlineStatus: false,
     following: [],
     followers: [],
     lastSeen: new Date(0),

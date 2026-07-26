@@ -244,45 +244,7 @@ export function getChatRoomDataInclude(userId: string | undefined = undefined) {
     members: {
       select: {
         userId: true,
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-            bio: true,
-            createdAt: true,
-            lastSeen: true,
-            verified: {
-              select: {
-                type: true,
-                expiresAt: true,
-              },
-            },
-            followers: {
-              where: {
-                followerId: userId,
-              },
-              select: {
-                followerId: true,
-              },
-            },
-            following: {
-              where: {
-                followerId: userId,
-              },
-              select: {
-                followerId: true,
-              },
-            },
-            _count: {
-              select: {
-                posts: true,
-                followers: true,
-              },
-            },
-          },
-        },
+        user: {select: getUserDataSelect(userId || "")},
         type: true,
         joinedAt: true,
         leftAt: true,
