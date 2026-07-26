@@ -28,7 +28,7 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="rounded-full px-6">
-                <Link href="/login">Se connecter</Link>
+                <OchoLink href="/login">Se connecter</OchoLink>
               </Button>
               <Button
                 asChild
@@ -36,7 +36,7 @@ export default function LandingPage() {
                 size="lg"
                 className="rounded-full px-6"
               >
-                <Link href="/signup">Créer un compte</Link>
+                <OchoLink href="/signup">Créer un compte</OchoLink>
               </Button>
             </div>
 
