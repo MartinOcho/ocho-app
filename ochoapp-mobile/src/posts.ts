@@ -33,7 +33,7 @@ export function calculateRelevanceScore(
     const proximityScore = post.user.followers.some(
       (follower) => follower.followerId === userId,
     )
-      ? 5
+      ? 100
       : 0;
 
     // Bonus pour les types de contenu
@@ -47,7 +47,7 @@ export function calculateRelevanceScore(
         : 1;
 
     // Bonus pour le dernier post
-    const latestPostBonus = latestPostId && post.id === latestPostId ? 100 : 0;
+    const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
     // Calcul final
     return (
