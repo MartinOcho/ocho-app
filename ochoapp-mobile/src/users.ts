@@ -8,7 +8,7 @@ import {
   VerifiedUser,
 } from "./types";
 import { checkVerification, getCurrentUser } from "./auth";
-import { log } from "console";
+import { log, profile } from "console";
 
 export async function getUserProfile(req: Request, res: Response) {
   const { userId } = <{ userId: string }>req.params;
@@ -557,26 +557,13 @@ export async function getUserSettings(req: Request, res: Response) {
       });
     }
 
-    // Récupérer les paramètres de confidentialité
-    const privacySettings = await prisma.userPrivacy.findMany({
-      where: { userId: loggedUser.id },
-      include: {
-        privacy: true,
-      },
-    });
-
     // Récupérer les informations de base de l'utilisateur
     const user = await prisma.user.findUnique({
       where: { id: loggedUser.id },
       select: {
-        id: true,
-        username: true,
-        displayName: true,
+        ...getUserDataSelect(loggedUser.id),
         email: true,
         birthday: true,
-        bio: true,
-        avatarUrl: true,
-        createdAt: true,
         lastUsernameChange: true,
       },
     });
@@ -588,12 +575,6 @@ export async function getUserSettings(req: Request, res: Response) {
         name: "user_not_found",
       });
     }
-
-    // Formater les paramètres de confidentialité
-    const formattedPrivacy = privacySettings.reduce((acc, setting) => {
-      acc[setting.privacy.type] = setting.privacy.value;
-      return acc;
-    }, {} as Record<string, string>);
 
     const settings = {
       user: {
@@ -607,8 +588,10 @@ export async function getUserSettings(req: Request, res: Response) {
         createdAt: user.createdAt.toISOString(),
         lastUsernameChange: user.lastUsernameChange?.toISOString(),
       },
-      privacy: formattedPrivacy,
-      // Note: theme et language sont gérés côté client
+      privacy: {
+        messages: user.messagePrivacy,
+        profile: user.profileVisibility,
+      },
     };
 
     return res.json({
@@ -637,53 +620,12 @@ export async function updateUserPrivacy(req: Request, res: Response) {
       });
     }
 
-    const { type, value } = req.body;
-
-    if (!type || !value) {
-      return res.json({
-        success: false,
-        message: "Type and value are required",
-        name: "missing_fields",
-      });
-    }
-
-    // Vérifier que le type et la valeur existent dans la table Privacy
-    const privacy = await prisma.privacy.findUnique({
-      where: {
-        type_value: {
-          type: type,
-          value: value,
-        },
-      },
-    });
-
-    if (!privacy) {
-      return res.json({
-        success: false,
-        message: "Invalid privacy setting",
-        name: "invalid_privacy",
-      });
-    }
-
-    // Mettre à jour ou créer le paramètre de confidentialité
-    await prisma.userPrivacy.upsert({
-      where: {
-        userId_privacyId: {
-          userId: loggedUser.id,
-          privacyId: privacy.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: loggedUser.id,
-        privacyId: privacy.id,
-      },
-    });
+    
 
     return res.json({
-      success: true,
-      message: "Privacy setting updated successfully",
-      data: { type, value },
+      success: false,
+      message: "Not implemented yet",
+      name: "not_implemented",
     });
   } catch (error) {
     console.error(error);
@@ -729,7 +671,10 @@ export async function updateUserBirthday(req: Request, res: Response) {
     const today = new Date();
     let age = today.getFullYear() - birthdayDate.getFullYear();
     const monthDiff = today.getMonth() - birthdayDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdayDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthdayDate.getDate())
+    ) {
       age--;
     }
 
@@ -784,10 +729,15 @@ export async function updateUsername(req: Request, res: Response) {
 
     // Validation du nom d'utilisateur
     const usernameRegex = /^[a-zA-Z0-9_]+$/;
-    if (!usernameRegex.test(username) || username.length < 3 || username.length > 20) {
+    if (
+      !usernameRegex.test(username) ||
+      username.length < 3 ||
+      username.length > 20
+    ) {
       return res.json({
         success: false,
-        message: "Username must be 3-20 characters long and contain only letters, numbers, and underscores",
+        message:
+          "Username must be 3-20 characters long and contain only letters, numbers, and underscores",
         name: "invalid_username",
       });
     }
@@ -903,7 +853,7 @@ export async function exportUserData(req: Request, res: Response) {
         createdAt: userData.createdAt.toISOString(),
         lastSeen: userData.lastSeen.toISOString(),
       },
-      posts: userData.posts.map(post => ({
+      posts: userData.posts.map((post) => ({
         id: post.id,
         content: post.content,
         createdAt: post.createdAt.toISOString(),
@@ -911,27 +861,23 @@ export async function exportUserData(req: Request, res: Response) {
         commentsCount: post.comments.length,
         bookmarksCount: post.bookmarks.length,
       })),
-      comments: userData.comments.map(comment => ({
+      comments: userData.comments.map((comment) => ({
         id: comment.id,
         content: comment.content,
         createdAt: comment.createdAt.toISOString(),
         postId: comment.postId,
       })),
-      likes: userData.likes.map(like => ({
+      likes: userData.likes.map((like) => ({
         postId: like.postId,
       })),
-      bookmarks: userData.bookmarks.map(bookmark => ({
+      bookmarks: userData.bookmarks.map((bookmark) => ({
         postId: bookmark.postId,
       })),
-      followers: userData.followers.map(follow => ({
+      followers: userData.followers.map((follow) => ({
         followerId: follow.followerId,
       })),
-      following: userData.following.map(follow => ({
+      following: userData.following.map((follow) => ({
         followingId: follow.followingId,
-      })),
-      privacySettings: userData.userPrivacies.map(setting => ({
-        type: setting.privacy.type,
-        value: setting.privacy.value,
       })),
       exportDate: new Date().toISOString(),
     };
@@ -968,7 +914,8 @@ export async function disableUserAccount(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Account disabled successfully. You can reactivate it by logging in again.",
+      message:
+        "Account disabled successfully. You can reactivate it by logging in again.",
       data: null,
     });
   } catch (error) {
