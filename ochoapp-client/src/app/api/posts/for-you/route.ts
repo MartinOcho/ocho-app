@@ -16,9 +16,28 @@ export async function GET(req: NextRequest) {
 
     const pageSize = 10;
 
-   
     // Récupérer les trois derniers posts triés par date
     const latestPosts = await prisma.post.findMany({
+      where: {
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       include: getPostDataIncludes(user.id),
       orderBy: {
         createdAt: "desc",
@@ -41,8 +60,28 @@ export async function GET(req: NextRequest) {
       cursor: cursor ? { id: cursor } : undefined,
       where: {
         id: {
-          notIn: latestPosts.map(post => post.id), // Exclure les posts déjà récupérés
+          notIn: latestPosts.map((post) => post.id), // Exclure les posts déjà récupérés
         },
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: {
+              not: "PRIVATE"
+            },
+          },
+        ],
       },
     });
 
@@ -57,10 +96,14 @@ export async function GET(req: NextRequest) {
       ),
     }));
 
-    const sortedPosts = postsWithScores
-      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+    const sortedPosts = postsWithScores.sort(
+      (a, b) => b.relevanceScore - a.relevanceScore,
+    );
 
-    const nextCursor = posts.length > pageSize + latestPosts.length ? posts[pageSize + latestPosts.length].id : null;
+    const nextCursor =
+      posts.length > pageSize + latestPosts.length
+        ? posts[pageSize + latestPosts.length].id
+        : null;
 
     const data: PostsPage = {
       posts: sortedPosts.sort(() => Math.random() - 0.5),

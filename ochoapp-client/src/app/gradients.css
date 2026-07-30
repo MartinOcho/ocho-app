@@ -26,6 +26,7 @@
 
 .gradient-4 {
   background: hsl(var(--gradient-4-default));
+  background: var(--gradient-4);
   color: hsl(var(--gradient-4-foreground));
   @apply border-input border;
 }

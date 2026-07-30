@@ -27,14 +27,9 @@ export async function GET(req: NextRequest) {
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       where: {
-        OR: [
-          {
-            visibility: "PUBLIC",
-          },
-          {
-            visibility: "FOLLOWERS",
-          },
-        ],
+        visibility: {
+          not: "PRIVATE"
+        },
         user: {
           followers: {
             some: {

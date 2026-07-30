@@ -1,7 +1,15 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
 import { checkVerification, getCurrentUser } from "./auth";
-import { getPostDataIncludes, getUserDataSelect, Post, PostData, User, UserData, VerifiedUser } from "./types";
+import {
+  getPostDataIncludes,
+  getUserDataSelect,
+  Post,
+  PostData,
+  User,
+  UserData,
+  VerifiedUser,
+} from "./types";
 import { check } from "zod";
 import { get } from "node:http";
 import { Prisma } from "@prisma/client";
@@ -41,11 +49,13 @@ function formatPost(post: PostData, userId: string): Post {
     likes: post._count?.likes || 0,
     comments: post._count?.comments || 0,
     isLiked: post.likes?.some((like: any) => like.userId === userId) || false,
-    isBookmarked: post.bookmarks?.some((bookmark: any) => bookmark.userId === userId) || false,
+    isBookmarked:
+      post.bookmarks?.some((bookmark: any) => bookmark.userId === userId) ||
+      false,
   };
 }
 
-function formatUser(user:UserData): User {
+function formatUser(user: UserData): User {
   const userVerifiedData = user.verified?.[0];
   const expiresAt = userVerifiedData?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
@@ -66,23 +76,25 @@ function formatUser(user:UserData): User {
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl || null,
-    bio: user.bio ,
+    bio: user.bio,
     verified,
     createdAt: user.createdAt.getTime(),
     lastSeen: user.lastSeen ? user.lastSeen.getTime() : undefined,
     followersCount: user._count?.followers || 0,
     postsCount: user._count?.posts || 0,
-    isFollowing: !!user.followers?.some((follower) => follower.followerId === user.id),
+    isFollowing: !!user.followers?.some(
+      (follower) => follower.followerId === user.id,
+    ),
   };
-
 }
 
-
 /**
- * Extrait les hashtags d'un texte
+ * Extrait les hashtags d'un texte (prend en compte les caractères accentués UTF-8)
  */
 function extractHashtags(text: string): string[] {
-  const hashtags = text.match(/#[\w]+/g) || [];
+  if (!text) return [];
+  // Expression régulière supportant les lettres Unicode (accents), chiffres et underscores
+  const hashtags = text.match(/#[\p{L}\p{N}_]+/gu) || [];
   return [...new Set(hashtags.map((tag) => tag.toLowerCase()))];
 }
 
@@ -101,75 +113,106 @@ export async function searchGeneral(req: Request, res: Response) {
       });
     }
 
-    const q = (req.query.q as string) || (req.query.query as string) || "";
+    const rawQuery = ((req.query.q as string) || (req.query.query as string) || "").trim();
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = req.query.cursor as string | undefined;
 
-    if (!q) {
+    if (!rawQuery) {
       return res.json({
         success: false,
         message: "Paramètre 'q' ou 'query' requis",
+        name: "invalid_input",
       });
     }
 
+    const cleanQuery = rawQuery.replace(/^#/, ""); // Mot-clé nettoyé du symbole #
+    const isHashtagSearch = rawQuery.startsWith("#");
+
+    // Condition de visibilité réutilisable pour les posts
+    const visibilityWhere: Prisma.PostWhereInput = {
+      OR: [
+        { userId: user.id },
+        {
+          visibility: "FOLLOWERS",
+          user: {
+            followers: {
+              some: { followerId: user.id },
+            },
+          },
+        },
+        { visibility: "PUBLIC" },
+      ],
+    };
+
+    // Filtre de contenu adapté selon la présence du symbole #
+    const postContentWhere: Prisma.PostWhereInput = isHashtagSearch
+      ? { content: { contains: rawQuery, mode: "insensitive" } }
+      : {
+          OR: [
+            { content: { search: cleanQuery } },
+            { content: { contains: cleanQuery, mode: "insensitive" } },
+            { user: { displayName: { contains: cleanQuery, mode: "insensitive" } } },
+            { user: { username: { contains: cleanQuery, mode: "insensitive" } } },
+          ],
+        };
+
     // Recherche parallèle: posts, utilisateurs, hashtags
-    const [postsData, usersData, hashtagMatches] = await Promise.all([
-      // Posts
+    const [postsData, usersData, hashtagPosts] = await Promise.all([
+      // 1. Posts
       prisma.post.findMany({
         where: {
-          OR: [
-              { content: { search: q } },
-              { user: { displayName: { search: q } } },
-              { user: { username: { search: q } } },
-            ],
+          AND: [postContentWhere, visibilityWhere],
         },
-          include: getPostDataIncludes(user.id),
+        include: getPostDataIncludes(user.id),
         orderBy: { createdAt: "desc" },
         take: limit + 1,
-        cursor: cursor?.startsWith("post_") ? { id: cursor.substring(5) } : undefined,
+        cursor: cursor?.startsWith("post_")
+          ? { id: cursor.substring(5) }
+          : undefined,
       }),
-      // Users
+
+      // 2. Utilisateurs
       prisma.user.findMany({
         where: {
           OR: [
-            {
-              username: {
-                search: q,
-              },
-            },
-            {
-              displayName: {
-                search: q,
-              },
-            },
+            { username: { contains: cleanQuery, mode: "insensitive" } },
+            { displayName: { contains: cleanQuery, mode: "insensitive" } },
           ],
         },
         select: getUserDataSelect(user.id),
         orderBy: { username: "asc" },
         take: limit + 1,
       }),
-      // Hashtags (extraction depuis les posts)
+
+      // 3. Extraction des hashtags depuis les posts récents
       prisma.post.findMany({
         where: {
-          content: {
-            search: "#",
-          },
+          AND: [
+            {
+              content: {
+                contains: isHashtagSearch ? rawQuery : `#${cleanQuery}`,
+                mode: "insensitive",
+              },
+            },
+            visibilityWhere,
+          ],
         },
         select: {
           content: true,
         },
-        take: 500,
+        take: 300,
       }),
     ]);
 
-    // Extraire et filtrer les hashtags
-    const allHashtags = hashtagMatches
+    // Extraire, filtrer et dédoublonner les hashtags
+    const targetTagFilter = cleanQuery.toLowerCase();
+    const allHashtags = hashtagPosts
       .flatMap((p) => extractHashtags(p.content))
-      .filter((tag) => tag.toLowerCase().includes(q.toLowerCase()));
+      .filter((tag) => tag.toLowerCase().includes(targetTagFilter));
 
     const uniqueHashtags = [...new Set(allHashtags)].slice(0, limit + 1);
 
-    // Pagination pour posts et users
+    // Découpage pour pagination
     const posts = postsData.slice(0, limit);
     const users = usersData.slice(0, limit);
     const hashtags = uniqueHashtags.slice(0, limit);
@@ -183,12 +226,14 @@ export async function searchGeneral(req: Request, res: Response) {
         posts: {
           items: formattedPosts,
           hasMore: postsData.length > limit,
-          nextCursor: postsData.length > limit ? `post_${postsData[limit].id}` : null,
+          nextCursor:
+            postsData.length > limit ? `post_${postsData[limit].id}` : null,
         },
         users: {
           items: formattedUsers,
           hasMore: usersData.length > limit,
-          nextCursor: usersData.length > limit ? `user_${usersData[limit].id}` : null,
+          nextCursor:
+            usersData.length > limit ? `user_${usersData[limit].id}` : null,
         },
         hashtags: {
           items: hashtags.map((tag) => ({ hashtag: tag })),
@@ -220,34 +265,62 @@ export async function searchPostsFiltered(req: Request, res: Response) {
       });
     }
 
-    const q = (req.query.q as string) || "";
+    const rawQuery = ((req.query.q as string) || "").trim();
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = req.query.cursor as string | undefined;
-    const startDate = req.query.startDate ? parseInt(req.query.startDate as string) : undefined;
-    const endDate = req.query.endDate ? parseInt(req.query.endDate as string) : undefined;
+    const startDate = req.query.startDate
+      ? parseInt(req.query.startDate as string)
+      : undefined;
+    const endDate = req.query.endDate
+      ? parseInt(req.query.endDate as string)
+      : undefined;
 
-    if (!q) {
+    if (!rawQuery) {
       return res.json({
         success: false,
         message: "Paramètre 'q' requis",
       });
     }
 
+    const cleanQuery = rawQuery.replace(/^#/, "");
+    const isHashtagSearch = rawQuery.startsWith("#");
+
+    const contentFilter: Prisma.PostWhereInput = isHashtagSearch
+      ? { content: { contains: rawQuery, mode: "insensitive" } }
+      : {
+          OR: [
+            { content: { search: cleanQuery } },
+            { content: { contains: cleanQuery, mode: "insensitive" } },
+            { user: { displayName: { contains: cleanQuery, mode: "insensitive" } } },
+            { user: { username: { contains: cleanQuery, mode: "insensitive" } } },
+          ],
+        };
+
+    const visibilityWhere: Prisma.PostWhereInput = {
+      OR: [
+        { userId: user.id },
+        {
+          visibility: "FOLLOWERS",
+          user: {
+            followers: {
+              some: { followerId: user.id },
+            },
+          },
+        },
+        { visibility: "PUBLIC" },
+      ],
+    };
+
     const whereClause: Prisma.PostWhereInput = {
       AND: [
-        {
-          OR: [
-              { content: { search: q } },
-              { user: { displayName: { search: q } } },
-              { user: { username: { search: q } } },
-            ],
-        },
+        contentFilter,
+        visibilityWhere,
         {
           createdAt: {
             gte: startDate ? new Date(startDate) : undefined,
             lte: endDate ? new Date(endDate) : undefined,
           },
-        }
+        },
       ],
     };
 
@@ -287,6 +360,10 @@ export async function searchPostsFiltered(req: Request, res: Response) {
   }
 }
 
+// ============================================================================
+// ENDPOINT: GET /api/search/users - RECHERCHE D'UTILISATEURS
+// ============================================================================
+
 export async function searchUsers(req: Request, res: Response) {
   try {
     const { user, message } = await getCurrentUser(req.headers);
@@ -298,30 +375,24 @@ export async function searchUsers(req: Request, res: Response) {
       });
     }
 
-    const q = (req.query.q as string) || "";
+    const rawQuery = ((req.query.q as string) || "").trim();
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = req.query.cursor as string | undefined;
 
-    if (!q) {
+    if (!rawQuery) {
       return res.json({
         success: false,
         message: "Paramètre 'q' requis",
       });
     }
 
+    const cleanQuery = rawQuery.replace(/^@/, "");
+
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          {
-            username: {
-              search: q,
-            },
-          },
-          {
-            displayName: {
-              search: q,
-            },
-          },
+          { username: { contains: cleanQuery, mode: "insensitive" } },
+          { displayName: { contains: cleanQuery, mode: "insensitive" } },
         ],
       },
       select: getUserDataSelect(user.id),
@@ -358,6 +429,9 @@ export async function searchUsers(req: Request, res: Response) {
   }
 }
 
+// ============================================================================
+// ENDPOINT: GET /api/search/hashtags - RECHERCHE SPÉCIFIQUE DE HASHTAGS
+// ============================================================================
 
 export async function searchHashtags(req: Request, res: Response) {
   try {
@@ -370,22 +444,46 @@ export async function searchHashtags(req: Request, res: Response) {
       });
     }
 
-    const q = (req.query.q as string) || "";
+    const rawQuery = ((req.query.q as string) || "").trim();
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
 
-    if (!q) {
+    if (!rawQuery) {
       return res.json({
         success: false,
         message: "Paramètre 'q' requis",
       });
     }
 
-    // Récupérer les posts contenant des hashtags
+    const cleanQuery = rawQuery.replace(/^#/, "");
+    const searchPattern = `#${cleanQuery}`;
+
+    const visibilityWhere: Prisma.PostWhereInput = {
+      OR: [
+        { userId: user.id },
+        {
+          visibility: "FOLLOWERS",
+          user: {
+            followers: {
+              some: { followerId: user.id },
+            },
+          },
+        },
+        { visibility: "PUBLIC" },
+      ],
+    };
+
+    // Récupérer les posts contenant le hashtag demandé
     const posts = await prisma.post.findMany({
       where: {
-        content: {
-          search: "#",
-        },
+        AND: [
+          {
+            content: {
+              contains: searchPattern,
+              mode: "insensitive",
+            },
+          },
+          visibilityWhere,
+        ],
       },
       select: {
         content: true,
@@ -395,10 +493,10 @@ export async function searchHashtags(req: Request, res: Response) {
           },
         },
       },
-      take: 1000,
+      take: 500,
     });
 
-    // Extraire et analyser les hashtags
+    // Extraire et grouper les hashtags correspondants
     const hashtagMap = new Map<
       string,
       { hashtag: string; postCount: number; likeCount: number }
@@ -407,13 +505,14 @@ export async function searchHashtags(req: Request, res: Response) {
     posts.forEach((post) => {
       const tags = extractHashtags(post.content);
       tags.forEach((tag) => {
-        if (tag.toLowerCase().includes(q.toLowerCase())) {
-          const existing = hashtagMap.get(tag.toLowerCase());
+        if (tag.toLowerCase().includes(cleanQuery.toLowerCase())) {
+          const key = tag.toLowerCase();
+          const existing = hashtagMap.get(key);
           if (existing) {
             existing.postCount += 1;
             existing.likeCount += post._count.likes;
           } else {
-            hashtagMap.set(tag.toLowerCase(), {
+            hashtagMap.set(key, {
               hashtag: tag,
               postCount: 1,
               likeCount: post._count.likes,
@@ -423,7 +522,7 @@ export async function searchHashtags(req: Request, res: Response) {
       });
     });
 
-    // Trier par postCount descendant et limiter
+    // Trier par nombre de posts décroissant
     const hashtags = Array.from(hashtagMap.values())
       .sort((a, b) => b.postCount - a.postCount)
       .slice(0, limit);
@@ -450,6 +549,10 @@ export async function searchHashtags(req: Request, res: Response) {
     });
   }
 }
+
+// ============================================================================
+// HISTORIQUE DE RECHERCHE
+// ============================================================================
 
 export async function getSearchHistory(req: Request, res: Response) {
   try {
@@ -504,7 +607,6 @@ export async function getSearchHistory(req: Request, res: Response) {
   }
 }
 
-
 export async function saveSearchQuery(req: Request, res: Response) {
   try {
     const { user, message } = await getCurrentUser(req.headers);
@@ -524,13 +626,15 @@ export async function saveSearchQuery(req: Request, res: Response) {
       });
     }
 
+    const trimmedQuery = query.trim();
+
     const existingEntry = await prisma.searchHistory.findFirst({
       where: {
         userId: user.id,
-        query: query.trim(),
+        query: trimmedQuery,
       },
     });
-    
+
     if (existingEntry) {
       await prisma.searchHistory.update({
         where: { id: existingEntry.id },
@@ -541,7 +645,7 @@ export async function saveSearchQuery(req: Request, res: Response) {
         data: {
           id: existingEntry.id,
           query: existingEntry.query,
-          createdAt: existingEntry.createdAt.getTime(),
+          createdAt: Date.now(),
         },
       });
     }
@@ -549,10 +653,9 @@ export async function saveSearchQuery(req: Request, res: Response) {
     const newEntry = await prisma.searchHistory.create({
       data: {
         userId: user.id,
-        query: query.trim(),
+        query: trimmedQuery,
       },
     });
-
 
     return res.json({
       success: true,
@@ -571,7 +674,6 @@ export async function saveSearchQuery(req: Request, res: Response) {
   }
 }
 
-
 export async function deleteSearchQuery(req: Request, res: Response) {
   try {
     const { user, message } = await getCurrentUser(req.headers);
@@ -583,7 +685,7 @@ export async function deleteSearchQuery(req: Request, res: Response) {
       });
     }
 
-    const searchId = <string>req.params.queryId;
+    const searchId = req.params.queryId as string;
     if (!searchId) {
       return res.json({
         success: false,
@@ -618,7 +720,6 @@ export async function deleteSearchQuery(req: Request, res: Response) {
     });
   }
 }
-
 
 export async function searchPosts(req: Request, res: Response) {
   return searchPostsFiltered(req, res);
@@ -656,13 +757,32 @@ export async function searchPostIds(req: Request, res: Response) {
 
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = (req.query.cursor as string) || undefined;
+     const visibilityWhere: Prisma.PostWhereInput = {
+      OR: [
+        { userId: user.id },
+        {
+          visibility: "FOLLOWERS",
+          user: {
+            followers: {
+              some: { followerId: user.id },
+            },
+          },
+        },
+        { visibility: "PUBLIC" },
+      ],
+    };
 
-    const posts = await prisma.post.findMany({
-      where: {
+    const whereClause: Prisma.PostWhereInput = {
         content: {
           contains: q,
           mode: "insensitive",
         },
+
+    }
+
+    const posts = await prisma.post.findMany({
+      where: {
+        AND: [visibilityWhere, whereClause]
       },
       orderBy: { createdAt: "desc" },
       take: limit + 1,

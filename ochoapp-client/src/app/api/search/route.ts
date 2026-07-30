@@ -30,10 +30,34 @@ export async function GET(req: NextRequest) {
       case "posts":
         results = await prisma.post.findMany({
           where: {
-            OR: [
-              { content: { search: searchQuery } },
-              { user: { displayName: { search: searchQuery } } },
-              { user: { username: { search: searchQuery } } },
+            AND: [
+              {
+                OR: [
+                  { content: { search: searchQuery } },
+                  { user: { displayName: { search: searchQuery } } },
+                  { user: { username: { search: searchQuery } } },
+                ],
+              },
+              {
+                OR: [
+                  {
+                    userId: user.id,
+                  },
+                  {
+                    visibility: "FOLLOWERS",
+                    user: {
+                      followers: {
+                        some: {
+                          followerId: user.id,
+                        },
+                      },
+                    },
+                  },
+                  {
+                    visibility: "PUBLIC",
+                  },
+                ],
+              },
             ],
           },
           include: getPostDataIncludes(user.id),
@@ -149,10 +173,9 @@ export async function GET(req: NextRequest) {
         results = await prisma.user.findMany({
           where: {
             AND: [
-             
               {
                 verified: {
-                  some: {}
+                  some: {},
                 },
               },
               {
@@ -205,10 +228,34 @@ export async function GET(req: NextRequest) {
       default:
         results = await prisma.post.findMany({
           where: {
-            OR: [
-              { content: { search: searchQuery } },
-              { user: { displayName: { search: searchQuery } } },
-              { user: { username: { search: searchQuery } } },
+            AND: [
+              {
+                OR: [
+                  { content: { search: searchQuery } },
+                  { user: { displayName: { search: searchQuery } } },
+                  { user: { username: { search: searchQuery } } },
+                ],
+              },
+              {
+                OR: [
+                  {
+                    userId: user.id,
+                  },
+                  {
+                    visibility: "FOLLOWERS",
+                    user: {
+                      followers: {
+                        some: {
+                          followerId: user.id,
+                        },
+                      },
+                    },
+                  },
+                  {
+                    visibility: "PUBLIC",
+                  },
+                ],
+              },
             ],
           },
           include: getPostDataIncludes(user.id),

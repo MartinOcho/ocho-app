@@ -20,7 +20,27 @@ export async function GET(
     }
 
     const posts = await prisma.post.findMany({
-      where: { userId },
+      where: {
+        userId,
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       include: getPostDataIncludes(user.id),
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,

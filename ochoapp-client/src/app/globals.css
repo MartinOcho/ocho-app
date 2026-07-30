@@ -62,6 +62,7 @@
     
     --gradient-4-default: 248, 15%, 11%;
     --gradient-4-foreground: 0 0% 95%;
+    --gradient-4: hsl(248, 15%, 11%);
 
     --gradient-5: radial-gradient(at center, hsl(169, 40%, 63%), hsl(241, 69%, 58%));
     --gradient-5-default: 169, 40%, 63%;
@@ -78,7 +79,7 @@
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 218.55deg 88.94% 42.55%;
+    --primary: 217, 99%, 51%;
     --primary-foreground: 208deg 100% 97.06%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;

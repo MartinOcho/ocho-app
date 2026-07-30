@@ -18,35 +18,61 @@ interface PageProps {
 }
 
 // Ajoutez une vérification pour le commentaire cible
-const getPost = cache(async (postId: string, loggedInUserId: string, targetComment?: string) => {
-  const postUser = await prisma.post.findUnique({
-    where: { id: postId },
-    select: {
-      user: true
-    },
-  });
-  const username = postUser?.user.username
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    include: getPostDataIncludes(loggedInUserId, username),
-  });
-
-  if (!post) notFound();
-
-  // Vérifiez si le commentaire cible existe
-  if (targetComment) {
-    const commentExists = await prisma.comment.findFirst({
-      where: { id: targetComment, postId },
+const getPost = cache(
+  async (postId: string, loggedInUserId: string, targetComment?: string) => {
+    const postUser = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        user: true,
+      },
+    });
+    const username = postUser?.user.username;
+    const post = await prisma.post.findFirst({
+      where: {
+        AND: [
+          { id: postId },
+          {
+            OR: [
+              {
+                userId: loggedInUserId,
+              },
+              {
+                visibility: "FOLLOWERS",
+                user: {
+                  followers: {
+                    some: {
+                      followerId: loggedInUserId,
+                    },
+                  },
+                },
+              },
+              {
+                visibility: "PUBLIC",
+              },
+            ],
+          },
+        ],
+      },
+      include: getPostDataIncludes(loggedInUserId, username),
     });
 
-    // Si le commentaire n'existe pas, redirigez vers la page de post sans le paramètre `comment`
-    if (!commentExists) {
-      redirect(`/posts/${postId}`);
-    }
-  }
+    if (!post) notFound();
 
-  return post;
-});
+    // Vérifiez si le commentaire cible existe
+    if (targetComment) {
+      const commentExists = await prisma.comment.findFirst({
+        where: { id: targetComment, postId },
+      });
+
+      // Si le commentaire n'existe pas, redirigez vers la page de post sans le paramètre `comment`
+      if (!commentExists) {
+        redirect(`/posts/${postId}`);
+      }
+    }
+
+    return post;
+  },
+);
 
 export async function generateMetadata({ params }: PageProps) {
   const { user } = await validateRequest();
@@ -56,10 +82,23 @@ export async function generateMetadata({ params }: PageProps) {
   if (!user) return;
 
   const post = await getPost(postId, user.id);
-  const hasImage = post.attachments.some((attachment) => attachment.type === "IMAGE");
-  const hasVideo = post.attachments.some((attachment) => attachment.type === "VIDEO");
-  const attachmentTitle  = hasImage && hasVideo ? "Images et vidéos" : hasImage ? "Images" : hasVideo ? "Vidéos" : "Medias";
-  const title = post.content ? `${post.content.slice(0, 50)}${post.content.length > 50 ? "..." : "" }` : attachmentTitle;
+  const hasImage = post.attachments.some(
+    (attachment) => attachment.type === "IMAGE",
+  );
+  const hasVideo = post.attachments.some(
+    (attachment) => attachment.type === "VIDEO",
+  );
+  const attachmentTitle =
+    hasImage && hasVideo
+      ? "Images et vidéos"
+      : hasImage
+        ? "Images"
+        : hasVideo
+          ? "Vidéos"
+          : "Medias";
+  const title = post.content
+    ? `${post.content.slice(0, 50)}${post.content.length > 50 ? "..." : ""}`
+    : attachmentTitle;
 
   return {
     title,
@@ -72,7 +111,7 @@ export default async function Page({ params, searchParams }: PageProps) {
   const { user } = await validateRequest();
   if (!user)
     return (
-      <p className="w-fit text-destructive">
+      <p className="text-destructive w-fit">
         Vous n&apos;êtes pas autorisé à afficher cette page. veuillez
         d&apos;abord vous connecter ou creer un compte
       </p>
@@ -81,7 +120,7 @@ export default async function Page({ params, searchParams }: PageProps) {
   const post = await getPost(postId, user.id, comment);
 
   return (
-    <main className="flex w-full min-w-0 gap-5 max-sm:py-4 pb-4">
+    <main className="flex w-full min-w-0 gap-5 pb-4 max-sm:py-4">
       <SetNavigation navPage={null} />
       <div className="w-full min-w-0 space-y-5 pb-4">
         <Post post={post} />
@@ -112,23 +151,30 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
   if (!loggedInUserData) return null;
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
+    <div className="bg-card space-y-5 rounded-2xl p-5 shadow-sm">
       <h2 className="text-xl font-bold">A propos de {user.displayName}</h2>
       <UserTooltip user={user}>
-        <OchoLink href={`/users/${user.username}`} className="flex items-center gap-3 text-inherit">
-          <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} className="flex-none" />
+        <OchoLink
+          href={`/users/${user.username}`}
+          className="flex items-center gap-3 text-inherit"
+        >
+          <UserAvatar
+            userId={user.id}
+            avatarUrl={user.avatarUrl}
+            className="flex-none"
+          />
           <div>
-            <p className="line-clamp-1 break-all font-semibold hover:underline">
+            <p className="line-clamp-1 font-semibold break-all hover:underline">
               {user.displayName}
             </p>
-            <p className="line-clamp-1 break-all text-muted-foreground hover:underline">
+            <p className="text-muted-foreground line-clamp-1 break-all hover:underline">
               @{user.username}
             </p>
           </div>
         </OchoLink>
       </UserTooltip>
       <Linkify>
-        <p className="line-clamp-6 whitespace-pre-line break-words text-muted-foreground">
+        <p className="text-muted-foreground line-clamp-6 break-words whitespace-pre-line">
           {user.bio}
         </p>
       </Linkify>
@@ -144,8 +190,12 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
               ({ followerId }) => followerId === user.id,
             ),
             isFriend:
-              user.followers.some(({ followerId }) => followerId === loggedInUser.id) &&
-              loggedInUserData.followers.some(({ followerId }) => followerId === user.id),
+              user.followers.some(
+                ({ followerId }) => followerId === loggedInUser.id,
+              ) &&
+              loggedInUserData.followers.some(
+                ({ followerId }) => followerId === user.id,
+              ),
           }}
         />
       )}

@@ -15,7 +15,27 @@ export async function GET(
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId: loggedInUser.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: loggedInUser.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: {
         likes: {
           where: {
@@ -61,7 +81,27 @@ export async function POST(
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId: loggedInUser.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: loggedInUser.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: {
         userId: true,
       },
@@ -104,7 +144,27 @@ export async function DELETE(
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId: loggedInUser.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: loggedInUser.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: {
         userId: true,
       },

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         lastSeen: true,
         // Exclude sensitive data like passwordHash
-      }
+      },
     });
 
     if (!userData) {
@@ -35,14 +35,34 @@ export async function GET(req: NextRequest) {
 
     // Fetch user's posts
     const posts = await prisma.post.findMany({
-      where: { userId },
+      where: {
+        userId,
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: {
         id: true,
         content: true,
         createdAt: true,
         gradient: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     // Fetch user's comments
@@ -54,7 +74,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         postId: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     // Fetch user's likes
@@ -62,7 +82,7 @@ export async function GET(req: NextRequest) {
       where: { userId },
       select: {
         postId: true,
-      }
+      },
     });
 
     // Fetch user's bookmarks
@@ -71,7 +91,7 @@ export async function GET(req: NextRequest) {
       select: {
         postId: true,
         createdAt: true,
-      }
+      },
     });
 
     // Fetch user's search history
@@ -81,7 +101,7 @@ export async function GET(req: NextRequest) {
         query: true,
         createdAt: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     // Compile all user data
@@ -93,7 +113,7 @@ export async function GET(req: NextRequest) {
       bookmarks: bookmarks,
       searchHistory: searchHistory,
       exportDate: new Date().toISOString(),
-      note: "This export contains your public data and activity. Sensitive information like passwords is not included."
+      note: "This export contains your public data and activity. Sensitive information like passwords is not included.",
     };
 
     const jsonString = JSON.stringify(exportData, null, 2);
@@ -101,19 +121,24 @@ export async function GET(req: NextRequest) {
     if (!secretKey) {
       throw new Error("INTERNAL_SERVER_SECRET environment variable is not set");
     }
-    const encryptedData = CryptoJS.AES.encrypt(jsonString, secretKey).toString();
+    const encryptedData = CryptoJS.AES.encrypt(
+      jsonString,
+      secretKey,
+    ).toString();
 
     return new NextResponse(encryptedData, {
       headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': 'attachment; filename="user-data.kom"'
-      }
+        "Content-Type": "application/octet-stream",
+        "Content-Disposition": 'attachment; filename="user-data.kom"',
+      },
     });
-
   } catch (error) {
     console.error("Export data error:", error);
-    return NextResponse.json({
-      error: "Internal server error"
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+      },
+      { status: 500 },
+    );
   }
 }

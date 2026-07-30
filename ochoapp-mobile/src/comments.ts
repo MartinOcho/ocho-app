@@ -27,7 +27,27 @@ export async function sendComment(req: Request, res: Response) {
     const userId = loggedUser.id;
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: userId,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: { userId: true },
     });
 
@@ -163,7 +183,27 @@ export async function getComments(req: Request, res: Response) {
     const cursor = req.query.cursor as string | undefined;
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: userId,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: { userId: true },
     });
 
@@ -311,7 +351,27 @@ export async function sendCommentReply(req: Request, res: Response) {
     const { postId, firstLevelCommentId, content, commentId } = body;
 
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: {
+        id: postId,
+        OR: [
+          {
+            userId,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: userId,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       select: { userId: true },
     });
 
@@ -662,7 +722,27 @@ export async function likeComment(req: Request, res: Response) {
 
         // Crée une notification si l'utilisateur n'est pas l'auteur du post
         const post = await prisma.post.findUnique({
-          where: { id: comment.postId },
+          where: {
+            id: comment.postId,
+            OR: [
+              {
+                userId,
+              },
+              {
+                visibility: "FOLLOWERS",
+                user: {
+                  followers: {
+                    some: {
+                      followerId: userId,
+                    },
+                  },
+                },
+              },
+              {
+                visibility: "PUBLIC",
+              },
+            ],
+          },
           select: { userId: true },
         });
 

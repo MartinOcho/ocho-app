@@ -133,7 +133,7 @@ class ActivityAggregationService {
   ): Promise<ActivityItem[]> {
     const { limit = 50, cursor, startDate, endDate } = options;
 
-    const where: any = { userId };
+    const where: Prisma.PostWhereInput = { userId };
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);

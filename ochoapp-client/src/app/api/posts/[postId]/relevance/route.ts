@@ -5,7 +5,7 @@ import { getPostDataIncludes } from "@/lib/types";
 
 export async function POST(
   req: Request,
-  { params}: { params: Promise<{ postId: string }> },
+  { params }: { params: Promise<{ postId: string }> },
 ) {
   const { user } = await validateRequest();
   const { postId } = await params;
@@ -26,6 +26,24 @@ export async function POST(
     prisma.post.findUnique({
       where: {
         id: postId,
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
       },
       include: getPostDataIncludes(user.id),
     }),

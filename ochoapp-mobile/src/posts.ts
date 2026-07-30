@@ -1,6 +1,13 @@
 import { Request, Response } from "express";
 import prisma from "./prisma";
-import { getPostDataIncludes, getUserDataSelect, PostData, User, UserData, VerifiedUser } from "./types";
+import {
+  getPostDataIncludes,
+  getUserDataSelect,
+  PostData,
+  User,
+  UserData,
+  VerifiedUser,
+} from "./types";
 import { checkVerification, getCurrentUser } from "./auth";
 
 export function calculateRelevanceScore(
@@ -9,54 +16,56 @@ export function calculateRelevanceScore(
   latestPostId?: string,
 ): number {
   const userId = user.id;
-    const comments = post._count.comments;
-    const likes = post._count.likes;
-    const bookmarks = post.bookmarks.length;
+  const comments = post._count.comments;
+  const likes = post._count.likes;
+  const bookmarks = post.bookmarks.length;
 
-    const now = new Date();
-    const postAgeHours = (now.getTime() - post.createdAt.getTime()) / (1000 * 60 * 60);
+  const now = new Date();
+  const postAgeHours =
+    (now.getTime() - post.createdAt.getTime()) / (1000 * 60 * 60);
 
-    // Calcul de l'engagement
-    const engagementScore = likes * 2 + comments * 3 + bookmarks * 1.5;
+  // Calcul de l'engagement
+  const engagementScore = likes * 2 + comments * 3 + bookmarks * 1.5;
 
-    // Définir les fourchettes pour le facteur temporel
-    let timeFactor = 1; // Par défaut pour les posts récents
-    if (postAgeHours > 24 && postAgeHours <= 72) {
-      timeFactor = 0.95; // Post récent (1 à 3 jours)
-    } else if (postAgeHours > 72 && postAgeHours <= 168) {
-      timeFactor = engagementScore > 0 ? 0.9 : 0.8; // Post modérément ancien (3 à 7 jours)
-    } else if (postAgeHours > 168) {
-      timeFactor = engagementScore > 0 ? 0.85 : 0.6; // Post ancien (> 7 jours)
-    }
-    // Bonus pour le dernier post
-    const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
+  // Définir les fourchettes pour le facteur temporel
+  let timeFactor = 1; // Par défaut pour les posts récents
+  if (postAgeHours > 24 && postAgeHours <= 72) {
+    timeFactor = 0.95; // Post récent (1 à 3 jours)
+  } else if (postAgeHours > 72 && postAgeHours <= 168) {
+    timeFactor = engagementScore > 0 ? 0.9 : 0.8; // Post modérément ancien (3 à 7 jours)
+  } else if (postAgeHours > 168) {
+    timeFactor = engagementScore > 0 ? 0.85 : 0.6; // Post ancien (> 7 jours)
+  }
+  // Bonus pour le dernier post
+  const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
-    // Calcul du score de proximité
-    const proximityScore = post.user.followers.some(
-      (follower) => follower.followerId === userId,
-    )
-      ? latestPostBonus > 0 ? 1000 : 100
-      : 0;
+  // Calcul du score de proximité
+  const proximityScore = post.user.followers.some(
+    (follower) => follower.followerId === userId,
+  )
+    ? latestPostBonus > 0
+      ? 1000
+      : 100
+    : 0;
 
-    // Bonus pour les types de contenu
-    const typeFactor =
-      post.attachments.length > 0 ? (post.content.length ? 1.5 : 1.25) : 1;
+  // Bonus pour les types de contenu
+  const typeFactor =
+    post.attachments.length > 0 ? (post.content.length ? 1.5 : 1.25) : 1;
 
-    // Bonus pour les gradients
-    const gradientFactor =
-      !post.attachments.length && post.content.length < 100 && post.gradient
-        ? 1.5
-        : 1;
+  // Bonus pour les gradients
+  const gradientFactor =
+    !post.attachments.length && post.content.length < 100 && post.gradient
+      ? 1.5
+      : 1;
 
-
-    // Calcul final
-    return (
-      engagementScore * timeFactor +
-      proximityScore +
-      typeFactor +
-      gradientFactor +
-      latestPostBonus
-    );
+  // Calcul final
+  return (
+    engagementScore * timeFactor +
+    proximityScore +
+    typeFactor +
+    gradientFactor +
+    latestPostBonus
+  );
 }
 
 export async function getPost(req: Request, res: Response) {
@@ -84,6 +93,8 @@ export async function getPost(req: Request, res: Response) {
       });
     }
 
+    const userId = user.id;
+
     const [allScores, post] = await prisma.$transaction([
       prisma.postUserScore.findMany({
         where: {
@@ -97,14 +108,35 @@ export async function getPost(req: Request, res: Response) {
       prisma.post.findUnique({
         where: {
           id: postId,
+          OR: [
+            {
+              userId,
+            },
+            {
+              visibility: "FOLLOWERS",
+              user: {
+                followers: {
+                  some: {
+                    followerId: userId,
+                  },
+                },
+              },
+            },
+            {
+              visibility: "PUBLIC",
+            },
+          ],
         },
         include: getPostDataIncludes(user.id),
       }),
     ]);
 
     if (!allScores || !post) {
-      return res
-        .json({ success: false, message: "Post not found" });
+      return res.json({
+        success: false,
+        message: "Post not found",
+        name: "not_found",
+      });
     }
 
     const newUserScore = calculateRelevanceScore(post, user);
@@ -226,8 +258,7 @@ export async function deletePost(req: Request, res: Response) {
     });
 
     if (!postToDelete) {
-      return res
-        .json({ success: false, message: "Post non trouvé" });
+      return res.json({ success: false, message: "Post non trouvé" });
     }
 
     if (postToDelete.userId !== user.id) {
@@ -286,27 +317,10 @@ export async function toggleLike(req: Request, res: Response) {
       } else {
         await prisma.like.create({
           data: {
-            postId: postId,
-            userId: userId,
+            postId,
+            userId,
           },
         });
-
-        const post = await prisma.post.findUnique({
-          where: { id: postId },
-          select: { userId: true },
-        });
-
-        if (post && post.userId !== userId) {
-          await prisma.notification.create({
-            data: {
-              issuerId: userId,
-              recipientId: post.userId,
-              type: "LIKE",
-              postId: postId,
-            },
-          });
-        }
-
         isLiked = true;
       }
     });
@@ -424,16 +438,31 @@ export async function getPostsForYou(req: Request, res: Response) {
     // Récupérer les posts suivants triés par pertinence
     const relevantPosts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
-      orderBy: [
-        { relevanceScore: "desc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: [{ relevanceScore: "desc" }, { createdAt: "desc" }],
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
       where: {
         id: {
-          notIn: latestPosts.map((p) => p.id),
+          notIn: latestPosts.map((post) => post.id), // Exclure les posts déjà récupérés
         },
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
       },
     });
 
@@ -442,11 +471,7 @@ export async function getPostsForYou(req: Request, res: Response) {
     const sortedPosts = allPosts
       .slice(0, pageSize)
       .map((post) => {
-        const relevance = calculateRelevanceScore(
-          post,
-          user,
-          allPosts[0]?.id,
-        );
+        const relevance = calculateRelevanceScore(post, user, allPosts[0]?.id);
 
         const userVerifiedData = post.user.verified?.[0];
         const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
@@ -491,9 +516,10 @@ export async function getPostsForYou(req: Request, res: Response) {
       .sort((a, b) => b.relevance - a.relevance)
       .map((item) => item.post);
 
-    const nextCursor = allPosts.length > pageSize + latestPosts.length
-      ? allPosts[pageSize + latestPosts.length].id
-      : null;
+    const nextCursor =
+      allPosts.length > pageSize + latestPosts.length
+        ? allPosts[pageSize + latestPosts.length].id
+        : null;
 
     return res.json({
       success: true,
@@ -529,20 +555,16 @@ export async function getFollowingPosts(req: Request, res: Response) {
 
     const posts = await prisma.post.findMany({
       where: {
-        AND: [
-          {
-            user: {
-              followers: {
-                some: {
-                  followerId: user.id,
-                },
-              },
-              NOT: {
-                id: user.id,
-              },
+        visibility: {
+          not: "PRIVATE",
+        },
+        user: {
+          followers: {
+            some: {
+              followerId: user.id,
             },
           },
-        ],
+        },
       },
       include: {
         user: {
@@ -738,7 +760,8 @@ export async function getBookmarkedPosts(req: Request, res: Response) {
       };
     });
 
-    const nextCursor = bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
+    const nextCursor =
+      bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
 
     return res.json({
       success: true,
@@ -881,7 +904,29 @@ export async function getUserPosts(req: Request, res: Response) {
 
     const posts = await prisma.post.findMany({
       where: {
-        OR: [{ userId }, { user: { username: userId } }],
+        AND: [
+          { OR: [{ userId }, { user: { username: userId } }] },
+          {
+            OR: [
+              {
+                userId: user.id,
+              },
+              {
+                visibility: "FOLLOWERS",
+                user: {
+                  followers: {
+                    some: {
+                      followerId: user.id,
+                    },
+                  },
+                },
+              },
+              {
+                visibility: "PUBLIC",
+              },
+            ],
+          },
+        ],
       },
       include: {
         user: {
