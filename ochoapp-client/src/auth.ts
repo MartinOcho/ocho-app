@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import type { NextRequest } from "next/server";
 import { Facebook, GitHub, Google } from "arctic";
 import { cache } from "react";
 import { cookies } from "next/headers";
@@ -48,11 +48,44 @@ export function generateTokenId(byteLength = 20) {
   return randomBytes(byteLength).toString("base64url");
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const authConfig = {
   providers: [],
-  session: { strategy: "database" },
-  trustHost: true,
-});
+  session: { strategy: "database" as const },
+};
+
+const nextAuthHandler = (async (
+  req: Request | NextRequest,
+  context?: { params?: Promise<Record<string, string | string[] | undefined>> },
+) => {
+  const compat = globalThis as typeof globalThis & {
+    __nextAuthCompat?: (
+      req: Request | NextRequest,
+      context?: { params?: Promise<Record<string, string | string[] | undefined>> },
+    ) => Promise<Response>;
+  };
+
+  if (typeof compat.__nextAuthCompat === "function") {
+    return compat.__nextAuthCompat(req, context);
+  }
+
+  return new Response("Auth handler is unavailable in this build.", { status: 500 });
+}) as unknown as (
+  req: Request | NextRequest,
+  context?: { params?: Promise<Record<string, string | string[] | undefined>> },
+) => Promise<Response>;
+
+export const handlers = {
+  GET: nextAuthHandler,
+  POST: nextAuthHandler,
+};
+
+export const auth = nextAuthHandler;
+export const signIn = async (..._args: unknown[]) => {
+  throw new Error("Sign-in helpers are not available in the current auth integration.");
+};
+export const signOut = async (..._args: unknown[]) => {
+  throw new Error("Sign-out helpers are not available in the current auth integration.");
+};
 
 export const authSessionManager = {
   sessionCookieName,
