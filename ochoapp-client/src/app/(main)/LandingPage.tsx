@@ -10,16 +10,13 @@ export default function LandingPage() {
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-8 p-8 sm:p-10 lg:p-12">
             <div className="space-y-4">
-              <OchoLink
-                href="/"
-                className="text-2xl font-bold"
-              >
+              <OchoLink href="/" className="text-2xl font-bold">
                 <AppLogo size={70} />
               </OchoLink>
               <h1 className="text-foreground text-xl font-semibold tracking-tight sm:text-2xl">
                 Un réseau social pour créer avec une infinité de possibilités.
               </h1>
-              <p className="text-muted-foreground max-w-2xl leading-8 text-sm">
+              <p className="text-muted-foreground max-w-2xl text-sm leading-8">
                 Découvrez des personnes inspirantes, partagez vos moments et
                 restez connecté à votre communauté grâce à une expérience
                 simple, vivante et humaine.
@@ -28,23 +25,21 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="rounded-full px-6">
-                <OchoLink href="/login">Se connecter</OchoLink>
+                <OchoLink href="/signup">Commencer</OchoLink>
               </Button>
               <Button
                 asChild
-                variant="outline"
                 size="lg"
+                variant="outline"
                 className="rounded-full px-6"
               >
-                <OchoLink href="/signup">Créer un compte</OchoLink>
+                <OchoLink href="/login">Se connecter</OchoLink>
               </Button>
             </div>
 
             <div className="text-muted-foreground grid gap-3 text-sm sm:grid-cols-2">
               <div className="border-border/60 bg-background/70 rounded-2xl border p-4">
-                <p className="text-foreground font-semibold">
-                  Discutez
-                </p>
+                <p className="text-foreground font-semibold">Discutez</p>
                 <p className="mt-1">
                   Échangez avec vos proches, vos amis et votre communauté.
                 </p>

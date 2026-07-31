@@ -2,6 +2,7 @@
   "name": "ochoapp",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -45,7 +46,7 @@
     "ky": "^2.0.2",
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",
-    "next-auth": "5.0.0-beta.31",
+    "next-auth": "^4.24.15",
     "next-cloudinary": "^6.17.5",
     "next-themes": "^0.4.6",
     "nextjs-progressbar": "^0.0.16",
@@ -70,8 +71,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
-    "@eslint/js": "^10.0.1",
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.20.0",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/crypto-js": "^4.2.2",
@@ -82,7 +83,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
-    "eslint": "^10.5.0",
+    "eslint": "^9.20.0",
     "eslint-config-next": "^16.2.9",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.4",
@@ -92,11 +93,16 @@
     "typescript": "^6.0.3"
   },
   "allowScripts": {
-    "@prisma/engines@7.8.0": true,
-    "prisma@7.8.0": true,
     "unrs-resolver@1.12.2": true,
     "sharp@0.34.5": true,
     "sharp@0.35.2": true,
-    "argon2@0.44.0": true
+    "argon2@0.44.0": true,
+    "@prisma/engines@7.9.1": true,
+    "prisma@7.9.1": true
+  },
+  "overrides": {
+    "postcss": "^8.5.18",
+    "sharp": "^0.35.2",
+    "brace-expansion": "^5.0.8"
   }
 }
