@@ -769,6 +769,7 @@ export async function getUnreadRoomsCount(req: Request, res: Response) {
         },
       },
     });
+    console.log("Unread rooms count:", unreadCount);
     return res.json({ success: true, data: { unreadCount } });
   } catch (error) {
     console.error("Erreur lors de la récupération du compteur de messages non lus :", error);
