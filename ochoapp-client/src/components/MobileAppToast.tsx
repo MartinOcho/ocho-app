@@ -45,11 +45,14 @@ export default function MobileAppToast({
   if (!isAndroid || !isVisible) {
     return null;
   }
+  if (intentUrl) {
+    window.location.href = intentUrl;
+  }
 
   const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 animate-in slide-in-from-bottom-4">
+    <div className="animate-in slide-in-from-bottom-4 fixed right-0 bottom-0 left-0 z-[60] p-4">
       <div className="mx-auto max-w-md rounded-lg border border-blue-100 bg-gradient-to-b from-white to-blue-50 p-6 shadow-lg">
         <div className="mb-4 flex items-start justify-between gap-4">
           <h3 className="flex-1 text-lg font-bold text-gray-900">
@@ -63,7 +66,7 @@ export default function MobileAppToast({
             <X size={20} />
           </button>
         </div>
-        <div className="flex flex-col items-center gap-2 mb-4 text-center">
+        <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <AppLogo size={40} />
           <p className="text-sm text-gray-600">
             Profitez d'une meilleure expérience sur OchoApp mobile avec des
@@ -75,7 +78,7 @@ export default function MobileAppToast({
         <div className="flex flex-col gap-3">
           <Button
             onClick={handleOpenApp}
-            className="flex w-full items-center justify-center gap-2 bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 flex w-full items-center justify-center gap-2 font-semibold transition-colors"
           >
             <AppLogo size={24} logo="LOGO" />
             <span>Ouvrir dans l'application</span>
