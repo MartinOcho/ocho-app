@@ -4,6 +4,7 @@ interface AppLogoProps {
   className?: string;
   size?: number;
   logo?: "TEXT" | "LOGO";
+  isWhite?: boolean;
 }
 export const isXmas = (): boolean => {
   const today = new Date();
@@ -16,14 +17,17 @@ export default function AppLogo({
   className = "",
   size = 48,
   logo,
+  isWhite = false,
 }: AppLogoProps) {
   const logoEl = isXmas() ? (
-    <LogoXmas className={className} size={size} />
+    <LogoXmas className={className} size={size} isWhite={isWhite} />
   ) : (
-    <Logo className={className} size={size} />
+    <Logo className={className} size={size} isWhite={isWhite} />
   );
 
-  const textGradientClasses = "bg-gradient-to-r from-[#157ff2] to-[#0c50cc] text-transparent bg-clip-text";
+  const textGradientClasses = isWhite
+    ? "bg-gradient-to-r from-white to-[#dce8ef] text-transparent bg-clip-text"
+    : "bg-gradient-to-r from-[#157ff2] to-[#0c50cc] text-transparent bg-clip-text";
   const textSizeClass = `text-[${size}px]`;
   const stackedTextSizeClass = `text-[${size > 48 ? size * 1.25 : size}px]`;
 
@@ -56,8 +60,10 @@ export default function AppLogo({
   );
 }
 
-export function Logo({ className = "", size = 48 }: AppLogoProps) {
+export function Logo({ className = "", size = 48, isWhite = false }: AppLogoProps) {
   const iconSize = size / 1.5;
+  const startGradientColor = isWhite ? "#FFFFFF" : "#157ff2";
+  const endGradientColor = isWhite ? "#dce8ef" : "#0c50cc";
   return (
     <svg
       width={iconSize / 2}
@@ -76,8 +82,8 @@ export function Logo({ className = "", size = 48 }: AppLogoProps) {
           y2="100"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0" stopColor="#157ff2" />
-          <stop offset="1" stopColor="#0c50cc" />
+          <stop offset="0" stopColor={startGradientColor} />
+          <stop offset="1" stopColor={endGradientColor} />
         </linearGradient>
       </defs>
       <path
@@ -99,8 +105,10 @@ export function Logo({ className = "", size = 48 }: AppLogoProps) {
     </svg>
   );
 }
-export function LogoXmas({ className = "", size = 48 }: AppLogoProps) {
+export function LogoXmas({ className = "", size = 48, isWhite = false }: AppLogoProps) {
   const iconSize = size / 1.5;
+  const startGradientColor = isWhite ? "#FFFFFF" : "#157ff2";
+  const endGradientColor = isWhite ? "#dce8ef" : "#0c50cc";
   return (
     <svg
       width={iconSize / 2}
@@ -119,8 +127,8 @@ export function LogoXmas({ className = "", size = 48 }: AppLogoProps) {
           y2="36.52"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0" stopColor="#157ff2" />
-          <stop offset="1" stopColor="#0c50cc" />
+          <stop offset="0" stopColor={startGradientColor} />
+          <stop offset="1" stopColor={endGradientColor} />
         </linearGradient>
       </defs>
       <path
