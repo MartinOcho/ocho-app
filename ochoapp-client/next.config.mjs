@@ -51,6 +51,10 @@ const nextConfig = {
     rewrites: () => {
         return [
             {
+                source: '/.well-known/assetlinks.json',
+                destination: '/api/well-known/assetlinks',
+            },
+            {
                 source: "/hashtag/:tag",
                 destination: "/search?q=%23:tag"
             },
