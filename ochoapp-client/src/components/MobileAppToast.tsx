@@ -1,32 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Globe, X } from "lucide-react";
+import { Globe, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLogo from "./AppLogo";
-import Image from "next/image";
 
-export default function MobileAppToast() {
+export default function MobileAppToast({
+  packageName = "com.ochokom.ochoapp",
+  scheme = "ochoapp",
+}) {
   const [isAndroid, setIsAndroid] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [intentUrl, setIntentUrl] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isAndroidDevice = /Android/i.test(navigator.userAgent);
-      if (isAndroidDevice) {
-        setIsAndroid(true);
-        setIsVisible(true);
-      }
+    if (typeof window === "undefined") return;
+
+    const userAgent = navigator.userAgent || navigator.vendor;
+    const isAndroidDevice = /Android/i.test(userAgent);
+
+    if (isAndroidDevice) {
+      setIsAndroid(true);
+      setIsVisible(true);
+
+      // Récupération dynamique du chemin web courant (ex: "post/123?ref=share")
+      const currentPath =
+        window.location.pathname.replace(/^\//, "") + window.location.search;
+      const currentFullUrl = encodeURIComponent(window.location.href);
+
+      // Construction du schéma Intent pour Android Chrome
+      const formattedIntent = `intent://${currentPath}#Intent;scheme=${scheme};package=${packageName};S.browser_fallback_url=${currentFullUrl};end`;
+      setIntentUrl(formattedIntent);
     }
-  }, []);
+  }, [packageName, scheme]);
+
+  const handleOpenApp = () => {
+    if (intentUrl) {
+      window.location.href = intentUrl;
+    } else {
+      window.location.href = `${scheme}://home`;
+    }
+  };
 
   if (!isAndroid || !isVisible) {
     return null;
   }
 
-  const deeplink = "ochoapp://home";
-  const playStoreUrl =
-    "https://play.google.com/store/apps/details?id=com.ochokom.ochoapp";
+  const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 animate-in slide-in-from-bottom-4">
@@ -43,7 +63,7 @@ export default function MobileAppToast() {
             <X size={20} />
           </button>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 mb-4 text-center">
           <AppLogo size={40} />
           <p className="text-sm text-gray-600">
             Profitez d'une meilleure expérience sur OchoApp mobile avec des
@@ -54,15 +74,16 @@ export default function MobileAppToast() {
         {/* Boutons d'action */}
         <div className="flex flex-col gap-3">
           <Button
-            onClick={() => window.open(deeplink)}
-            className="flex w-full items-center justify-center gap-2 bg-primary-foreground font-semibold text-primary transition-colors hover:bg-primary-foreground/50"
+            onClick={handleOpenApp}
+            className="flex w-full items-center justify-center gap-2 bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <AppLogo size={40} logo="LOGO"/>
-            <span>Ouvrir OchoApp</span>
+            <AppLogo size={24} logo="LOGO" />
+            <span>Ouvrir dans l'application</span>
           </Button>
+
           <Button
             onClick={() => window.open(playStoreUrl, "_blank")}
-            className="flex w-full items-center justify-center gap-2 bg-gray-600 font-semibold text-white transition-colors hover:bg-green-700"
+            className="flex w-full items-center justify-center gap-2 bg-gray-700 font-semibold text-white transition-colors hover:bg-gray-800"
           >
             <div className="flex h-5 w-5 items-center justify-center">
               <img
@@ -73,9 +94,11 @@ export default function MobileAppToast() {
             </div>
             <span>Télécharger sur Play Store</span>
           </Button>
+
           <Button
             onClick={() => setIsVisible(false)}
-            className="flex w-full items-center justify-center gap-2 bg-muted-foreground font-semibold text-muted transition-colors hover:bg-muted-foreground/50"
+            variant="ghost"
+            className="flex w-full items-center justify-center gap-2 text-gray-600 hover:bg-gray-100"
           >
             <Globe size={18} />
             <span>Rester sur le navigateur</span>
