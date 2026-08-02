@@ -77,7 +77,7 @@ export default function MobileAppToast({
             onClick={handleOpenApp}
             className="flex w-full items-center justify-center gap-2 bg-primary font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <AppLogo size={48} logo="LOGO" isWhite={true} />
+            <AppLogo size={48} logo="LOGO" isWhite />
             <span>Ouvrir dans l'application</span>
           </Button>
 

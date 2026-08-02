@@ -64,6 +64,7 @@ export function Logo({ className = "", size = 48, isWhite = false }: AppLogoProp
   const iconSize = size / 1.5;
   const startGradientColor = isWhite ? "#FFFFFF" : "#157ff2";
   const endGradientColor = isWhite ? "#dce8ef" : "#0c50cc";
+  const gradientId = isWhite ? "logoGradientWhite" : "logoGradientBlue";
   return (
     <svg
       width={iconSize / 2}
@@ -75,7 +76,7 @@ export function Logo({ className = "", size = 48, isWhite = false }: AppLogoProp
     >
       <defs>
         <linearGradient
-          id="logoGradient"
+          id={gradientId}
           x1="50"
           y1="0"
           x2="50"
@@ -97,7 +98,7 @@ export function Logo({ className = "", size = 48, isWhite = false }: AppLogoProp
       <path
         d="M50,50 C30,30 20,10 50,10 C80,10 70,30 50,50 C30,70 20,90 50,90 C80,90 70,70 50,50 Z"
         fill="none"
-        stroke="url(#logoGradient)"
+        stroke={`url(#${gradientId})`}
         strokeWidth="14"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -109,6 +110,7 @@ export function LogoXmas({ className = "", size = 48, isWhite = false }: AppLogo
   const iconSize = size / 1.5;
   const startGradientColor = isWhite ? "#FFFFFF" : "#157ff2";
   const endGradientColor = isWhite ? "#dce8ef" : "#0c50cc";
+  const gradientId = isWhite ? "xmasGradientWhite" : "xmasGradientBlue";
   return (
     <svg
       width={iconSize / 2}
@@ -120,7 +122,7 @@ export function LogoXmas({ className = "", size = 48, isWhite = false }: AppLogo
     >
       <defs>
         <linearGradient
-          id="xmasGradient"
+          id={gradientId}
           x1="50"
           y1="28"
           x2="50"
@@ -133,7 +135,7 @@ export function LogoXmas({ className = "", size = 48, isWhite = false }: AppLogo
       </defs>
       <path
         fill="none"
-        stroke="url(#xmasGradient)"
+        stroke={`url(#${gradientId})`}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
