@@ -49,15 +49,15 @@ export default function MobileAppToast({
   const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 animate-in slide-in-from-bottom-4">
-      <div className="mx-auto max-w-md rounded-lg border border-blue-100 bg-gradient-to-b from-white to-blue-50 p-6 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-60 p-4 animate-in slide-in-from-bottom-4">
+      <div className="mx-auto max-w-md rounded-lg bg-linear-to-b from-white to-blue-50 p-6 shadow-lg">
         <div className="mb-4 flex items-start justify-between gap-4">
           <h3 className="flex-1 text-lg font-bold text-gray-900">
             Ouvrez OchoApp
           </h3>
           <button
             onClick={() => setIsVisible(false)}
-            className="flex-shrink-0 text-gray-400 transition-colors hover:text-gray-600"
+            className="shrink-0 text-gray-400 transition-colors hover:text-gray-600"
             aria-label="Fermer"
           >
             <X size={20} />
