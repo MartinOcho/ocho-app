@@ -572,10 +572,10 @@ app.delete("/api/voice-notes/:voiceNoteId", deleteVoiceNote);
 app.get("/api/check-update", (req: Request, res: Response) => {
   const version = (req.query.version || "").toString();
   const platform = (req.query.platform || "").toString();
-  const androidCurrentVersion = 10;
-  const androidVersionName = "0.1.015";
-  const iosCurrentVersion = 10;
-  const iosVersionName = "0.1.015";
+  const androidCurrentVersion = 11;
+  const androidVersionName = "0.1.016";
+  const iosCurrentVersion = 11;
+  const iosVersionName = "0.1.016";
   let isUpToDate = true;
   if (platform.toLowerCase() === "android") {
     isUpToDate = parseInt(version) >= androidCurrentVersion;
