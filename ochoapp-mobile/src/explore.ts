@@ -10,7 +10,7 @@ import {
   getPostDataIncludes,
   getUserDataSelect,
 } from "./types";
-import { $Enums } from "@prisma/client";
+import { formatPost } from "./utils";
 
 export async function getDiscoveryFeed(req: Request, res: Response) {
   try {
@@ -156,8 +156,5 @@ export async function getTrendingTopics(req: Request, res: Response) {
         console.error("Trending topics error:", error);
         return res.json({ success: false, message: "Error fetching trending topics" });
     }
-}
-function formatPost(postData: { user: { id: string; username: string; displayName: string; avatarUrl: string | null; bio: string | null; profileVisibility: $Enums.Visibility; messagePrivacy: $Enums.MessagingPrivacy; showOnlineStatus: boolean; lastSeen: Date; createdAt: Date; _count: { followers: number; posts: number; }; following: { followerId: string; }[]; followers: { followerId: string; }[]; verified: { type: $Enums.VerifiedType; expiresAt: Date | null; }[]; }; _count: { comments: number; likes: number; }; likes: { userId: string; }[]; bookmarks: { userId: string; }[]; attachments: { url: string; type: $Enums.MediaType; id: string; createdAt: Date; postId: string | null; }[]; relevance: { relevanceScore: number; }[]; } & { id: string; createdAt: Date; userId: string; content: string; gradient: number | null; visibility: $Enums.Visibility; relevanceScore: number; }, id: string): Post | null | undefined {
-  throw new Error("Function not implemented.");
 }
 

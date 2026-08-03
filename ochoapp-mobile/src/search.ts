@@ -28,7 +28,7 @@ interface SearchFilters {
 /**
  * Formate un post pour la réponse API
  */
-function formatPost(post: PostData, userId: string): Post {
+export function formatPost(post: PostData, userId: string): Post {
   const verified = checkVerification(post.user);
   return {
     id: post.id,
@@ -52,7 +52,7 @@ function formatPost(post: PostData, userId: string): Post {
   };
 }
 
-function formatUser(user: UserData): User {
+export function formatUser(user: UserData): User {
   const userVerifiedData = user.verified?.[0];
   const expiresAt = userVerifiedData?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
@@ -88,7 +88,7 @@ function formatUser(user: UserData): User {
 /**
  * Extrait les hashtags d'un texte (prend en compte les caractères accentués UTF-8)
  */
-function extractHashtags(text: string): string[] {
+export function extractHashtags(text: string): string[] {
   if (!text) return [];
   // Expression régulière supportant les lettres Unicode (accents), chiffres et underscores
   const hashtags = text.match(/#[\p{L}\p{N}_]+/gu) || [];
