@@ -14,9 +14,6 @@ import { check } from "zod";
 import { get } from "node:http";
 import { Prisma } from "@prisma/client";
 
-// ============================================================================
-// TYPES ET INTERFACES
-// ============================================================================
 
 type SearchType = "posts" | "users" | "hashtags";
 

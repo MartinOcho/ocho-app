@@ -807,9 +807,20 @@ export interface BookmarkInfo {
   isBookmarkedByUser: boolean;
 }
 
-// ============================================================================
-// TYPES POUR L'API DE RECHERCHE AMÉLIORÉE
-// ============================================================================
+export interface DiscoveryPage {
+  items: DiscoveryItem[];
+  nextCursor: string | null;
+}
+
+export type DiscoveryItemType = "POST" | "USER_SUGGESTION" | "HASHTAG_FEATURE";
+
+export interface DiscoveryItem {
+  id: string;
+  type: DiscoveryItemType;
+  post?: Post | null;
+  user?: User | null;
+  hashtag?: Hashtag | null;
+}
 
 export interface Hashtag {
   hashtag: string;

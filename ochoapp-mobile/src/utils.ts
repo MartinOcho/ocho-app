@@ -1,4 +1,3 @@
-// Re-export all functions from organized modules
 export * from "./auth";
 export * from "./users";
 export * from "./posts";
@@ -8,6 +7,7 @@ export * from "./devices";
 export * from "./messages";
 export * from "./search";
 export * from "./trending";
+export * from "./explore";
 
 
 export function slugify(input: string): string {

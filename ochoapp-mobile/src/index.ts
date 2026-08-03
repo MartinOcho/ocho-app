@@ -73,6 +73,8 @@ import {
   getUserPosts,
   createSession,
   getTrendingHashtags,
+  getDiscoveryFeed,
+  getTrendingTopics,
   getCommentReplies,
   sendCommentReply,
   likeComment,
@@ -482,6 +484,9 @@ app.get("/api/users/suggested", getSuggestedUsers);
 app.get("/api/users/:userId", getUserProfile);
 app.patch("/api/users/:userId", updateUserProfile);
 app.get("/api/users/:userId/follow", toggleFollow);
+app.get("/api/trending/hashtags", getTrendingHashtags);
+app.get("/api/explore/discovery", getDiscoveryFeed);
+app.get("/api/explore/trending-topics", getTrendingTopics);
 
 // Routes pour les paramètres utilisateur
 app.get("/api/settings", getUserSettings);
@@ -501,7 +506,7 @@ app.get("/api/posts/following", getFollowingPosts);
 app.get("/api/posts/bookmarks", getBookmarkedPosts);
 app.get("/api/posts/user/:userId", getUserPosts);
 
-app.get("/api/trending/hashtags", getTrendingHashtags);
+
 
 // Routes paramétrées (après les routes spécifiques)
 app.get("/api/posts/:postId", getPost);
