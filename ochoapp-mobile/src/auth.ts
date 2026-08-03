@@ -167,7 +167,6 @@ export async function loginUser(req: Request, res: Response) {
 
 export async function handleGoogleNativeLogin(req: Request, res: Response) {
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
   const { idToken, deviceId } = req.body;
 
   try {
@@ -184,69 +183,34 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
       });
     }
 
-    const { sub: googleId, email, name, picture } = payload;
+    const { sub: googleId } = payload;
 
-    // 2. Trouver ou créer l'utilisateur avec Prisma
+    // 2. Vérifier si l'utilisateur existe déjà
     let user = await prisma.user.findUnique({ where: { googleId } });
 
     if (!user) {
-      const userId = randomUUID();
-      const username = await validatedUsername(name || "ochoapp_user");
-
-      const userData = await prisma.user.create({
-        data: {
-          id: userId,
-          username,
-          displayName: name || username,
-          email,
-          googleId,
-          avatarUrl: picture,
-        },
-      });
-
-      if (!userData) {
-        return res.json({
-          success: false,
-          message: "Erreur lors de la création de l'utilisateur",
-        });
-      }
-
-      const session = await newSession(userId, {
-        deviceId: deviceId || "",
-        deviceType: req.headers["x-device-type"] as string,
-        deviceModel: req.headers["x-device-model"] as string,
-      }, (req.headers["x-forwarded-for"] as string) || (req.headers["x-real-ip"] as string) || "unknown");
-
-      if (!session.success) {
-        return res.json({
-          success: false,
-          message: "Erreur lors de la création de la session",
-        });
-      }
-
-      const user = await formatUserResponse(userData as unknown as UserData);
-
       return res.json({
         success: true,
-        message: "Authentification réussie.",
-        data: {
-          user,
-          session: session.data?.session,
-        },
+        isNewUser: true,
+        message: "Nouvel utilisateur détecté.",
       });
     }
-    
-    const session = await newSession(user.id, {
-      deviceId: deviceId || "",
-      deviceType: req.headers["x-device-type"] as string,
-      deviceModel: req.headers["x-device-model"] as string,
-    }, (req.headers["x-forwarded-for"] as string) || (req.headers["x-real-ip"] as string) || "unknown");
 
-    if (!session.success) {
-      return res.json({
-        success: false,
-        message: "Erreur lors de la création de la session",
-      });
+    // 3. Utilisateur existant : Créer la session
+    const sessionResponse = await newSession(
+      user.id,
+      {
+        deviceId: deviceId || (req.headers["x-device-id"] as string) || "",
+        deviceType: (req.headers["x-device-type"] as string) || "ANDROID",
+        deviceModel: req.headers["x-device-model"] as string,
+      },
+      (req.headers["x-forwarded-for"] as string) ||
+        (req.headers["x-real-ip"] as string) ||
+        "unknown",
+    );
+
+    if (!sessionResponse.success) {
+      return res.json(sessionResponse);
     }
 
     const userResponse = await formatUserResponse(user as unknown as UserData);
@@ -256,14 +220,98 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
       message: "Authentification réussie.",
       data: {
         user: userResponse,
-        session: session.data?.session,
+        session: sessionResponse.data?.session,
+      },
+    });
+  } catch (error) {
+    console.error("Google Login Error:", error);
+    res.json({
+      success: false,
+      message: "Authentification Google échouée",
+      name: "google_auth_error",
+    });
+  }
+}
+
+export async function handleCompleteGoogleProfile(req: Request, res: Response) {
+  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  const { idToken, username, displayName, email, deviceId } = req.body;
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.json({
+        success: false,
+        message: "Session Google expirée",
+        name: "google_session_expired",
+      });
+    }
+
+    const { sub: googleId, picture } = payload;
+
+    // 2. Vérifier si le username est disponible
+    const existingUser = await prisma.user.findFirst({
+      where: { username: { equals: username, mode: "insensitive" } },
+    });
+
+    if (existingUser) {
+      return res.json({
+        success: false,
+        message: "Ce nom d'utilisateur est déjà pris",
+        name: "username",
+      });
+    }
+
+    // 3. Créer l'utilisateur en base de données
+    const userData = await prisma.user.create({
+      data: {
+        username,
+        displayName: displayName || username,
+        email: email || payload.email,
+        googleId,
+        avatarUrl: picture,
       },
     });
 
+    const sessionResponse = await newSession(
+      userData.id,
+      {
+        deviceId: deviceId || (req.headers["x-device-id"] as string) || "",
+        deviceType: (req.headers["x-device-type"] as string) || "UNKNOWN",
+        deviceModel: req.headers["x-device-model"] as string,
+      },
+      (req.headers["x-forwarded-for"] as string) ||
+        (req.headers["x-real-ip"] as string) ||
+        "unknown",
+    );
+
+    if (!sessionResponse.success) {
+      return res.json(sessionResponse);
+    }
+
+    const userResponse = await formatUserResponse(
+      userData as unknown as UserData,
+    );
+
+    return res.json({
+      success: true,
+      message: "Compte créé avec succès.",
+      data: {
+        user: userResponse,
+        session: sessionResponse.data?.session,
+      },
+    });
   } catch (error) {
-    res
-      .status(401)
-      .json({ success: false, message: "Authentification Google échouée" });
+    console.error("Complete Profile Error:", error);
+    res.json({
+      success: false,
+      message: "Erreur lors de la création du compte",
+      name: "complete_profile_error",
+    });
   }
 }
 

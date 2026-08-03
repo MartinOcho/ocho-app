@@ -82,6 +82,7 @@ import {
   getUnreadRoomsCount,
   validateUser,
   handleGoogleNativeLogin,
+  handleCompleteGoogleProfile,
 } from "./utils";
 import {
   getSearchHistory,
@@ -339,6 +340,7 @@ async function registerDevice(req: Request, res: Response) {
 app.post("/api/signup", signupUser);
 app.post("/api/login", loginUser);
 app.post("/api/auth/google/native", handleGoogleNativeLogin);
+app.post("/api/auth/google/complete-profile", handleCompleteGoogleProfile);
 app.post("/api/session/refresh", createSession);
 app.post("/api/devices/register", registerDevice);
 
@@ -386,6 +388,7 @@ app.post("/api/users/fcm-token", async (req, res) => {
       success: false,
       error: "Erreur lors de l'enregistrement du token FCM",
       details: error instanceof Error ? error.message : undefined,
+      name: "fcm_token_registration_error",
     });
   }
 });
