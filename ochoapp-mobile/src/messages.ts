@@ -74,7 +74,10 @@ export async function getMessageRooms(req: Request, res: Response) {
     // 3. Injection de la "Self Room" (Messages Enregistrés)
     if (!cursor) {
       const savedMessage = await prisma.message.findFirst({
-        where: { senderId: userId, OR: [{ type: "SAVED" }, { type: "VOICENOTE", roomId: null }] },
+        where: {
+          senderId: userId,
+          OR: [{ type: "SAVED" }, { type: "VOICENOTE", roomId: null }],
+        },
         include: getMessageDataInclude(userId),
         orderBy: { createdAt: "desc" },
       });
@@ -386,14 +389,16 @@ export async function getMessages(req: Request, res: Response) {
       if (messages[0]) {
         // modifier les types des messages qui n'ont pas "created" comme contenu et qui ne sont pas en premier message en "CONTENT"
         messages = messages.map((message) => {
-          if (message.content !== `create-${user.id}` && message.type == "SAVED") {
+          if (
+            message.content !== `create-${user.id}` &&
+            message.type == "SAVED"
+          ) {
             message.type = "CONTENT";
           }
           return message;
         });
       }
       console.log(messages);
-      
     } else {
       if (!member) {
         return res.json({
@@ -618,23 +623,22 @@ export async function getRoomMedias(req: Request, res: Response) {
       where: { roomId_userId: { roomId, userId: user.id } },
     });
     if (!isSavedMessages) {
-    if (!member) {
-      return res.json({
-        success: false,
-        data: null,
-        message: "Utilisateur non trouvé.",
-        name: "not_found",
-      });
-    }
-    if (member.type === "BANNED") {
-      return res.json({
-        success: false,
-        data: null,
-        message: "Utilisateur banni.",
-        name: "banned",
-      });
-    }
-      
+      if (!member) {
+        return res.json({
+          success: false,
+          data: null,
+          message: "Utilisateur non trouvé.",
+          name: "not_found",
+        });
+      }
+      if (member.type === "BANNED") {
+        return res.json({
+          success: false,
+          data: null,
+          message: "Utilisateur banni.",
+          name: "banned",
+        });
+      }
     }
 
     const attachments = await prisma.messageAttachment.findMany({
@@ -732,6 +736,7 @@ export async function getUnreadRoomsCount(req: Request, res: Response) {
         messages: {
           some: {
             AND: [
+              { senderId: { not: userId } },
               { type: { not: "CREATE" } },
               {
                 reads: {
@@ -772,7 +777,10 @@ export async function getUnreadRoomsCount(req: Request, res: Response) {
     console.log("Unread rooms count:", unreadCount);
     return res.json({ success: true, data: { unreadCount } });
   } catch (error) {
-    console.error("Erreur lors de la récupération du compteur de messages non lus :", error);
+    console.error(
+      "Erreur lors de la récupération du compteur de messages non lus :",
+      error,
+    );
     return res.json({
       success: false,
       message: "Erreur interne du serveur",
@@ -1242,7 +1250,7 @@ export async function updateRoom(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
 
-    if(!name && !description && !groupAvatarUrl) {
+    if (!name && !description && !groupAvatarUrl) {
       return res.json({
         success: false,
         message: "Aucun champ à mettre à jour.",
@@ -1250,14 +1258,13 @@ export async function updateRoom(req: Request, res: Response) {
       } as ApiResponse<null>);
     }
 
-    if(!room.isGroup) {
+    if (!room.isGroup) {
       return res.json({
         success: false,
         message: "Impossible de modifier une discussion privée.",
         name: "invalid_operation",
       } as ApiResponse<null>);
     }
-
 
     // Check if user is a member of the room
     const member = await prisma.roomMember.findUnique({
@@ -1281,7 +1288,8 @@ export async function updateRoom(req: Request, res: Response) {
     if (!["ADMIN", "OWNER"].includes(member.type)) {
       return res.json({
         success: false,
-        message: "Vous n'avez pas les permissions pour modifier cette discussion.",
+        message:
+          "Vous n'avez pas les permissions pour modifier cette discussion.",
         name: "unauthorized",
       } as ApiResponse<null>);
     }

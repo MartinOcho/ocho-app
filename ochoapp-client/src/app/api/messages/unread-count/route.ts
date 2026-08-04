@@ -28,6 +28,7 @@ export async function GET() {
         messages: {
           some: {
             AND: [
+              { senderId: { not: user.id } },
               { type: { not: "CREATE" } },
               {
                 reads: {
