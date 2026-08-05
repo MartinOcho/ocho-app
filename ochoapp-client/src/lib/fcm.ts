@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp, ServiceAccount } from "firebase-admin/app";
 import { getMessaging, MulticastMessage } from "firebase-admin/messaging";
 import prisma from "./prisma";
+import { NotificationData } from "./types";
 
 // Initialiser Firebase Admin (s'il n'est pas déjà initialisé)
 if (!getApps().length) {
@@ -25,16 +26,71 @@ if (!getApps().length) {
   }
 }
 
+
+export interface FCMRoomPayload {
+  id: string;
+  name: string | null;
+  groupAvatarUrl: string | null;
+  isGroup: boolean;
+}
+
+export interface FCMPersonPayload {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface FCMVoiceNotePayload {
+  id: string;
+  url: string;
+  duration: number;
+  createdAt: string;
+}
+
+export interface FCMAttachmentPayload {
+  id: string;
+  type: string;
+  url: string;
+  publicId: string | null;
+  fileName: string | null;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  resourceType: string | null;
+}
+
+export interface FCMMessageData {
+  id: string;
+  type: string;
+  content: string | null;
+  createdAt: string;
+  sender: FCMPersonPayload;
+  recipient: FCMPersonPayload;
+  room: FCMRoomPayload;
+  voiceNote?: FCMVoiceNotePayload;
+  attachments?: FCMAttachmentPayload[];
+}
+
+export type FCMNotificationPayload =
+  | {
+      type: "NOTIFICATION";
+      notification: NotificationData;
+      message?: undefined;
+    }
+  | {
+      type: "MESSAGE";
+      notification?: undefined;
+      message: FCMMessageData;
+    };
+
+
 /**
- * Envoie une notification push à un utilisateur via FCM
+ * Envoie une notification push à un utilisateur via FCM (Format compatible avec le serveur OchoApp)
  */
 export async function sendPushNotification(
   userId: string,
-  payload: {
-    title: string;
-    body: string;
-    data?: Record<string, string>;
-  }
+  payload: FCMNotificationPayload
 ) {
   try {
     const fcmTokens = await prisma.fCMToken.findMany({
@@ -47,14 +103,17 @@ export async function sendPushNotification(
     const tokens = fcmTokens.map((t) => t.token);
     const messaging = getMessaging();
 
-    const message: MulticastMessage = {
-      notification: {
-        title: payload.title,
-        body: payload.body,
+   // Construire le message FCM
+    const message = {
+      data: {
+        type: payload.type,
+        ...(payload.notification && {
+          notification: JSON.stringify(payload.notification),
+        }),
+        ...(payload.message && { message: JSON.stringify(payload.message) }),
       },
-      data: payload.data || {},
       tokens,
-    };
+    } as MulticastMessage;
 
     const response = await messaging.sendEachForMulticast(message);
 

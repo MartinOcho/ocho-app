@@ -3,8 +3,9 @@ import cloudinary from "@/lib/cloudinary";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import { sendPushNotification } from "@/lib/fcm";
+import { FCMNotificationPayload, sendPushNotification } from "@/lib/fcm";
 import { ResourceApiResponse } from "cloudinary";
+import { notificationsInclude } from "@/lib/types";
 
 // Base directories for different types of uploads
 const attachmentDir = path.resolve("data/uploads/attachments");
@@ -76,20 +77,22 @@ export async function GET(req: Request) {
             `[Modération] Suppression du post ${post.id} (image monochrome sans description)`,
           );
 
-          await prisma.notification.create({
+          const notification = await prisma.notification.create({
             data: {
               recipientId: post.userId,
               issuerId: post.userId, 
               type: "MODERATION",
             },
+            include: notificationsInclude,
           });
 
+          const payload: FCMNotificationPayload = {
+            type: "NOTIFICATION",
+            notification,
+          };
+
           // Envoyer notification push
-          await sendPushNotification(post.userId, {
-            title: "Publication supprimée",
-            body: "",
-            data: { type: "MODERATION" },
-          });
+          await sendPushNotification(post.userId, payload);
 
           // Supprimer le post
           await prisma.post.update({
