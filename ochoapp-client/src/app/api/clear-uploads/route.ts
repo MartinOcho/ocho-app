@@ -2,6 +2,9 @@ import prisma from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
+import { sendPushNotification } from "@/lib/fcm";
+import { ResourceApiResponse } from "cloudinary";
 
 // Base directories for different types of uploads
 const attachmentDir = path.resolve("data/uploads/attachments");
@@ -15,6 +18,87 @@ export async function GET(req: Request) {
         JSON.stringify({ error: "Invalid authorization header" }),
         { status: 401 },
       );
+    }
+
+    // --- MODÉRATION ---
+    // Rechercher les publications sans description avec une seule image
+    const postsToModerate = await prisma.post.findMany({
+      where: {
+        content: "",
+        attachments: {
+          some: {
+            type: "IMAGE",
+          },
+        },
+      },
+      include: {
+        attachments: true,
+      },
+    });
+
+    for (const post of postsToModerate) {
+      if (post.attachments.length === 1) {
+        const media = post.attachments[0];
+        let isMonochrome = false;
+
+        // Si l'image est locale
+        if (media.url.includes("/uploads/attachments/")) {
+          const filePath = path.join(
+            attachmentDir,
+            media.url.split("/uploads/attachments/")[1],
+          );
+
+          if (fs.existsSync(filePath)) {
+            try {
+              const stats = await sharp(filePath).stats();
+              // Un écart-type faible (stdev) dans tous les canaux indique une couleur unie
+              isMonochrome = stats.channels.every((c) => c.stdev < 3);
+            } catch (err) {
+              console.error(`Erreur analyse sharp pour ${filePath}:`, err);
+            }
+          }
+        }
+        // Si l'image est sur Cloudinary
+        else if (media.url.includes("res.cloudinary.com")) {
+          try{
+            const publicId = media.url.split("/").slice(-1)[0].split(".")[0];
+            const result: ResourceApiResponse = await cloudinary.api.resource(publicId, {
+              colors: true,
+            });
+            isMonochrome = result.resources?.[0]?.colors?.length < 3;
+          }catch(err){
+            console.error(`Erreur récupération info Cloudinary pour ${media.url}:`, err);
+          }
+        }
+
+        if (isMonochrome) {
+          console.log(
+            `[Modération] Suppression du post ${post.id} (image monochrome sans description)`,
+          );
+
+          await prisma.notification.create({
+            data: {
+              recipientId: post.userId,
+              issuerId: post.userId, 
+              type: "MODERATION",
+            },
+          });
+
+          // Envoyer notification push
+          await sendPushNotification(post.userId, {
+            title: "Publication supprimée",
+            body: "",
+            data: { type: "MODERATION" },
+          });
+
+          // Supprimer le post
+          await prisma.post.update({
+            where: { id: post.id },
+            data: { visibility: "PRIVATE" },
+          });
+          
+        }
+      }
     }
 
     // Rechercher les médias inutilisés

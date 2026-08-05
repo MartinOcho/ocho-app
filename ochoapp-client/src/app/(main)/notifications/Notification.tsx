@@ -3,7 +3,7 @@ import UserAvatar from "@/components/UserAvatar";
 import { NotificationData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { NotificationType } from "@prisma/client";
-import { AtSign, Heart, MessageSquareMore, User2 } from "lucide-react";
+import { AlertTriangle, AtSign, Heart, MessageSquareMore, User2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { useTranslation } from "@/context/LanguageContext";
 import { useSocket } from "@/components/providers/SocketProvider";
@@ -95,6 +95,15 @@ export default function Notification({ notification }: NotificationProps) {
       ),
       href: `/posts/${notification.postId}`,
     },
+    MODERATION: {
+      message: t().moderationNotification,
+      icon: (
+        <div className="absolute -bottom-0.5 -right-0.5 flex aspect-square items-center justify-center rounded-full bg-foreground p-1">
+          <AlertTriangle className="size-4 fill-yellow-500 text-yellow-500" />
+        </div>
+      ),
+      href: `/posts/${notification.postId}`,
+    }
   };
 
   const { message, icon, href } = notificationTypeMap[notification.type];

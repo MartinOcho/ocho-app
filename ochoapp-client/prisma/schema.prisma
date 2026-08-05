@@ -501,6 +501,7 @@ enum NotificationType {
   COMMENT_REPLY
   FOLLOW
   IDENTIFY
+  MODERATION
 }
 
 model SearchHistory {
