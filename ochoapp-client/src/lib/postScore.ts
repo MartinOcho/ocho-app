@@ -29,7 +29,7 @@ export const calculateRelevanceScore = cache(
       timeFactor = engagementScore > 0 ? 0.85 : 0.6; // Post ancien (> 7 jours)
     }
     // Bonus pour le dernier post
-    const latestPostBonus = latestPostId && post.id === latestPostId ? 10 : 0;
+    const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
     // Calcul du score de proximité
     const proximityScore = post.user.followers.some(
