@@ -792,13 +792,14 @@ export async function createPost(req: Request, res: Response) {
       });
     }
 
-    const { content, mediaIds, gradient } = req.body;
+    const { content, mediaIds, gradient, visibility } = req.body;
 
     const post = await prisma.post.create({
       data: {
         content,
         userId: user.id,
         gradient,
+        visibility,
         attachments: {
           connect: mediaIds?.map((id: string) => ({ id })) || [],
         },
