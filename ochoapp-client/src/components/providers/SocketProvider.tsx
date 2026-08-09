@@ -34,6 +34,8 @@ interface SocketContextType {
   notificationsUnread?: number | null;
   messagesUnread?: number | null;
   getPendingMessages: (roomId: string) => PendingMessage[];
+  respondToInvitation: (roomId: string, accept: boolean) => void;
+  sendGroupInvitation: (targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -46,6 +48,8 @@ const SocketContext = createContext<SocketContextType>({
   notificationsUnread: null,
   messagesUnread: null,
   getPendingMessages: () => [],
+  respondToInvitation: () => {},
+  sendGroupInvitation: () => {},
 });
 
 // Hook personnalisé pour utiliser le socket
@@ -120,6 +124,18 @@ export default function SocketProvider({
       return updated;
     });
     return messages;
+  }, []);
+
+  const respondToInvitation = useCallback((roomId: string, accept: boolean) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("respond_to_invitation", { roomId, accept });
+    }
+  }, []);
+
+  const sendGroupInvitation = useCallback((targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("send_group_invitation", { targetRoomId, targetUserId, groupToInviteToId });
+    }
   }, []);
 
   // Fonction pour forcer une reconnexion manuelle
@@ -381,6 +397,8 @@ export default function SocketProvider({
         notificationsUnread,
         messagesUnread,
         getPendingMessages,
+        respondToInvitation,
+        sendGroupInvitation,
       }}
     >
       <div

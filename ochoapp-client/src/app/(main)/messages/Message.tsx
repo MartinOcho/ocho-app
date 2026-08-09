@@ -26,6 +26,7 @@ import {
   Info,
   UserRoundPlus,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -45,6 +46,8 @@ import MediaStrip from "@/components/messages/MediaStrip";
 import VoiceNotePlayer from "@/components/messages/VoiceNotePlayer";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/button";
+import { is } from "zod/v4/locales";
 
 // --- TYPES ---
 type MessageProps = {
@@ -480,6 +483,15 @@ export const MessageBubbleContent = ({
           isSent={isOwner}
         />
       )}
+
+      {/* Afficher l'invitation de groupe */}
+      {message.type === "INVITATION" && (
+        <InvitationBubble
+          groupId={message.content}
+          isOwner={isOwner}
+          borderRadiusClass={borderRadiusClass}
+        />
+      )}
       
       <div
         onClick={(e) => {
@@ -496,6 +508,7 @@ export const MessageBubbleContent = ({
           borderRadiusClass,
           !message.content.trim() && message.attachments.length && "hidden",
           !message.content.trim() && message.voiceNote && "hidden", // Masquer la bulle texte si c'est une note vocale
+          message.type === "INVITATION" && "hidden", // Masquer la bulle texte si c'est une invitation
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}
@@ -566,7 +579,86 @@ export const MessageBubbleContent = ({
   );
 };
 
-// --- COMPOSANT PRINCIPAL ---
+export const UnspecifiedIcon = (
+  <AlertCircle className="h-5 w-5 text-muted-foreground" />
+);
+
+export function InvitationBubble({
+  groupId,
+  isOwner,
+  borderRadiusClass,
+}: {
+  groupId: string;
+  isOwner: boolean;
+  borderRadiusClass: string;
+}) {
+  const { data: groupData, isLoading } = useQuery({
+    queryKey: ["group-details", groupId],
+    queryFn: () => kyInstance.get(`/api/messages/rooms/${groupId}`).json<RoomData>(),
+  });
+  const { t } = useTranslation();
+
+  const { setActiveRoomId } = useActiveRoom();
+  const { user } = useSession();
+
+  if (isLoading) {
+    return (
+      <div className={cn("p-4 bg-muted animate-pulse", borderRadiusClass)}>
+        <div className="h-4 w-32 bg-muted-foreground/20 rounded" />
+      </div>
+    );
+  }
+
+  if (!groupData) {
+    return (
+      <div className={cn("p-4 bg-muted italic text-sm text-muted-foreground", borderRadiusClass)}>
+        {t("invitationUnavailable")}
+      </div>
+    );
+  }
+
+  const isMember = groupData.members.some((member) => member.userId === user.id);
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 p-4 border shadow-sm max-w-[280px]",
+        isOwner
+          ? "bg-blue-600 text-white border-transparent"
+          : "bg-white dark:bg-neutral-800 text-foreground border-gray-200 dark:border-neutral-700",
+        borderRadiusClass,
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <GroupAvatar avatarUrl={groupData.groupAvatarUrl} size={40} />
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold truncate">{groupData.name || "Groupe"}</h4>
+          <p className={cn("text-xs opacity-70", isOwner ? "text-blue-100" : "text-muted-foreground")}>
+            {groupData.members.length} membres
+          </p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        className={cn(
+          "w-full rounded-xl font-semibold transition-transform active:scale-95",
+          isOwner
+            ? "bg-white/10 hover:bg-white/20 text-white border-white/20"
+            : "bg-blue-600 hover:bg-blue-700 text-white",
+        )}
+        variant={isOwner ? "outline" : "default"}
+        onClick={(e) => {
+            e.stopPropagation();
+            setActiveRoomId(groupId);
+        }}
+      >
+        {isMember ? t("viewGroup") : t("joinGroup")}
+      </Button>
+    </div>
+  );
+}
+
+
 export default function Message({
   message,
   room,
@@ -1105,6 +1197,12 @@ export default function Message({
     // 4. CLEAR / DELETE
     if (messageType === "CLEAR") systemContent = t("noMessage");
     if (messageType === "DELETE") systemContent = deletedChat;
+
+    // 5. INVITATION
+    if (messageType === "INVITATION") {
+        systemContent = isSender ? "Vous avez envoyé une invitation de groupe" : `${senderFirstName} vous a invité à rejoindre un groupe`;
+        systemIcon = <UserPlus size={14} />;
+    }
 
     // Rendu des messages système génériques
     if (systemContent) {

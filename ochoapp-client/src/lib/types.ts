@@ -620,6 +620,9 @@ export enum RoomFooterStateType {
   UserBanned = "USER_BANNED",
   PrivateProfile = "PRIVATE_PROFILE",
   GroupFull = "GROUP_FULL",
+  InvitationPending = "INVITATION_PENDING",
+  InvitationSent = "INVITATION_SENT",
+  RestrictedMessaging = "RESTRICTED_MESSAGING",
 }
 
 export type RoomFooterState =
@@ -631,4 +634,7 @@ export type RoomFooterState =
   | { type: RoomFooterStateType.UserDeleted }
   | { type: RoomFooterStateType.UserBanned }
   | { type: RoomFooterStateType.PrivateProfile }
-  | { type: RoomFooterStateType.GroupFull };
+  | { type: RoomFooterStateType.GroupFull }
+  | { type: RoomFooterStateType.InvitationPending }
+  | { type: RoomFooterStateType.InvitationSent }
+  | { type: RoomFooterStateType.RestrictedMessaging };

@@ -234,6 +234,7 @@ export const english = {
   messageCopied: "Message copied to clipboard!",
   unableToCopyMessage: "Error while copying to clipboard!",
   unableToSendMessage: "Unable to send message",
+  invitationUnavailable: "Invitation unavailable",
   unableToSendThisMessage: "Unable to send this message. Please try again.",
   unableToDeleteMessage: "Unable to delete message. Please try again.",
   // Chat Header
@@ -247,6 +248,9 @@ export const english = {
   addDescription: "Add description",
   noDescription: "No description",
   thisAccountDeleted: "This account has been deleted",
+  invitationMessage: "[name] invited you to join the  group",
+  viewGroup: "View group",
+  joinGroup: "Join group",
   joined: "Joined",
   member: "Member",
   members: "Members",
@@ -757,6 +761,7 @@ export const french: Vocabulary = {
   messageCopied: "Message copié dans le presse-papiers !",
   unableToCopyMessage: "Erreur lors de la copie dans le presse-papiers !",
   unableToSendMessage: "Impossible d'envoyer un message",
+  invitationUnavailable: "Invitation indisponible",
   unableToSendThisMessage:
     "Impossible d'envoyer ce message. Veuillez réessayer.",
   unableToDeleteMessage:
@@ -772,6 +777,9 @@ export const french: Vocabulary = {
   addDescription: "Ajouter une description",
   noDescription: "Aucune description",
   thisAccountDeleted: "Ce compte a été supprimé",
+  invitationMessage: "[name] vous a invité à rejoindre le groupe",
+  viewGroup: "Voir le groupe",
+  joinGroup: "Rejoindre le groupe",
   joined: "A rejoint",
   member: "Member",
   members: "Members",

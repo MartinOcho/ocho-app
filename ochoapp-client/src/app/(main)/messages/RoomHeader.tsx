@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Time from "@/components/Time";
 import OchoLink from "@/components/ui/OchoLink";
 import AddMemberDialog from "@/components/messages/AddMemberDialog";
+import InviteMemberDialog from "@/components/messages/InviteMemberDialog";
 import { useActiveRoom } from "@/context/ChatContext";
 import LeaveGroupDialog from "@/components/messages/LeaveGroupDialog";
 import GroupChatSettingsDialog from "@/components/messages/GroupChatSettingsDialog";
@@ -671,6 +672,14 @@ export default function RoomHeader({
                               </span>
                             </Button>
                           </AddMemberDialog>
+                        )}
+                        {room.isGroup && (
+                            <InviteMemberDialog room={room}>
+                                <Button variant="outline" className="flex h-fit w-full flex-col gap-2 flex-1 sm:max-w-52">
+                                    <PlusCircle />
+                                    <span>INVITER</span>
+                                </Button>
+                            </InviteMemberDialog>
                         )}
                         {(loggedinMember?.type === "ADMIN" ||
                           loggedinMember?.type === "OWNER") && (

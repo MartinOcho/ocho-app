@@ -171,7 +171,7 @@ function DateHeader({ date }: { date: Date | string }) {
 
 export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const { t } = useTranslation();
-  const { socket, isConnected, retryConnection, getPendingMessages } =
+  const { socket, isConnected, retryConnection, getPendingMessages, respondToInvitation } =
     useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const { isMediaFullscreen } = useActiveRoom();
@@ -386,6 +386,19 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
     socket.on("receive_message", handleReceiveMessage);
     socket.on("message_deleted", handleMessageDeleted);
     socket.on("error", handleError);
+
+    socket.on("invitation_accepted", ({ roomId: acceptedRoomId }) => {
+      if (acceptedRoomId === roomId) {
+        queryClient.invalidateQueries({ queryKey: ["room", "data", roomId] });
+      }
+    });
+
+    socket.on("invitation_declined", ({ roomId: declinedRoomId }) => {
+      if (declinedRoomId === roomId) {
+        onClose();
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      }
+    });
 
     // CLEANUP : C'est ici que la magie opère quand on change de room ou qu'on quitte
     return () => {
@@ -920,6 +933,8 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 onExpandedChange={setMessageInputExpanded}
                 members={room?.members}
                 onValidityChange={setIsFormValid}
+                onAcceptInvitation={() => roomId && respondToInvitation(roomId, true)}
+                onDeclineInvitation={() => roomId && respondToInvitation(roomId, false)}
                 onVoiceSendingStart={(tempId) => {
                   setSentMessages((prev) => [
                     ...prev,

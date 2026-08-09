@@ -33,7 +33,24 @@ export function useRoomFooterState({
     return { type: RoomFooterStateType.Normal };
   }
 
-  // 3. Gestion des conversations privées (DM)
+  // 3. Gestion des invitations et privilèges
+  if ((room as any).status === "INVITATION_PENDING") {
+    const isSender = room.members.some(m => m.userId === loggedUserId && m.type === "OWNER");
+    if (isSender) {
+        return { type: RoomFooterStateType.InvitationSent };
+    } else {
+        return { type: RoomFooterStateType.InvitationPending };
+    }
+  }
+
+  if ((room as any).privilege === "RESTRICTED_MESSAGING") {
+    const member = room.members.find(m => m.userId === loggedUserId);
+    if (member && member.type === "MEMBER") {
+        return { type: RoomFooterStateType.RestrictedMessaging };
+    }
+  }
+
+  // 4. Gestion des conversations privées (DM)
   if (!room.isGroup) {
     if (!otherUser?.id) {
       return { type: RoomFooterStateType.UserDeleted };

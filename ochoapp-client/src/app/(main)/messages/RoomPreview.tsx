@@ -498,11 +498,11 @@ export default function RoomPreview({
 
     // Determine icon
     if (imageCount > 0 && videoCount === 0) {
-      icon = <ImageIcon size={16} className="flex-shrink-0" />;
+      icon = <ImageIcon size={16} className="shrink-0" />;
     } else if (videoCount > 0 && imageCount === 0) {
-      icon = <VideoIcon size={16} className="flex-shrink-0" />;
+      icon = <VideoIcon size={16} className="shrink-0" />;
     } else if (imageCount > 0 && videoCount > 0) {
-      icon = <ImageIcon size={16} className="flex-shrink-0" />;
+      icon = <ImageIcon size={16} className="shrink-0" />;
     }
 
     // Determine label and display type
@@ -584,6 +584,7 @@ export default function RoomPreview({
     REACTION: reactionContent,
     MENTION: mentionContent,
     VOICENOTE: "",
+    INVITATION: t("invitationMessage").replace("[name]", sender || appUser),
   };
 
   let messagePreviewContent =

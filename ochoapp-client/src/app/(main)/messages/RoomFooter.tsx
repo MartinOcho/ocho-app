@@ -35,6 +35,8 @@ interface RoomFooterProps {
   onValidityChange?: (isValid: boolean) => void;
   onVoiceSendingStart?: (tempId: string) => void;
   onVoiceProgress?: (progress: { tempId: string; status: 'uploading' | 'sending' | 'sent' | 'error'; progress: number; error?: string }) => void;
+  onAcceptInvitation?: () => void;
+  onDeclineInvitation?: () => void;
 }
 
 export default function RoomFooter({
@@ -54,6 +56,8 @@ export default function RoomFooter({
   onValidityChange,
   onVoiceSendingStart,
   onVoiceProgress,
+  onAcceptInvitation,
+  onDeclineInvitation,
 }: RoomFooterProps) {
   const compact = !messageInputExpanded;
 
@@ -74,6 +78,37 @@ export default function RoomFooter({
           onValidityChange={onValidityChange}
           onVoiceSendingStart={onVoiceSendingStart}
           onVoiceProgress={onVoiceProgress}
+        />
+      );
+
+    case RoomFooterStateType.InvitationPending:
+      return (
+        <InvitationFooter
+          onAccept={onAcceptInvitation}
+          onDecline={onDeclineInvitation}
+          compact={compact}
+        />
+      );
+
+    case RoomFooterStateType.InvitationSent:
+      return (
+        <UnavailableFooter
+          stateText="Invitation envoyée"
+          buttonLabel="Annuler l'invitation"
+          onButtonClick={onDeclineInvitation}
+          icon={<AlertCircle className="h-5 w-5 text-muted-foreground" />}
+          compact={compact}
+        />
+      );
+
+    case RoomFooterStateType.RestrictedMessaging:
+      return (
+        <UnavailableFooter
+          stateText="L'envoi de messages est restreint"
+          buttonLabel="Voir les détails"
+          onButtonClick={onViewGroupDetails}
+          icon={<Lock className="h-5 w-5 text-muted-foreground" />}
+          compact={compact}
         />
       );
 
@@ -365,3 +400,45 @@ export function UnspecifiedFooter({
 export const UnspecifiedIcon = (
   <AlertCircle className="h-5 w-5 text-muted-foreground" />
 );
+
+interface InvitationFooterProps {
+  onAccept?: () => void;
+  onDecline?: () => void;
+  compact?: boolean;
+}
+
+export function InvitationFooter({
+  onAccept,
+  onDecline,
+  compact = false,
+}: InvitationFooterProps) {
+  if (compact) {
+    return (
+      <div className="flex gap-1 p-1 bg-background border rounded-full">
+        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive" onClick={onDecline}>
+          <Ban className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-primary" onClick={onAccept}>
+          <Users className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-6 bg-muted/30 border rounded-3xl w-full">
+      <div className="flex flex-col items-center gap-1 text-center">
+        <h3 className="font-bold text-lg">Souhaitez-vous discuter ?</h3>
+        <p className="text-sm text-muted-foreground">Cette personne ne fait pas partie de vos abonnés.</p>
+      </div>
+      <div className="flex gap-3 w-full max-w-sm">
+        <Button variant="outline" className="flex-1 rounded-full" onClick={onDecline}>
+          Décliner
+        </Button>
+        <Button className="flex-1 rounded-full" onClick={onAccept}>
+          Accepter
+        </Button>
+      </div>
+    </div>
+  );
+}
