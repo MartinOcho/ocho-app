@@ -469,6 +469,16 @@ export interface SocketDeleteRoomEvent {
   roomId: string;
 }
 
+export interface SocketRespondToRoomInvitationEvent {
+  roomId: string;
+  accept: boolean;
+}
+
+export interface SocketSendGroupInvitationEvent {
+  targetRoomId: string;
+  groupToInviteToId: string;
+}
+
 export interface SocketCreateNotificationEvent {
   type: string;
   recipientId?: string;

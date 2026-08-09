@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
           name: "Messages enregistrés",
           description: null,
           groupAvatarUrl: null,
-          privilege: "MANAGE",
+          privilege: "EDIT_PROFILE",
           isGroup: false,
           createdAt: savedMessage.createdAt,
           maxMembers: 1,

@@ -176,7 +176,10 @@ model Room {
 
 enum Privilege {
   DEFAULT
-  MANAGE
+  EDIT_PROFILE
+  RESTRICTED_MESSAGING
+  RESTRICTED_INVITATIONS
+  RESTRICTED
 }
 
 model RoomMember {
@@ -241,6 +244,7 @@ enum MessageType {
   REACTION
   MENTION
   VOICENOTE
+  INVITATION
 }
 
 model VoiceNote {

@@ -1097,7 +1097,7 @@ app.post(
   },
 );
 
-// --- SESSIONS MANAGEMENT API ---
+// --- SESSIONS EDIT_PROFILEMENT API ---
 app.get("/api/auth/active-sessions", getActiveSessions);
 app.delete("/api/auth/active-sessions/:sessionId", removeSession);
 app.delete("/api/auth/active-sessions/remove/all", removeAllOtherSessions);

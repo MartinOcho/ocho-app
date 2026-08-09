@@ -97,7 +97,7 @@ export async function getMessageRooms(req: Request, res: Response) {
           name: "Messages enregistrés",
           description: null,
           groupAvatarUrl: null,
-          privilege: "MANAGE",
+          privilege: "EDIT_PROFILE",
           isGroup: false,
           createdAt: savedMessage.createdAt,
           maxMembers: 1,
@@ -190,7 +190,7 @@ export async function getRoom(req: Request, res: Response) {
           name: null,
           description: null,
           groupAvatarUrl: null,
-          privilege: "MANAGE",
+          privilege: "EDIT_PROFILE",
           members: [
             {
               user: userData,
@@ -231,7 +231,7 @@ export async function getRoom(req: Request, res: Response) {
         name: null,
         description: null,
         groupAvatarUrl: null,
-        privilege: "MANAGE",
+        privilege: "EDIT_PROFILE",
         members: [
           {
             user: userData,

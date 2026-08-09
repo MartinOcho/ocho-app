@@ -61,7 +61,7 @@ export async function GET(
           name: null,
           description: null,
           groupAvatarUrl: null,
-          privilege: "MANAGE",
+          privilege: "EDIT_PROFILE",
           members: [
           {
             user,
@@ -94,7 +94,7 @@ export async function GET(
         name: null,
         description: null,
         groupAvatarUrl: null,
-        privilege: "MANAGE",
+        privilege: "EDIT_PROFILE",
         members: [
           {
             user ,

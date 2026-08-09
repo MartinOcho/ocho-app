@@ -52,6 +52,8 @@ import {
   markUndeliveredMessages,
   handleGetRoomDetails,
   handleGetLastMessage,
+  handleRespondToRoomInvitation,
+  handleSendGroupInvitation,
 } from "./socket-handlers";
 import { FileLike, getFileExtension } from "./files";
 import { generateWavesFromAudio } from "./audio-utils";
@@ -1898,6 +1900,38 @@ io.on("connection", async (socket: Socket) => {
       io.to(userId).emit("room_list_updated", userRooms);
     } catch (error) {
       console.error("Erreur delete_room:", error);
+    }
+  });
+
+  socket.on("respond_to_invitation", async (data: any) => {
+    try {
+      const { roomId, accept } = data;
+      const result = await handleRespondToRoomInvitation(roomId, accept, userId);
+
+      if (accept) {
+        io.to(roomId).emit("invitation_accepted", { roomId });
+      } else {
+        io.to(roomId).emit("invitation_declined", { roomId });
+      }
+
+      const updatedRooms = await getFormattedRooms(userId, "");
+      io.to(userId).emit("room_list_updated", updatedRooms);
+    } catch (error) {
+      console.error("Erreur respond_to_invitation:", error);
+    }
+  });
+
+  socket.on("send_group_invitation", async (data: any) => {
+    try {
+      const { targetRoomId, targetUserId, groupToInviteToId } = data;
+      const { message, roomId } = await handleSendGroupInvitation(targetRoomId, targetUserId, groupToInviteToId, userId);
+
+      io.to(roomId).emit("receive_message", {
+        newMessage: message,
+        roomId: roomId,
+      });
+    } catch (error) {
+      console.error("Erreur send_group_invitation:", error);
     }
   });
 

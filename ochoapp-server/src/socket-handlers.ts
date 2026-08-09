@@ -130,6 +130,7 @@ export async function handleStartChat(
   userId: string,
 ): Promise<{ newRoom: RoomData; otherMemberIds: string[] } | RoomData> {
   const { targetUserId, isGroup, name, membersIds } = data;
+  let status = "ACTIVE";
 
   let rawMembers = isGroup
     ? [...(membersIds || []), userId]
@@ -169,6 +170,14 @@ export async function handleStartChat(
       throw new Error("target_user_not_found");
     }
     validatePrivacy(targetUser, userId);
+
+    // Si on commence un chat avec quelqu'un qui ne nous suit pas, on met la room en attente
+    const targetFollowsMe = targetUser.followers.some(
+      (f) => f.followerId === userId,
+    );
+    if (!targetFollowsMe) {
+      status = "INVITATION_PENDING";
+    }
   }
 
   if (isGroup) {
@@ -190,6 +199,7 @@ export async function handleStartChat(
         data: {
           name: isGroup ? name : null,
           isGroup: isGroup,
+          status: (status as any) || "ACTIVE",
           members: {
             create: uniqueMemberIds.map((id) => ({
               userId: id,
@@ -232,6 +242,126 @@ export async function handleStartChat(
     newRoom: newRoom as RoomData,
     otherMemberIds: uniqueMemberIds.filter((id) => id !== userId),
   };
+}
+
+// --- HANDLE RESPOND TO ROOM INVITATION ---
+export async function handleRespondToRoomInvitation(
+  roomId: string,
+  accept: boolean,
+  userId: string,
+) {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { members: true },
+  });
+
+  if (!room || room.isGroup || room.status !== "INVITATION_PENDING") {
+    throw new Error("Invalid room or invitation status");
+  }
+
+  const isRecipient = room.members.some(
+    (m) => m.userId === userId && m.type === "MEMBER",
+  );
+
+  if (!isRecipient) {
+    throw new Error("Not authorized to respond to this invitation");
+  }
+
+  if (accept) {
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { status: "ACTIVE" },
+    });
+  } else {
+    // Si refusé, on peut soit supprimer la room, soit la marquer autrement.
+    // Ici on la supprime pour simplifier.
+    await prisma.room.delete({
+      where: { id: roomId },
+    });
+  }
+
+  return { roomId, accept };
+}
+
+// --- HANDLE SEND GROUP INVITATION ---
+export async function handleSendGroupInvitation(
+  targetRoomId: string,
+  targetUserId: string | undefined,
+  groupToInviteToId: string,
+  userId: string,
+) {
+  let roomId = targetRoomId;
+
+  if (!roomId && targetUserId) {
+    // Trouver ou créer la room avec cet utilisateur
+    const existingRoom = await prisma.room.findFirst({
+        where: {
+          isGroup: false,
+          AND: [
+            { members: { some: { userId: userId } } },
+            { members: { some: { userId: targetUserId } } },
+          ],
+        },
+      });
+
+      if (existingRoom) {
+          roomId = existingRoom.id;
+      } else {
+          // Créer une nouvelle room
+          const newRoom = await prisma.room.create({
+              data: {
+                  isGroup: false,
+                  members: {
+                      create: [
+                          { userId: userId, type: "OWNER" },
+                          { userId: targetUserId, type: "MEMBER" }
+                      ]
+                  }
+              }
+          });
+          roomId = newRoom.id;
+      }
+  }
+
+  const groupToInvite = await prisma.room.findUnique({
+    where: { id: groupToInviteToId },
+  });
+
+  if (!groupToInvite || !groupToInvite.isGroup) {
+    throw new Error("Invalid group to invite to");
+  }
+
+  // Créer un message de type INVITATION dans la room cible
+  const message = await prisma.message.create({
+    data: {
+      content: groupToInviteToId, // On stocke l'ID du groupe dans le contenu
+      roomId: roomId,
+      senderId: userId,
+      type: "INVITATION",
+    },
+    include: getMessageDataInclude(userId),
+  });
+
+  // Mettre à jour lastMessage
+  const members = await prisma.roomMember.findMany({
+    where: { roomId: roomId, leftAt: null, type: { not: "BANNED" } },
+  });
+
+  for (const member of members) {
+    if (member.userId) {
+      await prisma.lastMessage.upsert({
+        where: { userId_roomId: { userId: member.userId, roomId: roomId } },
+        create: {
+          userId: member.userId,
+          roomId: roomId,
+          messageId: message.id,
+        },
+        update: { messageId: message.id, createdAt: new Date() },
+      });
+    }
+  }
+
+  return { message, roomId };
 }
 
 // --- HANDLE MARK MESSAGE READ ---
@@ -821,6 +951,25 @@ export async function handleSendNormalMessage(
 
   if (!room) throw new Error("Room not found");
 
+  if (room.status === "INVITATION_PENDING") {
+    const isSender = room.members.some(m => m.userId === userId && m.type === "OWNER");
+    if (isSender) {
+        const messageCount = await prisma.message.count({ where: { roomId, type: { not: "CREATE" } } });
+        if (messageCount >= 1) {
+            throw new Error("invitation_pending_one_message_only");
+        }
+    } else {
+        throw new Error("invitation_pending_accept_required");
+    }
+  }
+
+  if (room.privilege === "RESTRICTED_MESSAGING") {
+    const member = room.members.find(m => m.userId === userId);
+    if (member && member.type === "MEMBER") {
+        throw new Error("room_messaging_restricted");
+    }
+  }
+
   if (!room.isGroup) {
     const otherMember = room.members.find(
       (m) => m.userId && m.userId !== userId,
@@ -1113,7 +1262,7 @@ export async function handleGetRoomDetails(
       name: null,
       description: null,
       groupAvatarUrl: null,
-      privilege: "MANAGE",
+      privilege: "EDIT_PROFILE",
       members: [
         {
           user,
