@@ -25,6 +25,39 @@ function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// --- HELPER LOGIQUE INVITATION ---
+export async function computeRoomStatus(room: RoomData, userId: string): Promise<string> {
+  if (room.isGroup) return "ACTIVE";
+
+  const otherMember = room.members.find((m) => m.userId && m.userId !== userId);
+  if (!otherMember?.userId) return "ACTIVE";
+
+  // Vérifier si l'autre utilisateur nous suit
+  const followsMe = await prisma.follow.findFirst({
+    where: { followerId: otherMember.userId, followingId: userId },
+  });
+
+  if (followsMe) return "ACTIVE";
+
+  // S'il ne nous suit pas, vérifier s'il y a déjà eu une réponse (message non-invitation)
+  const hasReply = await prisma.message.findFirst({
+    where: {
+      roomId: room.id,
+      senderId: otherMember.userId,
+      type: { in: ["CONTENT", "VOICENOTE"] },
+    },
+  });
+
+  if (hasReply) return "ACTIVE";
+
+  // Vérifier s'il y a un message d'invitation en attente
+  const hasInvitation = await prisma.message.findFirst({
+    where: { roomId: room.id, type: "INVITATION", content: "chat" },
+  });
+
+  return hasInvitation ? "INVITATION_PENDING" : "ACTIVE";
+}
+
 export async function getUnreadRoomsCount(userId: string): Promise<number> {
   const unreadCount = await prisma.room.count({
     where: {
@@ -349,18 +382,23 @@ export async function getFormattedRooms(
     cursor: cursor ? { userId_roomId: { userId, roomId: cursor } } : undefined,
   });
 
-  const rooms: RoomData[] = lastMessages
-    .map((lm) => {
+  const rooms: RoomData[] = await Promise.all(lastMessages
+    .map(async (lm) => {
       const lastMsg = lm.message as MessageData | null;
       const roomData = lm.room;
       if (!roomData) return null;
+
+      const status = await computeRoomStatus(roomData, userId);
+
       return {
         ...roomData,
+        status,
         messages: lastMsg ? [lastMsg] : [],
         members: roomData.members || [],
-      } as RoomData;
-    })
-    .filter((r): r is RoomData => r !== null);
+      } as any;
+    }));
+
+  const filteredRooms = rooms.filter((r): r is RoomData => r !== null);
 
   if (!cursor) {
     // Chercher le dernier message sauvegardé (SAVED texte ou VOICENOTE sans room)
@@ -410,17 +448,17 @@ export async function getFormattedRooms(
         ],
         messages: [selfMessage as MessageData],
       };
-      rooms.unshift(selfRoom);
+      filteredRooms.unshift(selfRoom);
     }
   }
 
   let nextCursor: string | null = null;
-  if (rooms.length > pageSize) {
-    const nextItem = rooms.pop();
+  if (filteredRooms.length > pageSize) {
+    const nextItem = filteredRooms.pop();
     nextCursor = nextItem ? nextItem.id : null;
   }
 
-  return { rooms, nextCursor };
+  return { rooms: filteredRooms, nextCursor };
 }
 
 export async function searchRooms(

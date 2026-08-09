@@ -21,6 +21,7 @@ import {
   getMessageDeliveries,
   getMessageReactions,
   getUnreadRoomsCount,
+  computeRoomStatus,
 } from "./utils";
 import {
   parseMentions,
@@ -130,7 +131,7 @@ export async function handleStartChat(
   userId: string,
 ): Promise<{ newRoom: RoomData; otherMemberIds: string[] } | RoomData> {
   const { targetUserId, isGroup, name, membersIds } = data;
-  let status = "ACTIVE";
+  let isInvitation = false;
 
   let rawMembers = isGroup
     ? [...(membersIds || []), userId]
@@ -155,7 +156,8 @@ export async function handleStartChat(
     });
 
     if (existingRoom) {
-      return existingRoom as unknown as RoomData;
+      const status = await computeRoomStatus(existingRoom, userId);
+      return { ...existingRoom, status } as RoomData;
     }
 
     if (!targetUserId) {
@@ -171,12 +173,12 @@ export async function handleStartChat(
     }
     validatePrivacy(targetUser, userId);
 
-    // Si on commence un chat avec quelqu'un qui ne nous suit pas, on met la room en attente
+    // Si on commence un chat avec quelqu'un qui ne nous suit pas, on marque comme invitation
     const targetFollowsMe = targetUser.followers.some(
       (f) => f.followerId === userId,
     );
     if (!targetFollowsMe) {
-      status = "INVITATION_PENDING";
+      isInvitation = true;
     }
   }
 
@@ -199,7 +201,6 @@ export async function handleStartChat(
         data: {
           name: isGroup ? name : null,
           isGroup: isGroup,
-          status: (status as any) || "ACTIVE",
           members: {
             create: uniqueMemberIds.map((id) => ({
               userId: id,
@@ -212,10 +213,10 @@ export async function handleStartChat(
 
       const message = await tx.message.create({
         data: {
-          content: "created",
+          content: isInvitation ? "chat" : "created",
           roomId: room.id,
           senderId: userId,
-          type: "CREATE",
+          type: isInvitation ? "INVITATION" : "CREATE",
         },
         include: getMessageDataInclude(userId),
       });
@@ -238,8 +239,10 @@ export async function handleStartChat(
     },
   );
 
+  const status = await computeRoomStatus(newRoom, userId);
+
   return {
-    newRoom: newRoom as RoomData,
+    newRoom: { ...newRoom, status } as any,
     otherMemberIds: uniqueMemberIds.filter((id) => id !== userId),
   };
 }
@@ -252,11 +255,16 @@ export async function handleRespondToRoomInvitation(
 ) {
   const room = await prisma.room.findUnique({
     where: { id: roomId },
-    include: { members: true },
+    include: getChatRoomDataInclude(),
   });
 
-  if (!room || room.isGroup || room.status !== "INVITATION_PENDING") {
-    throw new Error("Invalid room or invitation status");
+  if (!room || room.isGroup) {
+    throw new Error("Invalid room");
+  }
+
+  const status = await computeRoomStatus(room, userId);
+  if (status !== "INVITATION_PENDING") {
+    throw new Error("Room is not in pending invitation state");
   }
 
   const isRecipient = room.members.some(
@@ -268,13 +276,17 @@ export async function handleRespondToRoomInvitation(
   }
 
   if (accept) {
-    await prisma.room.update({
-      where: { id: roomId },
-      data: { status: "ACTIVE" },
+    // Créer un message système pour marquer l'acceptation
+    await prisma.message.create({
+      data: {
+        content: "accepted",
+        roomId: roomId,
+        senderId: userId,
+        type: "CREATE",
+      },
     });
   } else {
-    // Si refusé, on peut soit supprimer la room, soit la marquer autrement.
-    // Ici on la supprime pour simplifier.
+    // Si refusé, on supprime la room
     await prisma.room.delete({
       where: { id: roomId },
     });
@@ -946,16 +958,18 @@ export async function handleSendNormalMessage(
   // Récupérer les infos de la room pour déterminer si c'est un DM
   const room = await prisma.room.findUnique({
     where: { id: roomId },
-    include: { members: true },
+    include: getChatRoomDataInclude(),
   });
 
   if (!room) throw new Error("Room not found");
 
-  if (room.status === "INVITATION_PENDING") {
+  const status = await computeRoomStatus(room, userId);
+
+  if (status === "INVITATION_PENDING") {
     const isSender = room.members.some(m => m.userId === userId && m.type === "OWNER");
     if (isSender) {
         const messageCount = await prisma.message.count({ where: { roomId, type: { not: "CREATE" } } });
-        if (messageCount >= 1) {
+        if (messageCount >= 2) { // 1 (Invitation) + 1 (Message en cours d'envoi)
             throw new Error("invitation_pending_one_message_only");
         }
     } else {
@@ -1298,6 +1312,8 @@ export async function handleGetRoomDetails(
 
     if (!room) throw new Error("Room not found");
 
+    const status = await computeRoomStatus(room, userId);
+
     let unreadLimit = 3;
 
     if (!room.isGroup) {
@@ -1360,8 +1376,9 @@ export async function handleGetRoomDetails(
 
     return {
       ...room,
+      status,
       messages: unreadMessages,
-    };
+    } as any;
   }
 }
 

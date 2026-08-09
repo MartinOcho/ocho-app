@@ -1135,7 +1135,9 @@ export default function Message({
         ? isSender
           ? youCreatedGroup
           : createdGroup.replace("[name]", senderFirstName)
-        : canChatWithYou.replace("[name]", otherUserFirstName || appUser);
+        : message.content === "accepted"
+          ? (isSender ? "Vous avez accepté l'invitation" : `${senderFirstName} a accepté votre invitation`)
+          : canChatWithYou.replace("[name]", otherUserFirstName || appUser);
 
       // Design Spécial pour CREATE (Room Details)
       if (room.isGroup) {
@@ -1200,7 +1202,11 @@ export default function Message({
 
     // 5. INVITATION
     if (messageType === "INVITATION") {
-        systemContent = isSender ? "Vous avez envoyé une invitation de groupe" : `${senderFirstName} vous a invité à rejoindre un groupe`;
+        if (message.content === "chat") {
+            systemContent = isSender ? "Invitation à discuter envoyée" : `${senderFirstName} souhaite discuter avec vous`;
+        } else {
+            systemContent = isSender ? "Vous avez envoyé une invitation de groupe" : `${senderFirstName} vous a invité à rejoindre un groupe`;
+        }
         systemIcon = <UserPlus size={14} />;
     }
 

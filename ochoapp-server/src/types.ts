@@ -256,7 +256,7 @@ export function getChatRoomDataInclude(userId: string | undefined = undefined) {
 
 export type RoomData = Prisma.RoomGetPayload<{
   include: ReturnType<typeof getChatRoomDataInclude>;
-}>;
+}>
 
 export interface RoomsSection {
   rooms: RoomData[];
