@@ -834,6 +834,7 @@ export function groupManagment(
           data: {
             content: "joined",
             senderId: userId,
+            recipientId: userId, // Marquer que c'est un auto-rejoint via invitation
             type: "NEWMEMBER",
             roomId,
           },
