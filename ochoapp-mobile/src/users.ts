@@ -93,7 +93,7 @@ export async function getUserProfile(req: Request, res: Response) {
       message: "User retrieved successfully",
       data: finalUser,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -124,9 +124,15 @@ export async function updateUserProfile(req: Request, res: Response) {
       });
     }
 
-    const { displayName, bio, avatarUrl, avatarId, roomId } = req.body;
+    const { displayName, bio, avatarUrl, avatarId, roomId } = req.body as {
+      displayName?: string;
+      bio?: string;
+      avatarUrl?: string;
+      avatarId?: string;
+      roomId?: string;
+    };
 
-    let updateData: any = {
+    let updateData: Prisma.UserUpdateInput = {
       displayName: displayName ?? loggedUser.displayName,
       bio: bio ?? loggedUser.bio,
     };
@@ -241,7 +247,7 @@ export async function updateUserProfile(req: Request, res: Response) {
       message: "Profile updated successfully",
       data: finalUser,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -419,7 +425,7 @@ export async function toggleFollow(req: Request, res: Response) {
       message: "User follow status updated",
       data: finalUser,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -621,7 +627,7 @@ export async function getUserSettings(req: Request, res: Response) {
       message: "Settings retrieved successfully",
       data: settings,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -649,7 +655,7 @@ export async function updateUserPrivacy(req: Request, res: Response) {
       message: "Not implemented yet",
       name: "not_implemented",
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -718,7 +724,7 @@ export async function updateUserBirthday(req: Request, res: Response) {
       message: "Birthday updated successfully",
       data: { birthday: birthdayDate.toISOString() },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -809,7 +815,7 @@ export async function updateUsername(req: Request, res: Response) {
       message: "Username updated successfully",
       data: { username },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -909,7 +915,7 @@ export async function exportUserData(req: Request, res: Response) {
       message: "Data exported successfully",
       data: exportData,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -936,7 +942,7 @@ export async function disableUserAccount(req: Request, res: Response) {
         "Account disabled successfully. You can reactivate it by logging in again.",
       data: null,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,
@@ -977,7 +983,7 @@ export async function deleteUserAccount(req: Request, res: Response) {
       message: "Account deleted successfully",
       data: null,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(error);
     return res.json({
       success: false,

@@ -348,7 +348,7 @@ app.post("/api/devices/register", registerDevice);
 
 
 // Endpoint pour enregistrer le token FCM
-app.post("/api/users/fcm-token", async (req, res) => {
+app.post("/api/users/fcm-token", async (req: Request, res: Response) => {
   try {
     const { token, sessionId, deviceId } = req.body as {
       token?: string;
@@ -610,9 +610,9 @@ app.get("/api/check-update", (req: Request, res: Response) => {
   }>);
 });
 
-app.post("/api/cloudinary/upload", async (req, res) => {
+app.post("/api/cloudinary/upload", async (req: Request, res: Response) => {
   try {
-    const body = req.body || {};
+    const body = req.body as { file?: any }; // file is often binary or base64, leaving any here might be necessary if type is unknown
     const file = body.file;
     if (!file) return res.json({ success: false, error: "No file provided" });
 
@@ -655,7 +655,7 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       attachmentId: messageAttachment.id,
       result: uploadResult,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Proxy upload error", err);
     return res.json({
       success: false,

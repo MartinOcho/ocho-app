@@ -222,8 +222,13 @@ export interface UsernameUpdateRequest {
   username: string;
 }
 
-export interface AccountDeletionRequest {
-  confirmation: string;
+export interface UserUpdateData {
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+  birthday?: Date;
+  username?: string;
+  lastUsernameChange?: Date;
 }
 
 // Type pour les pièces jointes locales (avant upload)

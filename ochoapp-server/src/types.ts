@@ -475,7 +475,8 @@ export interface SocketRespondToRoomInvitationEvent {
 }
 
 export interface SocketSendGroupInvitationEvent {
-  targetRoomId: string;
+  targetRoomId?: string;
+  targetUserId?: string;
   groupToInviteToId: string;
 }
 

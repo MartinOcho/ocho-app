@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, PanInfo } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, FileText } from "lucide-react";
 import { MessageAttachment } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -213,7 +213,7 @@ interface MediaCarouselProps {
       exit: (dir: number) => ({ zIndex: 0, x: dir < 0 ? 1000 : -1000, opacity: 0, scale: 0.9 }),
     };
 
-    const onDragEnd = (e: any, { offset, velocity }: any) => {
+    const onDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
       if (isZoomed) return;
       const swipeConfidenceThreshold = 10000;
       const swipePower = Math.abs(offset.x) * velocity.x;

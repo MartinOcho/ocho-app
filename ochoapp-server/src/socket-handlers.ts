@@ -242,7 +242,7 @@ export async function handleStartChat(
   const status = await computeRoomStatus(newRoom, userId);
 
   return {
-    newRoom: { ...newRoom, status } as any,
+    newRoom: { ...newRoom, status } as RoomData,
     otherMemberIds: uniqueMemberIds.filter((id) => id !== userId),
   };
 }
