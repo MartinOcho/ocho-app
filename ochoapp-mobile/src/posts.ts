@@ -431,6 +431,26 @@ export async function getPostsForYou(req: Request, res: Response) {
     // Récupérer les trois derniers posts triés par date
     const latestPosts = await prisma.post.findMany({
       include: getPostDataIncludes(user.id),
+      where: {
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            visibility: "FOLLOWERS",
+            user: {
+              followers: {
+                some: {
+                  followerId: user.id,
+                },
+              },
+            },
+          },
+          {
+            visibility: "PUBLIC",
+          },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       take: !cursor ? 3 : 0,
     });
