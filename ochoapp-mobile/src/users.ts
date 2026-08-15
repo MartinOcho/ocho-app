@@ -9,6 +9,7 @@ import {
 } from "./types";
 import { checkVerification, getCurrentUser } from "./auth";
 import { log, profile } from "console";
+import { Prisma } from "@prisma/client";
 
 export async function getUserProfile(req: Request, res: Response) {
   const { userId } = <{ userId: string }>req.params;
@@ -648,12 +649,45 @@ export async function updateUserPrivacy(req: Request, res: Response) {
       });
     }
 
-    
+    const { type, value } = req.body as { type: string; value: string };
+
+    if (!type || value === undefined) {
+      return res.json({
+        success: false,
+        message: "Type and value are required",
+        name: "missing_fields",
+      });
+    }
+
+    let updateData: any = {};
+
+    switch (type) {
+      case "PROFILE_VISIBILITY":
+        updateData.profileVisibility = value;
+        break;
+      case "MESSAGE_PRIVACY":
+        updateData.messagePrivacy = value;
+        break;
+      case "ONLINE_STATUS_VISIBILITY":
+        updateData.showOnlineStatus = value === "EVERYONE" || value === "true";
+        break;
+      default:
+        return res.json({
+          success: false,
+          message: "Invalid privacy type",
+          name: "invalid_type",
+        });
+    }
+
+    await prisma.user.update({
+      where: { id: loggedUser.id },
+      data: updateData,
+    });
 
     return res.json({
-      success: false,
-      message: "Not implemented yet",
-      name: "not_implemented",
+      success: true,
+      message: "Privacy setting updated successfully",
+      data: { type, value },
     });
   } catch (error: unknown) {
     console.error(error);
