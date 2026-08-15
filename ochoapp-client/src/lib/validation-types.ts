@@ -18,18 +18,17 @@ import {
  * @param media - Objet à valider
  * @returns true si l'objet est un GalleryMedia valide
  */
-export function isValidGalleryMedia(media: any): media is GalleryMedia {
+export function isValidGalleryMedia(media: unknown): media is GalleryMedia {
+  if (!media || typeof media !== "object") return false;
+
+  const candidate = media as Partial<GalleryMedia> & Record<string, unknown>;
+
   return (
-    !!media &&
-    typeof media === "object" &&
-    !!media.id &&
-    typeof media.id === "string" &&
-    !!media.messageId &&
-    typeof media.messageId === "string" &&
-    !!media.url &&
-    typeof media.url === "string" &&
-    (media.type === "IMAGE" || media.type === "VIDEO") &&
-    typeof media.type === "string"
+    typeof candidate.id === "string" &&
+    typeof candidate.messageId === "string" &&
+    typeof candidate.url === "string" &&
+    (candidate.type === "IMAGE" || candidate.type === "VIDEO") &&
+    typeof candidate.type === "string"
   );
 }
 
@@ -38,7 +37,7 @@ export function isValidGalleryMedia(media: any): media is GalleryMedia {
  * @param medias - Tableau potentiellement invalide
  * @returns Tableau de GalleryMedia validés
  */
-export function validateGalleryMedias(medias: any[]): GalleryMedia[] {
+export function validateGalleryMedias(medias: unknown[]): GalleryMedia[] {
   if (!Array.isArray(medias)) return [];
   return medias.filter(isValidGalleryMedia);
 }
@@ -48,7 +47,7 @@ export function validateGalleryMedias(medias: any[]): GalleryMedia[] {
  * @param media - Objet à valider
  * @returns Objet avec validité et erreurs détaillées
  */
-export function validateGalleryMediaDetailed(media: any): {
+export function validateGalleryMediaDetailed(media: unknown): {
   isValid: boolean;
   media: GalleryMedia | null;
   errors: string[];
@@ -60,21 +59,23 @@ export function validateGalleryMediaDetailed(media: any): {
     return { isValid: false, media: null, errors };
   }
 
-  if (!media.id || typeof media.id !== "string") {
+  const candidate = media as Record<string, unknown>;
+
+  if (!candidate.id || typeof candidate.id !== "string") {
     errors.push("Media missing or invalid id");
   }
 
-  if (!media.messageId || typeof media.messageId !== "string") {
+  if (!candidate.messageId || typeof candidate.messageId !== "string") {
     errors.push("Media missing or invalid messageId");
   }
 
-  if (!media.url || typeof media.url !== "string") {
+  if (!candidate.url || typeof candidate.url !== "string") {
     errors.push("Media missing or invalid url");
   }
 
-  if (media.type !== "IMAGE" && media.type !== "VIDEO") {
+  if (candidate.type !== "IMAGE" && candidate.type !== "VIDEO") {
     errors.push(
-      `Media has invalid type: ${media.type} (expected IMAGE or VIDEO)`
+      `Media has invalid type: ${String(candidate.type)} (expected IMAGE or VIDEO)`
     );
   }
 
@@ -95,17 +96,17 @@ export function validateGalleryMediaDetailed(media: any): {
  * Type guard pour vérifier qu'un objet est un MessageAttachment valide
  */
 export function isValidMessageAttachment(
-  attachment: any
+  attachment: unknown
 ): attachment is MessageAttachment {
+  if (!attachment || typeof attachment !== "object") return false;
+
+  const candidate = attachment as Partial<MessageAttachment> & Record<string, unknown>;
+
   return (
-    !!attachment &&
-    typeof attachment === "object" &&
-    !!attachment.id &&
-    typeof attachment.id === "string" &&
-    !!attachment.url &&
-    typeof attachment.url === "string" &&
-    (attachment.type === "IMAGE" || attachment.type === "VIDEO") &&
-    typeof attachment.type === "string"
+    typeof candidate.id === "string" &&
+    typeof candidate.url === "string" &&
+    (candidate.type === "IMAGE" || candidate.type === "VIDEO") &&
+    typeof candidate.type === "string"
   );
 }
 
@@ -113,7 +114,7 @@ export function isValidMessageAttachment(
  * Valide et filtre un tableau d'attachments
  */
 export function validateMessageAttachments(
-  attachments: any[]
+  attachments: unknown[]
 ): MessageAttachment[] {
   if (!Array.isArray(attachments)) return [];
   return attachments.filter(isValidMessageAttachment);
@@ -126,26 +127,24 @@ export function validateMessageAttachments(
 /**
  * Type guard pour vérifier qu'un objet est un MessageData valide
  */
-export function isValidMessageData(message: any): message is MessageData {
+export function isValidMessageData(message: unknown): message is MessageData {
+  if (!message || typeof message !== "object") return false;
+
+  const candidate = message as Record<string, unknown>;
+
   return (
-    !!message &&
-    typeof message === "object" &&
-    !!message.id &&
-    typeof message.id === "string" &&
-    !!message.senderId &&
-    typeof message.senderId === "string" &&
-    !!message.roomId &&
-    typeof message.roomId === "string" &&
-    !!message.type &&
-    typeof message.type === "string" &&
-    !!message.createdAt
+    typeof candidate.id === "string" &&
+    typeof candidate.senderId === "string" &&
+    typeof candidate.roomId === "string" &&
+    typeof candidate.type === "string" &&
+    !!candidate.createdAt
   );
 }
 
 /**
  * Valide et filtre un tableau de messages
  */
-export function validateMessages(messages: any[]): MessageData[] {
+export function validateMessages(messages: unknown[]): MessageData[] {
   if (!Array.isArray(messages)) return [];
   return messages.filter(isValidMessageData);
 }
@@ -158,23 +157,23 @@ export function validateMessages(messages: any[]): MessageData[] {
  * Valide que oldData est une structure InfiniteData valide
  * Utile pour setQueryData avec typed updater
  */
-export function isValidInfiniteDataStructure<T>(oldData: any): oldData is {
+export function isValidInfiniteDataStructure<T>(oldData: unknown): oldData is {
   pages: Array<T>;
-  pageParams: any[];
+  pageParams: unknown[];
 } {
   return (
     !!oldData &&
     typeof oldData === "object" &&
-    Array.isArray(oldData.pages) &&
-    Array.isArray(oldData.pageParams)
+    Array.isArray((oldData as { pages?: unknown[] }).pages) &&
+    Array.isArray((oldData as { pageParams?: unknown[] }).pageParams)
   );
 }
 
 /**
  * Vérifie qu'une page existe et a les propriétés attendues
  */
-export function isValidPageStructure<T extends { [key: string]: any }>(
-  page: any,
+export function isValidPageStructure<T extends Record<string, unknown>>(
+  page: unknown,
   expectedKeys: string[]
 ): page is T {
   if (!page || typeof page !== "object") return false;

@@ -13,9 +13,10 @@ export default function ReactQueryProvider({
     defaultOptions: {
       queries: {
         // Résilience offline: retry et revalidation
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
+          const status = typeof error === "object" && error !== null && "status" in error ? Number((error as { status?: number }).status) : undefined;
           // Ne pas retry si c'est une erreur 4xx
-          if (error?.status >= 400 && error?.status < 500) {
+          if (typeof status === "number" && status >= 400 && status < 500) {
             return false
           }
           // Retry jusqu'à 3 fois pour les erreurs réseau

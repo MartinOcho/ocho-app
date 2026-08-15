@@ -34,6 +34,7 @@ export async function safeQuery<T>(
     }
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err))
+    const prismaError = error as Error & { code?: string }
 
     // Détect les erreurs Prisma spécifiques
     const isDbOffline =
@@ -42,17 +43,17 @@ export async function safeQuery<T>(
       error.message.includes('EHOSTUNREACH') ||
       error.message.includes('getaddrinfo') ||
       error.message.includes('Connection pool') ||
-      (error as any).code === 'P1000' || // Network error
-      (error as any).code === 'P1001' || // Can't reach DB server
-      (error as any).code === 'P1008' || // Operation timeout
-      (error as any).code === 'P1011' // Error in the connector
+      prismaError.code === 'P1000' || // Network error
+      prismaError.code === 'P1001' || // Can't reach DB server
+      prismaError.code === 'P1008' || // Operation timeout
+      prismaError.code === 'P1011' // Error in the connector
 
     // Log l'erreur pour monitoring
     if (process.env.NODE_ENV === 'development') {
       console.error('[safeQuery] Error:', {
         message: error.message,
         isDbOffline,
-        code: (error as any).code,
+        code: prismaError.code,
         stack: error.stack,
       })
     }

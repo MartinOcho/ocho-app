@@ -306,7 +306,7 @@ export default function SocketProvider({
       toast({ description: message });
     };
 
-    const onNotificationDeleted = (data: any) => {
+    const onNotificationDeleted = (data: { commentId?: string; postId?: string; type: string }) => {
       if (isComponentUnmounted) return;
       console.log("🗑️ Notification supprimée:", data);
       // Invalider les notifications pour les mettre à jour

@@ -107,7 +107,14 @@ export default function VoiceNotePlayer({
   // --- Initialisation du Contexte ---
   const initAudioContext = useCallback(async () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+      if (!AudioContextClass) {
+        throw new Error("Web Audio API is not supported in this browser");
+      }
+
       audioContextRef.current = new AudioContextClass();
     }
     

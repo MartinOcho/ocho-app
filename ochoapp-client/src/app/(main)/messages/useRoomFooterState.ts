@@ -1,11 +1,11 @@
-import { RoomData, RoomFooterState, RoomFooterStateType } from "@/lib/types";
+import { RoomData, RoomFooterState, RoomFooterStateType, UserData } from "@/lib/types";
 
 interface UseRoomFooterStateParams {
   room: RoomData | null | undefined;
   loggedUserId: string | null | undefined;
   isMember: boolean;
   isSaved: boolean;
-  otherUser: any | null;
+  otherUser: UserData | null;
   isLoading: boolean;
 }
 
@@ -34,19 +34,23 @@ export function useRoomFooterState({
   }
 
   // 3. Gestion des invitations et privilèges
-  if ((room as any).status === "INVITATION_PENDING") {
-    const isSender = room.members.some(m => m.userId === loggedUserId && m.type === "OWNER");
+  const roomWithMeta = room as RoomData & {
+    status?: string;
+    privilege?: string;
+  };
+
+  if (roomWithMeta.status === "INVITATION_PENDING") {
+    const isSender = room.members.some((m) => m.userId === loggedUserId && m.type === "OWNER");
     if (isSender) {
-        return { type: RoomFooterStateType.InvitationSent };
-    } else {
-        return { type: RoomFooterStateType.InvitationPending };
+      return { type: RoomFooterStateType.InvitationSent };
     }
+    return { type: RoomFooterStateType.InvitationPending };
   }
 
-  if ((room as any).privilege === "RESTRICTED_MESSAGING") {
-    const member = room.members.find(m => m.userId === loggedUserId);
+  if (roomWithMeta.privilege === "RESTRICTED_MESSAGING") {
+    const member = room.members.find((m) => m.userId === loggedUserId);
     if (member && member.type === "MEMBER") {
-        return { type: RoomFooterStateType.RestrictedMessaging };
+      return { type: RoomFooterStateType.RestrictedMessaging };
     }
   }
 

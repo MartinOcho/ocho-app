@@ -159,9 +159,16 @@ export const useVoiceRecorder = (
     audioBlob: Blob,
   ): Promise<Blob> => {
     try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+      if (!AudioContextClass) {
+        throw new Error("Web Audio API is not supported in this browser");
+      }
+
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const audioContext = new AudioContextClass();
 
       // Décoder l'audio
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);

@@ -19,7 +19,12 @@ import { useCallback } from "react";
 import { useTranslation } from "@/context/LanguageContext";
 import { RoomData } from "@/lib/types";
 
-type RoomMember = RoomData['members'][0];
+type RoomMember = RoomData["members"][0];
+type SocketMutationResponse<T> = {
+  success: boolean;
+  error?: string;
+  data?: T;
+};
 
 // Hook pour les mutations via socket
 export function useSocketMutation<T, V>(
@@ -41,7 +46,7 @@ export function useSocketMutation<T, V>(
           return;
         }
 
-        socket.emit(eventName, input, (response: any) => {
+        socket.emit(eventName, input, (response: SocketMutationResponse<T>) => {
           if (response?.success) {
             const data = response.data as T;
             onSuccess?.(data);
@@ -182,12 +187,12 @@ export function useBanMemberMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; memberId: string }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<RoomData | undefined>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_ban_member", input, (response: any) => {
+        socket.emit("group_ban_member", input, (response: SocketMutationResponse<RoomData>) => {
           if (response?.success) {
             resolve(response.data);
           } else {
@@ -216,12 +221,12 @@ export function useRestoreMemberMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; memberId: string }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<RoomData | undefined>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_restore_member", input, (response: any) => {
+        socket.emit("group_restore_member", input, (response: SocketMutationResponse<RoomData>) => {
           if (response?.success) {
             resolve(response.data);
           } else {
@@ -249,12 +254,12 @@ export function useLeaveGroupMutation() {
 
   const mutation = useMutation({
     mutationFn: async (input: { roomId: string; deleteGroup?: boolean }) => {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<RoomData | undefined>((resolve, reject) => {
         if (!socket || !isConnected) {
           return reject(new Error("Socket non connecté"));
         }
 
-        socket.emit("group_leave", input, (response: any) => {
+        socket.emit("group_leave", input, (response: SocketMutationResponse<RoomData>) => {
           if (response?.success) {
             resolve(response.data);
           } else {
