@@ -439,17 +439,39 @@ export async function getSuggestedUsers(req: Request, res: Response) {
         name: "invalid_session",
       } as ApiResponse<null>);
     }
+
+    const excludeRoomId = (req.query.excludeRoomId as string) || undefined;
+
     // Exécuter la requête Prisma pour trouver les utilisateurs à suggérer
     const usersToFollow = await prisma.user.findMany({
       where: {
-        NOT: {
-          id: loggedUser.id,
-        },
-        followers: {
-          none: {
-            followerId: loggedUser.id,
+        AND: [
+          {
+            NOT: {
+              id: loggedUser.id,
+            },
           },
-        },
+          {
+            followers: {
+              none: {
+                followerId: loggedUser.id,
+              },
+            },
+          },
+          ...(excludeRoomId
+            ? [
+                {
+                  rooms: {
+                    none: {
+                      roomId: excludeRoomId,
+                      leftAt: null,
+                      kickedAt: null,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
       },
       select: getUserDataSelect(loggedUser.id),
       orderBy: {

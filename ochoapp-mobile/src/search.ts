@@ -373,6 +373,7 @@ export async function searchUsers(req: Request, res: Response) {
     }
 
     const rawQuery = ((req.query.q as string) || "").trim();
+    const excludeRoomId = (req.query.excludeRoomId as string) || undefined;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = req.query.cursor as string | undefined;
 
@@ -387,9 +388,26 @@ export async function searchUsers(req: Request, res: Response) {
 
     const users = await prisma.user.findMany({
       where: {
-        OR: [
-          { username: { contains: cleanQuery, mode: "insensitive" } },
-          { displayName: { contains: cleanQuery, mode: "insensitive" } },
+        AND: [
+          {
+            OR: [
+              { username: { contains: cleanQuery, mode: "insensitive" } },
+              { displayName: { contains: cleanQuery, mode: "insensitive" } },
+            ],
+          },
+          ...(excludeRoomId
+            ? [
+                {
+                  rooms: {
+                    none: {
+                      roomId: excludeRoomId,
+                      leftAt: null,
+                      kickedAt: null,
+                    },
+                  },
+                },
+              ]
+            : []),
         ],
       },
       select: getUserDataSelect(user.id),

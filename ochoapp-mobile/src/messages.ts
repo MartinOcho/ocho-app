@@ -854,6 +854,7 @@ export async function getUnreadMessagesCount(req: Request, res: Response) {
 export async function getMessageUsersByFilter(req: Request, res: Response) {
   const filter = req.params.filter;
   const searchQuery = (req.query.q as string) || undefined;
+  const excludeRoomId = (req.query.excludeRoomId as string) || undefined;
   const cursor = (req.query.cursor as string) || undefined;
   const pageSize = 10;
 
@@ -877,6 +878,18 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
         }
       : undefined;
 
+    const excludeRoomCondition: Prisma.UserWhereInput | undefined = excludeRoomId
+      ? {
+          rooms: {
+            none: {
+              roomId: excludeRoomId,
+              leftAt: null,
+              kickedAt: null,
+            },
+          },
+        }
+      : undefined;
+
     switch (filter) {
       case "friends":
         whereClause = {
@@ -884,6 +897,7 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
             { followers: { some: { followerId: user.id } } },
             { following: { some: { followingId: user.id } } },
             ...(searchCondition ? [searchCondition] : []),
+            ...(excludeRoomCondition ? [excludeRoomCondition] : []),
           ],
         };
         break;
@@ -893,6 +907,7 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
             { followers: { some: { followerId: user.id } } },
             { NOT: { following: { some: { followingId: user.id } } } },
             ...(searchCondition ? [searchCondition] : []),
+            ...(excludeRoomCondition ? [excludeRoomCondition] : []),
           ],
         };
         break;
@@ -902,6 +917,7 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
             { following: { some: { followingId: user.id } } },
             { NOT: { followers: { some: { followerId: user.id } } } },
             ...(searchCondition ? [searchCondition] : []),
+            ...(excludeRoomCondition ? [excludeRoomCondition] : []),
           ],
         };
         break;
@@ -912,6 +928,7 @@ export async function getMessageUsersByFilter(req: Request, res: Response) {
             { following: { none: { followingId: user.id } } },
             { id: { not: user.id } },
             ...(searchCondition ? [searchCondition] : []),
+            ...(excludeRoomCondition ? [excludeRoomCondition] : []),
           ],
         };
         break;
@@ -944,6 +961,7 @@ export async function searchMessageUsers(req: Request, res: Response) {
   try {
     const cursor = req.query.cursor as string | undefined;
     const searchQuery = req.query.q as string | undefined;
+    const excludeRoomId = (req.query.excludeRoomId as string) || undefined;
     const pageSize = 10;
 
     const { userData, user } = await validateUser(req, res);
@@ -959,29 +977,49 @@ export async function searchMessageUsers(req: Request, res: Response) {
 
     if (searchQuery) {
       const sanitizedQuery = searchQuery.replace(/[%_]/g, "\\$&");
+
+      const whereClause: Prisma.UserWhereInput = {
+        AND: [
+          {
+            OR: [
+              {
+                displayName: {
+                  contains: sanitizedQuery,
+                  mode: "insensitive",
+                },
+              },
+              {
+                username: {
+                  contains: sanitizedQuery,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          },
+          ...(excludeRoomId
+            ? [
+                {
+                  rooms: {
+                    none: {
+                      roomId: excludeRoomId,
+                      leftAt: null,
+                      kickedAt: null,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
+      };
+
       const users = await prisma.user.findMany({
-        where: {
-          OR: [
-            {
-              displayName: {
-                contains: sanitizedQuery,
-                mode: "insensitive",
-              },
-            },
-            {
-              username: {
-                contains: sanitizedQuery,
-                mode: "insensitive",
-              },
-            },
-          ],
-        },
+        where: whereClause,
         take: pageSize + 1,
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: { id: "asc" },
         select: getUserDataSelect(userId),
       });
-
+      
       const nextCursor = users.length > pageSize ? users[pageSize].id : null;
       const usersPage =
         users.length > pageSize ? users.slice(0, pageSize) : users;
