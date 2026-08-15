@@ -297,7 +297,7 @@ export async function handleRespondToRoomInvitation(
 
 // --- HANDLE SEND GROUP INVITATION ---
 export async function handleSendGroupInvitation(
-  targetRoomId: string,
+  targetRoomId: string | undefined,
   targetUserId: string | undefined,
   groupToInviteToId: string,
   userId: string,
@@ -307,33 +307,45 @@ export async function handleSendGroupInvitation(
   if (!roomId && targetUserId) {
     // Trouver ou créer la room avec cet utilisateur
     const existingRoom = await prisma.room.findFirst({
-        where: {
+      where: {
+        isGroup: false,
+        AND: [
+          { members: { some: { userId: userId } } },
+          { members: { some: { userId: targetUserId } } },
+        ],
+      },
+    });
+
+    if (existingRoom) {
+      roomId = existingRoom.id;
+    } else {
+      // Créer une nouvelle room
+      const newRoom = await prisma.room.create({
+        data: {
           isGroup: false,
-          AND: [
-            { members: { some: { userId: userId } } },
-            { members: { some: { userId: targetUserId } } },
-          ],
+          members: {
+            create: [
+              { userId: userId, type: "OWNER" },
+              { userId: targetUserId, type: "MEMBER" },
+            ],
+          },
         },
       });
+      roomId = newRoom.id;
 
-      if (existingRoom) {
-          roomId = existingRoom.id;
-      } else {
-          // Créer une nouvelle room
-          const newRoom = await prisma.room.create({
-              data: {
-                  isGroup: false,
-                  members: {
-                      create: [
-                          { userId: userId, type: "OWNER" },
-                          { userId: targetUserId, type: "MEMBER" }
-                      ]
-                  }
-              }
-          });
-          roomId = newRoom.id;
-      }
+      // Créer le message de création système
+      await prisma.message.create({
+        data: {
+          content: "created",
+          roomId: roomId,
+          senderId: userId,
+          type: "CREATE",
+        },
+      });
+    }
   }
+
+  if (!roomId) throw new Error("Target room or user ID required");
 
   const groupToInvite = await prisma.room.findUnique({
     where: { id: groupToInviteToId },
@@ -355,11 +367,11 @@ export async function handleSendGroupInvitation(
   });
 
   // Mettre à jour lastMessage
-  const members = await prisma.roomMember.findMany({
+  const activeMembers = await prisma.roomMember.findMany({
     where: { roomId: roomId, leftAt: null, type: { not: "BANNED" } },
   });
 
-  for (const member of members) {
+  for (const member of activeMembers) {
     if (member.userId) {
       await prisma.lastMessage.upsert({
         where: { userId_roomId: { userId: member.userId, roomId: roomId } },

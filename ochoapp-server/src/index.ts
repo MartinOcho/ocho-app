@@ -1924,14 +1924,28 @@ io.on("connection", async (socket: Socket) => {
   socket.on("send_group_invitation", async (data: any) => {
     try {
       const { targetRoomId, targetUserId, groupToInviteToId } = data;
-      const { message, roomId } = await handleSendGroupInvitation(targetRoomId, targetUserId, groupToInviteToId, userId);
+      const { message, roomId } = await handleSendGroupInvitation(
+        targetRoomId,
+        targetUserId,
+        groupToInviteToId,
+        userId
+      );
+
+      socket.join(roomId);
 
       io.to(roomId).emit("receive_message", {
         newMessage: message,
         roomId: roomId,
       });
+
+      // Notifier le destinataire de la mise à jour de sa liste de salons si c'est un nouveau salon
+      if (targetUserId) {
+        const updatedRooms = await getFormattedRooms(targetUserId, "");
+        io.to(targetUserId).emit("room_list_updated", updatedRooms);
+      }
     } catch (error) {
       console.error("Erreur send_group_invitation:", error);
+      socket.emit("error_message", "Impossible d'envoyer l'invitation.");
     }
   });
 

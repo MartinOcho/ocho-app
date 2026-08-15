@@ -690,26 +690,26 @@ export function groupManagment(
           (memberId) => !existingMembers.some((em) => em.userId === memberId),
         );
 
-        const validFollowers = await prisma.follow.findMany({
-          where: {
-            followerId: { in: newMembers },
-            followingId: userId,
-          },
-          select: { followerId: true },
-        });
+        // const validFollowers = await prisma.follow.findMany({
+        //   where: {
+        //     followerId: { in: newMembers },
+        //     followingId: userId,
+        //   },
+        //   select: { followerId: true },
+        // });
 
-        const validFollowerIds = new Set(
-          validFollowers.map((item) => item.followerId),
-        );
-        const invalidMembers = newMembers.filter(
-          (mid) => !validFollowerIds.has(mid),
-        );
+        // const validFollowerIds = new Set(
+        //   validFollowers.map((item) => item.followerId),
+        // );
+        // const invalidMembers = newMembers.filter(
+        //   (mid) => !validFollowerIds.has(mid),
+        // );
 
-        if (invalidMembers.length > 0) {
-          throw new Error(
-            "Seuls les utilisateurs qui vous suivent peuvent être ajoutés au groupe.",
-          );
-        }
+        // if (invalidMembers.length > 0) {
+        //   throw new Error(
+        //     "Seuls les utilisateurs qui vous suivent peuvent être ajoutés au groupe.",
+        //   );
+        // }
 
         const newMembersCreated = await prisma.roomMember.createMany({
           data: newMembers.map((mid) => ({ userId: mid, roomId })),
