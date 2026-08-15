@@ -792,6 +792,97 @@ export function groupManagment(
     },
   );
 
+  // 1b. Rejoindre un groupe
+  socket.on(
+    "group_join",
+    async (
+      input: { roomId: string },
+      callback: (data: any) => void,
+    ) => {
+      try {
+        const { roomId } = input;
+        if (!roomId) throw new Error("ID du groupe requis");
+
+        const room = await prisma.room.findFirst({
+          where: { id: roomId },
+          include: { members: true },
+        });
+
+        if (!room || !room.isGroup) throw new Error("Groupe invalide");
+
+        const existingMember = room.members.find(m => m.userId === userId);
+        if (existingMember && existingMember.type !== "OLD" && existingMember.type !== "BANNED") {
+          return callback({ success: true, data: { roomId } }); // Déjà membre
+        }
+
+        if (room.members.filter(m => !["OLD", "BANNED"].includes(m.type)).length >= room.maxMembers) {
+          throw new Error("Groupe plein");
+        }
+
+        if (existingMember) {
+          await prisma.roomMember.update({
+            where: { roomId_userId: { roomId, userId } },
+            data: { type: "MEMBER", joinedAt: new Date(), leftAt: null, kickedAt: null }
+          });
+        } else {
+          await prisma.roomMember.create({
+            data: { userId, roomId, type: "MEMBER" }
+          });
+        }
+
+        const joinMsg = await prisma.message.create({
+          data: {
+            content: "joined",
+            senderId: userId,
+            type: "NEWMEMBER",
+            roomId,
+          },
+          include: getMessageDataInclude(userId),
+        });
+
+        const activeMemberIds = room.members
+          .filter((m) => !["OLD", "BANNED"].includes(m.type))
+          .map((m) => m.userId)
+          .filter((uid): uid is string => uid !== null)
+          .concat(userId);
+
+        await Promise.all(
+          activeMemberIds.map((mid) =>
+            prisma.lastMessage.upsert({
+              where: { userId_roomId: { userId: mid, roomId } },
+              create: { userId: mid, messageId: joinMsg.id, roomId },
+              update: { messageId: joinMsg.id, createdAt: new Date() },
+            }),
+          ),
+        );
+
+        const updatedRoom = await prisma.room.findUnique({
+          where: { id: roomId },
+          include: getChatRoomDataInclude(),
+        });
+
+        io.to(roomId).emit("room_updated", updatedRoom);
+        io.to(roomId).emit("receive_message", { newMessage: joinMsg, roomId });
+
+        activeMemberIds.forEach(async (mid) => {
+          const userRooms = await getFormattedRooms(mid, "");
+          io.to(mid).emit("room_list_updated", userRooms);
+          try {
+            const roomDetails = await handleGetRoomDetails({ roomId }, mid);
+            io.to(mid).emit("room_details", roomDetails);
+          } catch (error) {
+            console.error("Error emitting room_details in group_join:", error);
+          }
+        });
+
+        callback({ success: true, data: { roomId } });
+      } catch (error: any) {
+        console.error("Erreur group_join:", error);
+        callback({ success: false, error: error.message || "Erreur serveur" });
+      }
+    }
+  );
+
   socket.on(
     "group_update",
     async (
