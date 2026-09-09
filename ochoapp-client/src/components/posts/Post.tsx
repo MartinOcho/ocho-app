@@ -79,10 +79,6 @@ export default function Post({ post }: PostProps) {
   const comment = searchParams.get("comment");
   const showCommentParam = searchParams.get("show-comment");
 
-  const isBookmarkedByUser = !!(user.id && post.bookmarks.some(
-              (bookmark) => bookmark.userId === user.id,
-            ))
-
   useEffect(() => {
     const handleTouchStart = () => setIsTouch(true);
     window.addEventListener("touchstart", handleTouchStart);
@@ -156,7 +152,7 @@ export default function Post({ post }: PostProps) {
     }
   };
 
-  if (!user) {
+  if (!user.id) {
     return (
       <DisconnectedPost
         post={post}
@@ -299,12 +295,14 @@ export default function Post({ post }: PostProps) {
             }}
           />
         </div>
-        {post.bookmarks && <BookmarkButton
+        <BookmarkButton
           postId={post.id}
           initialState={{
-            isBookmarkedByUser,
+            isBookmarkedByUser: post.bookmarks.some(
+              (bookmark) => bookmark.userId === user.id,
+            ),
           }}
-        />}
+        />
       </div>
       <div
         className={cn(
