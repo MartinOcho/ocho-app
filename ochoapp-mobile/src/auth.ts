@@ -94,7 +94,7 @@ export async function loginUser(req: Request, res: Response) {
     return res.json({
       success: false,
       message: "invalid_credentials",
-      name: "AuthenticationError",
+      name: "username",
       error: "Username or password incorrect",
     });
   }
@@ -109,7 +109,7 @@ export async function loginUser(req: Request, res: Response) {
     return res.json({
       success: false,
       message: "invalid_credentials",
-      name: "AuthenticationError",
+      name: "username",
       error: "Username or password incorrect",
     });
   }
@@ -474,7 +474,7 @@ export async function signupUser(req: Request, res: Response) {
     return res.json({
       success: true,
       message: "auth_success",
-      name: "AuthenticationSuccess",
+      name: "username",
       error: null,
       data: {
         user,
