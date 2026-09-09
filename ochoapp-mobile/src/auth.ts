@@ -37,7 +37,7 @@ export function checkVerification(userData: UserResponseData): VerifiedUser {
 
   const verified: VerifiedUser = {
     verified: isVerified,
-    type: userVerifiedData?.type,
+    type: userVerifiedData?.type || null,
     expiresAt,
   };
   return verified;

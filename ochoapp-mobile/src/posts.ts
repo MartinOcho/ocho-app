@@ -875,6 +875,25 @@ export async function createPost(req: Request, res: Response) {
 
 export async function getUserPosts(req: Request, res: Response) {
   const { userId: targetUserId } = <{ userId: string }>req.params;
+  const { user: currentUser } = await getCurrentUser(req.headers);
+  const userId = currentUser?.id;
+
+  const visibilityConditions: Prisma.PostWhereInput[] = userId
+      ? [
+          { userId },
+          {
+            visibility: "FOLLOWERS" as const,
+            user: {
+              followers: {
+                some: {
+                  followerId: userId,
+                },
+              },
+            },
+          },
+          { visibility: "PUBLIC" as const },
+        ]
+      : [{ visibility: "PUBLIC" as const }];
   try {
     const { user: currentUser } = await getCurrentUser(req.headers);
     const userId = currentUser?.id;
