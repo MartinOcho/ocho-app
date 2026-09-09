@@ -93,9 +93,9 @@ export async function loginUser(req: Request, res: Response) {
   if (!existingUser || !existingUser.passwordHash) {
     return res.json({
       success: false,
-      message: "Nom d'utilisateur ou mot de passe incorrect.",
+      message: "invalid_credentials",
       name: "AuthenticationError",
-      error: null,
+      error: "Username or password incorrect",
     });
   }
 
@@ -108,9 +108,9 @@ export async function loginUser(req: Request, res: Response) {
   if (!validPassword) {
     return res.json({
       success: false,
-      message: "Nom d'utilisateur ou mot de passe incorrect.",
+      message: "invalid_credentials",
       name: "AuthenticationError",
-      error: null,
+      error: "Username or password incorrect",
     });
   }
 
@@ -159,20 +159,20 @@ export async function loginUser(req: Request, res: Response) {
     // Ne pas échouer si la gestion du device échoue
   }
 
-  return res.json({
-    success: true,
-    message: "Authentification réussie.",
-    name: "AuthenticationSuccess",
-    error: null,
-    data: {
-      user,
-      session: {
-        id: session.id,
-        userId: session.userId,
-        expiresAt: session.expiresAt.getTime(),
+    return res.json({
+      success: true,
+      message: "auth_success",
+      name: "AuthenticationSuccess",
+      error: null,
+      data: {
+        user,
+        session: {
+          id: session.id,
+          userId: session.userId,
+          expiresAt: session.expiresAt.getTime(),
+        },
       },
-    },
-  });
+    });
 }
 
 export async function handleGoogleNativeLogin(req: Request, res: Response) {
@@ -189,7 +189,9 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
     if (!payload) {
       return res.json({
         success: false,
-        message: "Authentification Google échouée",
+        message: "google_auth_failed",
+        name: "google_auth_error",
+        error: "Google payload is empty",
       });
     }
 
@@ -227,7 +229,7 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Authentification réussie.",
+      message: "auth_success",
       data: {
         user: userResponse,
         session: sessionResponse.data?.session,
@@ -237,8 +239,9 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
     console.error("Google Login Error:", error);
     res.json({
       success: false,
-      message: "Authentification Google échouée",
+      message: "google_auth_failed",
       name: "google_auth_error",
+      error: "An error occurred during Google authentication",
     });
   }
 }
@@ -256,8 +259,9 @@ export async function handleCompleteGoogleProfile(req: Request, res: Response) {
     if (!payload) {
       return res.json({
         success: false,
-        message: "Session Google expirée",
+        message: "google_session_expired",
         name: "google_session_expired",
+        error: "Google session has expired",
       });
     }
 
@@ -271,8 +275,9 @@ export async function handleCompleteGoogleProfile(req: Request, res: Response) {
     if (existingUser) {
       return res.json({
         success: false,
-        message: "Ce nom d'utilisateur est déjà pris",
+        message: "username_taken",
         name: "username",
+        error: "Username already exists",
       });
     }
 
@@ -307,7 +312,7 @@ export async function handleCompleteGoogleProfile(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Compte créé avec succès.",
+      message: "account_created",
       data: {
         user: userResponse,
         session: sessionResponse.data?.session,
@@ -317,8 +322,9 @@ export async function handleCompleteGoogleProfile(req: Request, res: Response) {
     console.error("Complete Profile Error:", error);
     res.json({
       success: false,
-      message: "Erreur lors de la création du compte",
+      message: "account_creation_failed",
       name: "complete_profile_error",
+      error: "Failed to create user account from google profile",
     });
   }
 }
@@ -382,8 +388,9 @@ export async function signupUser(req: Request, res: Response) {
     if (existingUsername) {
       return res.json({
         success: false,
-        message: "Ce nom d'utilisateur est déjà pris",
+        message: "username_taken",
         name: "username",
+        error: "Username already exists",
       });
     }
 
@@ -399,9 +406,9 @@ export async function signupUser(req: Request, res: Response) {
     if (existingEmail) {
       return res.json({
         success: false,
-        message:
-          "Cette adresse email est déjà enregistrée. Voulez-vous vous connecter ?",
+        message: "email_taken",
         name: "email",
+        error: "Email already registered",
       });
     }
 
@@ -466,7 +473,7 @@ export async function signupUser(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Authentification réussie.",
+      message: "auth_success",
       name: "AuthenticationSuccess",
       error: null,
       data: {
@@ -483,8 +490,9 @@ export async function signupUser(req: Request, res: Response) {
     console.error(error);
     return res.json({
       success: false,
-      message: "Quelque chose s'est mal passé. Veuillez réessayer.",
+      message: "server_error",
       name: "server_error",
+      error: "Something went wrong during signup",
     });
   }
 }
@@ -501,8 +509,9 @@ export async function newSession(
     if (!deviceId || !device) {
       return {
         success: false,
-        message: "En-têtes d'appareil manquants.",
+        message: "missing_device_headers",
         name: "missing_device_headers",
+        error: "Device headers missing",
       };
     }
 
@@ -519,8 +528,9 @@ export async function newSession(
     if (!existingUser) {
       return {
         success: false,
-        message: "Session non valide. Veuillez vous reconnecter et réessayer",
+        message: "invalid_session",
         name: "invalid_session",
+        error: "User not found for session creation",
       };
     }
 
@@ -580,7 +590,7 @@ export async function newSession(
 
     return {
       success: true,
-      message: "Session créée avec succès.",
+      message: "session_created",
       data: {
         user,
         session: {
@@ -595,8 +605,9 @@ export async function newSession(
     console.error(error);
     return {
       success: false,
-      message: "Quelque chose s'est mal passé. Veuillez réessayer.",
+      message: "server_error",
       name: "server_error",
+      error: "Error during session creation",
     };
   }
 }
@@ -617,8 +628,9 @@ export async function createSession(req: Request, res: Response) {
     if (!deviceId || !deviceTypeHeader) {
       return res.json({
         success: false,
-        message: "En-têtes d'appareil manquants (X-Device-ID, X-Device-Type).",
+        message: "missing_device_headers",
         name: "missing_device_headers",
+        error: "Device headers missing (X-Device-ID, X-Device-Type)",
       });
     }
 
@@ -635,8 +647,9 @@ export async function createSession(req: Request, res: Response) {
     if (!existingUser) {
       return res.json({
         success: false,
-        message: "Session non valide. Veuillez vous reconnecter et réessayer",
+        message: "invalid_session",
         name: "invalid_session",
+        error: "User not found for session validation",
       });
     }
 
@@ -709,7 +722,7 @@ export async function createSession(req: Request, res: Response) {
 
     return res.json({
       success: true,
-      message: "Session validée avec succès.",
+      message: "session_validated",
       data: {
         user,
         session: {
@@ -723,8 +736,9 @@ export async function createSession(req: Request, res: Response) {
     console.error(error);
     return res.json({
       success: false,
-      message: "Quelque chose s'est mal passé. Veuillez réessayer.",
+      message: "server_error",
       name: "server_error",
+      error: "Something went wrong during signup",
     });
   }
 }
@@ -737,8 +751,9 @@ export async function logoutUser(req: Request, res: Response) {
   if (!sessionToken || !deviceId) {
     return res.json({
       success: false,
-      message: "Missing session token or device ID",
+      message: "missing_credentials",
       name: "missing_credentials",
+      error: "Missing session token or device ID",
     });
   }
 
@@ -751,8 +766,9 @@ export async function logoutUser(req: Request, res: Response) {
     if (!session || session.deviceId !== deviceId) {
       return res.json({
         success: false,
-        message: "Session not found or device mismatch",
+        message: "invalid_session",
         name: "invalid_session",
+        error: "Session not found or device mismatch",
       });
     }
 
@@ -767,8 +783,9 @@ export async function logoutUser(req: Request, res: Response) {
     console.error("Logout error:", error);
     return res.json({
       success: false,
-      message: "Logout failed",
+      message: "logout_failed",
       name: "logout_error",
+      error: "Logout process failed",
     });
   }
 }
@@ -786,7 +803,7 @@ export async function getCurrentUser(
   const sessionToken = authHeader?.split(" ")[1];
 
   if (!sessionToken) {
-    return { user: null, message: "Pas de token de session trouvé" };
+    return { user: null, message: "no_session_token" };
   }
   const session = await prisma.session.findUnique({
     where: {
@@ -804,14 +821,14 @@ export async function getCurrentUser(
     },
   });
   if (!session?.user) {
-    return { user: null, message: "Token de session invalide" };
+    return { user: null, message: "invalid_session" };
   }
   // 1. Récupérer les informations de l'appareil à partir des en-têtes
   const deviceId = getHeader("x-device-id");
   const deviceTypeHeader = getHeader("x-device-type");
   // 2. Vérifier la présence des en-têtes essentiels pour l'appareil
   if (!deviceId || !deviceTypeHeader) {
-    return { user: null, message: "Pas d'en-têtes d'appareil trouvés." };
+    return { user: null, message: "missing_device_headers" };
   }
 
   // 3. Vérifier que le device existe et que la session est associée au device
@@ -832,7 +849,7 @@ export async function getCurrentUser(
 
     return {
       user: null,
-      message: "Appareil non autorisé ou session invalide.",
+      message: "invalid_device_or_session",
     };
   }
   const userVerifiedData = session.user.verified?.[0];
@@ -859,5 +876,5 @@ export async function getCurrentUser(
     createdAt: session.user.createdAt.getTime(),
     lastSeen: session.user.lastSeen.getTime(),
   };
-  return { user, message: "Utilisateur authentifié." };
+  return { user, message: "auth_success" };
 }

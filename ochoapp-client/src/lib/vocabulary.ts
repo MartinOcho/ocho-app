@@ -523,6 +523,13 @@ export const english = {
   termsOfUse: "Terms of Use",
   privacyPolicy: "Privacy Policy",
   privacyDisclaimer: "By using OchoApp, you accept these [terms] and read our [privacy].",
+  invalid_credentials: "Invalid username or password. Please check your information.",
+  google_auth_failed: "Google authentication failed",
+  google_session_expired: "Google session has expired",
+  username_taken: "This username is already taken",
+  account_creation_failed: "Failed to create account",
+  email_taken: "This email address is already registered",
+  server_error: "Something went wrong on our end, we're working on it",
 };
 export type Vocabulary = typeof english;
 export const french: Vocabulary = {
@@ -1060,6 +1067,13 @@ export const french: Vocabulary = {
   termsOfUse: "Conditions d'Utilisation",
   privacyPolicy: "politique de confidentialité",
   privacyDisclaimer: "En utilisant OchoApp, vous acceptez ces [terms] et avez lu notre [privacy].",
+  invalid_credentials: "Nom d'utilisateur ou mot de passe incorrect. Vérifiez vos informations.",
+  google_auth_failed: "L'authentification Google a échoué",
+  google_session_expired: "La session Google a expiré",
+  username_taken: "Ce nom d'utilisateur est déjà pris",
+  account_creation_failed: "Échec de la création du compte",
+  email_taken: "Cette adresse email est déjà enregistrée",
+  server_error: "Quelque chose s'est mal passé de notre côté, nous y travaillons",
 };
 
 export const vocabulary = {

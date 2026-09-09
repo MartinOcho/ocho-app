@@ -47,7 +47,11 @@ export default function SignUpForm() {
     setError(undefined);
     startTransition(async () => {
       const { error } = await signUp(values);
-      if (error) setError(error);
+      if (error) {
+        // Traduire l'erreur si c'est une clé
+        const translatedError = (t() as any)[error] || error;
+        setError(translatedError);
+      }
     });
   }
   return (

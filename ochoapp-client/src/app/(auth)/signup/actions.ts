@@ -35,7 +35,7 @@ export async function signUp(
 
     if (existingUsername) {
       return {
-        error: "Ce nom d'utilisateur est déjà pris",
+        error: "username_taken",
       };
     }
 
@@ -50,8 +50,7 @@ export async function signUp(
 
     if (existingEmail) {
       return {
-        error:
-          "Cette adresse email est déjà enregistrée. Voulez-vous vous connecter ?",
+        error: "email_taken",
       };
     }
 
@@ -83,7 +82,7 @@ export async function signUp(
     }
     console.error(error);
     return {
-      error: "Quelque chose s'est mal passé. Veuillez réessayer.",
+      error: "server_error",
     };
   }
 }

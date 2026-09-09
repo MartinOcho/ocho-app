@@ -27,8 +27,7 @@ export async function login(
 
     if (!existingUser || !existingUser.passwordHash) {
       return {
-        error:
-          "Nom d'utilisateur ou mot de passe incorrect. Verifiez vos informations",
+        error: "invalid_credentials",
       };
     }
 
@@ -41,8 +40,7 @@ export async function login(
 
     if (!validPassword) {
       return {
-        error:
-          "Nom d'utilisateur ou mot de passe incorrect. Verifiez vos informations",
+        error: "invalid_credentials",
       };
     }
 
