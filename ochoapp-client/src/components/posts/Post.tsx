@@ -167,7 +167,7 @@ export default function Post({ post }: PostProps) {
   return (
     <article
       className={cn(
-        "group/post bg-card/50 sm:bg-card relative flex flex-col p-0.5 shadow-sm sm:rounded-md",
+        "group/post bg-card/50 sm:bg-card relative flex flex-col max-w-xl p-0.5 shadow-sm sm:rounded-md",
         isCarouselFullscreen && "z-50",
       )}
     >
@@ -359,7 +359,7 @@ function DisconnectedPost({
   };
 
   return (
-    <article className="group/post bg-card/50 sm:bg-card relative flex flex-col p-0.5 shadow-sm sm:rounded-md">
+    <article className="group/post bg-card/50 sm:bg-card relative max-w-xl flex flex-col p-0.5 shadow-sm sm:rounded-md">
       <div className="flex justify-between gap-3 p-5">
         <div className="flex flex-wrap gap-3">
           <OchoLink
