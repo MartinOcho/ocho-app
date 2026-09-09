@@ -41,13 +41,9 @@ import kyInstance from "@/lib/ky";
 import { useTranslation } from "@/context/LanguageContext";
 
 import { Share2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
 import { toast } from "../ui/use-toast";
+import AppLogo from "../AppLogo";
+import Link from "next/link";
 
 interface PostProps {
   post: PostData;
@@ -167,7 +163,7 @@ export default function Post({ post }: PostProps) {
   return (
     <article
       className={cn(
-        "group/post bg-card/50 sm:bg-card relative flex flex-col max-w-xl p-0.5 shadow-sm sm:rounded-md",
+        "group/post bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md",
         isCarouselFullscreen && "z-50",
       )}
     >
@@ -359,82 +355,87 @@ function DisconnectedPost({
   };
 
   return (
-    <article className="group/post bg-card/50 sm:bg-card relative max-w-xl flex flex-col p-0.5 shadow-sm sm:rounded-md">
-      <div className="flex justify-between gap-3 p-5">
-        <div className="flex flex-wrap gap-3">
-          <OchoLink
-            href={`/users/${post.user.username}`}
-            className="text-inherit"
-          >
-            <UserAvatar
-              userId={post.user.id}
-              avatarUrl={post.user.avatarUrl}
-              hideBadge={false}
-            />
-          </OchoLink>
-          <div>
-            <span className={cn(verifiedCheck && "flex items-center gap-1")}>
-              <OchoLink
-                href={`/users/${post.user.username}`}
-                className="block font-medium text-inherit"
-              >
-                {post.user.displayName}
-              </OchoLink>
-              {verifiedCheck}
-            </span>
+    <div className="flex w-full flex-col items-center gap-4">
+      <Link href="/" className="text-2xl font-bold">
+        <AppLogo size={70} />
+      </Link>
+      <article className="group/post bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md">
+        <div className="flex justify-between gap-3 p-5">
+          <div className="flex flex-wrap gap-3">
             <OchoLink
-              href={`/posts/${post.id}`}
-              className="text-muted-foreground block text-sm"
+              href={`/users/${post.user.username}`}
+              className="text-inherit"
             >
-              <Time
-                time={post.createdAt}
-                relative={relative}
-                long={!relative}
+              <UserAvatar
+                userId={post.user.id}
+                avatarUrl={post.user.avatarUrl}
+                hideBadge={false}
               />
             </OchoLink>
+            <div>
+              <span className={cn(verifiedCheck && "flex items-center gap-1")}>
+                <OchoLink
+                  href={`/users/${post.user.username}`}
+                  className="block font-medium text-inherit"
+                >
+                  {post.user.displayName}
+                </OchoLink>
+                {verifiedCheck}
+              </span>
+              <OchoLink
+                href={`/posts/${post.id}`}
+                className="text-muted-foreground block text-sm"
+              >
+                <Time
+                  time={post.createdAt}
+                  relative={relative}
+                  long={!relative}
+                />
+              </OchoLink>
+            </div>
           </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleShare}
-          className="text-muted-foreground"
-        >
-          <Share2 size={20} />
-        </Button>
-      </div>
-      <div
-        className={cn(
-          "relative flex flex-col gap-5 max-sm:p-2 sm:p-5",
-          canShowGradient && "p-0",
-        )}
-      >
-        {!!post.content && (
-          <div
-            className={cn(
-              "z-10 wrap-break-word whitespace-pre-line",
-              canShowGradient &&
-                `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
-              !post.attachments.length &&
-                `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
-            )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            className="text-muted-foreground"
           >
-            <p className="w-full">{post.content}</p>
-          </div>
-        )}
-        {!!post.attachments.length && (
-          <MediaPreviews attachments={post.attachments} />
-        )}
-      </div>
-      <div className="bg-muted/30 text-muted-foreground rounded-b-md p-5 text-center text-sm">
-        <OchoLink
-          href="/login"
-          className="text-primary font-bold hover:underline"
+            <Share2 size={20} />
+          </Button>
+        </div>
+        <div
+          className={cn(
+            "relative flex flex-col gap-5 max-sm:p-2 sm:p-5",
+            canShowGradient && "p-0",
+          )}
         >
-          {t("loginToInteract")}
-        </OchoLink>
-      </div>
-    </article>
+          {!!post.content && (
+            <div
+              className={cn(
+                "z-10 wrap-break-word whitespace-pre-line",
+                canShowGradient &&
+                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+                !post.attachments.length &&
+                  `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
+              )}
+            >
+              <p className="w-full">{post.content}</p>
+            </div>
+          )}
+          {!!post.attachments.length && (
+            <MediaPreviews attachments={post.attachments} />
+          )}
+        </div>
+        <div className="bg-muted/30 text-muted-foreground rounded-b-md p-5 text-center text-sm">
+          <OchoLink
+            href="/login"
+            className="text-primary font-bold hover:underline"
+          >
+            {t("loginToInteract")}
+          </OchoLink>
+        </div>
+      </article>
+    </div>
   );
 }
 
