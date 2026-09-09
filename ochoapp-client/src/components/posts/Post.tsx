@@ -215,7 +215,7 @@ export default function Post({ post }: PostProps) {
             variant="ghost"
             size="icon"
             onClick={handleShare}
-            className="text-muted-foreground"
+            className="text-muted-foreground cursor-pointer"
           >
             <Share2 size={20} />
           </Button>
@@ -398,7 +398,7 @@ function DisconnectedPost({
             variant="ghost"
             size="icon"
             onClick={handleShare}
-            className="text-muted-foreground"
+            className="text-muted-foreground cursor-pointer"
           >
             <Share2 size={20} />
           </Button>
