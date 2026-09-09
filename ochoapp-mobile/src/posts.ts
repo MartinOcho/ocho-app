@@ -875,10 +875,64 @@ export async function createPost(req: Request, res: Response) {
 
 export async function getUserPosts(req: Request, res: Response) {
   const { userId: targetUserId } = <{ userId: string }>req.params;
-  const { user: currentUser } = await getCurrentUser(req.headers);
-  const userId = currentUser?.id;
+  try {
+    const { user: currentUser } = await getCurrentUser(req.headers);
+    const userId = currentUser?.id;
 
-  const visibilityConditions: Prisma.PostWhereInput[] = userId
+    if (!targetUserId) {
+      return res.json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const targetUser = (await prisma.user.findFirst({
+      where: {
+        OR: [{ id: targetUserId }, { username: targetUserId }],
+      },
+      select: getUserDataSelect(userId || ""),
+    })) as UserData | undefined;
+
+    if (!targetUser) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check profile visibility
+    if (targetUser.id !== userId) {
+      if (targetUser.profileVisibility === "PRIVATE") {
+        return res.json({
+          success: false,
+          message: "This profile is private",
+          name: "private_profile",
+        });
+      }
+      if (targetUser.profileVisibility === "FOLLOWERS") {
+        const isFollowingCheck = userId
+          ? await prisma.follow.findFirst({
+              where: {
+                followerId: userId,
+                followingId: targetUser.id,
+              },
+            })
+          : null;
+
+        if (!isFollowingCheck) {
+          return res.json({
+            success: false,
+            message: "This profile is only visible to followers",
+            name: "followers_only",
+          });
+        }
+      }
+    }
+
+    const cursor = req.query.cursor as string | undefined;
+    const pageSize = 5;
+
+    const visibilityConditions: Prisma.PostWhereInput[] = userId
       ? [
           { userId },
           {
@@ -894,17 +948,11 @@ export async function getUserPosts(req: Request, res: Response) {
           { visibility: "PUBLIC" as const },
         ]
       : [{ visibility: "PUBLIC" as const }];
-  try {
-    const { user: currentUser } = await getCurrentUser(req.headers);
-    const userId = currentUser?.id;
-
-    const cursor = req.query.cursor as string | undefined;
-    const pageSize = 5;
 
     const posts = await prisma.post.findMany({
       where: {
         AND: [
-          { OR: [{ userId: targetUserId }, { user: { username: targetUserId } }] },
+          { userId: targetUser.id },
           {
             OR: visibilityConditions,
           },
@@ -915,14 +963,18 @@ export async function getUserPosts(req: Request, res: Response) {
           select: getUserDataSelect(userId || ""),
         },
         attachments: true,
-        likes: userId ? {
-          where: { userId: userId },
-          select: { userId: true },
-        } : undefined,
-        bookmarks: userId ? {
-          where: { userId: userId },
-          select: { userId: true },
-        } : undefined,
+        likes: userId
+          ? {
+              where: { userId: userId },
+              select: { userId: true },
+            }
+          : undefined,
+        bookmarks: userId
+          ? {
+              where: { userId: userId },
+              select: { userId: true },
+            }
+          : undefined,
         _count: {
           select: {
             likes: true,

@@ -29,32 +29,7 @@ export async function getUserProfile(req: Request, res: Response) {
       where: {
         OR: [{ id: userId }, { username: userId }],
       },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-        createdAt: true,
-        lastSeen: true,
-        profileVisibility: true,
-        verified: {
-          select: {
-            type: true,
-            expiresAt: true,
-          },
-        },
-        followers: loggedUserId ? {
-          where: { followerId: loggedUserId },
-          select: { followerId: true },
-        } : undefined,
-        _count: {
-          select: {
-            followers: true,
-            posts: true,
-          },
-        },
-      },
+      select: getUserDataSelect(loggedUserId || ""),
     })) as UserData | undefined;
 
     if (!user) {
@@ -67,35 +42,37 @@ export async function getUserProfile(req: Request, res: Response) {
 
     // Check visibility
     if (user.id !== loggedUserId) {
-        if (user.profileVisibility === "PRIVATE") {
-             return res.json({
-                success: false,
-                message: "This profile is private",
-                name: "private_profile",
-            });
-        }
-        if (user.profileVisibility === "FOLLOWERS") {
-            const isFollowing = loggedUserId ? await prisma.follow.findFirst({
-                where: {
-                    followerId: loggedUserId,
-                    followingId: user.id
-                }
-            }) : null;
+      if (user.profileVisibility === "PRIVATE") {
+        return res.json({
+          success: false,
+          message: "This profile is private",
+          name: "private_profile",
+        });
+      }
+      if (user.profileVisibility === "FOLLOWERS") {
+        const isFollowingCheck = loggedUserId
+          ? await prisma.follow.findFirst({
+              where: {
+                followerId: loggedUserId,
+                followingId: user.id,
+              },
+            })
+          : null;
 
-            if (!isFollowing) {
-                 return res.json({
-                    success: false,
-                    message: "This profile is only visible to followers",
-                    name: "followers_only",
-                });
-            }
+        if (!isFollowingCheck) {
+          return res.json({
+            success: false,
+            message: "This profile is only visible to followers",
+            name: "followers_only",
+          });
         }
+      }
     }
 
-    const verified = await checkVerification(user);
-    const isFollowing = loggedUserId ? (user.followers?.some(
-      (follower) => follower.followerId === loggedUserId,
-    ) || false) : false;
+    const verified = checkVerification(user);
+    const isFollowing = loggedUserId
+      ? user.followers?.some((follower) => follower.followerId === loggedUserId)
+      : false;
 
     const finalUser: User = {
       id: user.id,
