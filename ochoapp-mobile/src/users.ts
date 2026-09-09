@@ -14,14 +14,8 @@ import { Prisma } from "@prisma/client";
 export async function getUserProfile(req: Request, res: Response) {
   const { userId } = <{ userId: string }>req.params;
   try {
-    const { user: loggedUser, message } = await getCurrentUser(req.headers);
-    if (!loggedUser) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
+    const { user: loggedUser } = await getCurrentUser(req.headers);
+    const loggedUserId = loggedUser?.id;
 
     if (!userId) {
       return res.json({
@@ -43,16 +37,17 @@ export async function getUserProfile(req: Request, res: Response) {
         bio: true,
         createdAt: true,
         lastSeen: true,
+        profileVisibility: true,
         verified: {
           select: {
             type: true,
             expiresAt: true,
           },
         },
-        followers: {
-          where: { followerId: loggedUser.id },
+        followers: loggedUserId ? {
+          where: { followerId: loggedUserId },
           select: { followerId: true },
-        },
+        } : undefined,
         _count: {
           select: {
             followers: true,
@@ -70,10 +65,37 @@ export async function getUserProfile(req: Request, res: Response) {
       });
     }
 
+    // Check visibility
+    if (user.id !== loggedUserId) {
+        if (user.profileVisibility === "PRIVATE") {
+             return res.json({
+                success: false,
+                message: "This profile is private",
+                name: "private_profile",
+            });
+        }
+        if (user.profileVisibility === "FOLLOWERS") {
+            const isFollowing = loggedUserId ? await prisma.follow.findFirst({
+                where: {
+                    followerId: loggedUserId,
+                    followingId: user.id
+                }
+            }) : null;
+
+            if (!isFollowing) {
+                 return res.json({
+                    success: false,
+                    message: "This profile is only visible to followers",
+                    name: "followers_only",
+                });
+            }
+        }
+    }
+
     const verified = await checkVerification(user);
-    const isFollowing = user.followers.some(
-      (follower) => follower.followerId === loggedUser.id,
-    );
+    const isFollowing = loggedUserId ? (user.followers?.some(
+      (follower) => follower.followerId === loggedUserId,
+    ) || false) : false;
 
     const finalUser: User = {
       id: user.id,

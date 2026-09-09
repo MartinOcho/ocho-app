@@ -18,9 +18,13 @@ import LoadingButton from "@/components/LoadingButton";
 import { login } from "./actions";
 import { useTranslation } from "@/context/LanguageContext";
 
+import { useSearchParams } from "next/navigation";
+
 export default function LoginForm() {
   const { t } = useTranslation();
   const { username, yourUsername, password, yourPassword, signIn } = t();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
 
   const [error, setError] = useState<string>();
 
@@ -37,7 +41,7 @@ export default function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setError(undefined);
     startTransition(async () => {
-      const { error } = await login(values);
+      const { error } = await login(values, redirectTo || undefined);
       if (error) setError(error);
     });
   }

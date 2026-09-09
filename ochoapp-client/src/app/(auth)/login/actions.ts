@@ -11,6 +11,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 export async function login(
   credentials: LoginValues,
+  redirectTo?: string,
 ): Promise<{ error: string }> {
   try {
     const { username, password } = loginSchema.parse(credentials);
@@ -54,7 +55,7 @@ export async function login(
       sessionCookie.value,
       sessionCookie.attributes,
     );
-    return redirect("/?fromLogin=true");
+    return redirect(redirectTo || "/?fromLogin=true");
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;

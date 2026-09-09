@@ -5,7 +5,7 @@ import AppLogo from "@/components/AppLogo";
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-full w-full items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+    <div className="flex min-h-full w-full justify-center px-4 py-8 sm:px-6 lg:px-8">
       <div className="bg-card w-full max-w-5xl overflow-hidden rounded-[2rem] shadow-2xl">
         <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-8 p-8 sm:p-10 lg:p-12">

@@ -22,6 +22,9 @@ import { getTranslation } from "@/lib/language";
 import Verified from "@/components/Verified";
 import { VerifiedType } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { translation } from "@/lib/vocabulary";
+import OchoLink from "@/components/ui/OchoLink";
+import { Button } from "@/components/ui/button";
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -35,10 +38,31 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
         mode: "insensitive",
       },
     },
-    select: getUserDataSelect(loggedInUserId, username),
+    select: {
+        ...getUserDataSelect(loggedInUserId, username),
+        profileVisibility: true,
+    }
   });
 
   if (!user) notFound();
+
+  // Check visibility
+  if (user.id !== loggedInUserId) {
+    if (user.profileVisibility === "PRIVATE") {
+       throw new Error("PRIVATE_PROFILE");
+    }
+    if (user.profileVisibility === "FOLLOWERS") {
+        const isFollowing = loggedInUserId ? await prisma.follow.findFirst({
+            where: {
+                followerId: loggedInUserId,
+                followingId: user.id
+            }
+        }) : null;
+        if (!isFollowing) {
+            throw new Error("FOLLOWERS_ONLY");
+        }
+    }
+  }
 
   return user;
 });
@@ -74,9 +98,32 @@ export default async function page({ params }: PageProps) {
         </>
       }
     >
-      <Profile username={username} />
+      <ProfileWrapper username={username} />
     </Suspense>
   );
+}
+
+async function ProfileWrapper({ username }: { username: string }) {
+    try {
+        return <Profile username={username} />;
+    } catch (error: any) {
+        if (error.message === "PRIVATE_PROFILE" || error.message === "FOLLOWERS_ONLY") {
+            const privateProfile = translation("thisProfileIsPrivate")
+            const followersOnlyProfile = translation("thisIsFollowersOnlyProfile")
+             return (
+                 <div className="w-full space-y-5">
+                    <SetNavigation navPage={null} />
+                    <div className="flex flex-col items-center justify-center p-10 bg-card rounded-2xl shadow-sm space-y-4">
+                        <Frown size={64} className="text-muted-foreground" />
+                        <h1 className="text-2xl font-bold text-center">
+                            {error.message === "PRIVATE_PROFILE" ? privateProfile : followersOnlyProfile}
+                        </h1>
+                    </div>
+                 </div>
+             );
+        }
+        throw error;
+    }
 }
 
 export async function generateMetadata({
@@ -158,7 +205,7 @@ async function UserProfile({
   loggedInUserId,
   loggedInUser,
 }: UserProfileProps) {
-  const { memberSince, posts, aPost } = await getTranslation();
+  const { memberSince, posts, aPost, loginToFollow } = await getTranslation();
   const loggedInUserFollowers = loggedInUser?.followers ?? [];
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
@@ -227,7 +274,11 @@ async function UserProfile({
           <EditProfileButton user={user} />
         ) : loggedInUserId ? (
           <FollowButton userId={user.id} initialState={followerInfo} />
-        ) : null}
+        ) : (
+            <OchoLink href={`/login?redirectTo=${encodeURIComponent(`/users/${user.username}`)}`}>
+                <Button variant="secondary">{loginToFollow || "Connectez-vous pour suivre"}</Button>
+            </OchoLink>
+        )}
       </div>
       {user.bio && (
         <>
