@@ -76,18 +76,18 @@ const getPost = cache(
 
 export async function generateMetadata({ params }: PageProps) {
   const { user } = await validateRequest();
-
   const { postId } = await params;
+  const post = await getPost(postId, user?.id || "");
 
-  if (!user) return;
+  if (!post) return;
 
-  const post = await getPost(postId, user.id);
   const hasImage = post.attachments.some(
     (attachment) => attachment.type === "IMAGE",
   );
   const hasVideo = post.attachments.some(
     (attachment) => attachment.type === "VIDEO",
   );
+
   const attachmentTitle =
     hasImage && hasVideo
       ? "Images et vidéos"
@@ -95,13 +95,33 @@ export async function generateMetadata({ params }: PageProps) {
         ? "Images"
         : hasVideo
           ? "Vidéos"
-          : "Medias";
+          : "Médias";
+
   const title = post.content
     ? `${post.content.slice(0, 50)}${post.content.length > 50 ? "..." : ""}`
     : attachmentTitle;
 
+  const description = post.content || `Publication de ${post.user.displayName} sur OchoApp`;
+  const images = post.attachments
+    .filter(a => a.type === "IMAGE")
+    .map(a => ({ url: a.url }));
+
   return {
     title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images,
+      type: "article",
+      authors: [post.user.displayName],
+    },
+    twitter: {
+      card: images.length > 0 ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: images.map(i => i.url),
+    },
   };
 }
 
@@ -109,15 +129,8 @@ export default async function Page({ params, searchParams }: PageProps) {
   const { postId } = await params;
   const { comment } = await searchParams;
   const { user } = await validateRequest();
-  if (!user)
-    return (
-      <p className="text-destructive w-fit">
-        Vous n&apos;êtes pas autorisé à afficher cette page. veuillez
-        d&apos;abord vous connecter ou creer un compte
-      </p>
-    );
 
-  const post = await getPost(postId, user.id, comment);
+  const post = await getPost(postId, user?.id || "", comment);
 
   return (
     <main className="flex w-full min-w-0 gap-5 pb-4 max-sm:py-4">
@@ -127,7 +140,7 @@ export default async function Page({ params, searchParams }: PageProps) {
       </div>
       <div className="sticky top-0 hidden h-fit w-80 flex-none lg:block">
         <Suspense fallback={<Loader2 className="mx-auto my-3 animate-spin" />}>
-          <UserInfoSidebar user={post.user} />
+          <UserInfoSidebar user={post.user} loggedInUserId={user?.id} />
         </Suspense>
       </div>
     </main>
@@ -136,23 +149,18 @@ export default async function Page({ params, searchParams }: PageProps) {
 
 interface UserInfoSidebarProps {
   user: UserData;
+  loggedInUserId?: string;
 }
 
-async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
-  const { user: loggedInUser } = await validateRequest();
-
-  if (!loggedInUser) return null;
-
-  const loggedInUserData = await prisma.user.findFirst({
-    where: { id: { equals: loggedInUser.id, mode: "insensitive" } },
+async function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
+  const loggedInUserData = loggedInUserId ? await prisma.user.findFirst({
+    where: { id: { equals: loggedInUserId, mode: "insensitive" } },
     select: getUserDataSelect(user.id),
-  });
-
-  if (!loggedInUserData) return null;
+  }) : null;
 
   return (
     <div className="bg-card space-y-5 rounded-2xl p-5 shadow-sm">
-      <h2 className="text-xl font-bold">A propos de {user.displayName}</h2>
+      <h2 className="text-xl font-bold">À propos de {user.displayName}</h2>
       <UserTooltip user={user}>
         <OchoLink
           href={`/users/${user.username}`}
@@ -178,24 +186,24 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
           {user.bio}
         </p>
       </Linkify>
-      {user.id !== loggedInUser.id && (
+      {loggedInUserId && user.id !== loggedInUserId && (
         <FollowButton
           userId={user.id}
           initialState={{
             followers: user._count.followers,
             isFollowedByUser: user.followers.some(
-              ({ followerId }) => followerId === loggedInUser.id,
+              ({ followerId }) => followerId === loggedInUserId,
             ),
-            isFolowing: loggedInUserData.followers.some(
+            isFolowing: loggedInUserData?.followers.some(
               ({ followerId }) => followerId === user.id,
-            ),
+            ) || false,
             isFriend:
               user.followers.some(
-                ({ followerId }) => followerId === loggedInUser.id,
+                ({ followerId }) => followerId === loggedInUserId,
               ) &&
-              loggedInUserData.followers.some(
+              !!(loggedInUserData?.followers.some(
                 ({ followerId }) => followerId === user.id,
-              ),
+              )),
           }}
         />
       )}

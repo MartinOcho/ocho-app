@@ -119,6 +119,7 @@ export const english = {
   noPostOnProfile: "[name] has no public posts.",
   noBookmark: "You don't have any bookmark yet.",
   bookmarks: "Bookmarks",
+  loginToInteract: "Log in to interact",
   addToBookmarks: "Add to bookmarks",
   addedToBookmarks: "Added to bookmarks",
   removeFromBookmarks: "Remove from bookmarks",
@@ -229,6 +230,7 @@ export const english = {
   addReaction: "Add a reaction",
   more: "More",
   copy: "Copy",
+  linkCopied: "Link copied to clipboard",
   forward: "Forward",
   // Chat content
   messageCopied: "Message copied to clipboard!",
@@ -644,6 +646,7 @@ export const french: Vocabulary = {
   noPostOnProfile: "[name] n'a aucune publication publique.",
   noBookmark: "Vous n'avez pas encore de favoris.",
   bookmarks: "Favoris",
+  loginToInteract: "Connectez-vous pour interagir",
   addToBookmarks: "Ajouter aux favoris",
   addedToBookmarks: "Ajoutée aux favoris",
   removeFromBookmarks: "Rétirer des favoris",
@@ -756,6 +759,7 @@ export const french: Vocabulary = {
   addReaction: "Ajouter une réaction",
   more: "Plus",
   copy: "Copier",
+  linkCopied: "Lien copié dans le presse-papiers",
   forward: "Transférer",
   // Chat content
   messageCopied: "Message copié dans le presse-papiers !",

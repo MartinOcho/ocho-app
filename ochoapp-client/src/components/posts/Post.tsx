@@ -40,6 +40,15 @@ import { useProgress } from "@/context/ProgressContext";
 import kyInstance from "@/lib/ky";
 import { useTranslation } from "@/context/LanguageContext";
 
+import { Share2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { toast } from "../ui/use-toast";
+
 interface PostProps {
   post: PostData;
 }
@@ -51,7 +60,6 @@ export default function Post({ post }: PostProps) {
 
   const [showComment, setShowComment] = useState(false);
   const [firstCommentRender, setFirstCommentRender] = useState(false);
-  const [targetComment, setTargetComment] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
   const [isCarouselFullscreen, setIsCarouselFullscreen] = useState(false);
 
@@ -59,12 +67,11 @@ export default function Post({ post }: PostProps) {
 
   const {
     hideComments,
-    comment: commentText,
-    comments: commentsText,
     viewUserSProfile,
   } = t();
+
   if (pathname.startsWith(`/posts/${post.id}`)){
-    kyInstance.post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false }).catch(err=>console.log);
+    kyInstance.post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false }).catch(() => {});
   }
 
   const searchParams = useSearchParams();
@@ -72,25 +79,25 @@ export default function Post({ post }: PostProps) {
   const showCommentParam = searchParams.get("show-comment");
 
   useEffect(() => {
-    addEventListener("touchstart", (e) => {
-      setIsTouch(true);
-    });
-  }, [])
-
+    const handleTouchStart = () => setIsTouch(true);
+    window.addEventListener("touchstart", handleTouchStart);
+    return () => window.removeEventListener("touchstart", handleTouchStart);
+  }, []);
 
   const gradient = post.gradient
-    ? `gadient-post gradient-${post.gradient} *:*:text-[inherit] *:*:font-bold`
+    ? `gradient-post gradient-${post.gradient} *:*:text-[inherit] *:*:font-bold`
     : "";
 
   useEffect(() => {
-    // On récupère le paramètre `comment` depuis les paramètres de recherche
     if (comment || showCommentParam) {
       setShowComment(true);
     }
   }, [comment, showCommentParam]);
+
   useEffect(() => {
-    showComment && setFirstCommentRender(true);
-  }, [showComment, setFirstCommentRender]);
+    if (showComment) setFirstCommentRender(true);
+  }, [showComment]);
+
   function postPage(param: string = "") {
     if (pathname.startsWith(`/posts/${post.id}`)) {
       return;
@@ -98,32 +105,51 @@ export default function Post({ post }: PostProps) {
     navigate(`/posts/${post.id}${param}`);
   }
 
-  const timestamp = post.createdAt.getTime();
+  const timestamp = post.createdAt instanceof Date ? post.createdAt.getTime() : new Date(post.createdAt).getTime();
   const now = Date.now();
   const diffInMs = now - timestamp;
 
-  const relative = diffInMs < Math.abs(48 * 3600 * 1000);
+  const relative = diffInMs < 48 * 3600 * 1000;
 
   const lastSeenDate = new Date(post.user.lastSeen).getTime() - 40 * 1000;
 
-  const isUserOnline = lastSeenDate > now;
   const maxGradientLength = 100;
   const canShowGradient =
     !post.attachments.length &&
     post.content.length <= maxGradientLength &&
     post.gradient;
+
   const expiresAt = post.user.verified?.[0]?.expiresAt;
-  const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
-
-  const expired = canExpire && expiresAt ? new Date() < expiresAt : false;
-
-  const isVerified = !!post.user.verified[0] && !expired;
+  const isVerified = !!post.user.verified[0] && (!expiresAt || new Date() < new Date(expiresAt));
   const verifiedType: VerifiedType = isVerified
     ? post.user.verified[0].type
     : "STANDARD";
 
   const verifiedCheck = isVerified ? <Verified type={verifiedType} /> : null;
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/posts/${post.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "OchoApp Post",
+          text: post.content.slice(0, 100),
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        description: t("linkCopied"),
+      });
+    }
+  };
+
+  if (!user) {
+    return <DisconnectedPost post={post} verifiedCheck={verifiedCheck} gradient={gradient} canShowGradient={!!canShowGradient} relative={relative} />;
+  }
 
   return (
     <article
@@ -175,12 +201,17 @@ export default function Post({ post }: PostProps) {
             </OchoLink>
           </div>
         </div>
-        {post.user.id === user.id && (
-          <PostMoreButton
-            post={post}
-            className={cn(!isTouch && "sm:opacity-0", "transition-opacity group-hover/post:opacity-100 max-sm:opacity-100")}
-          />
-        )}
+        <div className="flex items-center gap-2">
+           <Button variant="ghost" size="icon" onClick={handleShare} className="text-muted-foreground">
+             <Share2 size={20} />
+           </Button>
+            {post.user.id === user.id && (
+            <PostMoreButton
+                post={post}
+                className={cn(!isTouch && "sm:opacity-0", "transition-opacity group-hover/post:opacity-100 max-sm:opacity-100")}
+            />
+            )}
+        </div>
       </div>
       <div
         className={cn(
@@ -279,6 +310,59 @@ export default function Post({ post }: PostProps) {
     </article>
   );
 }
+
+function DisconnectedPost({ post, verifiedCheck, gradient, canShowGradient, relative }: { post: PostData, verifiedCheck: React.ReactNode, gradient: string, canShowGradient: boolean | number, relative: boolean }) {
+  const { t } = useTranslation();
+  const { viewUserSProfile } = t();
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/posts/${post.id}`;
+    if (navigator.share) {
+        await navigator.share({ title: "OchoApp", url: shareUrl });
+    } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ description: t("linkCopied") });
+    }
+  };
+
+  return (
+    <article className="group/post relative flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card">
+      <div className="flex justify-between gap-3 p-5">
+        <div className="flex flex-wrap gap-3">
+          <OchoLink href={`/users/${post.user.username}`} className="text-inherit">
+             <UserAvatar userId={post.user.id} avatarUrl={post.user.avatarUrl} hideBadge={false} />
+          </OchoLink>
+          <div>
+            <span className={cn(verifiedCheck && "flex items-center gap-1")}>
+              <OchoLink href={`/users/${post.user.username}`} className="block font-medium text-inherit">
+                {post.user.displayName}
+              </OchoLink>
+              {verifiedCheck}
+            </span>
+            <OchoLink href={`/posts/${post.id}`} className="block text-sm text-muted-foreground">
+              <Time time={post.createdAt} relative={relative} long={!relative} />
+            </OchoLink>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleShare} className="text-muted-foreground">
+             <Share2 size={20} />
+        </Button>
+      </div>
+      <div className={cn("relative flex flex-col gap-5 max-sm:p-2 sm:p-5", canShowGradient && "p-0")}>
+        {!!post.content && (
+            <div className={cn("z-10 whitespace-pre-line wrap-break-word", canShowGradient && `${gradient} px-8 max-sm:rounded-none sm:rounded-md`, !post.attachments.length && `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`)}>
+              <p className="w-full">{post.content}</p>
+            </div>
+        )}
+        {!!post.attachments.length && <MediaPreviews attachments={post.attachments} />}
+      </div>
+      <div className="p-5 bg-muted/30 text-center text-sm text-muted-foreground rounded-b-md">
+        <OchoLink href="/login" className="text-primary font-bold hover:underline">{t("loginToInteract")}</OchoLink>
+      </div>
+    </article>
+  );
+}
+
 
 interface MediaPreviewsProps {
   attachments: Media[];

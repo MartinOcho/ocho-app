@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import {
   getPostDataIncludes,
@@ -12,10 +13,10 @@ import { checkVerification, getCurrentUser } from "./auth";
 
 export function calculateRelevanceScore(
   post: PostData,
-  user: UserData,
+  user: UserData | null,
   latestPostId?: string,
 ): number {
-  const userId = user.id;
+  const userId = user?.id;
   const comments = post._count.comments;
   const likes = post._count.likes;
   const bookmarks = post.bookmarks.length;
@@ -40,7 +41,7 @@ export function calculateRelevanceScore(
   const latestPostBonus = latestPostId && post.id === latestPostId ? 50 : 0;
 
   // Calcul du score de proximité
-  const proximityScore = post.user.followers.some(
+  const proximityScore = userId && post.user.followers.some(
     (follower) => follower.followerId === userId,
   )
     ? latestPostBonus > 0
@@ -71,67 +72,23 @@ export function calculateRelevanceScore(
 export async function getPost(req: Request, res: Response) {
   const { postId } = <{ postId: string }>req.params;
   try {
-    const { user: currentUser, message } = await getCurrentUser(req.headers);
-    if (!currentUser) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
+    const { user: currentUser } = await getCurrentUser(req.headers);
 
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-      select: getUserDataSelect(currentUser.id),
+    const userId = currentUser?.id;
+
+    const user = userId ? await prisma.user.findUnique({
+      where: { id: userId },
+      select: getUserDataSelect(userId),
+    }) : null;
+
+    const post = await prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+      include: getPostDataIncludes(userId || ""),
     });
 
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
-
-    const userId = user.id;
-
-    const [allScores, post] = await prisma.$transaction([
-      prisma.postUserScore.findMany({
-        where: {
-          postId,
-        },
-        select: {
-          userId: true,
-          relevanceScore: true,
-        },
-      }),
-      prisma.post.findUnique({
-        where: {
-          id: postId,
-          OR: [
-            {
-              userId,
-            },
-            {
-              visibility: "FOLLOWERS",
-              user: {
-                followers: {
-                  some: {
-                    followerId: userId,
-                  },
-                },
-              },
-            },
-            {
-              visibility: "PUBLIC",
-            },
-          ],
-        },
-        include: getPostDataIncludes(user.id),
-      }),
-    ]);
-
-    if (!allScores || !post) {
+    if (!post) {
       return res.json({
         success: false,
         message: "Post not found",
@@ -139,53 +96,93 @@ export async function getPost(req: Request, res: Response) {
       });
     }
 
-    const newUserScore = calculateRelevanceScore(post, user);
+    // Check visibility
+    if (post.visibility === "PRIVATE" && post.userId !== userId) {
+      return res.json({
+        success: false,
+        message: "This post is private",
+        name: "unauthorized",
+      });
+    }
 
-    const postScore =
-      newUserScore +
-      allScores
-        .filter((score) => score.userId !== user.id)
-        .reduce((acc, score) => acc + score?.relevanceScore, 0);
+    if (post.visibility === "FOLLOWERS" && post.userId !== userId) {
+      const isFollowing = userId ? await prisma.follow.findFirst({
+        where: {
+          followerId: userId,
+          followingId: post.userId
+        }
+      }) : null;
 
-    await prisma.$transaction([
-      prisma.post.update({
-        where: {
-          id: postId,
-        },
-        data: {
-          relevanceScore: postScore,
-        },
-      }),
-      prisma.postUserScore.upsert({
-        where: {
-          postId_userId: {
-            postId,
-            userId: user.id,
-          },
-        },
-        update: {
-          relevanceScore: newUserScore,
-        },
-        create: {
-          postId,
-          userId: user.id,
-          relevanceScore: newUserScore,
-        },
-      }),
-    ]);
+      if (!isFollowing) {
+        return res.json({
+          success: false,
+          message: "This post is only visible to followers",
+          name: "unauthorized",
+        });
+      }
+    }
+
+    if (user) {
+        const [allScores] = await prisma.$transaction([
+          prisma.postUserScore.findMany({
+            where: {
+              postId,
+            },
+            select: {
+              userId: true,
+              relevanceScore: true,
+            },
+          }),
+        ]);
+
+        const newUserScore = calculateRelevanceScore(post, user as UserData);
+
+        const postScore =
+          newUserScore +
+          allScores
+            .filter((score) => score.userId !== user.id)
+            .reduce((acc: number, score) => acc + (score?.relevanceScore || 0), 0);
+
+        await prisma.$transaction([
+          prisma.post.update({
+            where: {
+              id: postId,
+            },
+            data: {
+              relevanceScore: postScore,
+            },
+          }),
+          prisma.postUserScore.upsert({
+            where: {
+              postId_userId: {
+                postId,
+                userId: user.id,
+              },
+            },
+            update: {
+              relevanceScore: newUserScore,
+            },
+            create: {
+              postId,
+              userId: user.id,
+              relevanceScore: newUserScore,
+            },
+          }),
+        ]);
+    }
 
     const userVerifiedData = post.user.verified?.[0];
     const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
     const canExpire = !!(expiresAt || null);
 
     const expired =
-      canExpire && expiresAt ? new Date().getTime() < expiresAt : false;
+      canExpire && expiresAt ? new Date().getTime() > expiresAt : false;
 
     const isVerified = !!userVerifiedData && !expired;
 
     const verified: VerifiedUser = {
       verified: isVerified,
-      type: userVerifiedData?.type,
+      type: userVerifiedData?.type || null,
       expiresAt,
     };
 
@@ -206,8 +203,8 @@ export async function getPost(req: Request, res: Response) {
     const id: string = post.id;
     const likes = post._count.likes;
     const comments = post._count.comments;
-    const isLiked = post.likes.length > 0;
-    const isBookmarked = post.bookmarks.length > 0;
+    const isLiked = userId ? post.likes.length > 0 : false;
+    const isBookmarked = userId ? post.bookmarks.length > 0 : false;
 
     const finalPost = {
       id,
@@ -403,53 +400,38 @@ export async function toggleBookmark(req: Request, res: Response) {
 
 export async function getPostsForYou(req: Request, res: Response) {
   try {
-    const { user: currentUser, message } = await getCurrentUser(req.headers);
-    if (!currentUser) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
+    const { user: currentUser } = await getCurrentUser(req.headers);
 
-    const user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-      select: getUserDataSelect(currentUser.id),
-    });
-
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
+    const userId = currentUser?.id;
+    const user = userId ? await prisma.user.findUnique({
+      where: { id: userId },
+      select: getUserDataSelect(userId),
+    }) : null;
 
     const cursor = req.query.cursor as string | undefined;
     const pageSize = 5;
-
-    // Récupérer les trois derniers posts triés par date
-    const latestPosts = await prisma.post.findMany({
-      include: getPostDataIncludes(user.id),
-      where: {
-        OR: [
+    const visibilityConditions: Prisma.PostWhereInput[] = userId
+      ? [
+          { userId },
           {
-            userId: user.id,
-          },
-          {
-            visibility: "FOLLOWERS",
+            visibility: "FOLLOWERS" as const,
             user: {
               followers: {
                 some: {
-                  followerId: user.id,
+                  followerId: userId,
                 },
               },
             },
           },
-          {
-            visibility: "PUBLIC",
-          },
-        ],
+          { visibility: "PUBLIC" as const },
+        ]
+      : [{ visibility: "PUBLIC" as const }];
+
+    // Récupérer les trois derniers posts triés par date
+    const latestPosts = await prisma.post.findMany({
+      include: getPostDataIncludes(userId || ""),
+      where: {
+        OR: visibilityConditions,
       },
       orderBy: { createdAt: "desc" },
       take: !cursor ? 3 : 0,
@@ -457,7 +439,7 @@ export async function getPostsForYou(req: Request, res: Response) {
 
     // Récupérer les posts suivants triés par pertinence
     const relevantPosts = await prisma.post.findMany({
-      include: getPostDataIncludes(user.id),
+      include: getPostDataIncludes(userId || ""),
       orderBy: [{ relevanceScore: "desc" }, { createdAt: "desc" }],
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
@@ -465,24 +447,7 @@ export async function getPostsForYou(req: Request, res: Response) {
         id: {
           notIn: latestPosts.map((post) => post.id), // Exclure les posts déjà récupérés
         },
-        OR: [
-          {
-            userId: user.id,
-          },
-          {
-            visibility: "FOLLOWERS",
-            user: {
-              followers: {
-                some: {
-                  followerId: user.id,
-                },
-              },
-            },
-          },
-          {
-            visibility: "PUBLIC",
-          },
-        ],
+        OR: visibilityConditions,
       },
     });
 
@@ -491,7 +456,7 @@ export async function getPostsForYou(req: Request, res: Response) {
     const sortedPosts = allPosts
       .slice(0, pageSize)
       .map((post) => {
-        const relevance = calculateRelevanceScore(post, user, allPosts[0]?.id);
+        const relevance = calculateRelevanceScore(post, user as UserData | null, allPosts[0]?.id);
 
         const userVerifiedData = post.user.verified?.[0];
         const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
@@ -502,7 +467,7 @@ export async function getPostsForYou(req: Request, res: Response) {
 
         const verified: VerifiedUser = {
           verified: isVerified,
-          type: userVerifiedData?.type,
+          type: userVerifiedData?.type || null,
           expiresAt,
         };
 
@@ -528,8 +493,8 @@ export async function getPostsForYou(req: Request, res: Response) {
             gradient: post.gradient || undefined,
             likes: post._count.likes,
             comments: post._count.comments,
-            isLiked: post.likes.length > 0,
-            isBookmarked: post.bookmarks.some((b) => b.userId === user.id),
+            isLiked: userId ? post.likes.length > 0 : false,
+            isBookmarked: userId ? post.bookmarks.some((b) => b.userId === userId) : false,
           },
         };
       })
@@ -909,16 +874,10 @@ export async function createPost(req: Request, res: Response) {
 }
 
 export async function getUserPosts(req: Request, res: Response) {
-  const { userId } = <{ userId: string }>req.params;
+  const { userId: targetUserId } = <{ userId: string }>req.params;
   try {
-    const { user, message } = await getCurrentUser(req.headers);
-    if (!user) {
-      return res.json({
-        success: false,
-        message: message || "Utilisateur non authentifié.",
-        name: "invalid_session",
-      });
-    }
+    const { user: currentUser } = await getCurrentUser(req.headers);
+    const userId = currentUser?.id;
 
     const cursor = req.query.cursor as string | undefined;
     const pageSize = 5;
@@ -926,53 +885,25 @@ export async function getUserPosts(req: Request, res: Response) {
     const posts = await prisma.post.findMany({
       where: {
         AND: [
-          { OR: [{ userId }, { user: { username: userId } }] },
+          { OR: [{ userId: targetUserId }, { user: { username: targetUserId } }] },
           {
-            OR: [
-              {
-                userId: user.id,
-              },
-              {
-                visibility: "FOLLOWERS",
-                user: {
-                  followers: {
-                    some: {
-                      followerId: user.id,
-                    },
-                  },
-                },
-              },
-              {
-                visibility: "PUBLIC",
-              },
-            ],
+            OR: visibilityConditions,
           },
         ],
       },
       include: {
         user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true,
-            bio: true,
-            createdAt: true,
-            lastSeen: true,
-            verified: {
-              select: { type: true, expiresAt: true },
-            },
-          },
+          select: getUserDataSelect(userId || ""),
         },
         attachments: true,
-        likes: {
-          where: { userId: user.id },
+        likes: userId ? {
+          where: { userId: userId },
           select: { userId: true },
-        },
-        bookmarks: {
-          where: { userId: user.id },
+        } : undefined,
+        bookmarks: userId ? {
+          where: { userId: userId },
           select: { userId: true },
-        },
+        } : undefined,
         _count: {
           select: {
             likes: true,
@@ -995,7 +926,7 @@ export async function getUserPosts(req: Request, res: Response) {
 
       const verified: VerifiedUser = {
         verified: isVerified,
-        type: userVerifiedData?.type,
+        type: userVerifiedData?.type || null,
         expiresAt,
       };
 
@@ -1010,7 +941,7 @@ export async function getUserPosts(req: Request, res: Response) {
         lastSeen: post.user.lastSeen.getTime(),
       };
 
-      const isBookmarked = post.bookmarks.length > 0;
+      const isBookmarked = userId ? (post.bookmarks?.length || 0) > 0 : false;
 
       return {
         id: post.id,
@@ -1021,7 +952,7 @@ export async function getUserPosts(req: Request, res: Response) {
         gradient: post.gradient || undefined,
         likes: post._count.likes,
         comments: post._count.comments,
-        isLiked: post.likes.length > 0,
+        isLiked: userId ? (post.likes?.length || 0) > 0 : false,
         isBookmarked,
       };
     });

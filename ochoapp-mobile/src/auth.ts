@@ -15,7 +15,17 @@ import { DeviceType } from "@prisma/client";
 import { OAuth2Client } from "google-auth-library";
 import { slugify } from "./utils";
 
-export function checkVerification(userData: UserData): VerifiedUser {
+type UserResponseData = Pick<
+  UserData,
+  "id" | "username" | "displayName" | "avatarUrl" | "bio" | "createdAt" | "lastSeen"
+> & {
+  verified?: Array<{
+    type: string | null;
+    expiresAt: Date | null;
+  }>;
+};
+
+export function checkVerification(userData: UserResponseData): VerifiedUser {
   const userVerifiedData = userData.verified?.[0];
   const expiresAt = userVerifiedData?.expiresAt?.getTime() || null;
   const canExpire = !!(expiresAt || null);
@@ -33,7 +43,7 @@ export function checkVerification(userData: UserData): VerifiedUser {
   return verified;
 }
 
-export async function formatUserResponse(userData: UserData): Promise<User> {
+export async function formatUserResponse(userData: UserResponseData): Promise<User> {
   const verified = await checkVerification(userData);
   const user: User = {
     id: userData.id,
@@ -104,7 +114,7 @@ export async function loginUser(req: Request, res: Response) {
     });
   }
 
-  const user = await formatUserResponse(existingUser as unknown as UserData);
+  const user = await formatUserResponse(existingUser);
 
   // Créer une nouvelle session
   const sessionId = randomUUID();
@@ -213,7 +223,7 @@ export async function handleGoogleNativeLogin(req: Request, res: Response) {
       return res.json(sessionResponse);
     }
 
-    const userResponse = await formatUserResponse(user as unknown as UserData);
+    const userResponse = await formatUserResponse(user);
 
     return res.json({
       success: true,
@@ -293,9 +303,7 @@ export async function handleCompleteGoogleProfile(req: Request, res: Response) {
       return res.json(sessionResponse);
     }
 
-    const userResponse = await formatUserResponse(
-      userData as unknown as UserData,
-    );
+    const userResponse = await formatUserResponse(userData);
 
     return res.json({
       success: true,
@@ -568,7 +576,7 @@ export async function newSession(
       });
     }
 
-    const user = await formatUserResponse(existingUser as unknown as UserData);
+    const user = await formatUserResponse(existingUser);
 
     return {
       success: true,
@@ -697,7 +705,7 @@ export async function createSession(req: Request, res: Response) {
       console.warn("Erreur lors de la gestion du device:", error);
     }
 
-    const user = await formatUserResponse(existingUser as unknown as UserData);
+    const user = await formatUserResponse(existingUser);
 
     return res.json({
       success: true,
