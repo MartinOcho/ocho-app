@@ -25,13 +25,21 @@ export default async function Layout({
     return (
       <ProgressProvider>
         <EmptySession>
-          <div className="relative flex h-screen max-h-dvh w-full flex-col">
-            <div className="relative h-full max-h-full w-full overflow-hidden">
-              <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
-                {children}
-              </main>
-            </div>
-          </div>
+          <DeviceInitializer />
+          <LanguageProvider>
+            <SocketProvider>
+              <Toaster />
+              <NavigationProvider>
+                <div className="relative flex h-screen max-h-dvh w-full flex-col">
+                  <div className="relative h-full max-h-full w-full overflow-hidden">
+                    <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
+                      {children}
+                    </main>
+                  </div>
+                </div>
+              </NavigationProvider>
+            </SocketProvider>
+          </LanguageProvider>
         </EmptySession>
       </ProgressProvider>
     );
@@ -58,7 +66,7 @@ export default async function Layout({
                       <Navbar />
                       <div className="relative h-full max-h-full w-full overflow-hidden">
                         <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
-                          <MenuBar className="sticky top-0 hidden h-fit flex-none space-y-3 rounded-3xl bg-card p-3 sm:block lg:px-5 xl:w-60" />
+                          <MenuBar className="bg-card sticky top-0 hidden h-fit flex-none space-y-3 rounded-3xl p-3 sm:block lg:px-5 xl:w-60" />
                           {children}
                         </main>
                       </div>
