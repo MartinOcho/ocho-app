@@ -25,9 +25,7 @@ export default async function Layout({
     return (
       <ProgressProvider>
         <EmptySession>
-          <DeviceInitializer />
           <LanguageProvider>
-            <SocketProvider>
               <Toaster />
               <NavigationProvider>
                 <div className="relative flex h-screen max-h-dvh w-full flex-col">
@@ -38,7 +36,6 @@ export default async function Layout({
                   </div>
                 </div>
               </NavigationProvider>
-            </SocketProvider>
           </LanguageProvider>
         </EmptySession>
       </ProgressProvider>
