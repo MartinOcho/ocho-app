@@ -147,6 +147,11 @@ const getTrendingTopics = unstable_cache(
 async function TrendingTopics() {
   const trendingTopics = await getTrendingTopics();
   const { trending, noTrends, aPost, posts } = await getTranslation();
+  const loggedInUserId = (await validateRequest()).user?.id;
+
+  if (!loggedInUserId) {
+    return null;
+  }
 
   return (
     <div className="space-y-5 bg-card p-5 shadow-sm sm:rounded-3xl">
