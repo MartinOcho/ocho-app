@@ -2,8 +2,16 @@ import SetNavigation from "@/components/SetNavigation";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import Options from "./Options";
 import { getTranslation } from "@/lib/language";
+import { validateRequest } from "@/auth";
+import { notFound } from "next/navigation";
 
 export default async function page() {
+  const { user } = await validateRequest();
+
+  if (!user) {
+    notFound();
+  }
+
   const { settings } = await getTranslation();
   return (
     <>

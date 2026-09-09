@@ -15,30 +15,24 @@ export async function GET(
   try {
     const { user: loggedInUser } = await validateRequest();
 
-    if (!loggedInUser) {
-      return Response.json({ error: "Action non autorisée" }, { status: 401 });
-    }
-
-    const loggedInUserData = await prisma.user.findFirst({
-      where: {
-        id: {
-          equals: loggedInUser.id,
-          mode: "insensitive",
-        },
-      },
-      select: getUserDataSelect(userId),
-    });
-
-    if (!loggedInUserData) {
-      return Response.json({ error: "Action non autorisée" }, { status: 401 });
-    }
+    const loggedInUserData = loggedInUser
+      ? await prisma.user.findFirst({
+          where: {
+            id: {
+              equals: loggedInUser.id,
+              mode: "insensitive",
+            },
+          },
+          select: getUserDataSelect(userId),
+        })
+      : null;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         followers: {
           where: {
-            followerId: loggedInUser.id,
+            followerId: loggedInUser?.id ?? "",
           },
           select: {
             followerId: true,
@@ -61,15 +55,14 @@ export async function GET(
 
     const data: FollowerInfo = {
       followers: user._count.followers,
-      isFollowedByUser: !!user.followers.length,
-      isFolowing: loggedInUserData.followers.some(
-        ({ followerId }) => followerId === userId,
-      ),
+      isFollowedByUser: !!loggedInUser && !!user.followers.length,
+      isFolowing:
+        !!loggedInUserData &&
+        loggedInUserData.followers.some(({ followerId }) => followerId === userId),
       isFriend:
-        loggedInUserData.followers.some(
-          ({ followerId }) => followerId === userId,
-        ) &&
-        user.followers.some(({ followerId }) => followerId === loggedInUser.id),
+        !!loggedInUserData &&
+        loggedInUserData.followers.some(({ followerId }) => followerId === userId) &&
+        user.followers.some(({ followerId }) => followerId === loggedInUser?.id),
     };
     return Response.json(data);
   } catch (error) {

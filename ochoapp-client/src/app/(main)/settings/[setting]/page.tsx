@@ -2,12 +2,20 @@ import SetNavigation from "@/components/SetNavigation";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import Options from "../Options";
 import { getTranslation } from "@/lib/language";
+import { validateRequest } from "@/auth";
+import { notFound } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ setting: string }>;
 }
 
 export default async function page({ params } : PageProps) {
+  const { user } = await validateRequest();
+
+  if (!user) {
+    notFound();
+  }
+
   const { setting } = await params;
 
   const { settings } =

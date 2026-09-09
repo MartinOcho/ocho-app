@@ -11,10 +11,7 @@ export async function GET(
   const postId = new URL(req.url).searchParams.get("postId");
   try {
     const { user: loggedInUser } = await validateRequest();
-
-    if (!loggedInUser) {
-      return Response.json({ error: "Action non autorisée" }, { status: 401 });
-    }
+    const loggedInUserId = loggedInUser?.id ?? "";
 
     const user = await prisma.user.findFirst({
       where: {
@@ -23,7 +20,7 @@ export async function GET(
           mode: "insensitive",
         },
       },
-      select: getUserDataSelect(loggedInUser.id),
+      select: getUserDataSelect(loggedInUserId),
     });
 
     if (!user) {
@@ -32,7 +29,7 @@ export async function GET(
         { status: 404 },
       );
     }
-    if (postId) {
+    if (postId && loggedInUser) {
       const post = await prisma.post.findUnique({
         where: {
           id: postId,

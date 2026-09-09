@@ -4,10 +4,16 @@ import ForYouFeed from "./ForYouFeed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FollowingFeed from "./FollowingFeed";
 import SetNavigation from "@/components/SetNavigation";
-import { VocabularyKey } from "@/lib/vocabulary";
 import { getTranslation } from "@/lib/language";
+import { validateRequest } from "@/auth";
+import LandingPage from "./LandingPage";
 
 export default async function Home() {
+  const { user } = await validateRequest();
+
+  if (!user) {
+    return <LandingPage />;
+  }
 
   const { forYou, followings } = await getTranslation();
   return (

@@ -3,6 +3,8 @@ import Notifications from "./Notifications";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import { getTranslation } from "@/lib/language";
 import SetNavigation from "@/components/SetNavigation";
+import { validateRequest } from "@/auth";
+import { notFound } from "next/navigation";
 
 export async function generateMetadata() {
   const { notifications } = await getTranslation();
@@ -12,6 +14,12 @@ export async function generateMetadata() {
 }
 
 export default async function Page() {
+  const { user } = await validateRequest();
+
+  if (!user) {
+    notFound();
+  }
+
   const { activityCenter } = await getTranslation();
   return (
     <>

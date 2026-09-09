@@ -32,19 +32,21 @@ export default function UserTooltip({
 }: UserTooltipProps) {
   const { t } = useTranslation();
   const { user: loggedInUser } = useSession();
+  const loggedInUserId = loggedInUser?.id;
+  const loggedInUserFollowers = loggedInUser?.followers ?? [];
 
   const followerState: FollowerInfo = {
     followers: user._count.followers,
-    isFollowedByUser: !!user.followers.some(
-      ({ followerId }) => followerId === loggedInUser.id,
-    ),
-    isFolowing: loggedInUser.followers.some(
-      ({ followerId }) => followerId === user.id,
-    ),
+    isFollowedByUser:
+      !!loggedInUserId &&
+      user.followers.some(({ followerId }) => followerId === loggedInUserId),
+    isFolowing:
+      !!loggedInUserId &&
+      loggedInUserFollowers.some(({ followerId }) => followerId === user.id),
     isFriend:
-      user.followers.some(({ followerId }) => followerId === loggedInUser.id) &&
-      loggedInUser?.followers &&
-      loggedInUser.followers.some(({ followerId }) => followerId === user.id),
+      !!loggedInUserId &&
+      user.followers.some(({ followerId }) => followerId === loggedInUserId) &&
+      loggedInUserFollowers.some(({ followerId }) => followerId === user.id),
   };
 
   const [useDialog, setUseDialog] = useState(false);
@@ -72,7 +74,7 @@ export default function UserTooltip({
           <OchoLink href={`/users/${user.username}`}>
             <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={70} />
           </OchoLink>
-          {user.id !== loggedInUser.id && (
+          {!!loggedInUserId && user.id !== loggedInUserId && (
             <FollowButton userId={user.id} initialState={followerState} />
           )}
         </div>

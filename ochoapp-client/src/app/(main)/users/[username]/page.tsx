@@ -99,18 +99,12 @@ interface ProfileProps {
 
 async function Profile({ username }: ProfileProps) {
   const { user: loggedInUser } = await validateRequest();
-  const { dataError, posts, bookmarks } = await getTranslation();
+  const { posts, bookmarks } = await getTranslation();
 
-  if (!loggedInUser)
-    return (
-      <div className="my-8 flex w-full select-none flex-col items-center gap-2 text-center text-muted-foreground">
-        <Frown size={150} />
-        <h2 className="text-xl">{dataError}</h2>
-      </div>
-    );
-
-  const user = await getUser(username, loggedInUser.id);
-  const loggedUserData = await getLoggedUser(user.id, loggedInUser.id);
+  const user = await getUser(username, loggedInUser?.id ?? "");
+  const loggedUserData = loggedInUser
+    ? await getLoggedUser(user.id, loggedInUser.id)
+    : null;
 
   return (
     <>
@@ -118,15 +112,15 @@ async function Profile({ username }: ProfileProps) {
       <div className="w-full min-w-0 max-w-lg space-y-2 pb-2 sm:space-y-5">
         <UserProfile
           user={user}
-          loggedInUserId={loggedInUser.id}
+          loggedInUserId={loggedInUser?.id}
           loggedInUser={loggedUserData}
         />
-        {user.id !== loggedInUser.id && (
+        {!loggedInUser && (
           <div className="bg-card/50 p-5 shadow-sm sm:rounded-2xl sm:bg-card">
             <h2 className="text-center text-2xl font-bold">{posts}</h2>
           </div>
         )}
-        {user.id === loggedInUser.id ? (
+        {loggedInUser && user.id === loggedInUser.id ? (
           <>
             <Tabs defaultValue="posts">
               <TabsList>
@@ -155,8 +149,8 @@ async function Profile({ username }: ProfileProps) {
 
 interface UserProfileProps {
   user: UserData;
-  loggedInUserId: string;
-  loggedInUser: UserData;
+  loggedInUserId?: string;
+  loggedInUser: UserData | null;
 }
 
 async function UserProfile({
@@ -165,17 +159,19 @@ async function UserProfile({
   loggedInUser,
 }: UserProfileProps) {
   const { memberSince, posts, aPost } = await getTranslation();
+  const loggedInUserFollowers = loggedInUser?.followers ?? [];
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
-    isFollowedByUser: user.followers.some(
-      ({ followerId }) => followerId === loggedInUserId,
-    ),
-    isFolowing: loggedInUser.followers.some(
-      ({ followerId }) => followerId === user.id,
-    ),
+    isFollowedByUser:
+      !!loggedInUserId &&
+      user.followers.some(({ followerId }) => followerId === loggedInUserId),
+    isFolowing:
+      !!loggedInUserId &&
+      loggedInUserFollowers.some(({ followerId }) => followerId === user.id),
     isFriend:
+      !!loggedInUserId &&
       user.followers.some(({ followerId }) => followerId === loggedInUserId) &&
-      loggedInUser.followers.some(({ followerId }) => followerId === user.id),
+      loggedInUserFollowers.some(({ followerId }) => followerId === user.id),
   };
 
   const expiresAt = user.verified?.[0]?.expiresAt;
@@ -227,11 +223,11 @@ async function UserProfile({
             <FollowerCount userId={user.id} initialState={followerInfo} />
           </div>
         </div>
-        {user.id === loggedInUserId ? (
+        {loggedInUserId && user.id === loggedInUserId ? (
           <EditProfileButton user={user} />
-        ) : (
+        ) : loggedInUserId ? (
           <FollowButton userId={user.id} initialState={followerInfo} />
-        )}
+        ) : null}
       </div>
       {user.bio && (
         <>
