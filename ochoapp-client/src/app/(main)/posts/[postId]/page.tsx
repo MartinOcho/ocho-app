@@ -202,15 +202,14 @@ async function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
             isFollowedByUser: user.followers.some(
               ({ followerId }) => followerId === loggedInUserId,
             ),
-            isFolowing:
-              loggedInUserData?.followers.some(
+            isFolowing: loggedInUserData && loggedInUserData?.followers.some(
                 ({ followerId }) => followerId === user.id,
-              ) || false,
+              ),
             isFriend:
               user.followers.some(
                 ({ followerId }) => followerId === loggedInUserId,
               ) &&
-              !!loggedInUserData?.followers.some(
+              loggedInUserData && loggedInUserData?.followers.some(
                 ({ followerId }) => followerId === user.id,
               ),
           }}
