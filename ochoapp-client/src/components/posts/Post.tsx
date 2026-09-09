@@ -65,13 +65,12 @@ export default function Post({ post }: PostProps) {
 
   const { t } = useTranslation();
 
-  const {
-    hideComments,
-    viewUserSProfile,
-  } = t();
+  const { hideComments, viewUserSProfile } = t();
 
-  if (pathname.startsWith(`/posts/${post.id}`)){
-    kyInstance.post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false }).catch(() => {});
+  if (pathname.startsWith(`/posts/${post.id}`)) {
+    kyInstance
+      .post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false })
+      .catch(() => {});
   }
 
   const searchParams = useSearchParams();
@@ -105,7 +104,10 @@ export default function Post({ post }: PostProps) {
     navigate(`/posts/${post.id}${param}`);
   }
 
-  const timestamp = post.createdAt instanceof Date ? post.createdAt.getTime() : new Date(post.createdAt).getTime();
+  const timestamp =
+    post.createdAt instanceof Date
+      ? post.createdAt.getTime()
+      : new Date(post.createdAt).getTime();
   const now = Date.now();
   const diffInMs = now - timestamp;
 
@@ -120,7 +122,8 @@ export default function Post({ post }: PostProps) {
     post.gradient;
 
   const expiresAt = post.user.verified?.[0]?.expiresAt;
-  const isVerified = !!post.user.verified[0] && (!expiresAt || new Date() < new Date(expiresAt));
+  const isVerified =
+    !!post.user.verified[0] && (!expiresAt || new Date() < new Date(expiresAt));
   const verifiedType: VerifiedType = isVerified
     ? post.user.verified[0].type
     : "STANDARD";
@@ -148,13 +151,21 @@ export default function Post({ post }: PostProps) {
   };
 
   if (!user) {
-    return <DisconnectedPost post={post} verifiedCheck={verifiedCheck} gradient={gradient} canShowGradient={!!canShowGradient} relative={relative} />;
+    return (
+      <DisconnectedPost
+        post={post}
+        verifiedCheck={verifiedCheck}
+        gradient={gradient}
+        canShowGradient={!!canShowGradient}
+        relative={relative}
+      />
+    );
   }
 
   return (
     <article
       className={cn(
-        "group/post relative flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card",
+        "group/post bg-card/50 sm:bg-card relative flex flex-col p-0.5 shadow-sm sm:rounded-md",
         isCarouselFullscreen && "z-50",
       )}
     >
@@ -190,7 +201,7 @@ export default function Post({ post }: PostProps) {
             </span>
             <OchoLink
               href={`/posts/${post.id}`}
-              className="block text-sm text-muted-foreground"
+              className="text-muted-foreground block text-sm"
               suppressHydrationWarning
             >
               <Time
@@ -202,15 +213,23 @@ export default function Post({ post }: PostProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-           <Button variant="ghost" size="icon" onClick={handleShare} className="text-muted-foreground">
-             <Share2 size={20} />
-           </Button>
-            {post.user.id === user.id && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            className="text-muted-foreground"
+          >
+            <Share2 size={20} />
+          </Button>
+          {post.user.id === user.id && (
             <PostMoreButton
-                post={post}
-                className={cn(!isTouch && "sm:opacity-0", "transition-opacity group-hover/post:opacity-100 max-sm:opacity-100")}
+              post={post}
+              className={cn(
+                !isTouch && "sm:opacity-0",
+                "transition-opacity group-hover/post:opacity-100 max-sm:opacity-100",
+              )}
             />
-            )}
+          )}
         </div>
       </div>
       <div
@@ -230,11 +249,11 @@ export default function Post({ post }: PostProps) {
           >
             <div
               className={cn(
-                "z-10 whitespace-pre-line wrap-break-word",
+                "z-10 wrap-break-word whitespace-pre-line",
                 canShowGradient &&
-                `${gradient} px-8 max-sm:rounded-none sm:rounded-md`,
+                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
                 !post.attachments.length &&
-                `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
+                  `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
               )}
               onClick={() => {
                 if (canShowGradient) {
@@ -287,7 +306,7 @@ export default function Post({ post }: PostProps) {
         className={cn(
           "bottom-0",
           !showComment &&
-          "invisible fixed -bottom-full z-50 h-full w-full transition-[bottom]",
+            "invisible fixed -bottom-full z-50 h-full w-full transition-[bottom]",
         )}
       >
         {showComment && (
@@ -311,58 +330,111 @@ export default function Post({ post }: PostProps) {
   );
 }
 
-function DisconnectedPost({ post, verifiedCheck, gradient, canShowGradient, relative }: { post: PostData, verifiedCheck: React.ReactNode, gradient: string, canShowGradient: boolean | number, relative: boolean }) {
+function DisconnectedPost({
+  post,
+  verifiedCheck,
+  gradient,
+  canShowGradient,
+  relative,
+}: {
+  post: PostData;
+  verifiedCheck: React.ReactNode;
+  gradient: string;
+  canShowGradient: boolean | number;
+  relative: boolean;
+}) {
   const { t } = useTranslation();
   const { viewUserSProfile } = t();
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/posts/${post.id}`;
     if (navigator.share) {
-        await navigator.share({ title: "OchoApp", url: shareUrl });
+      await navigator.share({ title: "OchoApp", url: shareUrl });
     } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ description: t("linkCopied") });
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ description: t("linkCopied") });
     }
   };
 
   return (
-    <article className="group/post relative flex flex-col bg-card/50 p-0.5 shadow-sm sm:rounded-md sm:bg-card">
+    <article className="group/post bg-card/50 sm:bg-card relative flex flex-col p-0.5 shadow-sm sm:rounded-md">
       <div className="flex justify-between gap-3 p-5">
         <div className="flex flex-wrap gap-3">
-          <OchoLink href={`/users/${post.user.username}`} className="text-inherit">
-             <UserAvatar userId={post.user.id} avatarUrl={post.user.avatarUrl} hideBadge={false} />
+          <OchoLink
+            href={`/users/${post.user.username}`}
+            className="text-inherit"
+          >
+            <UserAvatar
+              userId={post.user.id}
+              avatarUrl={post.user.avatarUrl}
+              hideBadge={false}
+            />
           </OchoLink>
           <div>
             <span className={cn(verifiedCheck && "flex items-center gap-1")}>
-              <OchoLink href={`/users/${post.user.username}`} className="block font-medium text-inherit">
+              <OchoLink
+                href={`/users/${post.user.username}`}
+                className="block font-medium text-inherit"
+              >
                 {post.user.displayName}
               </OchoLink>
               {verifiedCheck}
             </span>
-            <OchoLink href={`/posts/${post.id}`} className="block text-sm text-muted-foreground">
-              <Time time={post.createdAt} relative={relative} long={!relative} />
+            <OchoLink
+              href={`/posts/${post.id}`}
+              className="text-muted-foreground block text-sm"
+            >
+              <Time
+                time={post.createdAt}
+                relative={relative}
+                long={!relative}
+              />
             </OchoLink>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleShare} className="text-muted-foreground">
-             <Share2 size={20} />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleShare}
+          className="text-muted-foreground"
+        >
+          <Share2 size={20} />
         </Button>
       </div>
-      <div className={cn("relative flex flex-col gap-5 max-sm:p-2 sm:p-5", canShowGradient && "p-0")}>
-        {!!post.content && (
-            <div className={cn("z-10 whitespace-pre-line wrap-break-word", canShowGradient && `${gradient} px-8 max-sm:rounded-none sm:rounded-md`, !post.attachments.length && `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`)}>
-              <p className="w-full">{post.content}</p>
-            </div>
+      <div
+        className={cn(
+          "relative flex flex-col gap-5 max-sm:p-2 sm:p-5",
+          canShowGradient && "p-0",
         )}
-        {!!post.attachments.length && <MediaPreviews attachments={post.attachments} />}
+      >
+        {!!post.content && (
+          <div
+            className={cn(
+              "z-10 wrap-break-word whitespace-pre-line",
+              canShowGradient &&
+                `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+              !post.attachments.length &&
+                `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
+            )}
+          >
+            <p className="w-full">{post.content}</p>
+          </div>
+        )}
+        {!!post.attachments.length && (
+          <MediaPreviews attachments={post.attachments} />
+        )}
       </div>
-      <div className="p-5 bg-muted/30 text-center text-sm text-muted-foreground rounded-b-md">
-        <OchoLink href="/login" className="text-primary font-bold hover:underline">{t("loginToInteract")}</OchoLink>
+      <div className="bg-muted/30 text-muted-foreground rounded-b-md p-5 text-center text-sm">
+        <OchoLink
+          href="/login"
+          className="text-primary font-bold hover:underline"
+        >
+          {t("loginToInteract")}
+        </OchoLink>
       </div>
     </article>
   );
 }
-
 
 interface MediaPreviewsProps {
   attachments: Media[];
@@ -468,7 +540,7 @@ function MediaPreviews({
         {attachments.slice(0, maxVisibleAttachments).map((m, i) => (
           <div
             className={cn(
-              "relative flex shrink-0 items-center overflow-hidden rounded-xl text-primary",
+              "text-primary relative flex shrink-0 items-center overflow-hidden rounded-xl",
               attachments.length > maxVisibleAttachments && "aspect-square",
             )}
             onClick={() => handleShowMore(i)}
@@ -488,7 +560,7 @@ function MediaPreviews({
         {attachments.length > maxVisibleAttachments && (
           <div
             onClick={() => handleShowMore(maxVisibleAttachments)}
-            className="relative flex aspect-square items-center overflow-hidden rounded-xl border-primary text-white underline"
+            className="border-primary relative flex aspect-square items-center overflow-hidden rounded-xl text-white underline"
           >
             <MediaPreview
               media={attachments[maxVisibleAttachments]}
@@ -533,7 +605,7 @@ function MediaPreviews({
                         className={cn(
                           "relative w-fit overflow-hidden rounded-xl",
                           isFullscreen[i] &&
-                          "fixed h-screen w-screen rounded-none",
+                            "fixed h-screen w-screen rounded-none",
                         )}
                         ref={(el) => {
                           containerRefs.current[i] = el;
@@ -550,7 +622,7 @@ function MediaPreviews({
                           )}
                           hidden={showCarousel}
                         />
-                        <div className="absolute right-2 top-2 flex items-center gap-2">
+                        <div className="absolute top-2 right-2 flex items-center gap-2">
                           <div
                             className={cn(
                               "rounded-2xl",
@@ -565,7 +637,7 @@ function MediaPreviews({
                             />
                           </div>
                           {!isFullscreen[i] && attachments.length > 1 && (
-                            <div className="rounded-2xl bg-primary/70 px-3 text-primary-foreground">
+                            <div className="bg-primary/70 text-primary-foreground rounded-2xl px-3">
                               {i + 1}/{attachments.length}
                             </div>
                           )}
@@ -578,17 +650,23 @@ function MediaPreviews({
               {attachments.length > 1 && (
                 <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between p-4">
                   {canScrollPrev && (
-                    <div className="w-10 h-10 bg-muted border-2 border-input text-muted-foreground rounded-full flex justify-center items-center cursor-pointer pointer-events-auto"  onClick={() => {
-                      api?.scrollPrev();
-                    }}>
+                    <div
+                      className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
+                      onClick={() => {
+                        api?.scrollPrev();
+                      }}
+                    >
                       <ChevronLeft className="" />
                     </div>
                   )}
                   <div />
                   {canScrollNext && (
-                    <div className="w-10 h-10 bg-muted border-2 border-input text-muted-foreground rounded-full flex justify-center items-center cursor-pointer pointer-events-auto"  onClick={() => {
-                      api?.scrollNext();
-                    }}>
+                    <div
+                      className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
+                      onClick={() => {
+                        api?.scrollNext();
+                      }}
+                    >
                       <ChevronRight className="" />
                     </div>
                   )}
@@ -597,7 +675,7 @@ function MediaPreviews({
             </Carousel>
           </div>
           <div
-            className="fixed right-4 top-4 cursor-pointer hover:text-red-500"
+            className="fixed top-4 right-4 cursor-pointer hover:text-red-500"
             onClick={() => setShowCarousel(false)}
           >
             <X size={40} className="" />
@@ -656,7 +734,7 @@ function MediaPreview({
           width={500}
           height={500}
           className={cn(
-            "h-full w-full rounded-xl bg-background object-cover shadow-sm outline-2 outline-muted max-sm:max-w-[500px]",
+            "bg-background outline-muted h-full w-full rounded-xl object-cover shadow-sm outline-2 max-sm:max-w-[500px]",
             isFullscreen
               ? "max-h-screen max-w-[100vw]"
               : "max-h-[90vh] max-w-[90vw]",
@@ -685,10 +763,10 @@ function MediaPreview({
             height={500}
             width={500}
             className={cn(
-              "relative h-full w-full bg-background shadow-sm",
+              "bg-background relative h-full w-full shadow-sm",
               hidden
                 ? "object-cover"
-                : "absolute bottom-0 top-0 object-contain",
+                : "absolute top-0 bottom-0 object-contain",
               isFullscreen
                 ? "max-h-screen max-w-[100vw] object-contain"
                 : "max-h-[90vh] max-w-[90vw]",
@@ -713,7 +791,7 @@ function FullscreenButton({
 }: FullscreenButtonProps) {
   return (
     <div
-      className="cursor-pointer rounded bg-primary-foreground/80 p-1 hover:bg-primary-foreground"
+      className="bg-primary-foreground/80 hover:bg-primary-foreground cursor-pointer rounded p-1"
       onClick={onFullscreen}
     >
       {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
@@ -726,7 +804,6 @@ interface CommentButtonProps {
   comments: number;
 }
 export function CommentButton({ comments, onClick }: CommentButtonProps) {
-
   const { t } = useTranslation();
 
   const { comment: commentText, comments: commentsText } = t();
