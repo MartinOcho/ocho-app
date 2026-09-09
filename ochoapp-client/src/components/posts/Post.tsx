@@ -152,7 +152,7 @@ export default function Post({ post }: PostProps) {
     }
   };
 
-  if (!user.id.trim()) {
+  if (!user.id) {
     return (
       <DisconnectedPost
         post={post}
