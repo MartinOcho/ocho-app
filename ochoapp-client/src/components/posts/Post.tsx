@@ -67,11 +67,13 @@ export default function Post({ post }: PostProps) {
 
   const { hideComments, viewUserSProfile } = t();
 
-  if (pathname.startsWith(`/posts/${post.id}`)) {
-    kyInstance
-      .post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false })
-      .catch(() => {});
-  }
+  useEffect(() => {
+    if (pathname.startsWith(`/posts/${post.id}`) && !!user.id) {
+      void kyInstance
+        .post(`/api/posts/${post.id}/relevance/`, { throwHttpErrors: false })
+        .catch(() => {});
+    }
+  }, [pathname, post.id]);
 
   const searchParams = useSearchParams();
   const comment = searchParams.get("comment");
