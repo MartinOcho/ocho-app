@@ -342,7 +342,9 @@ function DisconnectedPost({
   relative: boolean;
 }) {
   const { t } = useTranslation();
+  const pathname = usePathname();
   const { viewUserSProfile } = t();
+  const isOpen = pathname.startsWith(`/posts/${post.id}`)
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/posts/${post.id}`;
@@ -355,10 +357,12 @@ function DisconnectedPost({
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <Link href="/" className="text-2xl font-bold">
+    <div className={cn(isOpen && "flex flex-col items-center gap-4", "w-full")}>
+      {
+        isOpen && <Link href="/" className="text-2xl font-bold">
         <AppLogo size={70} />
       </Link>
+      }
       <article className="group/post bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md">
         <div className="flex justify-between gap-3 p-5">
           <div className="flex flex-wrap gap-3">
