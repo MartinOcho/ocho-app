@@ -5,6 +5,7 @@ const nextConfig = {
             dynamic: 30
         },
     },
+    productionBrowserSourceMaps: true,
     serverExternalPackages: ["@node-rs/argon2"],
     images: {
         remotePatterns: [

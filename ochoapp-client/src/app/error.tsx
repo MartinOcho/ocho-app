@@ -1,19 +1,38 @@
 'use client'
 
 import { AlertCircle, RotateCcw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+
+type AppError = Error & {
+  digest?: string
+  stack?: string
+  cause?: unknown
+}
 
 interface ErrorProps {
-  error: Error & { digest?: string }
+  error: AppError
   reset: () => void
 }
 
-export default function Error({ error, reset }: ErrorProps) {
-  const [isVisible, setIsVisible] = useState(true)
+const getErrorDetails = (error: AppError) => ({
+  name: error?.name,
+  message: error?.message,
+  stack: error?.stack,
+  digest: error?.digest,
+  cause: error?.cause,
+  href: typeof window !== 'undefined' ? window.location.href : undefined,
+  pathname:
+    typeof window !== 'undefined' ? window.location.pathname : undefined,
+  search:
+    typeof window !== 'undefined' ? window.location.search : undefined,
+  userAgent:
+    typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+  timestamp: new Date().toISOString(),
+})
 
+export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
-    // Log l'erreur pour monitoring
-    console.error('Error caught by error.tsx:', error)
+    console.error('[error.tsx] Error caught by client boundary:', getErrorDetails(error))
   }, [error])
 
   const isNetworkError = 
@@ -83,19 +102,22 @@ export default function Error({ error, reset }: ErrorProps) {
 
         {/* Afficher le détail en développement */}
         {process.env.NODE_ENV === 'development' && error?.message && (
-          <div className='rounded bg-destructive/10 p-3 text-left'>
-            <code className='text-xs text-destructive'>
-              {error.message}
-            </code>
+          <div className='space-y-2 rounded bg-destructive/10 p-3 text-left'>
+            <p className='text-[10px] font-semibold uppercase tracking-wide text-destructive'>
+              Détails techniques (dev only)
+            </p>
+            {error.digest && (
+              <p className='text-[10px] text-destructive'>Digest: {error.digest}</p>
+            )}
+            <pre className='overflow-auto whitespace-pre-wrap wrap-break-word text-[10px] text-destructive'>
+              {error.stack || error.message}
+            </pre>
           </div>
         )}
 
         <div className='flex gap-3'>
           <button
-            onClick={() => {
-              setIsVisible(false)
-              reset()
-            }}
+            onClick={() => reset()}
             className='flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
           >
             <RotateCcw className='size-4' />

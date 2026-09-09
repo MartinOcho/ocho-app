@@ -1,13 +1,40 @@
 'use client'
 
 import { AlertTriangle } from 'lucide-react'
+import { useEffect } from 'react'
+
+type AppError = Error & {
+  digest?: string
+  stack?: string
+  cause?: unknown
+}
 
 interface GlobalErrorProps {
-  error: Error & { digest?: string }
+  error: AppError
   reset: () => void
 }
 
+const getErrorDetails = (error: AppError) => ({
+  name: error?.name,
+  message: error?.message,
+  stack: error?.stack,
+  digest: error?.digest,
+  cause: error?.cause,
+  href: typeof window !== 'undefined' ? window.location.href : undefined,
+  pathname:
+    typeof window !== 'undefined' ? window.location.pathname : undefined,
+  search:
+    typeof window !== 'undefined' ? window.location.search : undefined,
+  userAgent:
+    typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+  timestamp: new Date().toISOString(),
+})
+
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  useEffect(() => {
+    console.error('[global-error.tsx] Critical app error:', getErrorDetails(error))
+  }, [error])
+
   return (
     <html>
       <body>
@@ -30,11 +57,13 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             {/* Debug info en dev seulement */}
             {process.env.NODE_ENV === 'development' && (
               <div className='rounded-md bg-destructive/10 p-4 text-left'>
-                <p className='mb-2 text-xs font-semibold text-destructive'>
-                  Digest: {error?.digest}
-                </p>
-                <pre className='overflow-auto whitespace-pre-wrap break-words text-xs text-destructive'>
-                  {error?.message}
+                {error?.digest && (
+                  <p className='mb-2 text-xs font-semibold text-destructive'>
+                    Digest: {error.digest}
+                  </p>
+                )}
+                <pre className='overflow-auto whitespace-pre-wrap wrap-break-word text-xs text-destructive'>
+                  {error?.stack || error?.message}
                 </pre>
               </div>
             )}
