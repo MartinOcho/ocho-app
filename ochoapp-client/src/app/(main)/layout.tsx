@@ -21,7 +21,7 @@ export default async function Layout({
 }) {
   const session = await validateRequest();
 
-  if (!session.user) {
+  if (!session.user?.id) {
     return (
       <ProgressProvider>
         <EmptySession>
