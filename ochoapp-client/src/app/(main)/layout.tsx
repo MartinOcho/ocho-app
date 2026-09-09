@@ -1,5 +1,5 @@
 import { validateRequest } from "@/auth";
-import SessionProvider from "./SessionProvider";
+import SessionProvider, { EmptySession } from "./SessionProvider";
 import { MenuBarProvider } from "@/context/MenuBarContext";
 import Navbar from "./Navbar";
 import MenuBar from "./MenuBar";
@@ -12,7 +12,6 @@ import { ProgressProvider } from "@/context/ProgressContext";
 import SocketProvider from "@/components/providers/SocketProvider";
 import { Toaster } from "@/components/ui/toaster";
 import MobileAppToast from "@/components/MobileAppToast";
-import LandingPage from "./LandingPage";
 import DeviceInitializer from "@/components/DeviceInitializer";
 
 export default async function Layout({
@@ -25,21 +24,22 @@ export default async function Layout({
   if (!session.user) {
     return (
       <ProgressProvider>
-        <div className="min-h-screen w-full bg-background">
-          <main className="min-h-screen">
-            <LandingPage />
-          </main>
-        </div>
+        <EmptySession>
+          <div className="relative flex h-screen max-h-dvh w-full flex-col">
+            <div className="relative h-full max-h-full w-full overflow-hidden">
+              <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
+                {children}
+              </main>
+            </div>
+          </div>
+        </EmptySession>
       </ProgressProvider>
     );
   }
 
-  const authToken = session.session.id;
-
-  // On prépare l'objet de session enrichi avec le token
   const sessionValue = {
     ...session,
-    token: authToken, // Transmis au client via les props
+    token: session.session.id,
   };
 
   return (

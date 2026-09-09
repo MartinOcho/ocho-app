@@ -135,6 +135,7 @@ export const english = {
   hideComments: "Hide comments",
   viewProfile: "View profile",
   viewUserSProfile: "View [name]'s profile",
+  usersPost: "Post by [name]",
   delete: "Delete",
   remove: "Remove",
   cancel: "Cancel",
@@ -661,6 +662,7 @@ export const french: Vocabulary = {
   replies: "Reponses",
   viewProfile: "Afficher le profil",
   viewUserSProfile: "Afficher le profil de [name]",
+  usersPost: "Publication de [name]",
   delete: "Supprimer",
   remove: "Rétirer",
   cancel: "Annuler",
@@ -1079,3 +1081,53 @@ export function getVocabularyObject(
 
 const vocabularyObject = getVocabularyObject();
 export type VocabularyObject = typeof vocabularyObject;
+
+const applyReplacements = (
+  text: string,
+  replacements?: Record<string, string | number>,
+) => {
+  if (!replacements) {
+    return text;
+  }
+
+  return Object.entries(replacements).reduce((result, [key, value]) => {
+    return result
+      .replace(new RegExp(`\\[${key}\\]`, "g"), String(value))
+      .replace(new RegExp(`\\{${key}\\}`, "g"), String(value));
+  }, text);
+};
+
+export function translation(): VocabularyObject;
+export function translation(
+  keys: VocabularyKey,
+  replacements?: Record<string, string | number>,
+  language?: Language,
+): string;
+export function translation(
+  keys: VocabularyKey[],
+  replacements?: Record<string, string | number>,
+  language?: Language,
+): Record<VocabularyKey, string>;
+export function translation(
+  keys?: VocabularyKey | VocabularyKey[],
+  replacements?: Record<string, string | number>,
+  language: Language = "en",
+) {
+  const activeLang = vocabulary[language] || vocabulary.en;
+
+  if (keys === undefined) {
+    return allVocabularyKeys.reduce((acc, key) => {
+      acc[key] = activeLang[key];
+      return acc;
+    }, {} as VocabularyObject);
+  }
+
+  if (Array.isArray(keys)) {
+    return keys.reduce((acc, key) => {
+      acc[key] = applyReplacements(activeLang[key] ?? "", replacements);
+      return acc;
+    }, {} as Record<VocabularyKey, string>);
+  }
+
+  return applyReplacements(activeLang[keys] ?? "", replacements);
+}

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import {
   allVocabularyKeys,
   Language,
-  vocabulary,
+  translation,
   VocabularyKey,
   VocabularyObject,
 } from "./vocabulary";
@@ -31,15 +31,5 @@ export const getTranslation = async (
 ): Promise<VocabularyObject> => {
   const language = await getLanguage();
 
-  // Convertir une clé unique en tableau pour simplifier le traitement
-  const keysArray = Array.isArray(keys) ? keys : [keys];
-
-  // Construire un objet avec les traductions demandées
-  return keysArray.reduce(
-    (acc, key) => {
-      acc[key] = translations[language][key];
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
+  return translation(keys, undefined, language) as VocabularyObject;
 };

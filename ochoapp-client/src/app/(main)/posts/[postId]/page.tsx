@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
 import { notFound, redirect } from "next/navigation";
 import { cache, Suspense } from "react";
+import { translation } from "@/lib/vocabulary";
 
 interface PageProps {
   params: Promise<{ postId: string }>;
@@ -97,14 +98,19 @@ export async function generateMetadata({ params }: PageProps) {
           ? "Vidéos"
           : "Médias";
 
-  const title = post.content
-    ? `${post.content.slice(0, 50)}${post.content.length > 50 ? "..." : ""}`
-    : attachmentTitle;
+  const userTitle = `OchoApp - ${translation("usersPost", { name: post.user.displayName })}`;
 
-  const description = post.content || `Publication de ${post.user.displayName} sur OchoApp`;
+  const title = userTitle.trim().length
+    ? userTitle
+    : post.content
+      ? `${post.content.slice(0, 20)}${post.content.length > 20 ? "..." : ""}`
+      : attachmentTitle;
+
+  const description =
+    post.content || `Publication de ${post.user.displayName} sur OchoApp`;
   const images = post.attachments
-    .filter(a => a.type === "IMAGE")
-    .map(a => ({ url: a.url }));
+    .filter((a) => a.type === "IMAGE")
+    .map((a) => ({ url: a.url }));
 
   return {
     title,
@@ -120,7 +126,7 @@ export async function generateMetadata({ params }: PageProps) {
       card: images.length > 0 ? "summary_large_image" : "summary",
       title,
       description,
-      images: images.map(i => i.url),
+      images: images.map((i) => i.url),
     },
   };
 }
@@ -153,10 +159,12 @@ interface UserInfoSidebarProps {
 }
 
 async function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
-  const loggedInUserData = loggedInUserId ? await prisma.user.findFirst({
-    where: { id: { equals: loggedInUserId, mode: "insensitive" } },
-    select: getUserDataSelect(user.id),
-  }) : null;
+  const loggedInUserData = loggedInUserId
+    ? await prisma.user.findFirst({
+        where: { id: { equals: loggedInUserId, mode: "insensitive" } },
+        select: getUserDataSelect(user.id),
+      })
+    : null;
 
   return (
     <div className="bg-card space-y-5 rounded-2xl p-5 shadow-sm">
@@ -194,16 +202,17 @@ async function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
             isFollowedByUser: user.followers.some(
               ({ followerId }) => followerId === loggedInUserId,
             ),
-            isFolowing: loggedInUserData?.followers.some(
-              ({ followerId }) => followerId === user.id,
-            ) || false,
+            isFolowing:
+              loggedInUserData?.followers.some(
+                ({ followerId }) => followerId === user.id,
+              ) || false,
             isFriend:
               user.followers.some(
                 ({ followerId }) => followerId === loggedInUserId,
               ) &&
-              !!(loggedInUserData?.followers.some(
+              !!loggedInUserData?.followers.some(
                 ({ followerId }) => followerId === user.id,
-              )),
+              ),
           }}
         />
       )}

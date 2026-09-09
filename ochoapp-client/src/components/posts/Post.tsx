@@ -135,7 +135,7 @@ export default function Post({ post }: PostProps) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "OchoApp Post",
+          title: `OchoApp - ${t("usersPost", { name: post.user.displayName })}`,
           text: post.content.slice(0, 100),
           url: shareUrl,
         });
