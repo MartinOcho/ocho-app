@@ -51,7 +51,18 @@ export async function GET(
     const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
 
     const data: PostsPage = {
-      posts: posts.slice(0, pageSize),
+      posts: posts.slice(0, pageSize).map(post=>{
+      const user = {...post.user, verified: post.user.verified.map(verified=>{
+        return {
+          ...verified,
+          expiresAt: verified.expiresAt || new Date(Date.now() + (1000 * 86400 * 365) )
+        }
+      })}
+      return {
+        ...post,
+        user
+      }
+    }),
       nextCursor,
     };
 

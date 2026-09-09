@@ -28,43 +28,61 @@ export async function GET(req: NextRequest) {
     let results;
     switch (filter) {
       case "posts":
-        results = await prisma.post.findMany({
-          where: {
-            AND: [
-              {
-                OR: [
-                  { content: { search: searchQuery } },
-                  { user: { displayName: { search: searchQuery } } },
-                  { user: { username: { search: searchQuery } } },
-                ],
-              },
-              {
-                OR: [
-                  {
-                    userId: user.id,
-                  },
-                  {
-                    visibility: "FOLLOWERS",
-                    user: {
-                      followers: {
-                        some: {
-                          followerId: user.id,
+        results = (
+          await prisma.post.findMany({
+            where: {
+              AND: [
+                {
+                  OR: [
+                    { content: { search: searchQuery } },
+                    { user: { displayName: { search: searchQuery } } },
+                    { user: { username: { search: searchQuery } } },
+                  ],
+                },
+                {
+                  OR: [
+                    {
+                      userId: user.id,
+                    },
+                    {
+                      visibility: "FOLLOWERS",
+                      user: {
+                        followers: {
+                          some: {
+                            followerId: user.id,
+                          },
                         },
                       },
                     },
-                  },
-                  {
-                    visibility: "PUBLIC",
-                  },
-                ],
-              },
-            ],
-          },
-          include: getPostDataIncludes(user.id),
-          orderBy: { createdAt: "desc" },
-          take: pageSize + 1,
-          skip: cursor ? 1 : 0,
-          cursor: cursor ? { id: cursor } : undefined,
+                    {
+                      visibility: "PUBLIC",
+                    },
+                  ],
+                },
+              ],
+            },
+            include: getPostDataIncludes(user.id),
+            orderBy: { createdAt: "desc" },
+            take: pageSize + 1,
+            skip: cursor ? 1 : 0,
+            cursor: cursor ? { id: cursor } : undefined,
+          })
+        ).map((post) => {
+          const user = {
+            ...post.user,
+            verified: post.user.verified.map((verified) => {
+              return {
+                ...verified,
+                expiresAt:
+                  verified.expiresAt ||
+                  new Date(Date.now() + 1000 * 86400 * 365),
+              };
+            }),
+          };
+          return {
+            ...post,
+            user,
+          };
         });
         break;
       case "users":

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         post: {
-          include: getPostDataIncludes(user.id)
+          include: getPostDataIncludes(user.id),
         },
       },
       orderBy: { createdAt: "desc" },
@@ -30,13 +30,30 @@ export async function GET(req: NextRequest) {
       skip: cursor ? 1 : 0,
     });
 
-
-
     const nextCursor =
       bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
 
     const data: PostsPage = {
-      posts: bookmarks.slice(0, pageSize).map((bookmark) => bookmark.post),
+      posts: bookmarks
+        .slice(0, pageSize)
+        .map((bookmark) => bookmark.post)
+        .map((post) => {
+          const user = {
+            ...post.user,
+            verified: post.user.verified.map((verified) => {
+              return {
+                ...verified,
+                expiresAt:
+                  verified.expiresAt ||
+                  new Date(Date.now() + 1000 * 86400 * 365),
+              };
+            }),
+          };
+          return {
+            ...post,
+            user,
+          };
+        }),
       nextCursor,
     };
 

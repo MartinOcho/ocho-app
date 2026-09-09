@@ -190,7 +190,7 @@ async function UserInfoSidebar({ user, loggedInUserId }: UserInfoSidebarProps) {
         </OchoLink>
       </UserTooltip>
       <Linkify>
-        <p className="text-muted-foreground line-clamp-6 break-words whitespace-pre-line">
+        <p className="text-muted-foreground line-clamp-6 wrap-break-word whitespace-pre-line">
           {user.bio}
         </p>
       </Linkify>

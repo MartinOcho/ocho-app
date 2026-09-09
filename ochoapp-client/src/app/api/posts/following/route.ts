@@ -41,7 +41,18 @@ export async function GET(req: NextRequest) {
     });
 
     const hasMore = posts.length > pageSize;
-    const postsToReturn = hasMore ? posts.slice(0, pageSize) : posts;
+    const postsToReturn = (hasMore ? posts.slice(0, pageSize) : posts).map(post=>{
+      const user = {...post.user, verified: post.user.verified.map(verified=>{
+        return {
+          ...verified,
+          expiresAt: verified.expiresAt || new Date(Date.now() + (1000 * 86400 * 365) )
+        }
+      })}
+      return {
+        ...post,
+        user
+      }
+    });
     const nextCursor = hasMore ? postsToReturn[pageSize - 1].id : null;
 
     const data: PostsPage = {

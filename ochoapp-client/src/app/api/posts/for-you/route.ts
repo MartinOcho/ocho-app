@@ -85,7 +85,18 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const posts = [...latestPosts, ...relevantPosts];
+    const posts = [...latestPosts, ...relevantPosts].map(post=>{
+      const user = {...post.user, verified: post.user.verified.map(verified=>{
+        return {
+          ...verified,
+          expiresAt: verified.expiresAt || new Date(Date.now() + (1000 * 86400 * 365) )
+        }
+      })}
+      return {
+        ...post,
+        user
+      }
+    });
 
     const postsWithScores = posts.slice(0, pageSize).map((post) => ({
       ...post,
