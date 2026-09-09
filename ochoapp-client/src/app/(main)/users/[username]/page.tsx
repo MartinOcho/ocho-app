@@ -129,14 +129,78 @@ async function ProfileWrapper({ username }: { username: string }) {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { user: loggedInUser } = await validateRequest();
-
   const { username } = await params;
 
-  if (!loggedInUser) return {};
-  const user = await getUser(username, loggedInUser.id);
+  const user = await prisma.user.findFirst({
+    where: {
+      username: {
+        equals: username,
+        mode: "insensitive",
+      },
+    },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      bio: true,
+      avatarUrl: true,
+      profileVisibility: true,
+    },
+  });
+
+  if (!user) return {};
+
+  const baseTitle = `${user.displayName} (@${user.username})`;
+  const canonicalUrl = `https://ochoapp.ochokom.com/users/${user.username}`;
+
+  if (user.profileVisibility !== "PUBLIC") {
+    return {
+      title: baseTitle,
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const rawDescription = user.bio?.trim();
+  const description =
+    rawDescription && rawDescription.length > 0
+      ? rawDescription.replace(/\s+/g, " ").slice(0, 200)
+      : `Découvrez le profil de ${user.displayName} sur OchoApp et suivez ses publications.`;
+
+  const images = user.avatarUrl
+    ? [
+        {
+          url: user.avatarUrl,
+          width: 500,
+          height: 500,
+          alt: `Photo de profil de ${user.displayName}`,
+        },
+      ]
+    : undefined;
+
   return {
-    title: `${user.displayName}`,
+    title: baseTitle,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: baseTitle,
+      description,
+      type: "profile",
+      url: canonicalUrl,
+      siteName: "OchoApp",
+      locale: "fr_FR",
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: baseTitle,
+      description,
+      images: images?.map((image) => image.url),
+    },
   };
 }
 
@@ -284,7 +348,7 @@ async function UserProfile({
         <>
           <hr className="h-0.5 w-full" />
           <Linkify>
-            <p className="overflow-hidden whitespace-pre-line break-words">
+            <p className="overflow-hidden whitespace-pre-line wrap-break-word">
               {user.bio}
             </p>
           </Linkify>
