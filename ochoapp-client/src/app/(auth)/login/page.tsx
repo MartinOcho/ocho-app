@@ -9,6 +9,10 @@ export async function generateMetadata() {
   const { login } = await getTranslation();
   return {
     title: login,
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 

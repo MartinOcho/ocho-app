@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { validateRequest } from "@/auth";
 import FollowButton from "@/components/FollowButton";
 import Linkify from "@/components/Linkify";
@@ -75,12 +76,12 @@ const getPost = cache(
   },
 );
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { user } = await validateRequest();
   const { postId } = await params;
   const post = await getPost(postId, user?.id || "");
 
-  if (!post) return;
+  if (!post) return {};
 
   const hasImage = post.attachments.some(
     (attachment) => attachment.type === "IMAGE",
@@ -98,7 +99,7 @@ export async function generateMetadata({ params }: PageProps) {
           ? "Vidéos"
           : "Médias";
 
-  const userTitle = `OchoApp - ${translation("usersPost", { name: post.user.displayName })}`;
+  const userTitle = translation("usersPost", { name: post.user.displayName });
 
   const title = userTitle.trim().length
     ? userTitle
@@ -107,26 +108,38 @@ export async function generateMetadata({ params }: PageProps) {
       : attachmentTitle;
 
   const description =
-    post.content || `Publication de ${post.user.displayName} sur OchoApp`;
+    post.content?.trim() || `Publication de ${post.user.displayName} sur OchoApp`;
+  const canonicalUrl = `https://ochoapp.ochokom.com/posts/${postId}`;
   const images = post.attachments
     .filter((a) => a.type === "IMAGE")
-    .map((a) => ({ url: a.url }));
+    .map((a) => ({
+      url: a.url,
+      width: 1200,
+      height: 630,
+      alt: `Média partagé par ${post.user.displayName}`,
+    }));
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
+      url: canonicalUrl,
       images,
       type: "article",
       authors: [post.user.displayName],
+      siteName: "OchoApp",
+      locale: "fr_FR",
     },
     twitter: {
       card: images.length > 0 ? "summary_large_image" : "summary",
       title,
       description,
-      images: images.map((i) => i.url),
+      images: images.map((image) => image.url),
     },
   };
 }
@@ -142,6 +155,9 @@ export default async function Page({ params, searchParams }: PageProps) {
     <main className="flex w-full min-w-0 gap-5 pb-4 max-sm:py-4">
       <SetNavigation navPage={null} />
       <div className="w-full min-w-0 space-y-5 pb-4">
+        <h1 className="sr-only">
+          Publication de {post.user.displayName} - {new Date(post.createdAt).toLocaleDateString("fr-FR")}
+        </h1>
         <Post post={post} />
       </div>
       <div className="sticky top-0 hidden h-fit w-80 flex-none lg:block">

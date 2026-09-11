@@ -4,47 +4,30 @@ import prisma from '@/lib/prisma'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://ochoapp.ochokom.com'
 
-  // Static routes
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/signup`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
+      lastModified: new Date('2026-01-01'),
     },
     {
       url: `${baseUrl}/terms-of-use`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    }
+      lastModified: new Date('2026-01-01'),
+    },
   ]
 
-  // Dynamic public posts (top 1000 most recent for example)
   const posts = await prisma.post.findMany({
     where: {
       visibility: 'PUBLIC',
+      content: {
+        not: "",
+      },
     },
     orderBy: {
-      relevanceScore: 'desc',
+      createdAt: 'desc',
     },
     take: 1000,
     select: {
@@ -56,28 +39,43 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const postRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${baseUrl}/posts/${post.id}`,
     lastModified: post.createdAt,
-    changeFrequency: 'weekly',
-    priority: 0.7,
   }))
 
-  // Dynamic public users (top 1000 for example)
   const users = await prisma.user.findMany({
     where: {
       profileVisibility: 'PUBLIC',
     },
-    take: 1000,
     select: {
       username: true,
       createdAt: true,
+      bio: true,
+      avatarUrl: true,
+      posts: {
+        where: {
+          visibility: 'PUBLIC',
+          content: {
+            not: '',
+          },
+        },
+        select: {
+          id: true,
+          content: true,
+        },
+        take: 1,
+      },
     },
   })
 
-  const userRoutes: MetadataRoute.Sitemap = users.map((user) => ({
-    url: `${baseUrl}/users/${user.username}`,
-    lastModified: user.createdAt,
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  }))
+  const userRoutes: MetadataRoute.Sitemap = users
+    .filter(
+      (user) =>
+        user.posts.some((post) => post.content?.trim().length > 0) ||
+        (!!user.avatarUrl && !!user.bio?.trim()),
+    )
+    .map((user) => ({
+      url: `${baseUrl}/users/${user.username}`,
+      lastModified: user.createdAt,
+    }))
 
   return [...staticRoutes, ...postRoutes, ...userRoutes]
 }

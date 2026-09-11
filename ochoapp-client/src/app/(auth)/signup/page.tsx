@@ -8,6 +8,10 @@ export async function generateMetadata() {
   const { signup } = await getTranslation();
   return {
     title: signup,
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 export default async function Page({

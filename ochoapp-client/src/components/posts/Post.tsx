@@ -266,6 +266,7 @@ export default function Post({ post }: PostProps) {
         {!!post.attachments.length && (
           <MediaPreviews
             attachments={post.attachments}
+            authorDisplayName={post.user.displayName}
             onFullscreenChange={(_index, isFullscreen) => {
               setIsCarouselFullscreen(isFullscreen);
             }}
@@ -427,7 +428,10 @@ function DisconnectedPost({
             </div>
           )}
           {!!post.attachments.length && (
-            <MediaPreviews attachments={post.attachments} />
+            <MediaPreviews
+              attachments={post.attachments}
+              authorDisplayName={post.user.displayName}
+            />
           )}
         </div>
         <div className="bg-muted/30 text-muted-foreground rounded-b-md p-5 text-center text-sm">
@@ -447,12 +451,14 @@ interface MediaPreviewsProps {
   attachments: Media[];
   startIndex?: number;
   onFullscreenChange?: (index: number, isFullscreen: boolean) => void;
+  authorDisplayName?: string;
 }
 
 function MediaPreviews({
   attachments,
   startIndex = 0,
   onFullscreenChange,
+  authorDisplayName,
 }: MediaPreviewsProps) {
   const { t } = useTranslation();
   const [showCarousel, setShowCarousel] = useState(false);
@@ -559,6 +565,11 @@ function MediaPreviews({
                 "aspect-square h-full w-full",
                 attachments.length > maxVisibleAttachments && "object-cover",
               )}
+              alt={
+                authorDisplayName
+                  ? `Image partagée par ${authorDisplayName} sur OchoApp`
+                  : "Image partagée sur OchoApp"
+              }
               hidden
             />
           </div>
@@ -572,6 +583,11 @@ function MediaPreviews({
             <MediaPreview
               media={attachments[maxVisibleAttachments]}
               className="h-full w-full object-cover"
+              alt={
+                authorDisplayName
+                  ? `Image partagée par ${authorDisplayName} sur OchoApp`
+                  : "Image partagée sur OchoApp"
+              }
             />
             {attachments.length > 1 + maxVisibleAttachments && (
               <div className="absolute flex h-full w-full items-center justify-center bg-black/20 text-lg">
@@ -627,6 +643,11 @@ function MediaPreviews({
                               ? "absolute flex h-screen w-screen max-w-full items-center justify-center rounded-none"
                               : "sm:max-w-[800px]",
                           )}
+                          alt={
+                            authorDisplayName
+                              ? `Image partagée par ${authorDisplayName} sur OchoApp`
+                              : "Image partagée sur OchoApp"
+                          }
                           hidden={showCarousel}
                         />
                         <div className="absolute top-2 right-2 flex items-center gap-2">
@@ -698,6 +719,7 @@ interface MediaPreviewProps {
   useDefault?: boolean;
   className?: string;
   hidden?: boolean;
+  alt?: string;
 }
 
 function MediaPreview({
@@ -705,6 +727,7 @@ function MediaPreview({
   useDefault,
   className,
   hidden,
+  alt,
 }: MediaPreviewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -737,7 +760,7 @@ function MediaPreview({
       <Zoomable clasName="mx-auto h-full w-full" zoomable={isFullscreen}>
         <Image
           src={media.url}
-          alt="Attachment"
+          alt={alt || "Image partagée sur OchoApp"}
           width={500}
           height={500}
           className={cn(
