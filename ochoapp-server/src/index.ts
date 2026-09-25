@@ -29,6 +29,7 @@ import {
   notificationsInclude,
   SocketRespondToRoomInvitationEvent,
   SocketSendGroupInvitationEvent,
+  getMessageDataInclude,
 } from "./types";
 import {
   getFormattedRooms,
@@ -802,6 +803,66 @@ app.post("/api/users/fcm-token", async (req, res) => {
         userId: session.user.id,
         isOnline: true,
       });
+    }
+
+    // Envoyer les notifications et messages non lus via FCM dès la connexion à Firebase
+    try {
+      const userId = session.user.id;
+
+      // 1. Envoyer les notifications non lues
+      const unreadNotifications = await prisma.notification.findMany({
+        where: { recipientId: userId, read: false },
+        include: notificationsInclude,
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      });
+
+      for (const notif of unreadNotifications) {
+        await sendNotificationFCM(userId, notif);
+      }
+
+      // 2. Trouver les salons et derniers messages non lus de l'utilisateur
+      const rooms = await prisma.room.findMany({
+        where: {
+          members: {
+            some: {
+              userId,
+              leftAt: null,
+              type: { not: "BANNED" },
+            },
+          },
+        },
+      });
+
+      for (const room of rooms) {
+        const unreadMessage = await prisma.message.findFirst({
+          where: {
+            roomId: room.id,
+            senderId: { not: userId },
+            reads: {
+              none: { userId },
+            },
+            type: { notIn: ["CREATE", "REACTION"] },
+          },
+           include: getMessageDataInclude(userId),
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (unreadMessage) {
+          await sendMessageNotificationFCM(
+            userId,
+            {
+              id: room.id,
+              name: room.name ?? null,
+              groupAvatarUrl: room.groupAvatarUrl ?? null,
+              isGroup: Boolean(room.isGroup),
+            },
+            unreadMessage
+          );
+        }
+      }
+    } catch (fcmSyncError) {
+      console.error("Erreur lors de l'envoi des unreads FCM au sync token:", fcmSyncError);
     }
 
     return res.json({
