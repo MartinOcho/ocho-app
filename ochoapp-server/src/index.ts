@@ -182,22 +182,9 @@ async function syncUnreadNotificationsAndMessagesForUser(
     }
 
     if (unreadMessagesToMarkAsRead.length > 0) {
-      await Promise.all(
-        unreadMessagesToMarkAsRead.map(async (messageId) => {
-          await prisma.read.upsert({
-            where: {
-              userId_messageId: {
-                userId,
-                messageId,
-              },
-            },
-            create: { userId, messageId },
-            update: {},
-          });
-        }),
-      );
-
+      
       if (ioInstance) {
+        await markUndeliveredMessages(userId, ioInstance);
         const globalUnreadCount = await getUnreadRoomsCount(userId);
         ioInstance.to(userId).emit("rooms_unreads_update", {
           unreadCount: globalUnreadCount,
@@ -1021,7 +1008,6 @@ io.on("connection", async (socket: Socket) => {
   socket.join(userId);
 
   await syncUnreadNotificationsAndMessagesForUser(userId, io);
-  await markUndeliveredMessages(userId, io);
 
   typingUsersByRoom.forEach((typingUsers, room) => {
     typingUsers.delete(userId);
