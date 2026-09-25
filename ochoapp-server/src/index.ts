@@ -791,6 +791,19 @@ app.post("/api/users/fcm-token", async (req, res) => {
     await registerFCMToken(session.user.id, token, deviceId);
     await subscribeTokenToUserTopic(session.user.id, token);
 
+    // Marquer l'utilisateur comme en ligne quand FCM est actif
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { isOnline: true },
+    });
+
+    if (typeof io !== "undefined" && io) {
+      io.emit("user_status_change", {
+        userId: session.user.id,
+        isOnline: true,
+      });
+    }
+
     return res.json({
       success: true,
       message: "Token FCM enregistré avec succès",
