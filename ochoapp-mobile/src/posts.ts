@@ -777,16 +777,101 @@ export async function createPost(req: Request, res: Response) {
       });
     }
 
-    const { content, mediaIds, gradient, visibility } = req.body;
+    const rawContent = typeof req.body?.content === "string" ? req.body.content : "";
+    const content = rawContent.trim();
+    const mediaIdsInput: unknown[] = Array.isArray(req.body?.mediaIds) ? req.body.mediaIds : [];
+    const normalizedMediaIds = mediaIdsInput
+      .filter((id: unknown): id is string => typeof id === "string")
+      .map((id: string) => id.trim())
+      .filter((id: string) => id.length > 0);
+
+    if (normalizedMediaIds.length > 10) {
+      return res.json({
+        success: false,
+        message: "Vous pouvez ajouter jusqu'à 10 médias maximum.",
+        name: "invalid_media",
+      });
+    }
+
+    if (normalizedMediaIds.length === 0 && content.length === 0) {
+      return res.json({
+        success: false,
+        message: "Le contenu du post ne peut pas être vide sans média.",
+        name: "invalid_content",
+      });
+    }
+
+    const validVisibility = ["PUBLIC", "FOLLOWERS", "PRIVATE"] as const;
+    const visibilityValue = typeof req.body?.visibility === "string"
+      ? req.body.visibility.toUpperCase()
+      : "PUBLIC";
+
+    if (!validVisibility.includes(visibilityValue as (typeof validVisibility)[number])) {
+      return res.json({
+        success: false,
+        message: "La visibilité du post est invalide.",
+        name: "invalid_visibility",
+      });
+    }
+
+    if (normalizedMediaIds.length > 0) {
+      const existingMedia = await prisma.media.findMany({
+        where: {
+          id: {
+            in: normalizedMediaIds,
+          },
+        },
+        select: {
+          id: true,
+          url: true,
+        },
+      });
+
+      const foundMediaIds = new Set(existingMedia.map((media) => media.id));
+      const missingMediaIds = normalizedMediaIds.filter((id) => !foundMediaIds.has(id));
+
+      if (missingMediaIds.length > 0) {
+        return res.json({
+          success: false,
+          message: "Un ou plusieurs médias sont invalides ou introuvables.",
+          name: "invalid_media",
+        });
+      }
+
+      const brokenMedia = existingMedia.filter((media) => {
+        if (!media.url || !media.url.trim()) {
+          return true;
+        }
+
+        try {
+          const parsed = new URL(media.url);
+          return !(parsed.protocol === "http:" || parsed.protocol === "https:");
+        } catch {
+          return true;
+        }
+      });
+
+      if (brokenMedia.length > 0) {
+        return res.json({
+          success: false,
+          message: "Un ou plusieurs médias sont corrompus ou inaccessibles.",
+          name: "invalid_media",
+        });
+      }
+    }
+
+    const gradientValue = typeof req.body?.gradient === "number" && Number.isInteger(req.body.gradient)
+      ? req.body.gradient
+      : null;
 
     const post = await prisma.post.create({
       data: {
         content,
         userId: user.id,
-        gradient,
-        visibility,
+        gradient: gradientValue,
+        visibility: visibilityValue as (typeof validVisibility)[number],
         attachments: {
-          connect: mediaIds?.map((id: string) => ({ id })) || [],
+          connect: normalizedMediaIds.map((id) => ({ id })),
         },
       },
       include: {
