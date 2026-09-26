@@ -162,7 +162,8 @@ function getMinimalFCMMessage(message: MessageData, room: FCMRoomPayload): FCMMe
  */
 export async function sendFCMNotification(
   userId: string,
-  payload: FCMNotificationPayload
+  payload: FCMNotificationPayload,
+  priority: "high" | "normal" = "high"
 ) {
   try {
     // Récupérer les tokens FCM de l'utilisateur
@@ -188,6 +189,10 @@ export async function sendFCMNotification(
         ...(payload.message && { message: JSON.stringify(payload.message) }),
       },
       tokens,
+      android: { priority },
+      apns: {
+        headers: { "apns-priority": priority === "high" ? "10" : "5" },
+      },
     } as MulticastMessage;
 
     console.log(chalk.blueBright(`[FCM] Envoi de la notification ${JSON.stringify(message)} à l'utilisateur ${userId}`));
@@ -232,12 +237,13 @@ export async function sendFCMNotification(
 export async function sendMessageNotificationFCM(
   recipientId: string,
   room: FCMRoomPayload,
-  message: MessageData
+  message: MessageData,
+  priority: "high" | "normal" = "high"
 ) {
   await sendFCMNotification(recipientId, {
     type: "MESSAGE",
     message: getMinimalFCMMessage(message, room),
-  });
+  }, priority);
 }
 
 /**
@@ -245,12 +251,13 @@ export async function sendMessageNotificationFCM(
  */
 export async function sendNotificationFCM(
   recipientId: string,
-  notification: NotificationData
+  notification: NotificationData,
+  priority: "high" | "normal" = "high"
 ) {
   await sendFCMNotification(recipientId, {
     type: "NOTIFICATION",
     notification,
-  });
+  }, priority);
 }
 
 /**

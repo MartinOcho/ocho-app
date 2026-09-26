@@ -122,94 +122,7 @@ const upload = multer({
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
-async function syncUnreadNotificationsAndMessagesForUser(
-  userId: string,
-  ioInstance?: Server,
-): Promise<void> {
-  try {
-    const unreadNotifications = await prisma.notification.findMany({
-      where: { recipientId: userId, read: false },
-      include: notificationsInclude,
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
 
-    for (const notif of unreadNotifications) {
-      await sendNotificationFCM(userId, notif);
-    }
-
-    const rooms = await prisma.room.findMany({
-      where: {
-        members: {
-          some: {
-            userId,
-            leftAt: null,
-            type: { not: "BANNED" },
-          },
-        },
-      },
-      select: { id: true, name: true, groupAvatarUrl: true, isGroup: true },
-    });
-
-    const unreadMessagesToMarkAsRead: string[] = [];
-
-    for (const room of rooms) {
-      const unreadMessages = await prisma.message.findMany({
-        where: {
-          roomId: room.id,
-          senderId: { not: userId },
-          reads: { none: { userId } },
-          type: { notIn: ["CREATE", "REACTION"] },
-        },
-        include: getMessageDataInclude(userId),
-        orderBy: { createdAt: "desc" },
-      });
-
-      for (const unreadMessage of unreadMessages) {
-        unreadMessagesToMarkAsRead.push(unreadMessage.id);
-
-        await sendMessageNotificationFCM(
-          userId,
-          {
-            id: room.id,
-            name: room.name ?? null,
-            groupAvatarUrl: room.groupAvatarUrl ?? null,
-            isGroup: Boolean(room.isGroup),
-          },
-          unreadMessage,
-        );
-      }
-    }
-
-    if (unreadMessagesToMarkAsRead.length > 0) {
-      
-      if (ioInstance) {
-        await markUndeliveredMessages(userId, ioInstance);
-        const globalUnreadCount = await getUnreadRoomsCount(userId);
-        ioInstance.to(userId).emit("rooms_unreads_update", {
-          unreadCount: globalUnreadCount,
-        });
-
-        for (const room of rooms) {
-          const roomUnreadCount = await getUnreadMessagesCountPerRoom(
-            userId,
-            room.id,
-          );
-          ioInstance.to(userId).emit("room_unread_count_update", {
-            roomId: room.id,
-            unreadCount: roomUnreadCount,
-          });
-        }
-      }
-    }
-  } catch (error) {
-    console.error(
-      "Erreur lors du rattrapage FCM / messages lus pour l'utilisateur",
-      userId,
-      error,
-    );
-  }
-}
 
 app.get("/", (req, res) => {
   const userAgent = req.get("User-Agent") || "";
@@ -894,8 +807,6 @@ app.post("/api/users/fcm-token", async (req, res) => {
       });
     }
 
-    await syncUnreadNotificationsAndMessagesForUser(session.user.id, io);
-
     return res.json({
       success: true,
       message: "Token FCM enregistré avec succès",
@@ -1007,7 +918,9 @@ io.on("connection", async (socket: Socket) => {
 
   socket.join(userId);
 
-  await syncUnreadNotificationsAndMessagesForUser(userId, io);
+  await markUndeliveredMessages(userId, io);
+
+  await markUndeliveredMessages(userId, io);
 
   typingUsersByRoom.forEach((typingUsers, room) => {
     typingUsers.delete(userId);
@@ -1023,60 +936,6 @@ io.on("connection", async (socket: Socket) => {
   });
 
   groupManagment(io, socket, { userId, username, displayName, avatarUrl });
-
-  socket.onAny(async (event, ...args) => {
-    try {
-      if (event === "create_notification") {
-        const [data] = args as [
-          {
-            type: NotificationType;
-            recipientId?: string;
-            issuerId?: string;
-            postId?: string;
-            commentId?: string;
-          },
-        ];
-
-        if (data?.recipientId) {
-          await sendFCMDataToUser(data.recipientId, {
-            type: "NOTIFICATION",
-            notification: JSON.stringify(data),
-          });
-        }
-      }
-
-      if (event === "send_message") {
-        const [data] = args as [SocketSendMessageEvent];
-        if (data?.roomId) {
-          const room = await prisma.room.findUnique({
-            where: { id: data.roomId },
-            select: {
-              id: true,
-              name: true,
-              isGroup: true,
-              groupAvatarUrl: true,
-            },
-          });
-
-          await sendFCMDataToRoom(
-            data.roomId,
-            {
-              type: "MESSAGE",
-              room: JSON.stringify(
-                room ?? {
-                  id: data.roomId,
-                },
-              ),
-              message: JSON.stringify(data),
-            },
-            userId,
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Erreur FCM socket event:", event, error);
-    }
-  });
 
   socket.on("start_chat", async (data: SocketStartChatEvent) => {
     try {

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "./prisma";
 import { User, VerifiedUser } from "./types";
 import { getCurrentUser } from "./auth";
+import { sendNotificationFCM } from "./fcm-utils";
 
 export async function getNotifications(req: Request, res: Response) {
   try {
@@ -54,6 +55,15 @@ export async function getNotifications(req: Request, res: Response) {
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
     });
+
+    try {
+      const unreadNotifs = notifications.slice(0, pageSize).filter(n => !n.read);
+      for (const notif of unreadNotifs) {
+        await sendNotificationFCM(currentUserId, notif as any, "normal");
+      }
+    } catch (fcmErr) {
+      console.error("Erreur envoi FCM non lues lors du getNotifications:", fcmErr);
+    }
 
     const nextCursor =
       notifications.length > pageSize ? notifications[pageSize].id : null;

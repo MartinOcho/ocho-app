@@ -13,6 +13,7 @@ import {
 import { get } from "node:http";
 import { validateUser } from "./users";
 import { Prisma } from "@prisma/client";
+import { sendMessageNotificationFCM } from "./fcm-utils";
 
 export async function getMessageRooms(req: Request, res: Response) {
   try {
@@ -57,6 +58,31 @@ export async function getMessageRooms(req: Request, res: Response) {
         ? { userId_roomId: { userId, roomId: cursor } }
         : undefined,
     });
+
+    try {
+      for (const lm of lastMessages) {
+        if (lm.room && lm.message && lm.message.senderId !== userId) {
+          const isRead = await prisma.read.findUnique({
+            where: { userId_messageId: { userId, messageId: lm.message.id } }
+          });
+          if (!isRead) {
+            await sendMessageNotificationFCM(
+              userId,
+              {
+                id: lm.room.id,
+                name: lm.room.name ?? null,
+                groupAvatarUrl: lm.room.groupAvatarUrl ?? null,
+                isGroup: Boolean(lm.room.isGroup),
+              },
+              lm.message as MessageData,
+              "normal"
+            );
+          }
+        }
+      }
+    } catch (fcmMsgErr) {
+      console.error("Erreur envoi FCM messages non lus lors du getMessageRooms:", fcmMsgErr);
+    }
 
     const rooms: RoomData[] = lastMessages
       .map((lm) => {
