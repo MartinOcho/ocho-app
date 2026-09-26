@@ -168,6 +168,7 @@ model Room {
   maxMembers     Int           @default(300)
   messages       Message[]
   lastMessages   LastMessage[]
+  invitations    Invitation[]
   privilege      Privilege     @default(DEFAULT)
   createdAt      DateTime      @default(now())
 
@@ -220,6 +221,8 @@ model Message {
   reactionId   String?
   type         MessageType
   voiceNote    VoiceNote?
+  invitationId String?
+  invitation   Invitation[]
   reads        Read[]
   deliveries   Delivery[]
   reactions    Reaction[]
@@ -258,6 +261,17 @@ model VoiceNote {
   createdAt DateTime @default(now())
 
   @@map("voice_notes")
+}
+model Invitation {
+  id        String   @id @default(cuid())
+  messageId String?  @unique
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  roomId    String?
+  room      Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@map("invitations")
 }
 
 model LastMessage {
