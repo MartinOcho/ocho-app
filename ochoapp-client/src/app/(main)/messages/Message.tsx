@@ -490,6 +490,7 @@ export const MessageBubbleContent = ({
           groupId={message.content}
           isOwner={isOwner}
           borderRadiusClass={borderRadiusClass}
+          invitation={message.invitation?.[0]}
         />
       )}
       
@@ -587,19 +588,37 @@ export function InvitationBubble({
   groupId,
   isOwner,
   borderRadiusClass,
+  invitation,
 }: {
   groupId: string;
   isOwner: boolean;
   borderRadiusClass: string;
+  invitation?: { id: string; status: string; expiresAt?: string | null };
 }) {
   const { data: groupData, isLoading } = useQuery({
     queryKey: ["group-details", groupId],
     queryFn: () => kyInstance.get(`/api/messages/rooms/${groupId}`).json<RoomData>(),
   });
   const { t } = useTranslation();
-
   const { setActiveRoomId } = useActiveRoom();
   const { user } = useSession();
+  const { socket } = useSocket();
+
+  const [status, setStatus] = useState(invitation?.status || "PENDING");
+  const expiresAt = invitation?.expiresAt ? new Date(invitation.expiresAt).getTime() : null;
+  const [timeLeft, setTimeLeft] = useState(expiresAt ? Math.max(0, expiresAt - Date.now()) : 0);
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const timer = setInterval(() => {
+      const remaining = Math.max(0, expiresAt - Date.now());
+      setTimeLeft(remaining);
+      if (remaining === 0 && status === "PENDING") {
+        setStatus("EXPIRED");
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt, status]);
 
   if (isLoading) {
     return (
@@ -618,6 +637,47 @@ export function InvitationBubble({
   }
 
   const isMember = groupData.members.some((member) => member.userId === user.id);
+  const isExpired = status === "EXPIRED" || (expiresAt && timeLeft <= 0);
+
+  const handleJoin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (socket) {
+      socket.emit("group_join", { roomId: groupId }, (res: any) => {
+        if (res.success) {
+          setStatus("ACCEPTED");
+          setActiveRoomId(groupId);
+        } else {
+          alert(res.error || "Erreur");
+        }
+      });
+    } else {
+      setActiveRoomId(groupId);
+    }
+  };
+
+  const handleDecline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (socket) {
+      socket.emit("decline_group_invitation", { roomId: groupId }, (res: any) => {
+        if (res.success) {
+          setStatus("DECLINED");
+        }
+      });
+    } else {
+      setStatus("DECLINED");
+    }
+  };
+
+  const formatTimeLeft = (ms: number) => {
+    const totalSecs = Math.floor(ms / 1000);
+    const days = Math.floor(totalSecs / (3600 * 24));
+    const hours = Math.floor((totalSecs % (3600 * 24)) / 3600);
+    const minutes = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (days > 0) return `${days}j ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m ${secs}s`;
+  };
 
   return (
     <div
@@ -638,22 +698,59 @@ export function InvitationBubble({
           </p>
         </div>
       </div>
-      <Button
-        size="sm"
-        className={cn(
-          "w-full rounded-xl font-semibold transition-transform active:scale-95",
-          isOwner
-            ? "bg-white/10 hover:bg-white/20 text-white border-white/20"
-            : "bg-blue-600 hover:bg-blue-700 text-white",
-        )}
-        variant={isOwner ? "outline" : "default"}
-        onClick={(e) => {
+
+      {isExpired || status === "EXPIRED" ? (
+        <div className="text-xs font-semibold text-destructive bg-destructive/10 p-2 rounded-lg text-center">
+          Invitation expirée
+        </div>
+      ) : status === "DECLINED" ? (
+        <div className="text-xs font-semibold text-muted-foreground bg-muted p-2 rounded-lg text-center">
+          Invitation refusée
+        </div>
+      ) : status === "ACCEPTED" || isMember ? (
+        <Button
+          size="sm"
+          className="w-full rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white"
+          onClick={(e) => {
             e.stopPropagation();
             setActiveRoomId(groupId);
-        }}
-      >
-        {isMember ? t("viewGroup") : t("joinGroup")}
-      </Button>
+          }}
+        >
+          {t("viewGroup")}
+        </Button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {expiresAt && (
+            <div className="flex items-center justify-between text-[11px] opacity-80 px-1">
+              <span>Expire dans :</span>
+              <span className="font-mono font-medium">{formatTimeLeft(timeLeft)}</span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className={cn(
+                "flex-1 rounded-xl text-xs font-semibold",
+                isOwner ? "bg-white/10 text-white hover:bg-white/20 border-white/20" : ""
+              )}
+              onClick={handleDecline}
+            >
+              Refuser
+            </Button>
+            <Button
+              size="sm"
+              className={cn(
+                "flex-1 rounded-xl text-xs font-semibold",
+                isOwner ? "bg-white text-blue-600 hover:bg-blue-50" : "bg-blue-600 hover:bg-blue-700 text-white"
+              )}
+              onClick={handleJoin}
+            >
+              Rejoindre
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

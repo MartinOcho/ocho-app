@@ -816,8 +816,21 @@ export function groupManagment(
           orderBy: { createdAt: "desc" },
         });
 
-        if (invitation && invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
-          throw new Error("L'invitation pour rejoindre ce groupe a expiré.");
+        if (invitation) {
+          if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+            await prisma.invitation.update({
+              where: { id: invitation.id },
+              data: { status: "EXPIRED" },
+            });
+            throw new Error("L'invitation pour rejoindre ce groupe a expiré.");
+          }
+          if (invitation.status === "DECLINED") {
+            throw new Error("L'invitation a été refusée.");
+          }
+          await prisma.invitation.update({
+            where: { id: invitation.id },
+            data: { status: "ACCEPTED" },
+          });
         }
 
         const existingMember = room.members.find(m => m.userId === userId);
@@ -890,6 +903,34 @@ export function groupManagment(
       } catch (error: any) {
         console.error("Erreur group_join:", error);
         callback({ success: false, error: error.message || "Erreur serveur" });
+      }
+    }
+  );
+
+  socket.on(
+    "decline_group_invitation",
+    async (
+      input: { roomId: string },
+      callback: (data: any) => void,
+    ) => {
+      try {
+        const { roomId } = input;
+        if (!roomId) throw new Error("ID du groupe requis");
+
+        const invitation = await prisma.invitation.findFirst({
+          where: { roomId },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (invitation) {
+          await prisma.invitation.update({
+            where: { id: invitation.id },
+            data: { status: "DECLINED" },
+          });
+        }
+        callback({ success: true });
+      } catch (error: any) {
+        callback({ success: false, error: error.message });
       }
     }
   );

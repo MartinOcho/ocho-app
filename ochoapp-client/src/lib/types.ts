@@ -341,6 +341,7 @@ export function getMessageDataInclude(loggedInUserId: string) {
     invitation: {
       select: {
         id: true,
+        status: true,
         createdAt: true,
         expiresAt: true,
         room: {

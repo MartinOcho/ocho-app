@@ -262,13 +262,21 @@ model VoiceNote {
 
   @@map("voice_notes")
 }
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
 model Invitation {
-  id        String   @id @default(cuid())
-  messageId String?  @unique
-  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  id        String           @id @default(cuid())
+  messageId String?          @unique
+  message   Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
   roomId    String?
-  room      Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  room      Room?            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
   expiresAt DateTime?
 
   @@map("invitations")
