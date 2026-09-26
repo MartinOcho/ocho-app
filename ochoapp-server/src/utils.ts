@@ -810,6 +810,16 @@ export function groupManagment(
 
         if (!room || !room.isGroup) throw new Error("Groupe invalide");
 
+        // Vérification de l'expiration de l'invitation
+        const invitation = await prisma.invitation.findFirst({
+          where: { roomId },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (invitation && invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+          throw new Error("L'invitation pour rejoindre ce groupe a expiré.");
+        }
+
         const existingMember = room.members.find(m => m.userId === userId);
         if (existingMember && existingMember.type !== "OLD" && existingMember.type !== "BANNED") {
           return callback({ success: true, data: { roomId } }); // Déjà membre

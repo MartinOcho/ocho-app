@@ -333,24 +333,39 @@ export function getMessageDataInclude(loggedInUserId: string) {
         },
       },
     },
-    room: {
-      select:{
+    invitation: {
+      select: {
         id: true,
-        name: true,
-        groupAvatarUrl: true,
-        _count: {
+        createdAt: true,
+        expiresAt: true,
+        room: {
           select: {
+            id: true,
+            name: true,
+            description: true,
+            groupAvatarUrl: true,
+            isGroup: true,
             members: {
-              where: {
-                type:{
-                  notIn: ["BANNED", "OLD"]
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+              select: {
+                userId: true,
+                type: true,
+              },
+            },
+            _count: {
+              select: {
+                members: {
+                  where: {
+                    type: {
+                      notIn: ["BANNED", "OLD"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   } satisfies Prisma.MessageInclude;
 }
 
@@ -496,6 +511,7 @@ export interface SocketSendGroupInvitationEvent {
   targetRoomId?: string;
   targetUserId?: string;
   groupToInviteToId: string;
+  expiresInDays?: number;
 }
 
 export interface SocketCreateNotificationEvent {

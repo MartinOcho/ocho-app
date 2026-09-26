@@ -301,6 +301,7 @@ export async function handleSendGroupInvitation(
   targetUserId: string | undefined,
   groupToInviteToId: string,
   userId: string,
+  expiresInDays: number = 7,
 ) {
   let roomId = targetRoomId;
 
@@ -355,13 +356,23 @@ export async function handleSendGroupInvitation(
     throw new Error("Invalid group to invite to");
   }
 
-  // Créer un message de type INVITATION dans la room cible
+  // Calculer la date d'expiration (7 jours par défaut)
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + (expiresInDays > 0 ? expiresInDays : 7));
+
+  // Créer un message de type INVITATION dans la room cible relié à l'enregistrement Invitation
   const message = await prisma.message.create({
     data: {
       content: groupToInviteToId, // On stocke l'ID du groupe dans le contenu
       roomId: roomId,
       senderId: userId,
       type: "INVITATION",
+      invitation: {
+        create: {
+          roomId: groupToInviteToId,
+          expiresAt: expiresAt,
+        },
+      },
     },
     include: getMessageDataInclude(userId),
   });

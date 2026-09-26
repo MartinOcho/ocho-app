@@ -338,6 +338,39 @@ export function getMessageDataInclude(loggedInUserId: string) {
         },
       },
     },
+    invitation: {
+      select: {
+        id: true,
+        createdAt: true,
+        expiresAt: true,
+        room: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            groupAvatarUrl: true,
+            isGroup: true,
+            members: {
+              select: {
+                userId: true,
+                type: true,
+              },
+            },
+            _count: {
+              select: {
+                members: {
+                  where: {
+                    type: {
+                      notIn: ["BANNED", "OLD"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   } satisfies Prisma.MessageInclude;
 }
 
