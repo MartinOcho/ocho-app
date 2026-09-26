@@ -9,7 +9,9 @@ import {
 } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import Linkify from "@/components/Linkify";
-import { MessageType } from "@prisma/client";
+import { MessageType, type InvitationStatus } from "@prisma/client";
+
+type InvitationBubbleStatus = string;
 import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import Time from "@/components/Time";
 import { useEffect, useRef, useState } from "react";
@@ -85,7 +87,7 @@ function HighlightText({
         part.toLowerCase() === highlight.toLowerCase() ? (
           <span
             key={i}
-            className="h-fit rounded-[4px] border border-yellow-500/50 bg-yellow-400/50 p-0 px-[1px] leading-none text-foreground dark:text-white"
+            className="h-fit rounded-[4px] border border-yellow-500/50 bg-yellow-400/50 p-0 px-px leading-none text-foreground dark:text-white"
           >
             <Linkify mentions={mentions}>{part}</Linkify>
           </span>
@@ -487,10 +489,10 @@ export const MessageBubbleContent = ({
       {/* Afficher l'invitation de groupe */}
       {message.type === "INVITATION" && (
         <InvitationBubble
-          groupId={message.content}
+          groupId={message.invitation?.[0]?.room?.id || message.content}
           isOwner={isOwner}
           borderRadiusClass={borderRadiusClass}
-          invitation={message.invitation?.[0]}
+          invitation={message.invitation?.[0] as any}
         />
       )}
       
@@ -504,12 +506,12 @@ export const MessageBubbleContent = ({
           "relative w-fit border px-5 py-2 text-sm leading-relaxed transition-all duration-200 md:text-base",
           bubbleDesign,
           !message.content &&
-            "bg-transparent text-muted-foreground outline outline-2 outline-muted-foreground",
+            "bg-transparent text-muted-foreground outline-2 outline-muted-foreground",
           isClone && "cursor-default shadow-lg ring-2 ring-background/50",
           borderRadiusClass,
           !message.content.trim() && message.attachments.length && "hidden",
           !message.content.trim() && message.voiceNote && "hidden", // Masquer la bulle texte si c'est une note vocale
-          message.type === "INVITATION" && "hidden", // Masquer la bulle texte si c'est une invitation
+          message.type === "INVITATION" && "hidden", // Ne garder que la bulle d'invitation spéciale
         )}
       >
         {/* Conteneur de texte avec marker pour le calcul de position */}
@@ -536,7 +538,7 @@ export const MessageBubbleContent = ({
         {createdAt && (
           <div
             className={cn(
-              "absolute bottom-0 min-w-[max-content] right-2.5 flex items-center gap-1 transition-opacity duration-200",
+              "absolute bottom-0 min-w-max right-2.5 flex items-center gap-1 transition-opacity duration-200",
               isLastInCluster || isHovered || isTapped || showTimeIndicator
                 ? "opacity-100"
                 : "opacity-0 pointer-events-none",
@@ -593,18 +595,21 @@ export function InvitationBubble({
   groupId: string;
   isOwner: boolean;
   borderRadiusClass: string;
-  invitation?: { id: string; status: string; expiresAt?: string | null };
+  invitation?: { id: string; status: InvitationBubbleStatus; expiresAt?: Date | string | null; room?: RoomData };
 }) {
+  const initialRoom = invitation?.room ?? undefined;
   const { data: groupData, isLoading } = useQuery({
     queryKey: ["group-details", groupId],
     queryFn: () => kyInstance.get(`/api/messages/rooms/${groupId}`).json<RoomData>(),
+    enabled: !initialRoom,
+    initialData: initialRoom as RoomData | undefined,
   });
   const { t } = useTranslation();
   const { setActiveRoomId } = useActiveRoom();
   const { user } = useSession();
   const { socket } = useSocket();
 
-  const [status, setStatus] = useState(invitation?.status || "PENDING");
+  const [status, setStatus] = useState<InvitationBubbleStatus>(invitation?.status ?? "PENDING");
   const expiresAt = invitation?.expiresAt ? new Date(invitation.expiresAt).getTime() : null;
   const [timeLeft, setTimeLeft] = useState(expiresAt ? Math.max(0, expiresAt - Date.now()) : 0);
 
@@ -642,7 +647,7 @@ export function InvitationBubble({
   const handleJoin = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (socket) {
-      socket.emit("group_join", { roomId: groupId }, (res: any) => {
+      socket.emit("group_join", { roomId: groupId }, (res: { success: boolean; error: string }) => {
         if (res.success) {
           setStatus("ACCEPTED");
           setActiveRoomId(groupId);
@@ -658,7 +663,7 @@ export function InvitationBubble({
   const handleDecline = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (socket) {
-      socket.emit("decline_group_invitation", { roomId: groupId }, (res: any) => {
+      socket.emit("decline_group_invitation", { roomId: groupId }, (res: { success: boolean; error: string }) => {
         if (res.success) {
           setStatus("DECLINED");
         }
@@ -692,7 +697,7 @@ export function InvitationBubble({
       <div className="flex items-center gap-3">
         <GroupAvatar avatarUrl={groupData.groupAvatarUrl} size={40} />
         <div className="flex-1 min-w-0">
-          <h4 className="font-bold truncate">{groupData.name || "Groupe"}</h4>
+          <h4 className="font-bold truncate text-muted">{groupData.name || t("defaultGroupName")}</h4>
           <p className={cn("text-xs opacity-70", isOwner ? "text-blue-100" : "text-muted-foreground")}>
             {groupData.members.length} membres
           </p>
@@ -701,16 +706,17 @@ export function InvitationBubble({
 
       {isExpired || status === "EXPIRED" ? (
         <div className="text-xs font-semibold text-destructive bg-destructive/10 p-2 rounded-lg text-center">
-          Invitation expirée
+          {t("invitationExpired")}
         </div>
       ) : status === "DECLINED" ? (
         <div className="text-xs font-semibold text-muted-foreground bg-muted p-2 rounded-lg text-center">
-          Invitation refusée
+          {t("invitationDeclined")}   
         </div>
       ) : status === "ACCEPTED" || isMember ? (
         <Button
           size="sm"
-          className="w-full rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white"
+          className="w-full"
+          variant={isOwner ? "outline" : "default"}
           onClick={(e) => {
             e.stopPropagation();
             setActiveRoomId(groupId);
@@ -729,24 +735,23 @@ export function InvitationBubble({
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant="outline"
+              variant={isOwner ? "outline" : "default"}
               className={cn(
-                "flex-1 rounded-xl text-xs font-semibold",
-                isOwner ? "bg-white/10 text-white hover:bg-white/20 border-white/20" : ""
-              )}
+                "flex-1")}
               onClick={handleDecline}
             >
-              Refuser
+              {t("decline")}
             </Button>
             <Button
               size="sm"
+              variant={isOwner ? "secondary" : "default"}
               className={cn(
-                "flex-1 rounded-xl text-xs font-semibold",
+                "flex-1",
                 isOwner ? "bg-white text-blue-600 hover:bg-blue-50" : "bg-blue-600 hover:bg-blue-700 text-white"
               )}
               onClick={handleJoin}
             >
-              Rejoindre
+              {t("joinGroup")}
             </Button>
           </div>
         </div>
@@ -1171,7 +1176,7 @@ export default function Message({
     "flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground/80 w-full";
 
   // --- LOGIQUE CONTENU SYSTEME ---
-  if (messageType !== "CONTENT" && messageType !== "REACTION") {
+  if (messageType !== "CONTENT" && messageType !== "REACTION" && (messageType !== "INVITATION" || message.content === "chat")) {
     // 1. NEWMEMBER / LEAVE / BAN
     if (message.recipient && room.isGroup) {
       const memberName = recipientFirstName;
@@ -1297,14 +1302,24 @@ export default function Message({
     if (messageType === "CLEAR") systemContent = t("noMessage");
     if (messageType === "DELETE") systemContent = deletedChat;
 
-    // 5. INVITATION
-    if (messageType === "INVITATION") {
-        if (message.content === "chat") {
-            systemContent = isSender ? "Invitation à discuter envoyée" : `${senderFirstName} souhaite discuter avec vous`;
-        } else {
-            systemContent = isSender ? "Vous avez envoyé une invitation de groupe" : `${senderFirstName} vous a invité à rejoindre un groupe`;
-        }
+    // 5. INVITATION (Chat DM uniquement)
+    if (messageType === "INVITATION" && message.content === "chat") {
+        const invitation = message.invitation?.[0];
+        systemContent = isSender ? "Invitation à discuter envoyée" : `${senderFirstName} souhaite discuter avec vous`;
         systemIcon = <UserPlus size={14} />;
+        return (
+          <InvitationBubble
+            groupId={invitation?.room?.id || message.content}
+            isOwner={isSender}
+            borderRadiusClass="rounded-3xl"
+            invitation={{
+              id: invitation?.id ?? message.id,
+              status: (invitation?.status ?? "PENDING") as InvitationBubbleStatus,
+              expiresAt: invitation?.expiresAt,
+              room: (invitation?.room ?? undefined) as any,
+            }}
+          />
+        );
     }
 
     // Rendu des messages système génériques
@@ -1323,10 +1338,11 @@ export default function Message({
     }
   }
 
-  // Si c'est un message REACTION simple sans contenu, on ne l'affiche pas (géré par overlay)
+  // Les invitations doivent rester visibles comme des messages de contenu
+  // pour pouvoir afficher leur bulle d'acceptation/refus.
   if (
     messageType === "REACTION" ||
-    (messageType !== "CONTENT" && messageType !== "VOICENOTE" && !systemContent)
+    (messageType !== "CONTENT" && messageType !== "VOICENOTE" && messageType !== "INVITATION" && !systemContent)
   )
     return null;
 
@@ -1378,7 +1394,7 @@ export default function Message({
           <div
             className={cn(
               "relative mb-2 flex w-full flex-col gap-1",
-              isMediaOpen ? "z-[10000]" : activeOverlayRect ? "z-0" : "",
+              isMediaOpen ? "z-10000" : activeOverlayRect ? "z-0" : "",
             )}
             ref={messageRef}
           >
@@ -1507,7 +1523,7 @@ export default function Message({
                       className="flex cursor-pointer -space-x-2 p-1 opacity-90 transition-transform hover:scale-105 hover:opacity-100"
                     >
                       {readers.slice(0, 3).map((user, i) => (
-                        <div key={user.id} className="relative z-[1]">
+                        <div key={user.id} className="relative z-1">
                           <UserAvatar
                             userId={user.id}
                             avatarUrl={user.avatarUrl}
@@ -1594,7 +1610,7 @@ export function TypingIndicator({ typingUsers = [] }: TypingIndicatorProps) {
       )}
       <div className="relative flex w-full items-start gap-2">
         {typingUsers.length > 1 && (
-          <div className="absolute left-0 top-full z-[2] flex h-8 -translate-y-[30%] items-center -space-x-2 overflow-hidden py-1">
+          <div className="absolute left-0 top-full z-2 flex h-8 translate-y-[-30%] items-center -space-x-2 overflow-hidden py-1">
             {visibleUsers.map((user, index) => (
               <UserAvatar
                 avatarUrl={user.avatarUrl}

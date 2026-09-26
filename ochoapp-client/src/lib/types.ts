@@ -344,6 +344,7 @@ export function getMessageDataInclude(loggedInUserId: string) {
         status: true,
         createdAt: true,
         expiresAt: true,
+        roomId: true,
         room: {
           select: {
             id: true,

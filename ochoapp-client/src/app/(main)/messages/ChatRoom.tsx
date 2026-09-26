@@ -86,12 +86,12 @@ const MAX_TIME_DIFF = 20 * 60 * 1000; // 20 minutes en millisecondes
 // 2. Voice note messages (no text)
 // 3. Messages with both text and media (media part is separate bubble)
 const shouldBreakCluster = (message: MessageData): boolean => {
-  if (message.type !== "CONTENT") return false;
-  
+  if (message.type !== "CONTENT" && message.type !== "INVITATION") return false;
+
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const hasVoiceNote = !!(message.voiceNote && message.voiceNote);
   const hasText = message.content && message.content.trim() !== "";
-  
+
   return hasAttachments || hasVoiceNote;
 };
 
@@ -121,7 +121,9 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
     const newerMsg = currentGroup[currentGroup.length - 1];
 
     const isSameSender = newerMsg.senderId === msg.senderId;
-    const isContent = msg.type === "CONTENT" && newerMsg.type === "CONTENT";
+    const isContent =
+      (msg.type === "CONTENT" || msg.type === "INVITATION") &&
+      (newerMsg.type === "CONTENT" || newerMsg.type === "INVITATION");
     const isNotFull = currentGroup.length < limit;
     
     // Safety checks for dates
