@@ -131,7 +131,7 @@ async function syncUnreadNotificationsAndMessagesForUser(
       where: { recipientId: userId, read: false },
       include: notificationsInclude,
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 20,
     });
 
     for (const notif of unreadNotifications) {
@@ -929,7 +929,7 @@ async function sendFCMDataToUser(userId: string, data: Record<string, string>) {
     await getMessaging().send({
       topic,
       data,
-      android: { priority: "high" },
+      android: { priority: "normal" },
       apns: {
         headers: { "apns-priority": "10" },
       },

@@ -333,6 +333,24 @@ export function getMessageDataInclude(loggedInUserId: string) {
         },
       },
     },
+    room: {
+      select:{
+        id: true,
+        name: true,
+        groupAvatarUrl: true,
+        _count: {
+          select: {
+            members: {
+              where: {
+                type:{
+                  notIn: ["BANNED", "OLD"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   } satisfies Prisma.MessageInclude;
 }
 
