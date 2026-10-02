@@ -504,7 +504,7 @@ export const MessageBubbleContent = ({
         }}
         onContextMenu={!isClone ? onContextMenu : (e) => e.preventDefault()}
         className={cn(
-          "relative w-fit border px-5 py-2 text-sm leading-relaxed transition-all duration-200 md:text-base",
+          "relative w-fit border dark:border-none px-5 py-2 text-sm leading-relaxed transition-all duration-200 md:text-base",
           bubbleDesign,
           !message.content &&
             "bg-transparent text-muted-foreground outline-2 outline-muted-foreground",
@@ -1246,7 +1246,7 @@ export default function Message({
       if (room.isGroup) {
         return (
           <div className="flex w-full select-none justify-center py-6">
-            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-neutral-800 dark:text-muted-foreground/80">
               <div className="relative">
                 <GroupAvatar
                   avatarUrl={room.groupAvatarUrl}
@@ -1269,7 +1269,7 @@ export default function Message({
       } else {
         return (
           <div className="flex w-full select-none justify-center py-6">
-            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+            <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-neutral-800 dark:text-muted-foreground/80">
               <div className="relative">
                 <UserAvatar
                   userId={otherUser?.user?.id || ""}
@@ -1322,7 +1322,7 @@ export default function Message({
     if (systemContent) {
       return (
         <div className={SystemWrapperClass}>
-          <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-muted/60 dark:text-muted-foreground/80">
+          <div className="flex max-w-[280px] flex-col items-center justify-center gap-3 rounded-3xl  bg-card p-4 px-8 py-4 text-xs shadow-sm font-medium text-muted-foreground backdrop-blur-sm dark:bg-neutral-800 dark:text-muted-foreground/80">
             {systemIcon}
             <span className="font-medium">{systemContent}</span>
             <span className="ml-1 border-l border-foreground/10 pl-1 text-[10px] opacity-60">

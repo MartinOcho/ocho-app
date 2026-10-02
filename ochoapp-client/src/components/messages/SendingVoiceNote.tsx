@@ -74,12 +74,12 @@ export function SendingVoiceNote({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-72 sm:gap-3 sm:px-4 sm:py-3',
+        'flex items-center self-end gap-2 overflow-hidden rounded-full px-3 py-2 max-sm:max-w-72 w-fit sm:gap-3 sm:px-4 sm:py-3 bg-primary dark:bg-neutral-800',
         bgColor,
       )}
     >
       {/* Avatar */}
-      <div className="relative flex-shrink-0">
+      <div className="relative shrink-0">
         <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-white/20 sm:h-10 sm:w-10">
           <UserAvatar
             userId={user?.id || ''}
@@ -106,7 +106,7 @@ export function SendingVoiceNote({
         {/* Loader ou statut */}
         <div
           className={cn(
-            'inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-all sm:h-9 sm:w-9',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all sm:h-9 sm:w-9',
             buttonBgColor,
             buttonTextColor,
           )}
@@ -127,14 +127,14 @@ export function SendingVoiceNote({
         {/* Zone Onde Sonore et Progression */}
         <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
           {/* Les waveform bars : utilisation de justify-between et d'espacements dynamiques */}
-          <div className="flex h-8 flex-1 items-center justify-between gap-[1px] overflow-hidden sm:gap-1">
+          <div className="flex h-8 flex-1 items-center justify-between gap-px overflow-hidden sm:gap-1">
             {waveformBars.map((bar, index) => {
               const isActive = (index / Math.max(1, waveformBars.length - 1)) * 100 <= progress;
               return (
                 <div
                   key={index}
                   className={cn(
-                    'w-[1.5px] flex-shrink-0 rounded-full transition-all sm:w-0.5',
+                    'w-[1.5px] shrink-0 rounded-full transition-all sm:w-0.5',
                     waveBarColor,
                     isActive ? 'opacity-100' : 'opacity-40',
                   )}
@@ -147,7 +147,7 @@ export function SendingVoiceNote({
           </div>
 
           {/* Affichage de la progression ou statut */}
-          <span className={cn('flex-shrink-0 whitespace-nowrap text-xs font-medium sm:text-sm', textColor)}>
+          <span className={cn('shrink-0 whitespace-nowrap text-xs font-medium sm:text-sm', textColor)}>
             {getStatusMessage()}
           </span>
         </div>
@@ -157,7 +157,7 @@ export function SendingVoiceNote({
       {status === 'error' && onRetry && (
         <button
           onClick={onRetry}
-          className="flex-shrink-0 ml-2 text-xs font-medium text-red-700 dark:text-red-300 hover:underline"
+          className="shrink-0 ml-2 text-xs font-medium text-red-700 dark:text-red-300 hover:underline"
         >
           Réessayer
         </button>

@@ -144,14 +144,14 @@ export default function ReactionOverlay({
                     key={emoji}
                     onClick={() => handleReact(emoji)}
                     className={cn(
-                        "flex size-10 max-sm:size-8 max-sm:text-xl cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
+                        "font-emoji flex size-10 max-sm:size-8 max-sm:text-xl cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
                         isActive ? "bg-primary/20 ring-2 ring-primary" : "hover:bg-muted"
                     )}
                   >
                     {emoji}
                   </button>
                 )})}
-                <div className="mx-1 h-6 w-[1px] bg-border"></div>
+                <div className="mx-1 h-6 w-px bg-border"></div>
                 <button
                   onClick={() => setShowFullPicker(true)}
                   className="flex size-10 max-sm:size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
@@ -266,7 +266,7 @@ export default function ReactionOverlay({
               </button>
               {isOwner && (
                 <>
-                  <div className="my-1 h-[1px] bg-border" />
+                  <div className="my-1 h-px bg-border" />
                   <button 
                     onClick={() => {
                       onDeleteRequest();
@@ -370,7 +370,7 @@ export function ReactionDetailsPopover({
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       {/* Backdrop Flouté */}
       <div 
         className="absolute inset-0 bg-background/40 backdrop-blur-sm transition-opacity animate-in fade-in" 

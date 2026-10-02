@@ -927,7 +927,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       {/* BARRE DE SAISIE */}
       <div
         className={cn(
-          "from-card/80 absolute bottom-0 z-20 w-full bg-gradient-to-t to-transparent",
+          "from-card/80 absolute bottom-0 z-20 w-full bg-linear-to-t to-transparent",
           isMediaFullscreen && "hidden",
         )}
       >
