@@ -22,6 +22,8 @@ import { useProgress } from "@/context/ProgressContext";
 import { useEffect, useState, useMemo } from "react";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
+import useMessageReads from "@/hooks/useMessageReads";
+import MessageReadReceipt from "@/components/messages/MessageReadReceipt";
 import {
   Image as ImageIcon,
   Video as VideoIcon,
@@ -84,6 +86,7 @@ export default function RoomPreview({
   const { t } = useTranslation();
   const { user: loggedinUser } = useSession();
   const { socket, isConnected } = useSocket();
+  const reads = useMessageReads(room.messages?.[0]?.id);
   const [typing, setTyping] = useState<{
     isTyping: boolean;
     typingUsers: {
@@ -751,6 +754,13 @@ export default function RoomPreview({
                 <span className="line-clamp-1 min-w-fit flex-shrink-0 text-sm">
                   <Time time={messagePreview.createdAt} full={false} />
                 </span>
+                <MessageReadReceipt
+                  reads={reads}
+                  senderId={messagePreview.senderId}
+                  currentUserId={loggedinUser.id}
+                  isGroup={room.isGroup}
+                  readByLabel={t("readBy") || "Lu par"}
+                />
               </>
             )}
           </div>

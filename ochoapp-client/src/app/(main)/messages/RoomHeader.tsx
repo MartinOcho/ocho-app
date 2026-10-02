@@ -47,6 +47,8 @@ import RemoveMemberDialog from "@/components/messages/RemoveMemberDialog";
 import { useSocket } from "@/components/providers/SocketProvider";
 import MediaGallery from "@/components/messages/MediaGallery";
 import { useGalleryQuery } from "@/hooks/useGalleryQuery";
+import useMessageReads from "@/hooks/useMessageReads";
+import MessageReadReceipt from "@/components/messages/MessageReadReceipt";
 import { useTranslation } from "@/context/LanguageContext";
 import FormattedInt from "@/components/FormattedInt";
 
@@ -102,6 +104,7 @@ export default function RoomHeader({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMediaFullscreen } = useActiveRoom();
+  const reads = useMessageReads(room?.messages?.[0]?.id);
 
   const [activeTab, setActiveTab] = useState<"info" | "media" | "documents">("info");
 
@@ -468,7 +471,16 @@ export default function RoomHeader({
                     </span>
                     {verifiedCheck}
                   </span>
-                  <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <span>{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</span>
+                    <MessageReadReceipt
+                      reads={reads}
+                      senderId={room.messages?.[0]?.senderId ?? null}
+                      currentUserId={loggedUser.id}
+                      isGroup={room.isGroup}
+                      readByLabel={t("readBy") || "Lu par"}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -490,6 +502,15 @@ export default function RoomHeader({
                     )}
                   >
                     {getStatusDisplay()}
+                    <span className="ml-1 inline-flex align-middle">
+                      <MessageReadReceipt
+                        reads={reads}
+                        senderId={room.messages?.[0]?.senderId ?? null}
+                        currentUserId={loggedUser.id}
+                        isGroup={room.isGroup}
+                        readByLabel={t("readBy") || "Lu par"}
+                      />
+                    </span>
                   </div>
                 </div>
               )}
@@ -584,7 +605,16 @@ export default function RoomHeader({
                       </span>
                       {verifiedCheck}
                     </span>
-                    <div className="text-sm text-muted-foreground">{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</div>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <span>{`${allMembers?.length || 0} ${allMembers?.length === 1 ? member.toLowerCase() : membersText.toLowerCase()}`}</span>
+                      <MessageReadReceipt
+                        reads={reads}
+                        senderId={room.messages?.[0]?.senderId ?? null}
+                        currentUserId={loggedUser.id}
+                        isGroup={room.isGroup}
+                        readByLabel={t("readBy") || "Lu par"}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -611,6 +641,15 @@ export default function RoomHeader({
                       )}
                     >
                       {getStatusDisplay()}
+                      <span className="ml-1 inline-flex align-middle">
+                        <MessageReadReceipt
+                          reads={reads}
+                          senderId={room.messages?.[0]?.senderId ?? null}
+                          currentUserId={loggedUser.id}
+                          isGroup={room.isGroup}
+                          readByLabel={t("readBy") || "Lu par"}
+                        />
+                      </span>
                     </div>
                   </div>
                 )}

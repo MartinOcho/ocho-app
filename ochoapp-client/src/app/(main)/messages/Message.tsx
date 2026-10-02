@@ -2,7 +2,6 @@ import UserAvatar from "@/components/UserAvatar";
 import {
   RoomData,
   MessageData,
-  ReadInfo,
   DeliveryInfo,
   MessageAttachment,
   ReadUser,
@@ -44,6 +43,7 @@ import ReactionOverlay, {
 import GroupAvatar from "@/components/GroupAvatar";
 import MediaStrip from "@/components/messages/MediaStrip";
 import VoiceNotePlayer from "@/components/messages/VoiceNotePlayer";
+import useMessageReads from "@/hooks/useMessageReads";
 import { useActiveRoom } from "@/context/ChatContext";
 import { useTranslation } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -1028,17 +1028,6 @@ export default function Message({
   const handleRequestDelete = () => setIsDeleting(true);
 
   // --- READ STATUS (VUES) ---
-  const queryKey: QueryKey = ["message", "views", message.id];
-  const { data } = useQuery({
-    queryKey,
-    queryFn: () =>
-      kyInstance
-        .get(`/api/messages/${messageId}/reads`, { throwHttpErrors: false })
-        .json<ReadInfo>(),
-    staleTime: Infinity,
-    throwOnError: false,
-  });
-
   // --- DELIVERY STATUS (LIVRAISON) ---
   const deliveryQueryKey: QueryKey = ["message", "deliveries", message.id];
   const { data: deliveryData } = useQuery({
@@ -1051,7 +1040,7 @@ export default function Message({
     throwOnError: false,
   });
 
-  const reads = data?.reads ?? [];
+  const reads = useMessageReads(messageId);
   const deliveries = deliveryData?.deliveries ?? [];
   const isSender = message.senderId === loggedUser?.id;
   const isRecipient = message.recipient?.id === loggedUser?.id;
@@ -1072,18 +1061,6 @@ export default function Message({
     if (!isSender && !hasRead) {
       socket.emit("mark_message_read", { messageId, roomId });
     }
-    const handleReadUpdate = (data: {
-      messageId: string;
-      reads: ReadUser[];
-    }) => {
-      if (data.messageId === messageId) {
-        queryClient.setQueryData<ReadInfo>(queryKey, { reads: data.reads });
-      }
-    };
-    socket.on("message_read_update", handleReadUpdate);
-    return () => {
-      socket.off("message_read_update", handleReadUpdate);
-    };
   }, [
     socket,
     messageId,
@@ -1091,8 +1068,6 @@ export default function Message({
     loggedUser,
     message.senderId,
     reads,
-    queryClient,
-    queryKey,
   ]);
 
   // --- LISTENING TO DELIVERY UPDATES ---
