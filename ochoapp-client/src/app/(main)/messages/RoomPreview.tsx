@@ -665,7 +665,7 @@ export default function RoomPreview({
         <div className="flex-1 overflow-hidden">
           <span
             className={cn(
-              "block truncate font-emoji",
+              "block truncate",
               isVerified && "flex items-center",
               unreadCount &&
                 !typing.isTyping &&
@@ -693,7 +693,7 @@ export default function RoomPreview({
             )}
             <span
               className={cn(
-                "font-emoji line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
+                "line-clamp-2 flex items-center gap-1 text-ellipsis break-all",
                 (!["CONTENT", "VOICENOTE"].includes(messageType) ||
                   typing.isTyping ||
                   recording.isRecording) &&

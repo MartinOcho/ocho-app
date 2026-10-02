@@ -28,7 +28,7 @@ export default async function Layout({
           <LanguageProvider>
               <Toaster />
               <NavigationProvider>
-                <div className="relative flex h-screen max-h-dvh w-full flex-col">
+                <div className="relative flex h-screen max-h-dvh w-full flex-col font-emoji">
                   <div className="relative h-full max-h-full w-full overflow-hidden">
                     <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
                       {children}

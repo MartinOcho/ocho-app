@@ -364,7 +364,7 @@ function DisconnectedPost({
         <AppLogo size={70} />
       </Link>
       }
-      <article className="group/post bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md">
+      <article className="group/post font-emoji bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md">
         <div className="flex justify-between gap-3 p-5">
           <div className="flex flex-wrap gap-3">
             <OchoLink

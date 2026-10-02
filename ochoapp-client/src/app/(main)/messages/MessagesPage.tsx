@@ -83,10 +83,10 @@ export default function Messages() {
       <div
         className={cn(
           "flex flex-1 sm:w-full w-fit transition-[margin] duration-300 ease-in-out h-full",
-          (activeRoomId || newChat) ? "max-sm:-ml-[100vw]" : "max-sm:ml-0"
+          (activeRoomId || newChat) ? "max-sm:ml-[-100vw]" : "max-sm:ml-0"
         )}
       >
-        <div className="h-full w-screen min-w-60 max-sm:min-w-[100vw] sm:w-1/3 sm:border-r-2">
+        <div className="h-full w-screen min-w-60 max-sm:min-w-screen sm:w-1/3 sm:border-r-2">
           <ChatSideBar
             onRoomSelect={handleRoomSelect}
             activeRoom={(room) => setSelectedRoom(room)}

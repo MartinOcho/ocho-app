@@ -144,7 +144,7 @@ export default function ReactionOverlay({
                     key={emoji}
                     onClick={() => handleReact(emoji)}
                     className={cn(
-                        "font-emoji flex size-10 max-sm:size-8 max-sm:text-xl cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
+                        "flex size-10 max-sm:size-8 max-sm:text-xl cursor-pointer items-center justify-center rounded-full text-2xl transition-transform hover:scale-125 active:scale-95",
                         isActive ? "bg-primary/20 ring-2 ring-primary" : "hover:bg-muted"
                     )}
                   >

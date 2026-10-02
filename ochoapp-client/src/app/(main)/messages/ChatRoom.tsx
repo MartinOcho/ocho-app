@@ -21,7 +21,6 @@ import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import {
   AlertCircle,
   ChevronLeft,
-  Frown,
   Loader2,
   RefreshCw,
   Search,
@@ -30,7 +29,7 @@ import {
 } from "lucide-react";
 import { useSession } from "../SessionProvider";
 import MessagesSkeleton from "./skeletons/MessagesSkeleton";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import RoomHeader from "./RoomHeader";
 import { useMenuBar } from "@/context/MenuBarContext";
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -47,7 +46,15 @@ import Linkify from "@/components/Linkify";
 import UserAvatar from "@/components/UserAvatar";
 import { createPortal } from "react-dom";
 import Time from "@/components/Time";
-import RoomFooter, { GroupFullIcon, PrivateProfileIcon, UnspecifiedIcon, UserBannedIcon, UserDeletedIcon, UserKickedIcon, UserLeftIcon } from "./RoomFooter";
+import RoomFooter, {
+  GroupFullIcon,
+  PrivateProfileIcon,
+  UnspecifiedIcon,
+  UserBannedIcon,
+  UserDeletedIcon,
+  UserKickedIcon,
+  UserLeftIcon,
+} from "./RoomFooter";
 import { useRoomFooterState } from "./useRoomFooterState";
 import { RoomFooterStateType } from "@/lib/types";
 import { useActiveRoom } from "@/context/ChatContext";
@@ -71,7 +78,7 @@ interface SentMessageState {
   attachmentIds?: string[];
   isVoiceNote?: boolean;
   voiceNoteProgress?: {
-    status: 'uploading' | 'sending' | 'sent' | 'error';
+    status: "uploading" | "sending" | "sent" | "error";
     progress: number;
     error?: string;
   };
@@ -98,7 +105,7 @@ const shouldBreakCluster = (message: MessageData): boolean => {
 function groupMessages(messages: MessageData[], limit: number = 5) {
   const groups: MessageData[][] = [];
   let currentGroup: MessageData[] = [];
-  
+
   if (!Array.isArray(messages)) return groups;
 
   // Déduplication des messages par ID pour éviter les doublons
@@ -125,11 +132,11 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
       (msg.type === "CONTENT" || msg.type === "INVITATION") &&
       (newerMsg.type === "CONTENT" || newerMsg.type === "INVITATION");
     const isNotFull = currentGroup.length < limit;
-    
+
     // Safety checks for dates
     const date1 = new Date(msg.createdAt);
     const date2 = new Date(newerMsg.createdAt);
-    
+
     const isSameDay =
       date1.getDate() === date2.getDate() &&
       date1.getMonth() === date2.getMonth() &&
@@ -137,13 +144,20 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 
     const diffTime = Math.abs(date2.getTime() - date1.getTime());
     const isCloseInTime = diffTime < MAX_TIME_DIFF;
-    
+
     // If either message breaks clustering rules, start a new cluster
     const currentBreaks = shouldBreakCluster(msg);
     const previousBreaks = shouldBreakCluster(newerMsg);
     const shouldBreak = currentBreaks || previousBreaks;
 
-    if (isSameSender && isContent && isNotFull && isSameDay && isCloseInTime && !shouldBreak) {
+    if (
+      isSameSender &&
+      isContent &&
+      isNotFull &&
+      isSameDay &&
+      isCloseInTime &&
+      !shouldBreak
+    ) {
       currentGroup.push(msg);
     } else {
       groups.push(currentGroup);
@@ -163,8 +177,8 @@ function groupMessages(messages: MessageData[], limit: number = 5) {
 function DateHeader({ date }: { date: Date | string }) {
   if (!date) return null;
   return (
-    <div className="pointer-events-none flex w-full select-none justify-center pt-4">
-      <div className="rounded-full bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+    <div className="pointer-events-none flex w-full justify-center pt-4 select-none">
+      <div className="bg-muted/50 text-muted-foreground rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur-sm">
         <Time time={new Date(date)} calendar />
       </div>
     </div>
@@ -173,8 +187,14 @@ function DateHeader({ date }: { date: Date | string }) {
 
 export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   const { t } = useTranslation();
-  const { socket, isConnected, retryConnection, getPendingMessages, respondToInvitation } =
-    useSocket();
+  const { toast } = useToast();
+  const {
+    socket,
+    isConnected,
+    retryConnection,
+    getPendingMessages,
+    respondToInvitation,
+  } = useSocket();
   const { isVisible, setIsVisible } = useMenuBar();
   const { isMediaFullscreen } = useActiveRoom();
 
@@ -198,7 +218,9 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
   // État pour gérer les messages en cours d'envoi (Optimistic UI géré manuellement)
   const [sentMessages, setSentMessages] = useState<SentMessageState[]>([]);
   const [newMessages, setNewMessages] = useState<MessageData[]>([]);
-  const [tempAttachments, setTempAttachments] = useState<Record<string, MessageAttachment[]>>({});
+  const [tempAttachments, setTempAttachments] = useState<
+    Record<string, MessageAttachment[]>
+  >({});
 
   const { unableToLoadChat, noMessage, dataError, search } = t();
   const queryClient = useQueryClient();
@@ -242,6 +264,12 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
         console.warn("Message en attente invalide:", data.newMessage);
         return;
       }
+
+      setNewMessages((prev) =>
+        prev.some((message) => message.id === data.newMessage.id)
+          ? prev
+          : [data.newMessage, ...prev],
+      );
 
       // Mettre à jour le cache React Query
       queryClient.setQueryData<InfiniteData<MessagesSection>>(
@@ -299,6 +327,11 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
         // 1. Mettre à jour le cache React Query directement
         if (data.newMessage.type === "REACTION") return; // On ignore les réactions ici
+        setNewMessages((prev) =>
+          prev.some((message) => message.id === data.newMessage.id)
+            ? prev
+            : [data.newMessage, ...prev],
+        );
         queryClient.setQueryData<InfiniteData<MessagesSection>>(
           ["room", "messages", roomId],
           (oldData) => {
@@ -475,9 +508,24 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       });
       onClose();
     }
-  }, [isLoading, room, isRoomError, loggedUser, onClose, roomId, unableToLoadChat]);
+  }, [
+    isLoading,
+    room,
+    isRoomError,
+    loggedUser,
+    onClose,
+    roomId,
+    unableToLoadChat,
+  ]);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+  const {
+    data,
+    error: messagesError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+  } =
     useInfiniteQuery({
       queryKey: ["room", "messages", roomId],
       queryFn: ({ pageParam }) =>
@@ -495,23 +543,34 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       enabled: !!roomId,
     });
 
+  useEffect(() => {
+    if (status === "error" && messagesError) {
+      toast({ variant: "destructive", description: dataError });
+    }
+  }, [dataError, messagesError, status, toast]);
+
+  const socketMessageIds = new Set(newMessages.map((message) => message.id));
   const allMessages = (
     data?.pages?.flatMap((page) => page?.messages ?? []) || []
-  ).filter((msg) => msg && msg.type !== "REACTION");
+  ).filter(
+    (msg) => msg && msg.type !== "REACTION" && !socketMessageIds.has(msg.id),
+  );
 
   // --- HELPER: Check if user can receive messages ---
   const canUserReceiveMessages = () => {
     if (!room || !loggedUser) return false;
-    
+
     // Pour les messages sauvegardés
     if (room.id === `saved-${loggedUser.id}`) {
       return true;
     }
 
     // Pour les groupe/room normales
-    const userMembership = room.members?.find((m) => m.userId === loggedUser.id);
+    const userMembership = room.members?.find(
+      (m) => m.userId === loggedUser.id,
+    );
     if (!userMembership) return false;
-    
+
     // Utilisateur banni ou a quitté
     if (userMembership.type === "BANNED" || userMembership.leftAt) {
       return false;
@@ -553,7 +612,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
   if (!roomId) return null;
   if (isLoading) return <ChatSkeleton onChatClose={onClose} />;
-    if (!room || isRoomError || !loggedUser) return null;
+  if (!room || isRoomError || !loggedUser) return null;
 
   const loggedMember = room.members.find(
     (member) => member.userId === loggedUser.id,
@@ -625,7 +684,8 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       roomId,
       type: "CONTENT",
       tempId,
-      attachmentIds: attachmentIds && attachmentIds.length > 0 ? attachmentIds : [],
+      attachmentIds:
+        attachmentIds && attachmentIds.length > 0 ? attachmentIds : [],
     });
   };
 
@@ -661,7 +721,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       e.preventDefault();
       return;
     }
-    
+
     const target = e.target as HTMLElement;
     // if the target has no classname  messages-container, do nothing
     if (
@@ -761,7 +821,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
   return (
     // RETRAIT de onContextMenu ici
-    <div className="absolute flex h-full w-full flex-1 flex-col max-sm:bg-card/30">
+    <div className="max-sm:bg-card/30 absolute flex h-full w-full flex-1 flex-col">
       {/* HEADER */}
       <div className="flex w-full items-center gap-2 sm:px-4 sm:py-3">
         <RoomHeader
@@ -781,7 +841,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* ZONE DE MESSAGES - AJOUT DE onContextMenu ICI */}
-      <div className="messages-container relative flex flex-1 flex-col-reverse overflow-y-auto overflow-x-hidden pb-[74px] shadow-inner has-[.reaction-open]:z-50 sm:bg-background/50 z-0">
+      <div className="messages-container sm:bg-background/50 relative z-0 flex flex-1 flex-col-reverse overflow-x-hidden overflow-y-auto pb-[74px] shadow-inner has-[.reaction-open]:z-50">
         <InfiniteScrollContainer
           className="flex w-full flex-col-reverse gap-4 p-4 px-2 pb-7 max-sm:pb-12"
           onBottomReached={() => {
@@ -793,79 +853,69 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
         >
           {status === "pending" && <MessagesSkeleton />}
 
-          {/* État vide : Seulement si aucun message TOTAL (pas juste le filtre) */}
-          {status === "success" &&
+          {/* État vide : une erreur de chargement est signalée par toast, pas dans la liste. */}
+          {status !== "pending" &&
             !hasNextPage &&
             !allMessages.length &&
+            !newMessages.length &&
             sentMessages.length === 0 && (
-              <p className="my-auto flex w-full flex-1 select-none items-center justify-center px-2 text-center italic text-muted-foreground">
+              <p className="text-muted-foreground my-auto flex w-full flex-1 items-center justify-center px-2 text-center italic select-none">
                 {noMessage}
               </p>
             )}
 
           {/* État recherche vide : Si on a des messages mais que le filtre ne renvoie rien */}
-          {status === "success" &&
-            allMessages.length > 0 &&
+          {status !== "pending" &&
+            (allMessages.length > 0 || newMessages.length > 0) &&
             filteredMessages.length === 0 &&
             filteredNewMessages.length === 0 &&
             searchQuery && (
-              <div className="my-auto flex w-full flex-1 select-none flex-col items-center justify-center gap-2 px-2 text-center italic text-muted-foreground">
+              <div className="text-muted-foreground my-auto flex w-full flex-1 flex-col items-center justify-center gap-2 px-2 text-center italic select-none">
                 <Search className="opacity-50" />
                 <p>Aucun message trouvé pour "{searchQuery}"</p>
               </div>
             )}
 
-          {status === "error" && (
-            <div className="flex w-full flex-1 select-none flex-col items-center px-3 py-8 text-center italic text-muted-foreground">
-              <Frown size={100} />
-              <h2 className="text-xl">{dataError}</h2>
-            </div>
+          {/* Indicateur de frappe et enregistrement */}
+          <TypingIndicator typingUsers={typingUsers} />
+          <RecordingStatus roomId={roomId} />
+
+          {/* Messages "live" reçus via socket avant refresh (filtrés) */}
+          {clusteredNewMessages.map((group, i) => {
+            if (!group.length) return null;
+            return renderCluster(group, i, clusteredNewMessages);
+          })}
+
+          {/* Messages en cours d'envoi (échecs ou loading) - Géré par SentMessage */}
+          {/* Note: On ne clusterise pas les messages "sending" pour l'instant car ils ont un statut spécial */}
+          {sentMessages.map((msg) =>
+            msg.isVoiceNote ? (
+              <SendingVoiceNote
+                key={msg.tempId}
+                tempId={msg.tempId}
+                progress={msg.voiceNoteProgress?.progress}
+                status={msg.voiceNoteProgress?.status}
+                error={msg.voiceNoteProgress?.error}
+                onRetry={() => handleRetryMessage(msg)}
+              />
+            ) : (
+              <SendingMessage
+                key={msg.tempId}
+                content={msg.content || ""}
+                status={msg.status}
+                onRetry={() => handleRetryMessage(msg)}
+                attachments={tempAttachments[msg.tempId] || []}
+                type={msg.type}
+                isVoiceNote={msg.isVoiceNote}
+              />
+            ),
           )}
 
-          {status === "success" && (
-            <>
-              {/* Indicateur de frappe et enregistrement */}
-              <TypingIndicator typingUsers={typingUsers} />
-              <RecordingStatus roomId={roomId} />
-
-              {/* Messages "live" reçus via socket avant refresh (filtrés) */}
-              {clusteredNewMessages.map((group, i) => {
-                if (!group.length) return null;
-                return renderCluster(group, i, clusteredNewMessages);
-              })}
-
-              {/* Messages en cours d'envoi (échecs ou loading) - Géré par SentMessage */}
-              {/* Note: On ne clusterise pas les messages "sending" pour l'instant car ils ont un statut spécial */}
-              {sentMessages.map((msg) => (
-                msg.isVoiceNote ? (
-                  <SendingVoiceNote
-                    key={msg.tempId}
-                    tempId={msg.tempId}
-                    progress={msg.voiceNoteProgress?.progress}
-                    status={msg.voiceNoteProgress?.status}
-                    error={msg.voiceNoteProgress?.error}
-                    onRetry={() => handleRetryMessage(msg)}
-                  />
-                ) : (
-                  <SendingMessage
-                    key={msg.tempId}
-                    content={msg.content || ""}
-                    status={msg.status}
-                    onRetry={() => handleRetryMessage(msg)}
-                    attachments={tempAttachments[msg.tempId] || []}
-                    type={msg.type}
-                    isVoiceNote={msg.isVoiceNote}
-                  />
-                )
-              ))}
-
-              {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
-              {clusteredMessages.map((group, i) => {
-                if (!group.length) return null;
-                return renderCluster(group, i, clusteredMessages);
-              })}
-            </>
-          )}
+          {/* MESSAGES CONFIRMÉS (Venant de la DB via React Query - Filtrés) */}
+          {clusteredMessages.map((group, i) => {
+            if (!group.length) return null;
+            return renderCluster(group, i, clusteredMessages);
+          })}
         </InfiniteScrollContainer>
         {isFetchingNextPage && !searchQuery && (
           <div className="flex w-full justify-center">
@@ -875,7 +925,12 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       </div>
 
       {/* BARRE DE SAISIE */}
-      <div className={cn("absolute bottom-0 z-20 w-full bg-gradient-to-t from-card/80 to-transparent", isMediaFullscreen && "hidden")}>
+      <div
+        className={cn(
+          "from-card/80 absolute bottom-0 z-20 w-full bg-gradient-to-t to-transparent",
+          isMediaFullscreen && "hidden",
+        )}
+      >
         <div className={cn("flex p-2", !messageInputExpanded && "gap-2")}>
           <div
             className={cn(
@@ -894,7 +949,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
               }}
               title={search}
               className={cn(
-                "aspect-square size-12 cursor-pointer p-2 outline-input",
+                "outline-input aspect-square size-12 cursor-pointer p-2",
                 !messageInputExpanded &&
                   searchQuery &&
                   "bg-primary text-primary-foreground",
@@ -905,7 +960,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
             {
               <div
                 className={cn(
-                  "relative flex w-full items-end gap-1 rounded-3xl border border-input bg-background p-1 ring-primary ring-offset-background transition-[width] duration-75 has-[input:focus-visible]:outline-none has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-ring has-[input:focus-visible]:ring-offset-2",
+                  "border-input bg-background ring-primary ring-offset-background has-[input:focus-visible]:ring-ring relative flex w-full items-end gap-1 rounded-3xl border p-1 transition-[width] duration-75 has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:outline-none",
                   !messageInputExpanded
                     ? "visible w-full"
                     : "invisible w-0 overflow-hidden",
@@ -914,7 +969,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 <Input
                   placeholder={search + "..."}
                   className={cn(
-                    "max-h-[10rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 outline-none ring-offset-transparent transition-all duration-75 focus-visible:ring-transparent",
+                    "max-h-[10rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-4 py-2 pr-0.5 ring-offset-transparent transition-all duration-75 outline-none focus-visible:ring-transparent",
                   )}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -924,7 +979,12 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
           </div>
 
           {!!roomId && (
-            <div className="z-20 flex-1" onClick={()=>!messageInputExpanded && setMessageInputExpanded(true)}>
+            <div
+              className="z-20 flex-1"
+              onClick={() =>
+                !messageInputExpanded && setMessageInputExpanded(true)
+              }
+            >
               <RoomFooter
                 state={footerState}
                 roomId={roomId}
@@ -935,8 +995,12 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                 onExpandedChange={setMessageInputExpanded}
                 members={room?.members}
                 onValidityChange={setIsFormValid}
-                onAcceptInvitation={() => roomId && respondToInvitation(roomId, true)}
-                onDeclineInvitation={() => roomId && respondToInvitation(roomId, false)}
+                onAcceptInvitation={() =>
+                  roomId && respondToInvitation(roomId, true)
+                }
+                onDeclineInvitation={() =>
+                  roomId && respondToInvitation(roomId, false)
+                }
                 onVoiceSendingStart={(tempId) => {
                   setSentMessages((prev) => [
                     ...prev,
@@ -948,7 +1012,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                       status: "sending",
                       isVoiceNote: true,
                       voiceNoteProgress: {
-                        status: 'uploading' as const,
+                        status: "uploading" as const,
                         progress: 0,
                       },
                     },
@@ -966,8 +1030,8 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                               error: progress.error,
                             },
                           }
-                        : msg
-                    )
+                        : msg,
+                    ),
                   );
                 }}
               />
@@ -1010,13 +1074,13 @@ function ChatContextMenu({
     >
       {/* Backdrop invisible mais qui ferme le menu au clic */}
       <div
-        className="absolute inset-0 bg-background/10 backdrop-blur-[2px] transition-opacity duration-200"
+        className="bg-background/10 absolute inset-0 backdrop-blur-[2px] transition-opacity duration-200"
         onClick={onClose}
       />
 
       {/* Le Menu */}
       <div
-        className="absolute min-w-[200px] overflow-hidden rounded-xl border border-border bg-popover/90 py-1 shadow-2xl backdrop-blur-xl transition-all duration-200 animate-in fade-in zoom-in-95"
+        className="border-border bg-popover/90 animate-in fade-in zoom-in-95 absolute min-w-[200px] overflow-hidden rounded-xl border py-1 shadow-2xl backdrop-blur-xl transition-all duration-200"
         style={{
           top: position.y,
           left: position.x,
@@ -1027,7 +1091,7 @@ function ChatContextMenu({
             onCloseChat();
             onClose();
           }}
-          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors"
         >
           <X size={16} />
           {t("closeChat")}
@@ -1047,7 +1111,14 @@ interface SendingMessageProps {
   isVoiceNote?: boolean;
 }
 
-function SendingMessage({ content, status, onRetry, attachments, type, isVoiceNote }: SendingMessageProps) {
+function SendingMessage({
+  content,
+  status,
+  onRetry,
+  attachments,
+  type,
+  isVoiceNote,
+}: SendingMessageProps) {
   const { t } = useTranslation();
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -1063,14 +1134,14 @@ function SendingMessage({ content, status, onRetry, attachments, type, isVoiceNo
   return (
     <div className="relative flex w-full flex-col gap-3 duration-300">
       <div className="flex w-full flex-row-reverse gap-1">
-        <div className="group/message relative flex w-fit max-w-[75%] select-none flex-col items-end">
+        <div className="group/message relative flex w-fit max-w-[75%] flex-col items-end select-none">
           <div className="flex w-fit items-center gap-1">
             {/* Bouton Retry */}
             {status === "error" && (
               <button
                 onClick={handleRetryClick}
                 disabled={isRetrying}
-                className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-full p-2 transition-colors"
                 title="Réessayer l'envoi"
               >
                 <RefreshCw
@@ -1084,12 +1155,12 @@ function SendingMessage({ content, status, onRetry, attachments, type, isVoiceNo
               <Linkify>
                 <p
                   className={cn(
-                    "w-fit select-none rounded-3xl px-4 py-2 transition-all duration-300 *:font-bold",
+                    "w-fit rounded-3xl px-4 py-2 transition-all duration-300 select-none *:font-bold",
                     status === "sending"
                       ? "cursor-wait bg-[#007AFF]/70 text-emerald-50 opacity-80"
                       : "",
                     status === "error"
-                      ? "border border-destructive/50 bg-destructive/10 text-destructive"
+                      ? "border-destructive/50 bg-destructive/10 text-destructive border"
                       : "",
                   )}
                 >
@@ -1097,30 +1168,37 @@ function SendingMessage({ content, status, onRetry, attachments, type, isVoiceNo
                 </p>
               </Linkify>
             </div>
-              {/* Afficher les pièces jointes temporaires (si présentes) */}
-              {attachments && attachments.length > 0 && (
-                <div className="mt-2 flex gap-2">
-                  {attachments.map((att) => (
-                    <div key={att.id} className="h-16 w-16 overflow-hidden rounded-md bg-muted/20">
-                      {/* Ne pas présumer trop sur les propriétés exactes — tenter d'afficher une image si disponible */}
-                      {att.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={att.url} alt={att.id} className="h-full w-full object-cover" />
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* Afficher les pièces jointes temporaires (si présentes) */}
+            {attachments && attachments.length > 0 && (
+              <div className="mt-2 flex gap-2">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="bg-muted/20 h-16 w-16 overflow-hidden rounded-md"
+                  >
+                    {/* Ne pas présumer trop sur les propriétés exactes — tenter d'afficher une image si disponible */}
+                    {att.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={att.url}
+                        alt={att.id}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-1 flex justify-end px-1">
-            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+            <span className="text-muted-foreground flex items-center gap-1 text-xs font-semibold">
               {status === "sending" && (
                 <>
                   <Loader2 className="h-3 w-3 animate-spin" /> {t("sending")}
                 </>
               )}
               {status === "error" && (
-                <span className="flex items-center gap-1 text-destructive">
+                <span className="text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" /> Échec
                 </span>
               )}
