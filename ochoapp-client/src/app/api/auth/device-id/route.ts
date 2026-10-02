@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     }
 
     // Récupérer la géolocalisation basée sur l'IP
-    const geoLocation = await detectGeoLocationFromIP(ip, request.headers as any);
+    const geoLocation = await detectGeoLocationFromIP(ip, request.headers);
 
     // Vérifier si un Device avec ce deviceId existe déjà
     let device = await prisma.device.findUnique({

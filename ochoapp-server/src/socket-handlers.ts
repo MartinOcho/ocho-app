@@ -1258,7 +1258,7 @@ export async function markUndeliveredMessages(
 export async function handleGetRoomDetails(
   data: SocketGetRoomDetailsEvent,
   userId: string,
-): Promise<RoomData> {
+): Promise<RoomData & {status?: "ACTIVE" | "INVITATION_PENDING"}> {
   const { roomId } = data;
 
   if (roomId === `saved-${userId}`) {
@@ -1401,7 +1401,7 @@ export async function handleGetRoomDetails(
       ...room,
       status,
       messages: unreadMessages,
-    } as any;
+    };
   }
 }
 

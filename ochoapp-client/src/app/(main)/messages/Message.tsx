@@ -9,9 +9,7 @@ import {
 } from "@/lib/types";
 import { useSession } from "../SessionProvider";
 import Linkify from "@/components/Linkify";
-import { MessageType, type InvitationStatus } from "@prisma/client";
-
-type InvitationBubbleStatus = string;
+import { Invitation, MessageType, type InvitationStatus } from "@prisma/client";
 import { QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import Time from "@/components/Time";
 import { useEffect, useRef, useState } from "react";
@@ -52,6 +50,11 @@ import { Button } from "@/components/ui/button";
 import { is } from "zod/v4/locales";
 
 // --- TYPES ---
+type MessageInvitation = Omit<Invitation, "messageId"> & {
+  messageId?: string | null;
+  room?: RoomData | null;
+};
+
 type MessageProps = {
   message: MessageData;
   room: RoomData;
@@ -408,7 +411,6 @@ export const MessageBubbleContent = ({
   let borderRadiusClass = "";
 
   if (isOwner) {
-    // --- MESSAGES DE L'UTILISATEUR (Droite) ---
     if (isOnlyMessageInCluster) {
       borderRadiusClass = "rounded-3xl";
     } else if (isFirstInCluster) {
@@ -421,7 +423,6 @@ export const MessageBubbleContent = ({
       borderRadiusClass = "rounded-3xl";
     }
   } else {
-    // --- MESSAGES DES AUTRES (Gauche) ---
     if (isOnlyMessageInCluster) {
       borderRadiusClass = "rounded-3xl";
     } else if (isFirstInCluster) {
@@ -437,10 +438,10 @@ export const MessageBubbleContent = ({
 
   // --- NOUVEAU DESIGN SYSTEM ---
   const bubbleDesign = isOwner
-    ? // OWNER: Dark Mode = Gris foncé (Solid) | Light Mode = Bleu Vibrant
-      "dark:bg-neutral-800 dark:text-white dark:border-transparent bg-blue-600 text-white shadow-sm border-transparent"
-    : // OTHER: Dark Mode = Transparent + Bordure Fine | Light Mode = Blanc + Bordure/Ombre
-      "dark:bg-transparent dark:text-neutral-200 dark:border-neutral-700 bg-white text-gray-800 border-gray-200 shadow-sm border";
+    ? "bg-primary dark:bg-neutral-800 text-primary-foreground shadow-sm"
+    : "text-foreground bg-primary/10 dark:border-transparent border border-neutral-200";
+
+  const invitation = message.invitation?.[0] as MessageInvitation | undefined;
 
   return (
     <div
@@ -489,10 +490,10 @@ export const MessageBubbleContent = ({
       {/* Afficher l'invitation de groupe */}
       {message.type === "INVITATION" && (
         <InvitationBubble
-          groupId={message.invitation?.[0]?.room?.id || message.content}
+          groupId={invitation?.room?.id || message.content}
           isOwner={isOwner}
           borderRadiusClass={borderRadiusClass}
-          invitation={message.invitation?.[0] as any}
+          invitation={invitation}
         />
       )}
       
@@ -595,7 +596,7 @@ export function InvitationBubble({
   groupId: string;
   isOwner: boolean;
   borderRadiusClass: string;
-  invitation?: { id: string; status: InvitationBubbleStatus; expiresAt?: Date | string | null; room?: RoomData };
+  invitation?: MessageInvitation;
 }) {
   const initialRoom = invitation?.room ?? undefined;
   const { data: groupData, isLoading } = useQuery({
@@ -609,7 +610,7 @@ export function InvitationBubble({
   const { user } = useSession();
   const { socket } = useSocket();
 
-  const [status, setStatus] = useState<InvitationBubbleStatus>(invitation?.status ?? "PENDING");
+  const [status, setStatus] = useState<InvitationStatus>(invitation?.status ?? "PENDING");
   const expiresAt = invitation?.expiresAt ? new Date(invitation.expiresAt).getTime() : null;
   const [timeLeft, setTimeLeft] = useState(expiresAt ? Math.max(0, expiresAt - Date.now()) : 0);
 
@@ -704,7 +705,7 @@ export function InvitationBubble({
         </div>
       </div>
 
-      {isExpired || status === "EXPIRED" ? (
+      {isExpired ? (
         <div className="text-xs font-semibold text-destructive bg-destructive/10 p-2 rounded-lg text-center">
           {t("invitationExpired")}
         </div>
@@ -1304,7 +1305,7 @@ export default function Message({
 
     // 5. INVITATION (Chat DM uniquement)
     if (messageType === "INVITATION" && message.content === "chat") {
-        const invitation = message.invitation?.[0];
+        const invitation = message.invitation?.[0] as MessageInvitation | undefined;
         systemContent = isSender ? "Invitation à discuter envoyée" : `${senderFirstName} souhaite discuter avec vous`;
         systemIcon = <UserPlus size={14} />;
         return (
@@ -1312,12 +1313,7 @@ export default function Message({
             groupId={invitation?.room?.id || message.content}
             isOwner={isSender}
             borderRadiusClass="rounded-3xl"
-            invitation={{
-              id: invitation?.id ?? message.id,
-              status: (invitation?.status ?? "PENDING") as InvitationBubbleStatus,
-              expiresAt: invitation?.expiresAt,
-              room: (invitation?.room ?? undefined) as any,
-            }}
+            invitation={invitation}
           />
         );
     }

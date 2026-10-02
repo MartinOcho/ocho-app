@@ -4,7 +4,7 @@ import scrollbar from "tailwind-scrollbar";
 import containerQueries from "@tailwindcss/container-queries";
 
 const config = {
-  darkMode: ["class", 'dark'],
+  darkMode: ["class", "[class=\"dark\"]"],
   content: [
     "./src/**/*.{ts,tsx}",
   ],

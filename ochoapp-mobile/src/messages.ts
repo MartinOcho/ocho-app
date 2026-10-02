@@ -208,7 +208,7 @@ export async function getRoom(req: Request, res: Response) {
         // le marqueur technique create-<userId>
         const displayedMsg: MessageData = { ...existingSavedMsg };
         if (displayedMsg.content !== `create-${userId}`) {
-          displayedMsg.type = "CONTENT" as any;
+          displayedMsg.type = "CONTENT";
         }
 
         const newRoom: RoomData = {
@@ -249,7 +249,7 @@ export async function getRoom(req: Request, res: Response) {
       const existingSavedMsg: MessageData = existingSavedMsgs[0];
       const displayedMsgAfterCreate: MessageData = { ...existingSavedMsg };
       if (displayedMsgAfterCreate.content !== `create-${userId}`) {
-        displayedMsgAfterCreate.type = "CONTENT" as any;
+        displayedMsgAfterCreate.type = "CONTENT";
       }
 
       const newRoom: RoomData = {

@@ -48,8 +48,8 @@ export default function SignUpForm() {
     startTransition(async () => {
       const { error } = await signUp(values);
       if (error) {
-        // Traduire l'erreur si c'est une clé
-        const translatedError = (t() as any)[error] || error;
+        const translation = t() as Record<string, string>;
+        const translatedError = translation[error] ?? error;
         setError(translatedError);
       }
     });

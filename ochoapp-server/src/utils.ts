@@ -26,7 +26,7 @@ function normalizeText(text: string): string {
 }
 
 // --- HELPER LOGIQUE INVITATION ---
-export async function computeRoomStatus(room: RoomData, userId: string): Promise<string> {
+export async function computeRoomStatus(room: RoomData, userId: string): Promise<"ACTIVE" | "INVITATION_PENDING"> {
   if (room.isGroup) return "ACTIVE";
 
   const otherMember = room.members.find((m) => m.userId && m.userId !== userId);
@@ -382,8 +382,10 @@ export async function getFormattedRooms(
     cursor: cursor ? { userId_roomId: { userId, roomId: cursor } } : undefined,
   });
 
-  const rooms: RoomData[] = await Promise.all(lastMessages
-    .map(async (lm) => {
+  const rooms: Array<
+    (RoomData & { status?: "ACTIVE" | "INVITATION_PENDING" }) | null
+  > = await Promise.all(
+    lastMessages.map(async (lm) => {
       const lastMsg = lm.message as MessageData | null;
       const roomData = lm.room;
       if (!roomData) return null;
@@ -395,10 +397,13 @@ export async function getFormattedRooms(
         status,
         messages: lastMsg ? [lastMsg] : [],
         members: roomData.members || [],
-      } as any;
-    }));
+      };
+    }),
+  );
 
-  const filteredRooms = rooms.filter((r): r is RoomData => r !== null);
+  const filteredRooms = rooms.filter(
+    (r): r is RoomData & { status?: "ACTIVE" | "INVITATION_PENDING" } => r !== null,
+  );
 
   if (!cursor) {
     // Chercher le dernier message sauvegardé (SAVED texte ou VOICENOTE sans room)

@@ -842,7 +842,7 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
                     key={msg.tempId}
                     tempId={msg.tempId}
                     progress={msg.voiceNoteProgress?.progress}
-                    status={msg.voiceNoteProgress?.status as any}
+                    status={msg.voiceNoteProgress?.status}
                     error={msg.voiceNoteProgress?.error}
                     onRetry={() => handleRetryMessage(msg)}
                   />

@@ -319,8 +319,7 @@ export function ReactionList ({
           onShowDetails(e);
         }}
         className={cn(
-          "bg-background/95 backdrop-blur-sm border border-border shadow-md rounded-full px-1.5 py-0.5 flex items-center gap-1 cursor-pointer",
-          "hover:scale-110 transition-transform hover:shadow-lg active:scale-95 ring-offset-2 hover:ring-2 ring-primary/20"
+          "bg-background/95 backdrop-blur-sm border border-border shadow-md rounded-full px-1.5 py-0.5 flex items-center gap-1 cursor-pointer hover:scale-110 transition-transform hover:shadow-lg active:scale-95 ring-accent"
         )}
       >
         <div className="flex -space-x-1 px-1">

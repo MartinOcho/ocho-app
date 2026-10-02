@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
       // Gestion du device pour Android
       if (deviceId && deviceTypeHeader) {
         const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-        const geoLocation = await detectGeoLocationFromIP(ip, req.headers as any);
+        const geoLocation = await detectGeoLocationFromIP(ip, req.headers);
 
         let device = await prisma.device.findUnique({
           where: { deviceId: deviceId },

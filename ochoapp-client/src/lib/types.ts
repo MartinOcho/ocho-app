@@ -253,7 +253,7 @@ export function getChatRoomDataInclude(userId: string | undefined = undefined) {
     },
     messages: {
       take: 1,
-      select: getMessageDataSelect(),
+      include: getMessageDataInclude(userId || ""),
       orderBy: { createdAt: "desc" },
     },
   } satisfies Prisma.RoomInclude;
