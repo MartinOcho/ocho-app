@@ -163,7 +163,7 @@ export default function Post({ post }: PostProps) {
   return (
     <article
       className={cn(
-        "group/post bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md",
+        "group/post font-emoji  bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md",
         isCarouselFullscreen && "z-50",
       )}
     >
