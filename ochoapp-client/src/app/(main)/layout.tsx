@@ -13,11 +13,14 @@ import SocketProvider from "@/components/providers/SocketProvider";
 import { Toaster } from "@/components/ui/toaster";
 import MobileAppToast from "@/components/MobileAppToast";
 import DeviceInitializer from "@/components/DeviceInitializer";
+import PostModalProvider from "@/components/posts/PostModalProvider";
 
 export default async function Layout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
 }) {
   const session = await validateRequest();
 
@@ -28,13 +31,16 @@ export default async function Layout({
           <LanguageProvider>
               <Toaster />
               <NavigationProvider>
-                <div className="relative flex h-screen max-h-dvh w-full flex-col font-emoji">
-                  <div className="relative h-full max-h-full w-full overflow-hidden">
-                    <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
-                      {children}
-                    </main>
+                <PostModalProvider>
+                  <div className="relative flex h-screen max-h-dvh w-full flex-col font-emoji">
+                    <div className="relative h-full max-h-full w-full overflow-hidden">
+                      <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
+                        {children}
+                      </main>
+                    </div>
                   </div>
-                </div>
+                  {modal}
+                </PostModalProvider>
               </NavigationProvider>
           </LanguageProvider>
         </EmptySession>
@@ -59,16 +65,19 @@ export default async function Layout({
               <MenuBarProvider>
                 <SearchProvider>
                   <ChatProvider>
-                    <div className="relative flex h-screen max-h-dvh w-full flex-col">
-                      <Navbar />
-                      <div className="relative h-full max-h-full w-full overflow-hidden">
-                        <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
-                          <MenuBar className="bg-card sticky top-0 hidden h-fit flex-none space-y-3 rounded-3xl p-3 sm:block lg:px-5 xl:w-60" />
-                          {children}
-                        </main>
+                    <PostModalProvider>
+                      <div className="relative flex h-screen max-h-dvh w-full flex-col">
+                        <Navbar />
+                        <div className="relative h-full max-h-full w-full overflow-hidden">
+                          <main className="mx-auto flex h-full max-h-full w-full max-w-7xl justify-center gap-5 overflow-auto sm:p-5">
+                            <MenuBar className="bg-card sticky top-0 hidden h-fit flex-none space-y-3 rounded-3xl p-3 sm:block lg:px-5 xl:w-60" />
+                            {children}
+                          </main>
+                        </div>
                       </div>
                       <BottomMenuBar />
-                    </div>
+                      {modal}
+                    </PostModalProvider>
                   </ChatProvider>
                 </SearchProvider>
               </MenuBarProvider>

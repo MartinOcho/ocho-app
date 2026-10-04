@@ -35,7 +35,7 @@ interface SocketContextType {
   messagesUnread?: number | null;
   getPendingMessages: (roomId: string) => PendingMessage[];
   respondToInvitation: (roomId: string, accept: boolean) => void;
-  sendGroupInvitation: (targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string) => void;
+  sendGroupInvitation: (targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -49,7 +49,7 @@ const SocketContext = createContext<SocketContextType>({
   messagesUnread: null,
   getPendingMessages: () => [],
   respondToInvitation: () => {},
-  sendGroupInvitation: () => {},
+  sendGroupInvitation: () => Promise.resolve({ success: false, error: "Non initialisé" }),
 });
 
 // Hook personnalisé pour utiliser le socket
@@ -132,10 +132,24 @@ export default function SocketProvider({
     }
   }, []);
 
-  const sendGroupInvitation = useCallback((targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("send_group_invitation", { targetRoomId, targetUserId, groupToInviteToId });
-    }
+  const sendGroupInvitation = useCallback((targetRoomId: string | null, targetUserId: string | null, groupToInviteToId: string): Promise<{ success: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      if (!socketRef.current?.connected) {
+        resolve({ success: false, error: "Serveur temps réel déconnecté." });
+        return;
+      }
+      socketRef.current.emit(
+        "send_group_invitation",
+        { targetRoomId, targetUserId, groupToInviteToId },
+        (res: { success: boolean; error?: string }) => {
+          if (res && res.success) {
+            resolve({ success: true });
+          } else {
+            resolve({ success: false, error: res?.error || "Impossible d'envoyer l'invitation." });
+          }
+        }
+      );
+    });
   }, []);
 
   // Fonction pour forcer une reconnexion manuelle

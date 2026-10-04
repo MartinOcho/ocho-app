@@ -120,21 +120,42 @@ export function InviteMemberForm({ onInvite, room }: InviteMemberFormProps) {
 
   const users = data?.pages?.flatMap((page) => page?.users) || [];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!sendGroupInvitation) return;
     setLoading(true);
 
-    selectedUsers.forEach((targetUser) => {
-        sendGroupInvitation(null, targetUser.id, room.id);
-    });
+    let successCount = 0;
+    let lastError = "";
+
+    for (const targetUser of selectedUsers) {
+      const res = await sendGroupInvitation(null, targetUser.id, room.id);
+      if (res.success) {
+        successCount++;
+      } else {
+        lastError = res.error || "Impossible d'envoyer l'invitation.";
+      }
+    }
 
     setLoading(false);
-    toast({
-        description: "Invitations envoyées avec succès",
-    });
-    setSelectedUsers([]);
-    setQuery("");
-    onInvite();
+
+    if (successCount === selectedUsers.length) {
+      toast({
+        description: selectedUsers.length > 1 ? "Invitations envoyées avec succès" : "Invitation envoyée avec succès",
+      });
+      setSelectedUsers([]);
+      setQuery("");
+      onInvite();
+    } else if (successCount > 0) {
+      toast({
+        variant: "destructive",
+        description: `${successCount} invitation(s) envoyée(s). Erreur : ${lastError}`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        description: `Échec de l'envoi : ${lastError}`,
+      });
+    }
   };
 
   return (

@@ -937,7 +937,7 @@ io.on("connection", async (socket: Socket) => {
 
   groupManagment(io, socket, { userId, username, displayName, avatarUrl });
 
-  socket.on("start_chat", async (data: SocketStartChatEvent) => {
+  socket.on("start_chat", async (data: SocketStartChatEvent, callback?: (res: { success: boolean; data?: any; error?: string }) => void) => {
     try {
       const result = await handleStartChat(data, userId);
 
@@ -951,13 +951,23 @@ io.on("connection", async (socket: Socket) => {
         });
 
         socket.emit("room_ready", newRoom);
+        if (typeof callback === "function") {
+          callback({ success: true, data: newRoom });
+        }
       } else {
         // Room existante
         socket.emit("room_ready", result);
+        if (typeof callback === "function") {
+          callback({ success: true, data: result });
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur start_chat:", error);
-      socket.emit("error_message", "Impossible de créer la discussion.");
+      const errorMessage = error?.message || "Impossible de créer la discussion.";
+      socket.emit("error_message", errorMessage);
+      if (typeof callback === "function") {
+        callback({ success: false, error: errorMessage });
+      }
     }
   });
 
@@ -1869,7 +1879,7 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
-  socket.on("respond_to_invitation", async (data: SocketRespondToRoomInvitationEvent) => {
+  socket.on("respond_to_invitation", async (data: SocketRespondToRoomInvitationEvent, callback?: (res: { success: boolean; data?: any; error?: string }) => void) => {
     try {
       const { roomId, accept } = data;
       const result = await handleRespondToRoomInvitation(roomId, accept, userId);
@@ -1882,12 +1892,21 @@ io.on("connection", async (socket: Socket) => {
 
       const updatedRooms = await getFormattedRooms(userId, "");
       io.to(userId).emit("room_list_updated", updatedRooms);
-    } catch (error) {
+
+      if (typeof callback === "function") {
+        callback({ success: true, data: result });
+      }
+    } catch (error: any) {
       console.error("Erreur respond_to_invitation:", error);
+      const errorMessage = error?.message || "Erreur lors de la réponse à l'invitation.";
+      socket.emit("error_message", errorMessage);
+      if (typeof callback === "function") {
+        callback({ success: false, error: errorMessage });
+      }
     }
   });
 
-  socket.on("send_group_invitation", async (data: SocketSendGroupInvitationEvent) => {
+  socket.on("send_group_invitation", async (data: SocketSendGroupInvitationEvent, callback?: (res: { success: boolean; data?: any; error?: string }) => void) => {
     try {
       const { targetRoomId, targetUserId, groupToInviteToId } = data;
       const { message, roomId } = await handleSendGroupInvitation(
@@ -1909,9 +1928,17 @@ io.on("connection", async (socket: Socket) => {
         const updatedRooms = await getFormattedRooms(targetUserId, "");
         io.to(targetUserId).emit("room_list_updated", updatedRooms);
       }
-    } catch (error: unknown) {
+
+      if (typeof callback === "function") {
+        callback({ success: true, data: { message, roomId } });
+      }
+    } catch (error: any) {
       console.error("Erreur send_group_invitation:", error);
-      socket.emit("error_message", "Impossible d'envoyer l'invitation.");
+      const errorMessage = error?.message || "Impossible d'envoyer l'invitation.";
+      socket.emit("error_message", errorMessage);
+      if (typeof callback === "function") {
+        callback({ success: false, error: errorMessage });
+      }
     }
   });
 

@@ -7,74 +7,17 @@ import SetNavigation from "@/components/SetNavigation";
 import UserAvatar from "@/components/UserAvatar";
 import UserTooltip from "@/components/UserTooltip";
 import prisma from "@/lib/prisma";
-import { getPostDataIncludes, getUserDataSelect, UserData } from "@/lib/types";
+import { getUserDataSelect, UserData } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import OchoLink from "@/components/ui/OchoLink";
-import { notFound, redirect } from "next/navigation";
-import { cache, Suspense } from "react";
+import { Suspense } from "react";
 import { translation } from "@/lib/vocabulary";
+import { getPost } from "@/lib/getPost";
 
 interface PageProps {
   params: Promise<{ postId: string }>;
   searchParams: Promise<{ comment?: string }>;
 }
-
-// Ajoutez une vérification pour le commentaire cible
-const getPost = cache(
-  async (postId: string, loggedInUserId: string, targetComment?: string) => {
-    const postUser = await prisma.post.findUnique({
-      where: { id: postId },
-      select: {
-        user: true,
-      },
-    });
-    const username = postUser?.user.username;
-    const post = await prisma.post.findFirst({
-      where: {
-        AND: [
-          { id: postId },
-          {
-            OR: [
-              {
-                userId: loggedInUserId,
-              },
-              {
-                visibility: "FOLLOWERS",
-                user: {
-                  followers: {
-                    some: {
-                      followerId: loggedInUserId,
-                    },
-                  },
-                },
-              },
-              {
-                visibility: "PUBLIC",
-              },
-            ],
-          },
-        ],
-      },
-      include: getPostDataIncludes(loggedInUserId, username),
-    });
-
-    if (!post) notFound();
-
-    // Vérifiez si le commentaire cible existe
-    if (targetComment) {
-      const commentExists = await prisma.comment.findFirst({
-        where: { id: targetComment, postId },
-      });
-
-      // Si le commentaire n'existe pas, redirigez vers la page de post sans le paramètre `comment`
-      if (!commentExists) {
-        redirect(`/posts/${postId}`);
-      }
-    }
-
-    return post;
-  },
-);
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { user } = await validateRequest();

@@ -44,6 +44,8 @@ import { Share2 } from "lucide-react";
 import { toast } from "../ui/use-toast";
 import AppLogo from "../AppLogo";
 import Link from "next/link";
+import { usePostModal } from "@/context/PostModalContext";
+import { createPortal } from "react-dom";
 
 interface PostProps {
   post: PostData;
@@ -52,6 +54,7 @@ interface PostProps {
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
   const { startNavigation: navigate } = useProgress();
+  const { openPost } = usePostModal();
   const pathname = usePathname();
 
   const [showComment, setShowComment] = useState(false);
@@ -99,7 +102,12 @@ export default function Post({ post }: PostProps) {
     if (pathname.startsWith(`/posts/${post.id}`)) {
       return;
     }
-    navigate(`/posts/${post.id}${param}`);
+    const href = `/posts/${post.id}${param}`;
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      openPost(post, href);
+    } else {
+      navigate(href);
+    }
   }
 
   const timestamp =
@@ -156,6 +164,7 @@ export default function Post({ post }: PostProps) {
         gradient={gradient}
         canShowGradient={!!canShowGradient}
         relative={relative}
+        onPostPage={postPage}
       />
     );
   }
@@ -201,6 +210,10 @@ export default function Post({ post }: PostProps) {
               href={`/posts/${post.id}`}
               className="text-muted-foreground block text-sm"
               suppressHydrationWarning
+              onClick={(event) => {
+                event.preventDefault();
+                postPage();
+              }}
             >
               <Time
                 time={post.createdAt}
@@ -270,6 +283,62 @@ export default function Post({ post }: PostProps) {
             onFullscreenChange={(_index, isFullscreen) => {
               setIsCarouselFullscreen(isFullscreen);
             }}
+            fullscreenDetails={
+              <div className="flex h-full min-h-0 flex-col bg-card text-foreground">
+                <div className="border-b p-4">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      userId={post.user.id}
+                      avatarUrl={post.user.avatarUrl}
+                      hideBadge={false}
+                    />
+                    <div>
+                      <p className="font-semibold">
+                        {post.user.displayName}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        <Time
+                          time={post.createdAt}
+                          relative={relative}
+                          long={!relative}
+                        />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {post.content && (
+                  <div className="max-h-[30vh] overflow-y-auto border-b p-4">
+                    <Linkify postId={post.id}>
+                      <p className="wrap-break-word whitespace-pre-line">
+                        {post.content}
+                      </p>
+                    </Linkify>
+                  </div>
+                )}
+                <div className="flex items-center gap-5 border-b p-4">
+                  <LikeButton
+                    postId={post.id}
+                    recipientId={post.user.id}
+                    initialState={{
+                      likes: post._count.likes,
+                      isLikedByUser: post.likes.some(
+                        (like) => like.userId === user.id,
+                      ),
+                    }}
+                  />
+                  <CommentButton
+                    comments={post._count.comments}
+                    onClick={() => setShowComment(true)}
+                  />
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <Comments
+                    post={post}
+                    onClose={() => setShowComment(false)}
+                  />
+                </div>
+              </div>
+            }
           />
         )}
       </div>
@@ -335,12 +404,14 @@ function DisconnectedPost({
   gradient,
   canShowGradient,
   relative,
+  onPostPage,
 }: {
   post: PostData;
   verifiedCheck: React.ReactNode;
   gradient: string;
   canShowGradient: boolean | number;
   relative: boolean;
+  onPostPage: () => void;
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -390,6 +461,10 @@ function DisconnectedPost({
               <OchoLink
                 href={`/posts/${post.id}`}
                 className="text-muted-foreground block text-sm"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPostPage();
+                }}
               >
                 <Time
                   time={post.createdAt}
@@ -452,6 +527,7 @@ interface MediaPreviewsProps {
   startIndex?: number;
   onFullscreenChange?: (index: number, isFullscreen: boolean) => void;
   authorDisplayName?: string;
+  fullscreenDetails?: React.ReactNode;
 }
 
 function MediaPreviews({
@@ -459,6 +535,7 @@ function MediaPreviews({
   startIndex = 0,
   onFullscreenChange,
   authorDisplayName,
+  fullscreenDetails,
 }: MediaPreviewsProps) {
   const { t } = useTranslation();
   const [showCarousel, setShowCarousel] = useState(false);
@@ -507,16 +584,22 @@ function MediaPreviews({
   }, [api, index]);
 
   const [isFullscreen, setIsFullscreen] = useState<Record<number, boolean>>({});
+  const viewerRef = useRef<HTMLDivElement | null>(null);
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const toggleFullscreen = (index: number) => {
-    const element = containerRefs.current[index];
-    if (element) {
-      if (!document.fullscreenElement) {
-        element.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
+    const fullscreenTarget = window.matchMedia("(min-width: 1024px)").matches
+      ? viewerRef.current
+      : containerRefs.current[index];
+
+    if (!document.fullscreenElement && fullscreenTarget) {
+      void fullscreenTarget.requestFullscreen().catch((error: unknown) =>
+        console.error("Unable to enter fullscreen mode:", error),
+      );
+    } else if (document.fullscreenElement) {
+      void document.exitFullscreen().catch((error: unknown) =>
+        console.error("Unable to exit fullscreen mode:", error),
+      );
     }
   };
 
@@ -526,6 +609,8 @@ function MediaPreviews({
       const isCurrentlyFullscreen = attachments.reduce(
         (acc, _, index) => {
           acc[index] =
+            (index === api?.selectedScrollSnap() &&
+              viewerRef.current === currentFullscreenElement) ||
             containerRefs.current[index] === currentFullscreenElement;
           return acc;
         },
@@ -539,7 +624,7 @@ function MediaPreviews({
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [attachments]);
+  }, [api, attachments]);
 
   return (
     <div>
@@ -598,118 +683,123 @@ function MediaPreviews({
         )}
       </div>
 
-      {
-        <div
-          className={cn(
-            "fixed inset-0 z-50 flex items-center justify-center bg-black/20",
-            !showCarousel && "hidden",
-          )}
-        >
-          <div className="relative flex h-full w-full items-center justify-center">
-            <Carousel
-              className="flex h-full w-full items-center *:w-full"
-              opts={{ startIndex: index }}
-              setApi={setApi}
-            >
-              <div
-                className="fixed h-full w-full"
-                onClick={() => setShowCarousel(false)}
-              ></div>
-              <CarouselContent className="h-full w-full">
-                {attachments.map((m, i) => (
-                  <CarouselItem key={m.id} className="w-full">
-                    <div
-                      className={cn(
-                        "relative flex h-full w-full items-center justify-center",
-                        !showCarousel && "pointer-events-none",
-                      )}
-                    >
+      {showCarousel &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={viewerRef}
+            className="fixed inset-0 z-[100] flex bg-black/90"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                setShowCarousel(false);
+              }
+            }}
+          >
+            <div className="relative flex h-full min-w-0 flex-1 items-center justify-center">
+              <Carousel
+                className="flex h-full w-full items-center *:w-full"
+                opts={{ startIndex: index }}
+                setApi={setApi}
+              >
+                <CarouselContent className="h-full w-full">
+                  {attachments.map((m, i) => (
+                    <CarouselItem key={m.id} className="w-full">
                       <div
                         className={cn(
-                          "relative w-fit overflow-hidden rounded-xl",
-                          isFullscreen[i] &&
-                            "fixed h-screen w-screen rounded-none",
+                          "relative flex h-full w-full items-center justify-center",
+                          !showCarousel && "pointer-events-none",
                         )}
-                        ref={(el) => {
-                          containerRefs.current[i] = el;
-                        }}
                       >
-                        <MediaPreview
-                          media={m}
-                          useDefault
+                        <div
                           className={cn(
-                            "object-contain max-sm:w-full sm:h-full sm:min-w-[500px]",
-                            isFullscreen[i]
-                              ? "absolute flex h-screen w-screen max-w-full items-center justify-center rounded-none"
-                              : "sm:max-w-[800px]",
+                            "relative flex h-full w-fit items-center justify-center overflow-hidden rounded-xl",
+                            isFullscreen[i] &&
+                              "max-lg:fixed max-lg:h-screen max-lg:w-screen max-lg:rounded-none",
                           )}
-                          alt={
-                            authorDisplayName
-                              ? `Image partagée par ${authorDisplayName} sur OchoApp`
-                              : "Image partagée sur OchoApp"
-                          }
-                          hidden={showCarousel}
-                        />
-                        <div className="absolute top-2 right-2 flex items-center gap-2">
-                          <div
+                          ref={(element) => {
+                            containerRefs.current[i] = element;
+                          }}
+                        >
+                          <MediaPreview
+                            media={m}
+                            useDefault
                             className={cn(
-                              "rounded-2xl",
-                              isFullscreen[i] && "p-4",
+                              "object-contain max-sm:w-full sm:h-full sm:min-w-[500px]",
+                              isFullscreen[i]
+                                ? "max-h-screen max-w-[100vw] rounded-none lg:max-w-[calc(100vw-400px)]"
+                                : "sm:max-w-[800px] lg:max-w-[calc(100vw-400px)]",
                             )}
-                          >
-                            <FullscreenButton
-                              isFullscreen={isFullscreen[i]}
-                              onFullscreen={() => {
-                                toggleFullscreen(i);
-                              }}
-                            />
-                          </div>
-                          {!isFullscreen[i] && attachments.length > 1 && (
-                            <div className="bg-primary/70 text-primary-foreground rounded-2xl px-3">
-                              {i + 1}/{attachments.length}
+                            alt={
+                              authorDisplayName
+                                ? `Image partagée par ${authorDisplayName} sur OchoApp`
+                                : "Image partagée sur OchoApp"
+                            }
+                            hidden={false}
+                          />
+                          <div className="absolute top-2 right-2 flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "rounded-2xl",
+                                isFullscreen[i] && "p-4",
+                              )}
+                            >
+                              <FullscreenButton
+                                isFullscreen={isFullscreen[i]}
+                                onFullscreen={() => toggleFullscreen(i)}
+                              />
                             </div>
-                          )}
+                            {!isFullscreen[i] && attachments.length > 1 && (
+                              <div className="bg-primary/70 text-primary-foreground rounded-2xl px-3">
+                                {i + 1}/{attachments.length}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {attachments.length > 1 && (
-                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between p-4">
-                  {canScrollPrev && (
-                    <div
-                      className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
-                      onClick={() => {
-                        api?.scrollPrev();
-                      }}
-                    >
-                      <ChevronLeft className="" />
-                    </div>
-                  )}
-                  <div />
-                  {canScrollNext && (
-                    <div
-                      className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
-                      onClick={() => {
-                        api?.scrollNext();
-                      }}
-                    >
-                      <ChevronRight className="" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </Carousel>
-          </div>
-          <div
-            className="fixed top-4 right-4 cursor-pointer hover:text-red-500"
-            onClick={() => setShowCarousel(false)}
-          >
-            <X size={40} className="" />
-          </div>
-        </div>
-      }
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                {attachments.length > 1 && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between p-4">
+                    {canScrollPrev && (
+                      <div
+                        className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
+                        onClick={() => {
+                          api?.scrollPrev();
+                        }}
+                      >
+                        <ChevronLeft className="" />
+                      </div>
+                    )}
+                    <div />
+                    {canScrollNext && (
+                      <div
+                        className="bg-muted border-input text-muted-foreground pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2"
+                        onClick={() => {
+                          api?.scrollNext();
+                        }}
+                      >
+                        <ChevronRight className="" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Carousel>
+            </div>
+            <aside className="hidden h-full w-[min(400px,32vw)] shrink-0 border-l border-border bg-card lg:block">
+              {fullscreenDetails}
+            </aside>
+            <button
+              type="button"
+              aria-label={t("close")}
+              className="absolute top-4 right-4 z-20 cursor-pointer rounded-full bg-black/60 p-2 text-white hover:text-red-400"
+              onClick={() => setShowCarousel(false)}
+            >
+              <X size={28} />
+            </button>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -770,7 +860,7 @@ function MediaPreview({
               : "max-h-[90vh] max-w-[90vw]",
             className,
           )}
-          loading="lazy"
+          loading={hidden ? "lazy" : "eager"}
         />
       </Zoomable>
     );

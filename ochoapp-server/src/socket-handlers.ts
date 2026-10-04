@@ -303,10 +303,81 @@ export async function handleSendGroupInvitation(
   userId: string,
   expiresInDays: number = 7,
 ) {
+  if (!groupToInviteToId) {
+    throw new Error("ID du groupe d'invitation requis.");
+  }
+
+  // 1. Sécurité : Vérifier que l'expéditeur est membre actif du groupe
+  const senderMember = await prisma.roomMember.findFirst({
+    where: {
+      roomId: groupToInviteToId,
+      userId: userId,
+      leftAt: null,
+      type: { notIn: ["BANNED", "OLD"] },
+    },
+  });
+
+  if (!senderMember) {
+    throw new Error("Vous devez être membre de ce groupe pour inviter d'autres personnes.");
+  }
+
+  // 2. Vérifier que le groupe existe et est bien un groupe
+  const groupToInvite = await prisma.room.findUnique({
+    where: { id: groupToInviteToId },
+  });
+
+  if (!groupToInvite || !groupToInvite.isGroup) {
+    throw new Error("Le groupe sélectionné n'existe pas ou n'est pas un groupe.");
+  }
+
+  // 3. Vérifier les autorisations de privilège sur le groupe
+  if (
+    (groupToInvite.privilege === "RESTRICTED_INVITATIONS" || groupToInvite.privilege === "RESTRICTED") &&
+    senderMember.type !== "OWNER" &&
+    senderMember.type !== "ADMIN"
+  ) {
+    throw new Error("Seuls les administrateurs du groupe sont autorisés à envoyer des invitations.");
+  }
+
+  // 4. Si targetUserId est fourni, valider son statut et sa confidentialité
+  if (targetUserId) {
+    if (targetUserId === userId) {
+      throw new Error("Vous êtes déjà dans ce groupe.");
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: getUserDataSelect(userId),
+    });
+
+    if (!targetUser) {
+      throw new Error("Utilisateur cible introuvable.");
+    }
+
+    // Vérifier la confidentialité des messages de l'utilisateur
+    validatePrivacy(targetUser, userId);
+
+    // Vérifier si l'utilisateur est déjà membre ou banni du groupe
+    const existingGroupMember = await prisma.roomMember.findUnique({
+      where: {
+        roomId_userId: { roomId: groupToInviteToId, userId: targetUserId },
+      },
+    });
+
+    if (existingGroupMember) {
+      if (existingGroupMember.type === "BANNED") {
+        throw new Error("Cet utilisateur est banni de ce groupe.");
+      }
+      if (!existingGroupMember.leftAt && existingGroupMember.type !== "OLD") {
+        throw new Error("Cet utilisateur est déjà membre du groupe.");
+      }
+    }
+  }
+
   let roomId = targetRoomId;
 
   if (!roomId && targetUserId) {
-    // Trouver ou créer la room avec cet utilisateur
+    // Trouver ou créer la room directe 1-on-1 avec cet utilisateur
     const existingRoom = await prisma.room.findFirst({
       where: {
         isGroup: false,
@@ -346,14 +417,21 @@ export async function handleSendGroupInvitation(
     }
   }
 
-  if (!roomId) throw new Error("Target room or user ID required");
+  if (!roomId) throw new Error("Salon cible ou identifiant utilisateur requis.");
 
-  const groupToInvite = await prisma.room.findUnique({
-    where: { id: groupToInviteToId },
+  // 5. Vérifier s'il y a déjà une invitation PENDING active dans cette discussion
+  const pendingInvitation = await prisma.invitation.findFirst({
+    where: {
+      roomId: groupToInviteToId,
+      status: "PENDING",
+      message: {
+        roomId: roomId,
+      },
+    },
   });
 
-  if (!groupToInvite || !groupToInvite.isGroup) {
-    throw new Error("Invalid group to invite to");
+  if (pendingInvitation) {
+    throw new Error("Une invitation pour ce groupe est déjà en attente dans cette discussion.");
   }
 
   // Calculer la date d'expiration (7 jours par défaut)
