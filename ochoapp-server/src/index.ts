@@ -963,7 +963,7 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error: any) {
       console.error("Erreur start_chat:", error);
-      const errorMessage = error?.message || "Impossible de créer la discussion.";
+      const errorMessage = error?.message || "start_chat_failed";
       socket.emit("error_message", errorMessage);
       if (typeof callback === "function") {
         callback({ success: false, error: errorMessage });
@@ -1898,7 +1898,7 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error: any) {
       console.error("Erreur respond_to_invitation:", error);
-      const errorMessage = error?.message || "Erreur lors de la réponse à l'invitation.";
+      const errorMessage = error?.message || "respond_to_invitation_failed";
       socket.emit("error_message", errorMessage);
       if (typeof callback === "function") {
         callback({ success: false, error: errorMessage });
@@ -1934,7 +1934,7 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error: any) {
       console.error("Erreur send_group_invitation:", error);
-      const errorMessage = error?.message || "Impossible d'envoyer l'invitation.";
+      const errorMessage = error?.message || "send_group_invitation_failed";
       socket.emit("error_message", errorMessage);
       if (typeof callback === "function") {
         callback({ success: false, error: errorMessage });

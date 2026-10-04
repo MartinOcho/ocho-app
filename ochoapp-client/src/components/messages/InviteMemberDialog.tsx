@@ -60,7 +60,10 @@ interface InviteMemberFormProps {
   room: RoomData;
 }
 
-export function InviteMemberForm({ onInvite, room }: InviteMemberFormProps) {
+export function InviteMemberForm({
+  onInvite,
+  room,
+}: InviteMemberFormProps) {
   const [query, setQuery] = useState<string>("");
   const [inputValue, setInputValue] = useState<string>("");
   const [selectedUsers, setSelectedUsers] = useState<UserData[]>([]);
@@ -138,6 +141,8 @@ export function InviteMemberForm({ onInvite, room }: InviteMemberFormProps) {
 
     setLoading(false);
 
+    const localizedError = lastError ? (t(lastError as any) || lastError) : "";
+
     if (successCount === selectedUsers.length) {
       toast({
         description: selectedUsers.length > 1 ? "Invitations envoyées avec succès" : "Invitation envoyée avec succès",
@@ -148,12 +153,12 @@ export function InviteMemberForm({ onInvite, room }: InviteMemberFormProps) {
     } else if (successCount > 0) {
       toast({
         variant: "destructive",
-        description: `${successCount} invitation(s) envoyée(s). Erreur : ${lastError}`,
+        description: `${successCount} invitation(s) envoyée(s). Erreur : ${localizedError}`,
       });
     } else {
       toast({
         variant: "destructive",
-        description: `Échec de l'envoi : ${lastError}`,
+        description: `Échec de l'envoi : ${localizedError}`,
       });
     }
   };
