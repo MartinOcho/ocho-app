@@ -165,7 +165,7 @@ export async function handleStartChat(
     }
     const targetUser = await prisma.user.findUnique({
       where: { id: targetUserId },
-      include: getUserDataSelect(userId),
+      select: getUserDataSelect(userId),
     });
 
     if (!targetUser) {
@@ -186,7 +186,7 @@ export async function handleStartChat(
     const otherMemberIds = uniqueMemberIds.filter((id) => id !== userId);
     const membersAccount = await prisma.user.findMany({
       where: { id: { in: otherMemberIds } },
-      include: getUserDataSelect(userId),
+      select: getUserDataSelect(userId),
     });
     const { validUsers } = validatePrivacies(membersAccount, userId);
 
@@ -347,7 +347,7 @@ export async function handleSendGroupInvitation(
 
     const targetUser = await prisma.user.findUnique({
       where: { id: targetUserId },
-      include: getUserDataSelect(userId),
+      select: getUserDataSelect(userId),
     });
 
     if (!targetUser) {

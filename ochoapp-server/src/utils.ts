@@ -17,12 +17,39 @@ import { Prisma } from "@prisma/client";
 
 
 const JWT_SECRET =
-  process.env.JWT_SECRET || "super_secret_key_change_me_in_prod";
-const INTERNAL_SECRET = process.env.INTERNAL_SERVER_SECRET || "default_secret";
+  process.env.JWT_SECRET;
+const INTERNAL_SECRET = process.env.INTERNAL_SERVER_SECRET;
 
 // Fonction helper pour normaliser les accents
 function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/**
+ * 🔒 Masque les erreurs serveur internes (Prisma, JS Runtime, Stacktraces)
+ * et ne retourne au client que des clés d'erreur sécurisées ou métier.
+ */
+export function getSafeErrorMessage(error: any, fallbackKey: string = "server_error"): string {
+  if (!error) return fallbackKey;
+
+  const msg = typeof error === "string" ? error : error.message;
+  if (!msg || typeof msg !== "string") return fallbackKey;
+
+  // Si c'est une exception Prisma, un stack trace ou une erreur runtime JS
+  if (
+    error.name?.includes("Prisma") ||
+    msg.includes("Prisma") ||
+    msg.includes("Invalid `prisma.") ||
+    msg.includes("invocation:") ||
+    msg.includes("\n    at ") ||
+    msg.includes("SyntaxError") ||
+    msg.includes("TypeError") ||
+    msg.length > 120
+  ) {
+    return fallbackKey;
+  }
+
+  return msg;
 }
 
 // --- HELPER LOGIQUE INVITATION ---
@@ -188,7 +215,7 @@ export async function validateSession(
     const { sessionId } = req.body;
     const internalSecret = req.headers["x-internal-secret"];
 
-    if (internalSecret !== INTERNAL_SECRET) {
+    if (internalSecret !== INTERNAL_SECRET || !JWT_SECRET) {
       return res.status(401).json({ error: "Accès refusé" });
     }
 
