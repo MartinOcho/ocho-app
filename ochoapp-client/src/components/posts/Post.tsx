@@ -374,7 +374,7 @@ export default function Post({ post }: PostProps) {
         className={cn(
           "bottom-0",
           !showComment &&
-            "invisible fixed -bottom-full z-50 h-full w-full transition-[bottom]",
+            "max-sm:invisible max-sm:fixed max-sm:-bottom-full max-sm:z-50 max-sm:h-full max-sm:w-full max-sm:transition-[bottom] max-sm:overflow-hidden",
         )}
       >
         {showComment && (
@@ -688,7 +688,7 @@ function MediaPreviews({
         createPortal(
           <div
             ref={viewerRef}
-            className="fixed inset-0 z-[100] flex bg-black/90"
+            className="fixed inset-0 z-100 flex bg-black/90"
             onClick={(event) => {
               if (event.target === event.currentTarget) {
                 setShowCarousel(false);

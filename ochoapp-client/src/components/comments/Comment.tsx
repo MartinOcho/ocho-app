@@ -59,7 +59,7 @@ export default function Comment({ comment, isTarget = false }: CommentProps) {
   return (
     <div
       className={cn(
-        "group/comment flex flex-shrink-0 flex-col items-end gap-2 bg-background/30 px-2 py-3 transition-all *:flex-shrink-0 sm:rounded-sm",
+        "group/comment flex shrink-0 flex-col items-end gap-2 bg-background/30 px-2 py-3 transition-all *:shrink-0 sm:rounded-sm",
         isTarget && "p-0",
       )}
     >
