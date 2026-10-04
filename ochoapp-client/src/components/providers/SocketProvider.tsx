@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import kyInstance from "@/lib/ky";
 import { MessageData, NotificationData, RoomData } from "@/lib/types";
 import { useTranslation } from "@/context/LanguageContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Définition des types pour le contexte
 interface PendingMessage {
@@ -82,6 +83,7 @@ export default function SocketProvider({
 }) {
   const { t } = useTranslation();
   const { user, token } = useSession();
+  const queryClient = useQueryClient();
 
   // Ref pour stocker l'instance du socket
   const socketRef = useRef<Socket | null>(null);
@@ -289,7 +291,17 @@ export default function SocketProvider({
       if (isComponentUnmounted) return;
       console.log("📩 Nouvelle discussion :", room);
       socketInstance.emit("join_room", room.id);
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["messages", "rooms"] });
       toast({ description: t().youAreAddedToANewRoom });
+    };
+
+    const onRoomDeleted = (data: { roomId: string }) => {
+      if (isComponentUnmounted) return;
+      console.log("🗑️ Room supprimée :", data.roomId);
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["messages", "rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["chat", data.roomId] });
     };
 
     const onNotificationsUnreadUpdate = (data: { unreadCount: number }) => {
@@ -358,6 +370,7 @@ export default function SocketProvider({
     socketInstance.on("receive_message", onReceiveMessage);
     socketInstance.on("user_status_change", onUserStatusChange);
     socketInstance.on("new_room_created", onNewRoomCreated);
+    socketInstance.on("room_deleted", onRoomDeleted);
     socketInstance.on("notifications_unread_update", onNotificationsUnreadUpdate);
     socketInstance.on("notification_received", onNotificationReceived);
     socketInstance.on("notification_deleted", onNotificationDeleted);

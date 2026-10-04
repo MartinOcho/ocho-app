@@ -103,19 +103,24 @@ export default function ChatSideBar({
   // --- SYNCHRONISATION HTTP -> STATE LOCAL ---
   useEffect(() => {
     if (httpRooms) {
-      setRooms((prev) => {
-        // Si on a déjà des données via socket, on évite de les écraser brutalement
-        // sauf si la liste locale est vide
-        if (prev.length > 0) return prev;
-        return httpRooms;
-      });
+      setRooms(httpRooms);
       setStatus("success");
       setIsLoading(false);
     } else if (isHttpError) {
-      // Gérer l'erreur si nécessaire
       if (rooms.length === 0) setStatus("error");
     }
-  }, [httpRooms, isHttpError, rooms.length]);
+  }, [httpRooms, isHttpError]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onRoomDeleted = ({ roomId }: { roomId: string }) => {
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    };
+    socket.on("room_deleted", onRoomDeleted);
+    return () => {
+      socket.off("room_deleted", onRoomDeleted);
+    };
+  }, [socket]);
 
   useEffect(() => {
     roomsRef.current = rooms;

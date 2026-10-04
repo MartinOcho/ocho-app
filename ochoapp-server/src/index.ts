@@ -1848,7 +1848,7 @@ io.on("connection", async (socket: Socket) => {
     }
   });
 
-  socket.on("delete_room", async (data: SocketDeleteRoomEvent) => {
+  socket.on("delete_room", async (data: SocketDeleteRoomEvent, callback?: (res: { success: boolean; error?: string }) => void) => {
     try {
       const { roomId } = data;
       const room = await prisma.room.findUnique({
@@ -1856,27 +1856,51 @@ io.on("connection", async (socket: Socket) => {
         include: { members: true },
       });
 
-      if (!room || room.isGroup)
-        throw new Error("Room not found or is a group");
+      if (!room) throw new Error("room_not_found");
 
       const hasCurrentUser = room.members.some(
         (member) => member.userId === userId,
       );
-      const deletedInterlocutorMembers = room.members.filter(
-        (member) => member.userId === null,
-      );
 
-      if (!hasCurrentUser || deletedInterlocutorMembers.length !== 1)
-        throw new Error("Room not found or invalid members");
+      if (!hasCurrentUser) throw new Error("not_authorized");
+
+      if (room.isGroup) {
+        const ownerMember = room.members.find((m) => m.userId === userId && m.type === "OWNER");
+        const activeMembers = room.members.filter((m) => !["OLD", "BANNED"].includes(m.type));
+
+        if (!ownerMember && activeMembers.length > 1) {
+          throw new Error("restricted_group_deletion");
+        }
+      }
+
+      const allMemberUserIds = room.members
+        .map((m) => m.userId)
+        .filter((uid): uid is string => uid !== null);
 
       await prisma.room.delete({ where: { id: roomId } });
 
-      io.to(userId).emit("room_deleted", { roomId });
+      io.to(roomId).emit("room_deleted", { roomId });
 
-      const userRooms = await getFormattedRooms(userId, "");
-      io.to(userId).emit("room_list_updated", userRooms);
-    } catch (error) {
+      for (const mid of allMemberUserIds) {
+        io.to(mid).emit("room_deleted", { roomId });
+        try {
+          const userRooms = await getFormattedRooms(mid, "");
+          io.to(mid).emit("room_list_updated", userRooms);
+        } catch (err) {
+          console.error("Error updating room_list in delete_room:", err);
+        }
+      }
+
+      if (typeof callback === "function") {
+        callback({ success: true });
+      }
+    } catch (error: any) {
       console.error("Erreur delete_room:", error);
+      const errorMessage = getSafeErrorMessage(error, "delete_room_failed");
+      socket.emit("error_message", errorMessage);
+      if (typeof callback === "function") {
+        callback({ success: false, error: errorMessage });
+      }
     }
   });
 

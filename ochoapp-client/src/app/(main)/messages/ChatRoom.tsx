@@ -38,6 +38,13 @@ import ChatSkeleton from "./skeletons/ChatSkeleton";
 import { useProgress } from "@/context/ProgressContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useSocket } from "@/components/providers/SocketProvider";
@@ -195,6 +202,8 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
     getPendingMessages,
     respondToInvitation,
   } = useSocket();
+
+  const [unavailableDialog, setUnavailableDialog] = useState<"DELETED" | "BANNED" | "REMOVED" | null>(null);
   const { isVisible, setIsVisible } = useMenuBar();
   const { isMediaFullscreen } = useActiveRoom();
 
@@ -435,6 +444,31 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       }
     });
 
+    const onRoomDeleted = ({ roomId: deletedId }: { roomId: string }) => {
+      if (deletedId === roomId) {
+        setUnavailableDialog("DELETED");
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      }
+    };
+
+    const onMemberBanned = ({ roomId: bannedRoomId, userId: bannedUserId }: { roomId: string; userId: string }) => {
+      if (bannedRoomId === roomId && bannedUserId === loggedUser?.id) {
+        setUnavailableDialog("BANNED");
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      }
+    };
+
+    const onMemberRemoved = ({ roomId: removedRoomId, userId: removedUserId }: { roomId: string; userId: string }) => {
+      if (removedRoomId === roomId && removedUserId === loggedUser?.id) {
+        setUnavailableDialog("REMOVED");
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      }
+    };
+
+    socket.on("room_deleted", onRoomDeleted);
+    socket.on("member_banned", onMemberBanned);
+    socket.on("member_removed", onMemberRemoved);
+
     // CLEANUP : C'est ici que la magie opère quand on change de room ou qu'on quitte
     return () => {
       socket.off("room_error", handleJoinError);
@@ -442,6 +476,9 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
       socket.off("message_deleted", handleMessageDeleted);
       socket.off("error", handleError);
       socket.off("typing_update", handleTypingUpdate);
+      socket.off("room_deleted", onRoomDeleted);
+      socket.off("member_banned", onMemberBanned);
+      socket.off("member_removed", onMemberRemoved);
 
       setTypingUsers([]); // Reset la liste visuelle
     };
@@ -1039,6 +1076,44 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={!!unavailableDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUnavailableDialog(null);
+            onClose();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {unavailableDialog === "DELETED"
+                ? t("chatUnavailableTitle")
+                : t("chatAccessDeniedTitle")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            {unavailableDialog === "DELETED" &&
+              t("chatUnavailableDescription")}
+            {unavailableDialog === "BANNED" &&
+              t("chatBannedDescription")}
+            {unavailableDialog === "REMOVED" &&
+              t("chatRemovedDescription")}
+          </p>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setUnavailableDialog(null);
+                onClose();
+              }}
+            >
+              {t("ok")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* MENU CONTEXTUEL (Click Droit) */}
       {contextMenuPos && (

@@ -1115,6 +1115,7 @@ export function groupManagment(
 
       io.to(roomId).emit("receive_message", { newMessage: removeMsg, roomId });
       io.to(roomId).emit("member_removed", { roomId, userId: targetId });
+      io.to(targetId).emit("member_removed", { roomId, userId: targetId });
 
       for (const uid of relevantUsers) {
         const userRooms = await getFormattedRooms(uid, "");
@@ -1168,6 +1169,7 @@ export function groupManagment(
       );
 
       io.to(roomId).emit("member_banned", { roomId, userId: targetId });
+      io.to(targetId).emit("member_banned", { roomId, userId: targetId });
       io.to(roomId).emit("receive_message", { newMessage: banMsg, roomId });
 
       for (const uid of relevantUsers) {
