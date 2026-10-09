@@ -259,12 +259,12 @@ export async function handleRespondToRoomInvitation(
   });
 
   if (!room || room.isGroup) {
-    throw new Error("Invalid room");
+    throw new Error("invalid_room");
   }
 
   const status = await computeRoomStatus(room, userId);
   if (status !== "INVITATION_PENDING") {
-    throw new Error("Room is not in pending invitation state");
+    throw new Error("room_not_pending_invitation");
   }
 
   const isRecipient = room.members.some(
@@ -272,7 +272,7 @@ export async function handleRespondToRoomInvitation(
   );
 
   if (!isRecipient) {
-    throw new Error("Not authorized to respond to this invitation");
+    throw new Error("not_authorized_respond_invitation");
   }
 
   if (accept) {
@@ -489,7 +489,7 @@ export async function handleMarkMessageRead(
     });
 
     if (!membership || membership.type === "BANNED" || membership.leftAt) {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
   }
 
@@ -497,7 +497,7 @@ export async function handleMarkMessageRead(
     where: { id: messageId },
   });
 
-  if (!message) throw new Error("Message not found");
+  if (!message) throw new Error("message_not_found");
 
   await prisma.read.upsert({
     where: {
@@ -534,7 +534,7 @@ export async function handleMarkMessageDelivered(
     });
 
     if (!membership || membership.type === "BANNED" || membership.leftAt) {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
   }
 
@@ -542,7 +542,7 @@ export async function handleMarkMessageDelivered(
     where: { id: messageId },
   });
 
-  if (!message) throw new Error("Message not found");
+  if (!message) throw new Error("message_not_found");
 
   await prisma.delivery.upsert({
     where: {
@@ -578,7 +578,7 @@ export async function handleAddReaction(
       where: { roomId_userId: { roomId, userId } },
     });
     if (!membership || membership.type === "BANNED" || membership.leftAt) {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
   }
 
@@ -590,10 +590,10 @@ export async function handleAddReaction(
       sender: { select: { id: true, username: true } },
     },
   });
-  if (!originalMessage) throw new Error("Message not found");
+  if (!originalMessage) throw new Error("message_not_found");
 
   if (!originalMessage.senderId) {
-    throw new Error("Invalid message state: senderId is not set");
+    throw new Error("invalid_message_state");
   }
 
   if (originalMessage.roomId) {
@@ -601,7 +601,7 @@ export async function handleAddReaction(
       where: { roomId_userId: { roomId: originalMessage.roomId, userId } },
     });
     if (!membership || membership.type === "BANNED" || membership.leftAt) {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
   }
 
@@ -704,23 +704,23 @@ export async function handleRemoveReaction(
       },
     },
   });
-  if (!message) throw new Error("Message not found");
+  if (!message) throw new Error("message_not_found");
 
   if (message.roomId) {
     const membership = await prisma.roomMember.findUnique({
       where: { roomId_userId: { roomId: message.roomId, userId } },
     });
     if (!membership || membership.type === "BANNED" || membership.leftAt) {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
   }
 
-  if (!message.reactions[0]) throw new Error("Reaction not found");
+  if (!message.reactions[0]) throw new Error("reaction_not_found");
 
   const reactionId = message.reactions[0].id;
   const originalSenderId = message.senderId;
 
-  if (!originalSenderId) throw new Error("Invalid message state");
+  if (!originalSenderId) throw new Error("invalid_message_state");
 
   await prisma.$transaction([
     prisma.reaction.delete({
@@ -809,10 +809,10 @@ export async function handleDeleteMessage(
     };
   }
 
-  if (!messageToDelete.senderId) throw new Error("Message not found");
+  if (!messageToDelete.senderId) throw new Error("message_not_found");
 
   if (messageToDelete.senderId !== userId) {
-    throw new Error("Non autorisé");
+    throw new Error("not_authorized");
   }
 
   const attachments = await prisma.messageAttachment.findMany({
@@ -1053,7 +1053,7 @@ export async function handleSendNormalMessage(
   });
 
   if (!membership || membership.type === "BANNED" || membership.leftAt) {
-    throw new Error("Non autorisé");
+    throw new Error("not_authorized");
   }
 
   // Récupérer les infos de la room pour déterminer si c'est un DM
@@ -1062,7 +1062,7 @@ export async function handleSendNormalMessage(
     include: getChatRoomDataInclude(),
   });
 
-  if (!room) throw new Error("Room not found");
+  if (!room) throw new Error("room_not_found");
 
   const status = await computeRoomStatus(room, userId);
 
@@ -1362,7 +1362,7 @@ export async function handleGetRoomDetails(
       select: getUserDataSelect(""),
     });
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error("user_not_found");
 
     const createInfo = await prisma.message.findFirst({
       where: {
@@ -1400,7 +1400,7 @@ export async function handleGetRoomDetails(
     });
 
     if (!membership || membership.type === "BANNED") {
-      throw new Error("Non autorisé");
+      throw new Error("not_authorized");
     }
 
     const isFormerMember = membership.leftAt !== null;
@@ -1411,7 +1411,7 @@ export async function handleGetRoomDetails(
       include: getChatRoomDataInclude(userId),
     });
 
-    if (!room) throw new Error("Room not found");
+    if (!room) throw new Error("room_not_found");
 
     const status = await computeRoomStatus(room, userId);
 
@@ -1509,7 +1509,7 @@ export async function handleGetLastMessage(
     });
 
     if (!lastSavedMessage) {
-      throw new Error("Aucun message enregistré trouvé.");
+      throw new Error("no_saved_messages_found");
     }
 
     // Format saved messages
@@ -1533,11 +1533,11 @@ export async function handleGetLastMessage(
   });
 
   if (!member) {
-    throw new Error("Utilisateur non trouvé.");
+    throw new Error("user_not_found");
   }
 
   if (member.type === "BANNED") {
-    throw new Error("Utilisateur banni.");
+    throw new Error("user_banned");
   }
 
   const leftDate = member.leftAt;
@@ -1552,7 +1552,7 @@ export async function handleGetLastMessage(
   });
 
   if (!lastMessage) {
-    throw new Error("Aucun message trouvé.");
+    throw new Error("no_messages_found");
   }
 
   await prisma.lastMessage.upsert({
@@ -1589,14 +1589,14 @@ export async function handleSendVoiceNote(
     where: { id: voiceNoteId },
   });
 
-  if (!voiceNote) throw new Error("Voice note not found");
+  if (!voiceNote) throw new Error("voicenote_not_found");
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
   });
 
   if (!membership || membership.type === "BANNED" || membership.leftAt) {
-    throw new Error("Non autorisé");
+    throw new Error("not_authorized");
   }
 
   // Récupérer les infos de la room
@@ -1605,7 +1605,7 @@ export async function handleSendVoiceNote(
     include: { members: true },
   });
 
-  if (!room) throw new Error("Room not found");
+  if (!room) throw new Error("room_not_found");
 
   let calculatedRecipientId = recipientId;
   if (!room.isGroup) {

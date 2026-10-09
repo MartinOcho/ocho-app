@@ -394,7 +394,7 @@ export async function getFormattedRooms(
     select: getUserDataSelect(userId, username),
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) throw new Error("user_not_found");
 
   const lastMessages = await prisma.lastMessage.findMany({
     where: { userId },
@@ -706,17 +706,17 @@ export function groupManagment(
         const { roomId, members } = addMemberSchema.parse(input);
 
         if (!members?.length)
-          throw new Error("Selectionnez au moins un utilisateur");
+          throw new Error("select_at_least_one_user");
 
         const room = await prisma.room.findFirst({
           where: { id: roomId },
           include: { members: true },
         });
-        if (!room || !room.isGroup) throw new Error("Groupe invalide");
+        if (!room || !room.isGroup) throw new Error("invalid_group");
 
         const existingMembers = room.members;
         if (existingMembers.length >= room.maxMembers)
-          throw new Error("Groupe plein");
+          throw new Error("group_full");
 
         const newMembers = members.filter(
           (memberId) => !existingMembers.some((em) => em.userId === memberId),
@@ -747,7 +747,7 @@ export function groupManagment(
           data: newMembers.map((mid) => ({ userId: mid, roomId })),
         });
 
-        if (!newMembersCreated) throw new Error("Erreur ajout membres");
+        if (!newMembersCreated) throw new Error("add_members_failed");
 
         const sentInfoMessages = await Promise.all(
           newMembers.map(async (memberId) => {
@@ -833,14 +833,14 @@ export function groupManagment(
     ) => {
       try {
         const { roomId } = input;
-        if (!roomId) throw new Error("ID du groupe requis");
+        if (!roomId) throw new Error("group_id_required");
 
         const room = await prisma.room.findFirst({
           where: { id: roomId },
           include: { members: true },
         });
 
-        if (!room || !room.isGroup) throw new Error("Groupe invalide");
+        if (!room || !room.isGroup) throw new Error("invalid_group");
 
         // Vérification de l'expiration de l'invitation
         const invitation = await prisma.invitation.findFirst({
@@ -854,10 +854,10 @@ export function groupManagment(
               where: { id: invitation.id },
               data: { status: "EXPIRED" },
             });
-            throw new Error("L'invitation pour rejoindre ce groupe a expiré.");
+            throw new Error("invalid_or_expired_invitation");
           }
           if (invitation.status === "DECLINED") {
-            throw new Error("L'invitation a été refusée.");
+            throw new Error("invitation_declined");
           }
           await prisma.invitation.update({
             where: { id: invitation.id },
@@ -871,7 +871,7 @@ export function groupManagment(
         }
 
         if (room.members.filter(m => !["OLD", "BANNED"].includes(m.type)).length >= room.maxMembers) {
-          throw new Error("Groupe plein");
+          throw new Error("group_full");
         }
 
         if (existingMember) {
@@ -947,7 +947,7 @@ export function groupManagment(
     ) => {
       try {
         const { roomId } = input;
-        if (!roomId) throw new Error("ID du groupe requis");
+        if (!roomId) throw new Error("group_id_required");
 
         const invitation = await prisma.invitation.findFirst({
           where: { roomId },
@@ -962,7 +962,7 @@ export function groupManagment(
         }
         callback({ success: true });
       } catch (error: any) {
-        callback({ success: false, error: error.message });
+        callback({ success: false, error: getSafeErrorMessage(error, "decline_group_invitation_failed") });
       }
     }
   );
@@ -983,7 +983,7 @@ export function groupManagment(
         });
 
         if (!room || !room.isGroup) {
-          throw new Error("Groupe introuvable");
+          throw new Error("group_not_found");
         }
 
         const member = await prisma.roomMember.findUnique({
@@ -996,11 +996,11 @@ export function groupManagment(
         });
 
         if (!member || ["OLD", "BANNED"].includes(member.type)) {
-          throw new Error("Accès refusé au groupe");
+          throw new Error("group_access_denied");
         }
 
         if (!["ADMIN", "OWNER"].includes(member.type)) {
-          throw new Error("Vous n'avez pas les permissions pour modifier ce groupe.");
+          throw new Error("group_edit_permission_denied");
         }
 
         const updatedRoom = await prisma.room.update({
@@ -1053,7 +1053,7 @@ export function groupManagment(
       });
 
       if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
-        throw new Error("Membre invalide");
+        throw new Error("invalid_member");
       }
 
       const newType = roomMember.type === "ADMIN" ? "MEMBER" : "ADMIN";
@@ -1078,13 +1078,13 @@ export function groupManagment(
   socket.on("group_remove_member", async (input, callback) => {
     try {
       const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-      if (!targetId) throw new Error("Membre invalide");
+      if (!targetId) throw new Error("invalid_member");
 
       const roomMember = await prisma.roomMember.findUnique({
         where: { roomId_userId: { roomId, userId: targetId } },
       });
       if (!roomMember || ["OLD", "BANNED"].includes(roomMember.type)) {
-        throw new Error("Membre déjà parti ou invalide");
+        throw new Error("member_already_left_or_invalid");
       }
 
       const removeMsg = await prisma.message.create({
@@ -1139,7 +1139,7 @@ export function groupManagment(
   socket.on("group_ban_member", async (input, callback) => {
     try {
       const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-      if (!targetId) throw new Error("Membre invalide");
+      if (!targetId) throw new Error("invalid_member");
 
       await prisma.roomMember.update({
         where: { roomId_userId: { roomId, userId: targetId } },
@@ -1200,10 +1200,10 @@ export function groupManagment(
         include: { members: true },
       });
 
-      if (!room) throw new Error("Groupe introuvable");
+      if (!room) throw new Error("group_not_found");
 
       const roomMember = room.members.find((m) => m.userId === userId);
-      if (!roomMember) throw new Error("Non membre");
+      if (!roomMember) throw new Error("not_a_group_member");
 
       let groupDeleted = false;
 
@@ -1296,7 +1296,7 @@ export function groupManagment(
   socket.on("group_restore_member", async (input, callback) => {
     try {
       const { roomId, memberId: targetId } = memberActionSchema.parse(input);
-      if (!targetId) throw new Error("Membre invalide");
+      if (!targetId) throw new Error("invalid_member");
 
       await prisma.roomMember.update({
         where: { roomId_userId: { roomId, userId: targetId } },
