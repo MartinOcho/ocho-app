@@ -38,6 +38,7 @@ import ChatSkeleton from "./skeletons/ChatSkeleton";
 import { useProgress } from "@/context/ProgressContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { VocabularyKey } from "@/lib/vocabulary";
 import {
   Dialog,
   DialogContent,
@@ -416,9 +417,10 @@ export default function ChatRoom({ roomId, initialData, onClose }: ChatProps) {
 
     // 3. Gestion des erreurs d'envoi
     const handleError = (error: { message: string }) => {
-      toast({ variant: "destructive", description: error.message });
+      const errMsg = typeof error === "string" ? error : error?.message;
+      const localizedError = errMsg ? (t(errMsg as VocabularyKey) || errMsg) : "Erreur lors de l'envoi";
+      toast({ variant: "destructive", description: localizedError });
       // En cas d'erreur globale, on marque tous les messages "sending" comme "error"
-      // L'utilisateur pourra réessayer individuellement
       setSentMessages((prev) =>
         prev.map((msg) =>
           msg.status === "sending" ? { ...msg, status: "error" } : msg,
@@ -1281,6 +1283,39 @@ function SendingMessage({
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={!!unavailableDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUnavailableDialog(null);
+            onClose();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {unavailableDialog === "DELETED" ? (t("room_not_found") || "Discussion non disponible") : (t("group_access_denied") || "Accès refusé")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            {unavailableDialog === "DELETED" && (t("deleted_chat") || "Cette discussion a été supprimée ou n'est plus disponible.")}
+            {unavailableDialog === "BANNED" && (t("user_banned_from_group") || "Vous avez été banni de cette discussion.")}
+            {unavailableDialog === "REMOVED" && (t("member_already_left_or_invalid") || "Vous avez été retiré de cette discussion.")}
+          </p>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setUnavailableDialog(null);
+                onClose();
+              }}
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

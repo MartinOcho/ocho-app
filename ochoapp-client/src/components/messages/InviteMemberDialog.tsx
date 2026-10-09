@@ -21,6 +21,7 @@ import { Input } from "../ui/input";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useToast } from "../ui/use-toast";
 import { useTranslation } from "@/context/LanguageContext";
+import { VocabularyKey } from "@/lib/vocabulary";
 
 interface InviteMemberDialogProps {
   room: RoomData;
@@ -141,7 +142,7 @@ export function InviteMemberForm({
 
     setLoading(false);
 
-    const localizedError = lastError ? (t(lastError as any) || lastError) : "";
+    const localizedError = lastError ? (t(lastError as VocabularyKey) || lastError) : "";
 
     if (successCount === selectedUsers.length) {
       toast({

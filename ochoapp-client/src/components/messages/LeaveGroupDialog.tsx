@@ -15,6 +15,7 @@ import LoadingButton from "../LoadingButton";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
+import { VocabularyKey } from "@/lib/vocabulary";
 
 interface LeaveGroupDialogProps {
   room: RoomData;
@@ -79,9 +80,10 @@ export default function LeaveGroupDialog({ room, onDelete }: LeaveGroupDialogPro
         }
       } else {
         console.error(res.error);
+        const localizedError = res.error ? (t(res.error as VocabularyKey) || res.error) : "Une erreur est survenue";
         toast({
           variant: "destructive",
-          description: res.error || "Une erreur est survenue",
+          description: localizedError,
         });
       }
     });

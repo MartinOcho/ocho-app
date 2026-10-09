@@ -22,6 +22,7 @@ import UsersList from "@/components/messages/UsersList";
 import FollowButton from "@/components/FollowButton";
 import { useSocket } from "@/components/providers/SocketProvider";
 import { useTranslation } from "@/context/LanguageContext";
+import { VocabularyKey } from "@/lib/vocabulary";
 
 const fetchUsers =
   (endpoint: string) =>
@@ -248,7 +249,8 @@ export default function NewChat({
 
     const handleError = (msg: string) => {
       setIsPending(false);
-      toast({ variant: "destructive", description: msg });
+      const localizedError = t(msg as VocabularyKey) || msg;
+      toast({ variant: "destructive", description: localizedError });
       socket.off("room_ready", handleRoomReady);
       socket.off("error_message", handleError);
     };
