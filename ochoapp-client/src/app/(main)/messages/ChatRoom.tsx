@@ -1284,38 +1284,6 @@ function SendingMessage({
         </div>
       </div>
 
-      <Dialog
-        open={!!unavailableDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            setUnavailableDialog(null);
-            onClose();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {unavailableDialog === "DELETED" ? (t("room_not_found") || "Discussion non disponible") : (t("group_access_denied") || "Accès refusé")}
-            </DialogTitle>
-          </DialogHeader>
-          <p className="py-2 text-sm text-muted-foreground">
-            {unavailableDialog === "DELETED" && (t("deleted_chat") || "Cette discussion a été supprimée ou n'est plus disponible.")}
-            {unavailableDialog === "BANNED" && (t("user_banned_from_group") || "Vous avez été banni de cette discussion.")}
-            {unavailableDialog === "REMOVED" && (t("member_already_left_or_invalid") || "Vous avez été retiré de cette discussion.")}
-          </p>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                setUnavailableDialog(null);
-                onClose();
-              }}
-            >
-              OK
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
