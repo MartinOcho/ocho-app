@@ -921,8 +921,6 @@ io.on("connection", async (socket: Socket) => {
 
   await markUndeliveredMessages(userId, io);
 
-  await markUndeliveredMessages(userId, io);
-
   typingUsersByRoom.forEach((typingUsers, room) => {
     typingUsers.delete(userId);
     io.to(room).emit("typing_stop", { roomId: room });

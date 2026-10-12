@@ -246,19 +246,6 @@ export async function sendMessageNotificationFCM(
   }, priority);
 }
 
-/**
- * Envoie une notification FCM
- */
-export async function sendNotificationFCM(
-  recipientId: string,
-  notification: NotificationData,
-  priority: "high" | "normal" = "high"
-) {
-  await sendFCMNotification(recipientId, {
-    type: "NOTIFICATION",
-    notification,
-  }, priority);
-}
 
 /**
  * Enregistre ou met à jour le token FCM d'un utilisateur
