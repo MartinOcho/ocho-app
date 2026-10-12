@@ -97,6 +97,8 @@ import {
   searchUsers,
   searchHashtags,
   searchPostsFiltered,
+  searchRoomMessages,
+  searchChatsAndGroups,
 } from "./search";
 import {
   uploadVoiceNote,
@@ -525,6 +527,8 @@ app.get("/api/notifications", getNotifications);
 app.get("/api/unread-count/notifications", getUnreadNotificationCount);
 
 app.get("/api/messages/rooms", getMessageRooms);
+app.get("/api/messages/search", searchRoomMessages);
+app.get("/api/chats/search", searchChatsAndGroups);
 app.get("/api/messages/rooms/unreads", getUnreadRoomsCount);
 app.get("/api/messages/rooms/:roomId", getRoom);
 app.get("/api/messages/rooms/:roomId/messages", getMessages);

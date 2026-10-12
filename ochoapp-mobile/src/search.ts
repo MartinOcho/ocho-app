@@ -2,18 +2,22 @@ import { Request, Response } from "express";
 import prisma from "./prisma";
 import { checkVerification, getCurrentUser } from "./auth";
 import {
+  getChatRoomDataInclude,
+  getMessageDataInclude,
   getPostDataIncludes,
   getUserDataSelect,
+  MessageData,
   Post,
   PostData,
+  RoomData,
   User,
   UserData,
   VerifiedUser,
 } from "./types";
+import { SearchTrie } from "./tree-search";
 import { check } from "zod";
 import { get } from "node:http";
 import { Prisma } from "@prisma/client";
-
 
 type SearchType = "posts" | "users" | "hashtags";
 
@@ -110,7 +114,11 @@ export async function searchGeneral(req: Request, res: Response) {
       });
     }
 
-    const rawQuery = ((req.query.q as string) || (req.query.query as string) || "").trim();
+    const rawQuery = (
+      (req.query.q as string) ||
+      (req.query.query as string) ||
+      ""
+    ).trim();
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = req.query.cursor as string | undefined;
 
@@ -148,8 +156,14 @@ export async function searchGeneral(req: Request, res: Response) {
           OR: [
             { content: { search: cleanQuery } },
             { content: { contains: cleanQuery, mode: "insensitive" } },
-            { user: { displayName: { contains: cleanQuery, mode: "insensitive" } } },
-            { user: { username: { contains: cleanQuery, mode: "insensitive" } } },
+            {
+              user: {
+                displayName: { contains: cleanQuery, mode: "insensitive" },
+              },
+            },
+            {
+              user: { username: { contains: cleanQuery, mode: "insensitive" } },
+            },
           ],
         };
 
@@ -288,8 +302,14 @@ export async function searchPostsFiltered(req: Request, res: Response) {
           OR: [
             { content: { search: cleanQuery } },
             { content: { contains: cleanQuery, mode: "insensitive" } },
-            { user: { displayName: { contains: cleanQuery, mode: "insensitive" } } },
-            { user: { username: { contains: cleanQuery, mode: "insensitive" } } },
+            {
+              user: {
+                displayName: { contains: cleanQuery, mode: "insensitive" },
+              },
+            },
+            {
+              user: { username: { contains: cleanQuery, mode: "insensitive" } },
+            },
           ],
         };
 
@@ -772,7 +792,7 @@ export async function searchPostIds(req: Request, res: Response) {
 
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const cursor = (req.query.cursor as string) || undefined;
-     const visibilityWhere: Prisma.PostWhereInput = {
+    const visibilityWhere: Prisma.PostWhereInput = {
       OR: [
         { userId: user.id },
         {
@@ -788,16 +808,15 @@ export async function searchPostIds(req: Request, res: Response) {
     };
 
     const whereClause: Prisma.PostWhereInput = {
-        content: {
-          contains: q,
-          mode: "insensitive",
-        },
-
-    }
+      content: {
+        contains: q,
+        mode: "insensitive",
+      },
+    };
 
     const posts = await prisma.post.findMany({
       where: {
-        AND: [visibilityWhere, whereClause]
+        AND: [visibilityWhere, whereClause],
       },
       orderBy: { createdAt: "desc" },
       take: limit + 1,
@@ -820,6 +839,230 @@ export async function searchPostIds(req: Request, res: Response) {
     return res.json({
       success: false,
       message: "Une erreur est survenue. Veuillez réessayer.",
+    });
+  }
+}
+
+/**
+ * RECHERCHE DE MESSAGES DANS LES DISCUSSIONS (GLOBALE OU PAR ROOM)
+ * GET /api/messages/search?q={query}&roomId={roomId}&cursor={cursor}
+ */
+export async function searchRoomMessages(req: Request, res: Response) {
+  try {
+    const { user, message } = await getCurrentUser(req.headers);
+    if (!user) {
+      return res.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "invalid_session",
+      });
+    }
+
+    const q = ((req.query.q as string) || "").trim();
+    if (!q) {
+      return res.json({
+        success: true,
+        data: { rooms: [], nextCursor: null },
+      });
+    }
+
+    const roomId = (req.query.roomId as string) || undefined;
+    const cursor = (req.query.cursor as string) || undefined;
+    const pageSize = Math.min(parseInt(req.query.limit as string) || 20, 50);
+
+    const userRoomMemberships = await prisma.roomMember.findMany({
+      where: {
+        userId: user.id,
+        OR: [{ leftAt: null }, { leftAt: { gt: new Date() } }],
+        ...(roomId ? { roomId } : {}),
+      },
+      select: { roomId: true },
+    });
+
+    const allowedRoomIds = userRoomMemberships.map((m) => m.roomId);
+    if (allowedRoomIds.length === 0) {
+      return res.json({
+        success: true,
+        data: { rooms: [], nextCursor: null },
+      });
+    }
+
+    const matchingMessages = await prisma.message.findMany({
+      where: {
+        roomId: { in: allowedRoomIds },
+        AND: [{ type: { not: "CREATE" } }, { type: { not: "INVITATION" } }],
+        OR: [
+          { content: { contains: q, mode: "insensitive" } },
+          {
+            attachments: {
+              some: { fileName: { contains: q, mode: "insensitive" } },
+            },
+          },
+          { sender: { displayName: { contains: q, mode: "insensitive" } } },
+          { sender: { username: { contains: q, mode: "insensitive" } } },
+        ],
+      },
+      include: {
+        ...getMessageDataInclude(user.id),
+        room: { include: getChatRoomDataInclude() },
+      },
+      orderBy: { createdAt: "desc" },
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+
+    const trie = new SearchTrie<MessageData>();
+    const rawItems = matchingMessages.map((msg) => ({
+      id: msg.id,
+      text: `${msg.content} ${msg.sender?.displayName || ""} ${msg.sender?.username || ""}`,
+      data: msg as unknown as MessageData,
+    }));
+
+    const rankedMessages = trie.searchAndRank(q, rawItems);
+
+    let nextCursor: string | null = null;
+    if (rankedMessages.length > pageSize) {
+      const nextItem = rankedMessages.pop();
+      nextCursor = nextItem ? nextItem.id : null;
+    }
+
+    const roomsMap = new Map<string, { room: any; messages: MessageData[] }>();
+    for (const msg of rankedMessages) {
+      if (!msg.roomId) continue;
+      if (!roomsMap.has(msg.roomId)) {
+        roomsMap.set(msg.roomId, { room: (msg as any).room, messages: [] });
+      }
+      roomsMap.get(msg.roomId)!.messages.push(msg);
+    }
+
+    const rooms: RoomData[] = Array.from(roomsMap.values()).map(
+      ({ room, messages }) => ({
+        ...room,
+        messages,
+        members: room.members || [],
+      }),
+    );
+
+    return res.json({
+      success: true,
+      data: { rooms, nextCursor },
+    });
+  } catch (error) {
+    console.error("Erreur searchRoomMessages:", error);
+    return res.json({
+      success: false,
+      message: "Erreur lors de la recherche dans les messages.",
+    });
+  }
+}
+
+/**
+ * RECHERCHE DE DISCUSSIONS ET GROUPES (NOM, MEMBRES ET MESSAGES)
+ * GET /api/chats/search?q={query}
+ */
+export async function searchChatsAndGroups(req: Request, res: Response) {
+  try {
+    const { user, message } = await getCurrentUser(req.headers);
+    if (!user) {
+      return res.json({
+        success: false,
+        message: message || "Utilisateur non authentifié.",
+        name: "invalid_session",
+      });
+    }
+
+    const q = ((req.query.q as string) || "").trim();
+    if (!q) {
+      return res.json({
+        success: true,
+        data: { rooms: [], nextCursor: null },
+      });
+    }
+
+    const cursor = (req.query.cursor as string) || undefined;
+    const pageSize = Math.min(parseInt(req.query.limit as string) || 20, 50);
+
+    const matchingRooms = await prisma.room.findMany({
+      where: {
+        members: {
+          some: {
+            userId: user.id,
+            OR: [{ leftAt: null }, { leftAt: { gt: new Date() } }],
+          },
+        },
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          {
+            members: {
+              some: {
+                user: {
+                  OR: [
+                    { displayName: { contains: q, mode: "insensitive" } },
+                    { username: { contains: q, mode: "insensitive" } },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            messages: {
+              some: {
+                content: { contains: q, mode: "insensitive" },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        ...getChatRoomDataInclude(),
+        messages: {
+          where: {
+            type: { not: "CREATE" },
+            content: { contains: q, mode: "insensitive" },
+          },
+          include: getMessageDataInclude(user.id),
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+      },
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
+
+    const trie = new SearchTrie<RoomData>();
+    const rawItems = matchingRooms.map((room) => {
+      const memberNames = room.members
+        .map((m) => `${m.user?.displayName} ${m.user?.username}`)
+        .join(" ");
+      const msgContents = room.messages.map((m) => m.content).join(" ");
+      return {
+        id: room.id,
+        text: `${room.name || ""} ${room.description || ""} ${memberNames} ${msgContents}`,
+        data: room as unknown as RoomData,
+      };
+    });
+
+    const rankedRooms = trie.searchAndRank(q, rawItems);
+
+    let nextCursor: string | null = null;
+    if (rankedRooms.length > pageSize) {
+      const nextItem = rankedRooms.pop();
+      nextCursor = nextItem ? nextItem.id : null;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        rooms: rankedRooms,
+        nextCursor,
+      },
+    });
+  } catch (error) {
+    console.error("Erreur searchChatsAndGroups:", error);
+    return res.json({
+      success: false,
+      message: "Erreur lors de la recherche de conversations.",
     });
   }
 }
