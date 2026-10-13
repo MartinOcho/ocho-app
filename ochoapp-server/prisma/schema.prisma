@@ -229,7 +229,17 @@ model Message {
   lastMessages LastMessage[]
   attachments  MessageAttachment[]
   mentions     MessageMention[]
-  createdAt    DateTime            @default(now())
+
+  forwardedFrom   Message?  @relation("Forwards", fields: [forwardedFromId], references: [id], onDelete: SetNull)
+  forwardedFromId String?
+  forwards        Message[] @relation("Forwards")
+
+  replyTo   Message?  @relation("Replies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replyToId String?
+  replies   Message[] @relation("Replies")
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime?
 
   @@index([roomId, createdAt])
   @@map("messages")
@@ -262,6 +272,7 @@ model VoiceNote {
 
   @@map("voice_notes")
 }
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
