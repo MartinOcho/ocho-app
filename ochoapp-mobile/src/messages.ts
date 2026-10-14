@@ -189,7 +189,7 @@ export async function getRoom(req: Request, res: Response) {
         orderBy: { createdAt: "desc" },
       });
       if (existingSavedMsgs[0]) {
-        const existingSavedMsg: MessageData = existingSavedMsgs[0];
+        const existingSavedMsg = existingSavedMsgs[0];
         const createInfo = await prisma.message.findFirst({
           where: {
             senderId: {
@@ -205,8 +205,7 @@ export async function getRoom(req: Request, res: Response) {
         });
 
         // Convertir le message SAVED en CONTENT pour affichage si ce n'est pas
-        // le marqueur technique create-<userId>
-        const displayedMsg: MessageData = { ...existingSavedMsg };
+        const displayedMsg = { ...existingSavedMsg };
         if (displayedMsg.content !== `create-${userId}`) {
           displayedMsg.type = "CONTENT";
         }
@@ -238,7 +237,7 @@ export async function getRoom(req: Request, res: Response) {
         } as ApiResponse<RoomData>);
       }
 
-      const createInfo: MessageData = await prisma.message.create({
+      const createInfo = await prisma.message.create({
         data: {
           content: `create-${user.id}`,
           senderId: userId,
@@ -246,8 +245,8 @@ export async function getRoom(req: Request, res: Response) {
         },
         include: getMessageDataInclude(user.id),
       });
-      const existingSavedMsg: MessageData = existingSavedMsgs[0];
-      const displayedMsgAfterCreate: MessageData = { ...existingSavedMsg };
+      const existingSavedMsg = existingSavedMsgs[0];
+      const displayedMsgAfterCreate = existingSavedMsg ? Object.assign({}, existingSavedMsg) : createInfo;
       if (displayedMsgAfterCreate.content !== `create-${userId}`) {
         displayedMsgAfterCreate.type = "CONTENT";
       }
@@ -348,11 +347,11 @@ export async function getRoom(req: Request, res: Response) {
   }
 }
 
-export function formatSavedMessages(
-  message: MessageData,
+export function formatSavedMessages<T extends { content: string; type: string }>(
+  message: T,
   userId: string,
-): MessageData {
-  if (message.content !== `create-${userId}` && message.type == "SAVED") {
+): T {
+  if (message.content !== `create-${userId}` && message.type === "SAVED") {
     return { ...message, type: "CONTENT" };
   }
   return { ...message };
@@ -527,7 +526,7 @@ export async function getLastMessage(req: Request, res: Response) {
           name: "not_found",
         } as ApiResponse<null>);
       }
-      const displayedMsg: MessageData = formatSavedMessages(
+      const displayedMsg = formatSavedMessages(
         lastSavedMessage,
         userId,
       );
@@ -578,7 +577,7 @@ export async function getLastMessage(req: Request, res: Response) {
         name: "not_found",
       } as ApiResponse<null>);
     }
-    const formattedMsg: MessageData = {
+    const formattedMsg = {
       ...lastMessage,
     };
 
