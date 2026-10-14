@@ -674,7 +674,7 @@ export interface MessageAttachment {
 
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
-}>;
+}> & { forwardedFrom?: MessageData | null };
 
 export interface MessagesSection {
   messages: MessageData[];

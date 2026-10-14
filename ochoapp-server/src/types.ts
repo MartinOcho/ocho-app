@@ -372,7 +372,7 @@ export function getMessageDataInclude(loggedInUserId: string) {
 
 export type MessageData = Prisma.MessageGetPayload<{
   include: ReturnType<typeof getMessageDataInclude>;
-}>;
+}> & { forwardedFrom?: MessageData | null };
 
 export interface MessagesSection {
   messages: MessageData[];
@@ -429,6 +429,7 @@ export interface SocketSendMessageEvent {
   tempId?: string;
   attachmentIds?: string[];
   recipientId?: string;
+  forwardedFromId?: string;
 }
 
 export interface SocketSendVoiceNoteEvent {

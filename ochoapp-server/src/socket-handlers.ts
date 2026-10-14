@@ -1046,7 +1046,7 @@ export async function handleSendNormalMessage(
   username: string,
   io: Server,
 ) {
-  const { content, roomId, type, recipientId, attachmentIds = [] } = data;
+  const { content, roomId, type, recipientId, attachmentIds = [], forwardedFromId } = data;
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
@@ -1230,8 +1230,19 @@ export async function handleSendNormalMessage(
     }
   }
 
+  let finalMessage: MessageData = newMessage;
+  if (forwardedFromId) {
+    const forwardedFromMsg = await prisma.message.findUnique({
+      where: { id: forwardedFromId },
+      include: getMessageDataInclude(userId),
+    });
+    if (forwardedFromMsg) {
+      finalMessage = { ...newMessage, forwardedFrom: forwardedFromMsg };
+    }
+  }
+
   return {
-    newMessage,
+    newMessage: finalMessage,
     newRoom: roomData,
     galleryMedias: newMessage.attachments?.map((att) => ({
       id: att.id,
