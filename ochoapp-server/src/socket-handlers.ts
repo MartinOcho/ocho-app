@@ -820,30 +820,27 @@ export async function handleDeleteMessage(
   });
 
   // Delete voice note from Cloudinary if exists
-  if (messageToDelete.voiceNote && messageToDelete.voiceNote.publicId) {
+  const voiceNote = messageToDelete.voiceNote;
+  if (voiceNote?.publicId) {
     try {
-      await cloudinary.uploader.destroy(
-        messageToDelete.voiceNote!.publicId!,
+      const result = await cloudinary.uploader.destroy(
+        voiceNote.publicId,
         { resource_type: "video", invalidate: true },
-        async (error: any, result: { result: string }) => {
-          if (error || result.result !== "ok") {
-            console.log(
-              chalk.red(
-                "Something went wrong while deleting voice note from Cloudinary",
-              ),
-              result,
-            );
-            throw new Error(error);
-          } else {
-            await prisma.voiceNote.delete({
-              where: {
-                id: messageToDelete.voiceNote!.id!,
-              },
-            });
-            console.log(chalk.cyanBright("Voicenote deleted from Cloudinary"));
-          }
-        },
       );
+      if (result.result !== "ok") {
+        console.log(
+          chalk.red(
+            "Something went wrong while deleting voice note from Cloudinary",
+          ),
+          result,
+        );
+        throw new Error(`Cloudinary deletion failed: ${result.result}`);
+      } else {
+        await prisma.voiceNote.delete({
+          where: { id: voiceNote.id },
+        });
+        console.log(chalk.cyanBright("Voicenote deleted from Cloudinary"));
+      }
     } catch (error) {
       console.log(
         chalk.redBright(
@@ -917,7 +914,7 @@ export async function handleSendSavedMessage(
   data: SocketSendMessageEvent,
   userId: string,
 ) {
-  const { content, roomId, attachmentIds = [] } = data;
+  const { content, roomId, attachmentIds = [], forwardedFromId } = data;
 
   const createdSavedMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
@@ -926,6 +923,7 @@ export async function handleSendSavedMessage(
           content,
           senderId: userId,
           type: "SAVED",
+          forwardedFromId: forwardedFromId || undefined,
         },
       });
 
@@ -1133,6 +1131,7 @@ export async function handleSendNormalMessage(
           senderId: userId,
           type,
           recipientId: calculatedRecipientId,
+          forwardedFromId: forwardedFromId || undefined,
         },
         include: getMessageDataInclude(userId),
       });
