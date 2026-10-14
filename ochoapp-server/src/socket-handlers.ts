@@ -914,7 +914,7 @@ export async function handleSendSavedMessage(
   data: SocketSendMessageEvent,
   userId: string,
 ) {
-  const { content, roomId, attachmentIds = [], forwardedFromId } = data;
+  const { content, roomId, attachmentIds = [], forwardedFromId, replyToId } = data;
 
   const createdSavedMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
@@ -924,6 +924,7 @@ export async function handleSendSavedMessage(
           senderId: userId,
           type: "SAVED",
           forwardedFromId: forwardedFromId || undefined,
+          replyToId: replyToId || undefined,
         },
       });
 
@@ -1044,7 +1045,7 @@ export async function handleSendNormalMessage(
   username: string,
   io: Server,
 ) {
-  const { content, roomId, type, recipientId, attachmentIds = [], forwardedFromId } = data;
+  const { content, roomId, type, recipientId, attachmentIds = [], forwardedFromId, replyToId } = data;
 
   const membership = await prisma.roomMember.findUnique({
     where: { roomId_userId: { roomId, userId } },
@@ -1132,6 +1133,7 @@ export async function handleSendNormalMessage(
           type,
           recipientId: calculatedRecipientId,
           forwardedFromId: forwardedFromId || undefined,
+          replyToId: replyToId || undefined,
         },
         include: getMessageDataInclude(userId),
       });

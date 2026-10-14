@@ -403,6 +403,42 @@ export function getMessageDataInclude(loggedInUserId: string) {
         },
       },
     },
+    replyTo: {
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            bio: true,
+            lastSeen: true,
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            publicId: true,
+            fileName: true,
+            width: true,
+            height: true,
+            format: true,
+            resourceType: true,
+          },
+        },
+        voiceNote: {
+          select: {
+            id: true,
+            url: true,
+            duration: true,
+            createdAt: true,
+            waves: true,
+          },
+        },
+      },
+    },
   } satisfies Prisma.MessageInclude;
 }
 
@@ -466,6 +502,7 @@ export interface SocketSendMessageEvent {
   attachmentIds?: string[];
   recipientId?: string;
   forwardedFromId?: string;
+  replyToId?: string;
 }
 
 export interface SocketSendVoiceNoteEvent {
