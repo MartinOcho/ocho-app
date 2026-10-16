@@ -254,9 +254,15 @@ app.post("/api/cloudinary/upload", async (req, res) => {
       resource_type: "auto",
     });
 
-    const attachmentType =
-      uploadResult.resource_type &&
-      String(uploadResult.resource_type).startsWith("video")
+    const isAudio =
+      /\.(mp3|wav|m4a|aac|flac|ogg|opus|wma|aiff|amr|m4p|caf)$/i.test(
+        fileName || fileExtension || uploadResult.format || uploadResult.secure_url || ""
+      ) || (file?.type && String(file.type).startsWith("audio/"));
+
+    const attachmentType = isAudio
+      ? "DOCUMENT"
+      : uploadResult.resource_type &&
+        String(uploadResult.resource_type).startsWith("video")
         ? "VIDEO"
         : (uploadResult.resource_type === "image" && fileExtension !== "pdf") ||
             (uploadResult.secure_url &&
@@ -398,9 +404,15 @@ app.post(
 
       const uploadResult = await streamUpload(file.buffer);
 
-      const attachmentType =
-        uploadResult.resource_type &&
-        String(uploadResult.resource_type).startsWith("video")
+      const isAudio =
+        /\.(mp3|wav|m4a|aac|flac|ogg|opus|wma|aiff|amr|m4p|caf)$/i.test(
+          fileName || fileExtension || uploadResult.format || uploadResult.secure_url || ""
+        ) || (fileLike?.type && String(fileLike.type).startsWith("audio/")) || (file?.mimetype && String(file.mimetype).startsWith("audio/"));
+
+      const attachmentType = isAudio
+        ? "DOCUMENT"
+        : uploadResult.resource_type &&
+          String(uploadResult.resource_type).startsWith("video")
           ? "VIDEO"
           : (uploadResult.resource_type === "image" &&
                 fileExtension !== "pdf") ||
