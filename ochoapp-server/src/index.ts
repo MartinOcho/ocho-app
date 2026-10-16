@@ -1526,7 +1526,9 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error) {
       console.error("Erreur send_message:", error);
-      socket.emit("error", { message: "Erreur lors de l'envoi" });
+      const safeError = getSafeErrorMessage(error, "send_message_failed");
+      socket.emit("error_message", safeError);
+      socket.emit("error", { message: safeError });
     }
   });
 
@@ -1619,9 +1621,9 @@ io.on("connection", async (socket: Socket) => {
       }
     } catch (error) {
       console.error("Erreur send_voice_note:", error);
-      socket.emit("error", {
-        message: "Erreur lors de l'envoi de la note vocale",
-      });
+      const safeError = getSafeErrorMessage(error, "send_voice_note_failed");
+      socket.emit("error_message", safeError);
+      socket.emit("error", { message: safeError });
     }
   });
 

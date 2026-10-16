@@ -1114,14 +1114,34 @@ export async function handleSendNormalMessage(
   }
 
   // Calculer le recipientId pour les messages directs (1v1)
-  let calculatedRecipientId = recipientId;
-  if (!room.isGroup && type === "CONTENT") {
-    // Pour un DM: trouver l'autre utilisateur
+  let calculatedRecipientId: string | undefined = undefined;
+  if (!room.isGroup) {
     const otherMember = room.members.find(
       (m) => m.userId && m.userId !== userId,
     );
     if (otherMember?.userId) {
       calculatedRecipientId = otherMember.userId;
+    }
+  }
+
+  if (calculatedRecipientId) {
+    const recipientExists = await prisma.user.findUnique({
+      where: { id: calculatedRecipientId },
+      select: { id: true },
+    });
+    if (!recipientExists) {
+      calculatedRecipientId = undefined;
+    }
+  }
+
+  let validReplyToId: string | undefined = undefined;
+  if (replyToId && typeof replyToId === "string" && !replyToId.startsWith("temp-")) {
+    const replyMsg = await prisma.message.findUnique({
+      where: { id: replyToId },
+      select: { id: true },
+    });
+    if (replyMsg) {
+      validReplyToId = replyMsg.id;
     }
   }
 
@@ -1135,7 +1155,7 @@ export async function handleSendNormalMessage(
           type,
           recipientId: calculatedRecipientId,
           forwardedFromId: forwardedFromId || undefined,
-          replyToId: replyToId || undefined,
+          replyToId: validReplyToId,
         },
         include: getMessageDataInclude(userId),
       });
@@ -1621,7 +1641,7 @@ export async function handleSendVoiceNote(
 
   if (!room) throw new Error("room_not_found");
 
-  let calculatedRecipientId = recipientId;
+  let calculatedRecipientId: string | undefined = undefined;
   if (!room.isGroup) {
     const otherMember = room.members.find(
       (m) => m.userId && m.userId !== userId,
@@ -1629,11 +1649,11 @@ export async function handleSendVoiceNote(
 
     if (otherMember?.userId) {
       const recipientFollowsSender = await prisma.follow.findFirst({
-          where: {
-            followerId: otherMember.userId,
-            followingId: userId,
-          },
-        })
+        where: {
+          followerId: otherMember.userId,
+          followingId: userId,
+        },
+      });
 
       if (!recipientFollowsSender) {
         const pendingRequest = await hasPendingRequestMessage(
@@ -1643,13 +1663,32 @@ export async function handleSendVoiceNote(
         );
 
         if (pendingRequest) {
-          throw new Error(
-            "invitation_not_replied",
-          );
+          throw new Error("invitation_not_replied");
         }
       }
 
       calculatedRecipientId = otherMember.userId;
+    }
+  }
+
+  if (calculatedRecipientId) {
+    const recipientExists = await prisma.user.findUnique({
+      where: { id: calculatedRecipientId },
+      select: { id: true },
+    });
+    if (!recipientExists) {
+      calculatedRecipientId = undefined;
+    }
+  }
+
+  let validReplyToId: string | undefined = undefined;
+  if (replyToId && typeof replyToId === "string" && !replyToId.startsWith("temp-")) {
+    const replyMsg = await prisma.message.findUnique({
+      where: { id: replyToId },
+      select: { id: true },
+    });
+    if (replyMsg) {
+      validReplyToId = replyMsg.id;
     }
   }
 
@@ -1667,8 +1706,8 @@ export async function handleSendVoiceNote(
               id: voiceNoteId,
             },
           },
-          forwardedFromId: forwardedFromId,
-          replyToId,
+          forwardedFromId: forwardedFromId || undefined,
+          replyToId: validReplyToId,
         },
       });
 
