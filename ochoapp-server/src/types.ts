@@ -510,6 +510,8 @@ export interface SocketSendVoiceNoteEvent {
   roomId: string;
   tempId?: string;
   recipientId?: string;
+  forwardedFromId?: string;
+  replyToId?: string;
 }
 
 export interface SocketRecordingStatusEvent {

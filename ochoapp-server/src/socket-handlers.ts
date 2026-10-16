@@ -986,7 +986,7 @@ export async function handleSendSavedVoiceNote(
   data: SocketSendVoiceNoteEvent,
   userId: string,
 ) {
-  const { voiceNoteId } = data;
+  const { voiceNoteId, forwardedFromId, replyToId } = data;
 
   // Valider que la voiceNote existe
   const voiceNote = await prisma.voiceNote.findUnique({
@@ -1007,6 +1007,8 @@ export async function handleSendSavedVoiceNote(
               id: voiceNoteId,
             },
           },
+          forwardedFromId: forwardedFromId || undefined,
+          replyToId: replyToId || undefined,
         },
       });
 
@@ -1594,7 +1596,7 @@ export async function handleSendVoiceNote(
   data: SocketSendVoiceNoteEvent,
   userId: string,
 ) {
-  const { voiceNoteId, roomId, tempId, recipientId } = data;
+  const { voiceNoteId, roomId, tempId, recipientId, forwardedFromId, replyToId } = data;
 
   // Valider que la voiceNote existe
   const voiceNote = await prisma.voiceNote.findUnique({
@@ -1665,6 +1667,8 @@ export async function handleSendVoiceNote(
               id: voiceNoteId,
             },
           },
+          forwardedFromId: forwardedFromId,
+          replyToId,
         },
       });
 
