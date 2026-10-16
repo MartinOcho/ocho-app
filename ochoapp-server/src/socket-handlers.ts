@@ -1692,6 +1692,17 @@ export async function handleSendVoiceNote(
     }
   }
 
+  let validForwardedFromId: string | undefined = undefined;
+  if (forwardedFromId && typeof forwardedFromId === "string" && !forwardedFromId.startsWith("temp-")) {
+    const fwdMsg = await prisma.message.findUnique({
+      where: { id: forwardedFromId },
+      select: { id: true },
+    });
+    if (fwdMsg) {
+      validForwardedFromId = fwdMsg.id;
+    }
+  }
+
   // Créer le message et le lier à la note vocale
   const createdMessage = await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
@@ -1706,7 +1717,7 @@ export async function handleSendVoiceNote(
               id: voiceNoteId,
             },
           },
-          forwardedFromId: forwardedFromId || undefined,
+          forwardedFromId: validForwardedFromId,
           replyToId: validReplyToId,
         },
       });
