@@ -819,34 +819,49 @@ export async function handleDeleteMessage(
     where: { messageId },
   });
 
-  // Delete voice note from Cloudinary if exists
   const voiceNote = messageToDelete.voiceNote;
-  if (voiceNote?.publicId) {
-    try {
-      const result = await cloudinary.uploader.destroy(
-        voiceNote.publicId,
-        { resource_type: "video", invalidate: true },
-      );
-      if (result.result !== "ok") {
-        console.log(
-          chalk.red(
-            "Something went wrong while deleting voice note from Cloudinary",
-          ),
-          result,
+  if (voiceNote) {
+    const otherVoiceNotes = voiceNote.publicId
+      ? await prisma.voiceNote.count({
+          where: {
+            publicId: voiceNote.publicId,
+            id: { not: voiceNote.id },
+          },
+        })
+      : 0;
+
+    if (otherVoiceNotes > 0 || !voiceNote.publicId) {
+      await prisma.voiceNote.delete({
+        where: { id: voiceNote.id },
+      });
+    } else {
+      // Delete the shared Cloudinary resource only when no other voice note references it.
+      try {
+        const result = await cloudinary.uploader.destroy(
+          voiceNote.publicId,
+          { resource_type: "video", invalidate: true },
         );
-        throw new Error(`Cloudinary deletion failed: ${result.result}`);
-      } else {
-        await prisma.voiceNote.delete({
-          where: { id: voiceNote.id },
-        });
-        console.log(chalk.cyanBright("Voicenote deleted from Cloudinary"));
+        if (result.result !== "ok") {
+          console.log(
+            chalk.red(
+              "Something went wrong while deleting voice note from Cloudinary",
+            ),
+            result,
+          );
+          throw new Error(`Cloudinary deletion failed: ${result.result}`);
+        } else {
+          await prisma.voiceNote.delete({
+            where: { id: voiceNote.id },
+          });
+          console.log(chalk.cyanBright("Voicenote deleted from Cloudinary"));
+        }
+      } catch (error) {
+        console.log(
+          chalk.redBright(
+            `Failed to delete voice note from Cloudinary: ${error}`,
+          ),
+        );
       }
-    } catch (error) {
-      console.log(
-        chalk.redBright(
-          `Failed to delete voice note from Cloudinary: ${error}`,
-        ),
-      );
     }
   }
 
@@ -1002,11 +1017,16 @@ export async function handleSendSavedVoiceNote(
         data: {
           senderId: userId,
           type: "VOICENOTE",
-          voiceNote: {
-            connect: {
-              id: voiceNoteId,
-            },
-          },
+          voiceNote: forwardedFromId
+            ? {
+                create: {
+                  url: voiceNote.url,
+                  waves: voiceNote.waves,
+                  publicId: voiceNote.publicId,
+                  duration: voiceNote.duration,
+                },
+              }
+            : { connect: { id: voiceNoteId } },
           forwardedFromId: forwardedFromId || undefined,
           replyToId: replyToId || undefined,
         },
@@ -1712,11 +1732,16 @@ export async function handleSendVoiceNote(
           senderId: userId,
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
-          voiceNote: {
-            connect: {
-              id: voiceNoteId,
-            },
-          },
+          voiceNote: forwardedFromId
+            ? {
+                create: {
+                  url: voiceNote.url,
+                  waves: voiceNote.waves,
+                  publicId: voiceNote.publicId,
+                  duration: voiceNote.duration,
+                },
+              }
+            : { connect: { id: voiceNoteId } },
           forwardedFromId: validForwardedFromId,
           replyToId: validReplyToId,
         },
