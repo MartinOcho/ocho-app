@@ -267,12 +267,19 @@ export async function handleRespondToRoomInvitation(
     throw new Error("room_not_pending_invitation");
   }
 
-  const isRecipient = room.members.some(
-    (m) => m.userId === userId && m.type === "MEMBER",
+  const firstInvitation = room.messages.find(
+    (m) => m.type === "INVITATION" || m.type === "CREATE"
   );
+  const senderId = (room).createdById || firstInvitation?.sender?.id;
+  const isSender = senderId ? senderId === userId : room.members.some((m) => m.userId === userId && m.type === "OWNER");
+  const isRecipient = room.members.some((m) => m.userId === userId) && !isSender;
 
-  if (!isRecipient) {
+  if (!isRecipient && !isSender) {
     throw new Error("not_authorized_respond_invitation");
+  }
+
+  if (isSender && accept) {
+    throw new Error("sender_cannot_accept_own_invitation");
   }
 
   if (accept) {
@@ -286,7 +293,6 @@ export async function handleRespondToRoomInvitation(
       },
     });
   } else {
-    // Si refusé, on supprime la room
     await prisma.room.delete({
       where: { id: roomId },
     });
@@ -1446,6 +1452,7 @@ export async function handleGetRoomDetails(
       messages: existingSavedMsgs,
       isGroup: false,
       createdAt: createInfo?.createdAt || new Date(),
+      createdById: createInfo?.senderId || null,
     };
   } else {
     // Check membership

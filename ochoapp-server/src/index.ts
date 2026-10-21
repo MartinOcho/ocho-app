@@ -833,7 +833,6 @@ app.post("/api/users/fcm-token", async (req, res) => {
     });
   }
 });
-
 if (!getApps().length) {
   initializeApp();
 }
@@ -967,6 +966,7 @@ io.on("connection", async (socket: Socket) => {
         }
       } else {
         // Room existante
+        socket.join(result.id);
         socket.emit("room_ready", result);
         if (typeof callback === "function") {
           callback({ success: true, data: result });

@@ -77,6 +77,7 @@ export async function GET(
           messages: [existingSavedMsg],
           isGroup: false,
           createdAt: createInfo?.createdAt || new Date(),
+          createdById: userId,
         };
         return Response.json(newRoom);
       }
@@ -110,6 +111,7 @@ export async function GET(
         messages: [existingSavedMsg],
         isGroup: false,
         createdAt: createInfo?.createdAt || new Date(),
+        createdById: userId,
       };
       return Response.json(newRoom);
     } else {

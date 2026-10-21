@@ -138,6 +138,7 @@ export async function getMessageRooms(req: Request, res: Response) {
             },
           ],
           messages: [selfMessage as MessageData],
+          createdById: userId,
         };
 
         // On l'ajoute au tout début de la liste
@@ -230,6 +231,7 @@ export async function getRoom(req: Request, res: Response) {
           messages: [displayedMsg],
           isGroup: false,
           createdAt: createInfo?.createdAt || new Date(),
+          createdById: userId
         };
         return res.json({
           success: true,
@@ -271,6 +273,7 @@ export async function getRoom(req: Request, res: Response) {
         messages: [displayedMsgAfterCreate],
         isGroup: false,
         createdAt: createInfo?.createdAt || new Date(),
+        createdById: userId,
       };
       return res.json({
         success: true,

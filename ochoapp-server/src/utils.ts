@@ -479,6 +479,7 @@ export async function getFormattedRooms(
           },
         ],
         messages: [selfMessage as MessageData],
+        createdById: savedMessage.senderId,
       };
       filteredRooms.unshift(selfRoom);
     }

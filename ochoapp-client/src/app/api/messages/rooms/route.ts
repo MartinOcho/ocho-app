@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
             },
           ],
           messages: [selfMessage as MessageData],
+          createdById: userId,
         };
 
         // On l'ajoute au tout début de la liste

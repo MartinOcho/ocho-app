@@ -42,6 +42,7 @@ model User {
   rooms                RoomMember[]
   sentMessages         Message[]      @relation("Sender")
   receivedMessages     Message[]      @relation("Recipient")
+  createdRooms         Room[]         @relation("RoomCreator")
   lastMessages         LastMessage[]
   reads                Read[]
   posts                Post[]
@@ -164,6 +165,8 @@ model Room {
   description    String?
   groupAvatarUrl String?
   isGroup        Boolean       @default(false)
+  createdById    String?
+  createdBy      User?         @relation("RoomCreator", fields: [createdById], references: [id], onDelete: SetNull)
   members        RoomMember[]
   maxMembers     Int           @default(300)
   messages       Message[]
