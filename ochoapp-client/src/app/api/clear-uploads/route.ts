@@ -10,6 +10,39 @@ import { notificationsInclude } from "@/lib/types";
 // Base directories for different types of uploads
 const attachmentDir = path.resolve("data/uploads/attachments");
 
+async function hasOtherFileReferences(
+  publicId: string,
+  candidateAttachmentIds: string[],
+  candidateVoiceNoteIds: string[],
+) {
+  const [attachmentCount, voiceNoteCount, avatarCount, mediaCount] =
+    await Promise.all([
+      prisma.messageAttachment.count({
+        where: {
+          publicId,
+          id: { notIn: candidateAttachmentIds },
+        },
+      }),
+      prisma.voiceNote.count({
+        where: {
+          publicId,
+          id: { notIn: candidateVoiceNoteIds },
+        },
+      }),
+      prisma.userAvatar.count({ where: { publicId } }),
+      prisma.media.count({
+        where: { url: { contains: publicId } },
+      }),
+    ]);
+
+  return (
+    attachmentCount > 0 ||
+    voiceNoteCount > 0 ||
+    avatarCount > 0 ||
+    mediaCount > 0
+  );
+}
+
 export async function GET(req: Request) {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -167,39 +200,77 @@ export async function GET(req: Request) {
       },
     });
 
-    console.log(unusedMessageAttachments);
+    const unusedVoiceNotes = await prisma.voiceNote.findMany({
+      where: {
+        messageId: null,
+        ...(process.env.NODE_ENV === "production"
+          ? {
+              createdAt: {
+                lte: new Date(Date.now() - 24 * 3600 * 1000),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        publicId: true,
+      },
+    });
 
-    // Supprimer les fichiers des pièces jointes de Cloudinary
-    for (const attachment of unusedMessageAttachments) {
-      if (attachment.publicId) {
+    const candidateAttachmentIds = unusedMessageAttachments.map(
+      (attachment) => attachment.id,
+    );
+    const candidateVoiceNoteIds = unusedVoiceNotes.map(
+      (voiceNote) => voiceNote.id,
+    );
+    const failedPublicIds = new Set<string>();
+    const processedPublicIds = new Set<string>();
+
+    // Delete a Cloudinary file only when no retained record references it.
+    for (const { publicId } of [
+      ...unusedMessageAttachments,
+      ...unusedVoiceNotes,
+    ]) {
+      if (publicId && !processedPublicIds.has(publicId)) {
+        processedPublicIds.add(publicId);
+
+        if (
+          await hasOtherFileReferences(
+            publicId,
+            candidateAttachmentIds,
+            candidateVoiceNoteIds,
+          )
+        ) {
+          continue;
+        }
+
         try {
-          await cloudinary.uploader.destroy(
-            attachment.publicId,
-            { invalidate: true },
-            (error, result) => {
-              if (error) {
-                console.error(
-                  `Error deleting orphan avatar ${attachment.publicId}:`,
-                  error,
-                );
-              }
-            },
-          );
+          await cloudinary.uploader.destroy(publicId, { invalidate: true });
         } catch (error) {
-          console.error(
-            `Error deleting Cloudinary file ${attachment.publicId}:`,
-            error,
-          );
+          failedPublicIds.add(publicId);
+          console.error(`Error deleting Cloudinary file ${publicId}:`, error);
         }
       }
     }
 
-    // Supprimer les entrées de la base de données
+    // Keep failed records so a later cleanup run can retry the file deletion.
     await prisma.messageAttachment.deleteMany({
       where: {
-        id: {
-          in: unusedMessageAttachments.map((a) => a.id),
-        },
+        id: { in: candidateAttachmentIds },
+        OR: [
+          { publicId: null },
+          { publicId: { notIn: Array.from(failedPublicIds) } },
+        ],
+      },
+    });
+
+    await prisma.voiceNote.deleteMany({
+      where: {
+        id: { in: candidateVoiceNoteIds },
+        OR: [
+          { publicId: null },
+          { publicId: { notIn: Array.from(failedPublicIds) } },
+        ],
       },
     });
 

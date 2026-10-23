@@ -949,12 +949,7 @@ export async function handleSendSavedMessage(
         },
       });
 
-      if (attachmentIds && attachmentIds.length > 0) {
-        await tx.messageAttachment.updateMany({
-          where: { id: { in: attachmentIds } },
-          data: { messageId: msg.id },
-        });
-      }
+      await copyMessageAttachments(tx, attachmentIds, msg.id);
 
       // Mark saved message as delivered for the user (saved messages are always delivered)
       await tx.delivery.create({
@@ -1002,6 +997,43 @@ export async function handleSendSavedMessage(
   };
 }
 
+async function copyMessageAttachments(
+  tx: Prisma.TransactionClient,
+  attachmentIds: string[],
+  messageId: string,
+) {
+  const uniqueAttachmentIds = [...new Set(attachmentIds)];
+  if (uniqueAttachmentIds.length === 0) return;
+
+  const attachments = await tx.messageAttachment.findMany({
+    where: { id: { in: uniqueAttachmentIds } },
+  });
+
+  if (attachments.length !== uniqueAttachmentIds.length) {
+    console.warn("Some attachment IDs do not exist:", {
+      requested: uniqueAttachmentIds,
+      found: attachments.map((attachment) => attachment.id),
+    });
+  }
+
+  for (const attachment of attachments) {
+    await tx.messageAttachment.create({
+      data: {
+        messageId,
+        type: attachment.type,
+        url: attachment.url,
+        publicId: attachment.publicId,
+        fileName: attachment.fileName,
+        width: attachment.width,
+        height: attachment.height,
+        format: attachment.format,
+        size: attachment.size,
+        resourceType: attachment.resourceType,
+      },
+    });
+  }
+}
+
 // --- HANDLE SEND SAVED VOICE NOTE ---
 export async function handleSendSavedVoiceNote(
   data: SocketSendVoiceNoteEvent,
@@ -1023,7 +1055,7 @@ export async function handleSendSavedVoiceNote(
         data: {
           senderId: userId,
           type: "VOICENOTE",
-          voiceNote: forwardedFromId
+          voiceNote: forwardedFromId || voiceNote.messageId
             ? {
                 create: {
                   url: voiceNote.url,
@@ -1186,29 +1218,7 @@ export async function handleSendNormalMessage(
         include: getMessageDataInclude(userId),
       });
 
-      if (attachmentIds && attachmentIds.length > 0) {
-        const existingAttachments = await tx.messageAttachment.findMany({
-          where: {
-            id: { in: attachmentIds },
-          },
-        });
-
-        if (existingAttachments.length !== attachmentIds.length) {
-          console.warn("Some attachment IDs do not exist:", {
-            requested: attachmentIds,
-            found: existingAttachments.map((a) => a.id),
-          });
-        }
-
-        await tx.messageAttachment.updateMany({
-          where: {
-            id: { in: attachmentIds },
-          },
-          data: {
-            messageId: msg.id,
-          },
-        });
-      }
+      await copyMessageAttachments(tx, attachmentIds, msg.id);
 
       const room = await tx.room.findUnique({
         where: { id: roomId },
@@ -1739,7 +1749,7 @@ export async function handleSendVoiceNote(
           senderId: userId,
           type: "VOICENOTE",
           recipientId: calculatedRecipientId,
-          voiceNote: forwardedFromId
+          voiceNote: forwardedFromId || voiceNote.messageId
             ? {
                 create: {
                   url: voiceNote.url,
