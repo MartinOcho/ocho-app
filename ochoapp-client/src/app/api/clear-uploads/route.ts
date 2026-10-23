@@ -14,6 +14,8 @@ async function hasOtherFileReferences(
   publicId: string,
   candidateAttachmentIds: string[],
   candidateVoiceNoteIds: string[],
+  candidateMediaIds: string[],
+  candidateAvatarIds: string[],
 ) {
   const [attachmentCount, voiceNoteCount, avatarCount, mediaCount] =
     await Promise.all([
@@ -29,9 +31,14 @@ async function hasOtherFileReferences(
           id: { notIn: candidateVoiceNoteIds },
         },
       }),
-      prisma.userAvatar.count({ where: { publicId } }),
+      prisma.userAvatar.count({
+        where: { publicId, id: { notIn: candidateAvatarIds } },
+      }),
       prisma.media.count({
-        where: { url: { contains: publicId } },
+        where: {
+          url: { contains: publicId },
+          id: { notIn: candidateMediaIds },
+        },
       }),
     ]);
 
@@ -41,6 +48,36 @@ async function hasOtherFileReferences(
     avatarCount > 0 ||
     mediaCount > 0
   );
+}
+
+function getCloudinaryPublicId(url: string) {
+  const uploadIndex = url.indexOf("/upload/");
+  if (uploadIndex < 0) return null;
+
+  const pathSegments = url.slice(uploadIndex + "/upload/".length).split("/");
+  const versionIndex = pathSegments.findIndex((segment) => /^v\d+$/.test(segment));
+  if (versionIndex < 0 || versionIndex === pathSegments.length - 1) return null;
+
+  const publicId = pathSegments.slice(versionIndex + 1).join("/").replace(/\.[^.]+$/, "");
+  return publicId || null;
+}
+
+function removeLocalFileIfPresent(filePath: string) {
+  try {
+    fs.lstatSync(filePath);
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function GET(req: Request) {
@@ -155,31 +192,28 @@ export async function GET(req: Request) {
       },
     });
 
-    // Supprimer les fichiers locaux pour les avatars et les pièces jointes
-    unusedMedia.forEach((media) => {
-      let filePath: string = "";
+    const referencedAvatarUrls = new Set(
+      (
+        await prisma.user.findMany({
+          select: { avatarUrl: true },
+        })
+      )
+        .map((user) => user.avatarUrl)
+        .filter(Boolean) as string[],
+    );
 
-      if (media.url.includes("/uploads/attachments/")) {
-        // If it's an attachment
-        filePath = path.join(
-          attachmentDir,
-          media.url.split("/uploads/attachments/")[1],
-        );
-      }
-
-      // Supprimer le fichier s'il existe
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    });
-
-    // Supprimer les entrées de la base de données
-    await prisma.media.deleteMany({
+    const orphanAvatars = await prisma.userAvatar.findMany({
       where: {
-        id: {
-          in: unusedMedia.map((m) => m.id),
-        },
+        url: { notIn: Array.from(referencedAvatarUrls) },
+        ...(process.env.NODE_ENV === "production"
+          ? {
+              createdAt: {
+                lte: new Date(Date.now() - 24 * 3600 * 1000),
+              },
+            }
+          : {}),
       },
+      select: { id: true, url: true, publicId: true, resourceType: true },
     });
 
     // Rechercher les pièces jointes de messages inutilisées
@@ -223,8 +257,77 @@ export async function GET(req: Request) {
     const candidateVoiceNoteIds = unusedVoiceNotes.map(
       (voiceNote) => voiceNote.id,
     );
-    const failedPublicIds = new Set<string>();
+    const candidateMediaIds = unusedMedia.map((media) => media.id);
+    const candidateAvatarIds = orphanAvatars.map((avatar) => avatar.id);
+    const safeToDeletePublicIds = new Set<string>();
     const processedPublicIds = new Set<string>();
+
+    const safeToDeleteMediaIds = new Set<string>();
+    for (const media of unusedMedia) {
+      if (media.url.includes("/uploads/attachments/")) {
+        const relativePath = media.url.split("/uploads/attachments/")[1];
+        const filePath = path.resolve(attachmentDir, relativePath);
+        if (!filePath.startsWith(`${attachmentDir}${path.sep}`)) {
+          console.error(`Invalid local media path: ${media.url}`);
+          continue;
+        }
+
+        try {
+          removeLocalFileIfPresent(filePath);
+          safeToDeleteMediaIds.add(media.id);
+        } catch (error) {
+          console.error(`Error deleting local media ${filePath}:`, error);
+        }
+        continue;
+      }
+
+      const publicId = getCloudinaryPublicId(media.url);
+      if (!publicId || processedPublicIds.has(publicId)) continue;
+      processedPublicIds.add(publicId);
+
+      if (
+        await hasOtherFileReferences(
+          publicId,
+          candidateAttachmentIds,
+          candidateVoiceNoteIds,
+          candidateMediaIds,
+          candidateAvatarIds,
+        )
+      ) {
+        safeToDeletePublicIds.add(publicId);
+        continue;
+      }
+
+      try {
+        const result = await cloudinary.uploader.destroy(publicId, {
+          invalidate: true,
+        });
+        if (result.result === "ok" || result.result === "not found") {
+          safeToDeletePublicIds.add(publicId);
+        } else {
+          console.error(
+            `Cloudinary did not confirm deletion of ${publicId}:`,
+            result,
+          );
+        }
+      } catch (error) {
+        console.error(`Error deleting Cloudinary media ${publicId}:`, error);
+      }
+    }
+
+    for (const media of unusedMedia) {
+      const publicId = getCloudinaryPublicId(media.url);
+      if (
+        safeToDeleteMediaIds.has(media.id) ||
+        (publicId && safeToDeletePublicIds.has(publicId))
+      ) {
+        safeToDeleteMediaIds.add(media.id);
+      }
+    }
+
+    await prisma.media.deleteMany({
+      where: { id: { in: Array.from(safeToDeleteMediaIds) } },
+    });
 
     // Delete a Cloudinary file only when no retained record references it.
     for (const { publicId } of [
@@ -239,110 +342,129 @@ export async function GET(req: Request) {
             publicId,
             candidateAttachmentIds,
             candidateVoiceNoteIds,
+            candidateMediaIds,
+            candidateAvatarIds,
           )
         ) {
+          safeToDeletePublicIds.add(publicId);
           continue;
         }
 
         try {
-          await cloudinary.uploader.destroy(publicId, { invalidate: true });
+          const result = await cloudinary.uploader.destroy(publicId, {
+            invalidate: true,
+          });
+          if (result.result === "ok" || result.result === "not found") {
+            safeToDeletePublicIds.add(publicId);
+          } else {
+            console.error(
+              `Cloudinary did not confirm deletion of ${publicId}:`,
+              result,
+            );
+          }
         } catch (error) {
-          failedPublicIds.add(publicId);
           console.error(`Error deleting Cloudinary file ${publicId}:`, error);
         }
       }
     }
 
-    // Keep failed records so a later cleanup run can retry the file deletion.
+    // Keep records when file deletion could not be confirmed, so it can be retried.
     await prisma.messageAttachment.deleteMany({
       where: {
-        id: { in: candidateAttachmentIds },
-        OR: [
-          { publicId: null },
-          { publicId: { notIn: Array.from(failedPublicIds) } },
-        ],
+        id: {
+          in: unusedMessageAttachments
+            .filter(
+              (attachment) =>
+                attachment.publicId &&
+                safeToDeletePublicIds.has(attachment.publicId),
+            )
+            .map((attachment) => attachment.id),
+        },
       },
     });
 
     await prisma.voiceNote.deleteMany({
       where: {
-        id: { in: candidateVoiceNoteIds },
-        OR: [
-          { publicId: null },
-          { publicId: { notIn: Array.from(failedPublicIds) } },
-        ],
-      },
-    });
-
-    // Supprimer les avatars orphelins (utilisateurs qui ne les utilisent plus)
-    const referencedAvatarUrls = new Set(
-      (
-        await prisma.user.findMany({
-          select: { avatarUrl: true },
-        })
-      )
-        .map((u) => u.avatarUrl)
-        .filter(Boolean) as string[],
-    );
-
-    const orphanAvatars = await prisma.userAvatar.findMany({
-      where: {
-        url: {
-          notIn: Array.from(referencedAvatarUrls),
+        id: {
+          in: unusedVoiceNotes
+            .filter(
+              (voiceNote) =>
+                voiceNote.publicId &&
+                safeToDeletePublicIds.has(voiceNote.publicId),
+            )
+            .map((voiceNote) => voiceNote.id),
         },
-        ...(process.env.NODE_ENV === "production"
-          ? {
-              createdAt: {
-                lte: new Date(Date.now() - 24 * 3600 * 1000), // 1 jour
-              },
-            }
-          : {}),
       },
-      select: { id: true, url: true, publicId: true },
     });
 
+    // Keep orphan avatar records until file deletion is confirmed.
+    const safeToDeleteAvatarIds = new Set<string>();
     for (const avatar of orphanAvatars) {
       if (avatar.url.includes("/uploads/avatars/")) {
         const avatarDir = path.resolve("data/uploads/avatars");
-        const filePath = path.join(
-          avatarDir,
-          avatar.url.split("/uploads/avatars/")[1],
-        );
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        const relativePath = avatar.url.split("/uploads/avatars/")[1];
+        const filePath = path.resolve(avatarDir, relativePath);
+        if (!filePath.startsWith(`${avatarDir}${path.sep}`)) {
+          console.error(`Invalid local avatar path: ${avatar.url}`);
+          continue;
+        }
+
+        try {
+          removeLocalFileIfPresent(filePath);
+          safeToDeleteAvatarIds.add(avatar.id);
+        } catch (error) {
+          console.error(`Error deleting local avatar ${filePath}:`, error);
         }
         continue;
       }
 
-      if (avatar.publicId) {
-        try {
-          await cloudinary.uploader.destroy(
-            avatar.publicId,
-            { invalidate: true },
-            (error, result) => {
-              if (error) {
-                console.error(
-                  `Error deleting orphan avatar ${avatar.publicId}:`,
-                  error,
-                );
-              }
-            },
-          );
-        } catch (error) {
+      const publicId = avatar.publicId || getCloudinaryPublicId(avatar.url);
+      if (!publicId || processedPublicIds.has(publicId)) continue;
+      processedPublicIds.add(publicId);
+
+      if (
+        await hasOtherFileReferences(
+          publicId,
+          candidateAttachmentIds,
+          candidateVoiceNoteIds,
+          candidateMediaIds,
+          candidateAvatarIds,
+        )
+      ) {
+        safeToDeletePublicIds.add(publicId);
+        continue;
+      }
+
+      try {
+        const result = await cloudinary.uploader.destroy(publicId, {
+          resource_type: avatar.resourceType || "image",
+          invalidate: true,
+        });
+        if (result.result === "ok" || result.result === "not found") {
+          safeToDeletePublicIds.add(publicId);
+        } else {
           console.error(
-            `Error deleting orphan avatar ${avatar.publicId}:`,
-            error,
+            `Cloudinary did not confirm deletion of ${publicId}:`,
+            result,
           );
         }
+      } catch (error) {
+        console.error(`Error deleting Cloudinary avatar ${publicId}:`, error);
+      }
+    }
+
+    for (const avatar of orphanAvatars) {
+      const publicId = avatar.publicId || getCloudinaryPublicId(avatar.url);
+      if (
+        safeToDeleteAvatarIds.has(avatar.id) ||
+        (publicId && safeToDeletePublicIds.has(publicId))
+      ) {
+        safeToDeleteAvatarIds.add(avatar.id);
       }
     }
 
     await prisma.userAvatar.deleteMany({
-      where: {
-        id: {
-          in: orphanAvatars.map((a) => a.id),
-        },
-      },
+      where: { id: { in: Array.from(safeToDeleteAvatarIds) } },
     });
 
     return new Response(null, { status: 200 });
