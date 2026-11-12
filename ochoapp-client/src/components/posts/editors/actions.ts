@@ -1,5 +1,5 @@
 // components/posts/editor/action.ts
-"use server" 
+"use server";
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
@@ -45,6 +45,7 @@ export async function updatePost(input: {
   gradient: number | null;
   visibility: "PUBLIC" | "FOLLOWERS" | "PRIVATE";
   commentPolicy: "EVERYONE" | "FOLLOWERS" | "NO_ONE";
+  deleteExistingComments?: boolean;
 }) {
   const { user } = await validateRequest();
   if (!user) {
@@ -54,7 +55,10 @@ export async function updatePost(input: {
   const values = updatePostSchema.parse(input);
   const existingPost = await prisma.post.findUnique({
     where: { id: values.id },
-    select: { userId: true, attachments: { select: { id: true }, take: 1 } },
+    select: {
+      userId: true,
+      attachments: { select: { id: true }, take: 1 },
+    },
   });
 
   if (!existingPost || existingPost.userId !== user.id) {
@@ -64,15 +68,23 @@ export async function updatePost(input: {
     throw new Error("Une publication doit contenir du texte ou un média");
   }
 
-  return prisma.post.update({
-    where: { id: values.id },
-    data: {
-      content: values.content,
-      gradient: values.gradient,
-      visibility: values.visibility,
-      commentPolicy: values.commentPolicy,
-      editedAt: new Date(),
-    },
-    include: getPostDataIncludes(user.id),
+  return prisma.$transaction(async (transaction) => {
+    if (values.deleteExistingComments && values.commentPolicy !== "EVERYONE") {
+      await transaction.comment.deleteMany({
+        where: { postId: values.id },
+      });
+    }
+
+    return transaction.post.update({
+      where: { id: values.id },
+      data: {
+        content: values.content,
+        gradient: values.gradient,
+        visibility: values.visibility,
+        commentPolicy: values.commentPolicy,
+        editedAt: new Date(),
+      },
+      include: getPostDataIncludes(user.id),
+    });
   });
 }

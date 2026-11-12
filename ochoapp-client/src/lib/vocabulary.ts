@@ -107,7 +107,11 @@ export const english = {
   postVisibility: "Post visibility",
   commentAccess: "Who can comment",
   commentsDisabled: "Comments are disabled for this post.",
-  commentsFollowersOnly: "Only followers can comment on this post.",
+  commentsFollowersOnly:
+    "Only the author's followers can comment on this post.",
+  deleteExistingComments: "Delete existing comments",
+  deleteExistingCommentsDescription:
+    "Also delete the [count] comments and replies already on this post.",
   preservePostMedia: "Existing media will be kept when you edit this post.",
   fileMaxSizeReached:
     "The file [name] has exceeded the maximum size of [size].",
@@ -748,7 +752,10 @@ export const french: Vocabulary = {
   commentAccess: "Qui peut commenter",
   commentsDisabled: "Les commentaires sont désactivés pour cette publication.",
   commentsFollowersOnly:
-    "Seuls vos abonnés peuvent commenter cette publication.",
+    "Seuls les abonnés de l’auteur peuvent commenter cette publication.",
+  deleteExistingComments: "Supprimer les commentaires existants",
+  deleteExistingCommentsDescription:
+    "Supprimer aussi les [count] commentaires et réponses déjà publiés.",
   preservePostMedia:
     "Les médias existants seront conservés lors de la modification.",
   fileMaxSizeReached: "Le fichier [name] dépassé la taille maximale de [size].",

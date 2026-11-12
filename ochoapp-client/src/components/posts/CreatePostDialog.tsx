@@ -24,15 +24,18 @@ export default function CreatePostDialog() {
       <Button
         variant="ghost"
         onClick={() => setOpen(true)}
-        className="bg-card/50 sm:bg-card hover:bg-card/80 h-auto w-full justify-start gap-3 rounded-none sm:rounded-2xl p-3 text-left shadow-sm"
+        className="bg-card/50 sm:bg-card hover:bg-card/80 h-auto w-full justify-start gap-3 rounded-none p-3 text-left shadow-sm sm:rounded-2xl"
       >
         <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={42} />
-        <span className="text-muted-foreground min-w-0 flex-1 truncate font-normal border-input bg-background rounded-3xl border p-3 px-4">
+        <span className="text-muted-foreground border-input bg-background min-w-0 flex-1 truncate rounded-3xl border p-3 px-4 font-normal">
           {t("wtsup").replace("[name]", user.displayName.split(" ")[0])}
         </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-background fixed inset-0 top-0 left-0 z-70 flex h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(90dvh,760px)] sm:max-h-[90dvh] sm:w-[min(92vw,680px)] sm:max-w-[680px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border [&>button:last-child]:hidden">
+        <DialogContent
+          disableCloseAnimation
+          className="bg-background fixed inset-0 top-0 left-0 z-70 flex h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(90dvh,760px)] sm:max-h-[90dvh] sm:w-[min(92vw,680px)] sm:max-w-[680px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border [&>button:last-child]:hidden"
+        >
           <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
             <DialogClose asChild>
               <Button

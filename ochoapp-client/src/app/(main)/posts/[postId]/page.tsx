@@ -101,7 +101,7 @@ export default async function Page({ params, searchParams }: PageProps) {
         <h1 className="sr-only">
           Publication de {post.user.displayName} - {new Date(post.createdAt).toLocaleDateString("fr-FR")}
         </h1>
-        <Post post={post} />
+        <Post post={post} autoOpenComments />
       </div>
       <div className="sticky top-0 hidden h-fit w-80 flex-none lg:block">
         <Suspense fallback={<Loader2 className="mx-auto my-3 animate-spin" />}>

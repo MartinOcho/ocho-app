@@ -17,10 +17,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Globe2,
+  LockKeyhole,
   Maximize2,
+  MessageCircle,
   MessageSquareIcon,
   MessageSquareMore,
   Minimize2,
+  UsersRound,
   X,
 } from "lucide-react";
 import Comments from "../comments/Comments";
@@ -49,9 +53,10 @@ import { createPortal } from "react-dom";
 
 interface PostProps {
   post: PostData;
+  autoOpenComments?: boolean;
 }
 
-export default function Post({ post }: PostProps) {
+export default function Post({ post, autoOpenComments = false }: PostProps) {
   const { user } = useSession();
   const { startNavigation: navigate } = useProgress();
   const { openPost } = usePostModal();
@@ -64,7 +69,7 @@ export default function Post({ post }: PostProps) {
 
   const { t } = useTranslation();
 
-  const { hideComments, viewUserSProfile } = t();
+  const { viewUserSProfile, hideComments } = t();
 
   useEffect(() => {
     if (pathname.startsWith(`/posts/${post.id}`) && !!user.id) {
@@ -89,10 +94,10 @@ export default function Post({ post }: PostProps) {
     : "";
 
   useEffect(() => {
-    if (comment || showCommentParam) {
+    if (autoOpenComments && (comment || showCommentParam)) {
       setShowComment(true);
     }
-  }, [comment, showCommentParam]);
+  }, [autoOpenComments, comment, showCommentParam]);
 
   useEffect(() => {
     if (showComment) setFirstCommentRender(true);
@@ -103,7 +108,7 @@ export default function Post({ post }: PostProps) {
       return;
     }
     const href = `/posts/${post.id}${param}`;
-    if (window.matchMedia("(min-width: 1024px)").matches) {
+    if (window.matchMedia("(min-width: 640px)").matches) {
       openPost(post, href);
     } else {
       navigate(href);
@@ -176,8 +181,8 @@ export default function Post({ post }: PostProps) {
         isCarouselFullscreen && "z-50",
       )}
     >
-      <div className="flex justify-between gap-3 p-5">
-        <div className="flex flex-wrap gap-3">
+      <header className="flex items-start justify-between gap-3 p-4 sm:p-5">
+        <div className="flex min-w-0 items-center gap-3">
           <UserTooltip user={post.user} verified={verifiedCheck}>
             <OchoLink
               href={`/users/${post.user.username}`}
@@ -190,43 +195,45 @@ export default function Post({ post }: PostProps) {
               <UserAvatar
                 userId={post.user.id}
                 avatarUrl={post.user.avatarUrl}
+                size={48}
                 hideBadge={false}
               />
             </OchoLink>
           </UserTooltip>
-          <div>
-            <span className={cn(isVerified && "flex items-center gap-1")}>
+          <div className="min-w-0">
+            <span className={cn("flex min-w-0 items-center gap-1")}>
               <UserTooltip user={post.user} verified={verifiedCheck}>
                 <OchoLink
                   href={`/users/${post.user.username}`}
-                  className="block font-medium text-inherit"
+                  className="block truncate font-semibold text-inherit"
                 >
                   {post.user.displayName}
                 </OchoLink>
               </UserTooltip>
               {verifiedCheck}
             </span>
-            <OchoLink
-              href={`/posts/${post.id}`}
-              className="text-muted-foreground block text-sm"
-              suppressHydrationWarning
-              onClick={(event) => {
-                event.preventDefault();
-                postPage();
-              }}
-            >
-              <Time
-                time={post.createdAt}
-                relative={relative}
-                long={!relative}
-              />
-              {post.editedAt && (
-                <span className="ms-2 italic">{t("edited")}</span>
-              )}
-            </OchoLink>
+            <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm">
+              <OchoLink
+                href={`/posts/${post.id}`}
+                className="text-muted-foreground"
+                suppressHydrationWarning
+                onClick={(event) => {
+                  event.preventDefault();
+                  postPage();
+                }}
+              >
+                <Time
+                  time={post.createdAt}
+                  relative={relative}
+                  long={!relative}
+                />
+              </OchoLink>
+              {post.editedAt && <span>• {t("edited")}</span>}
+              <PostVisibilityBadge visibility={post.visibility} />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -245,29 +252,18 @@ export default function Post({ post }: PostProps) {
             />
           )}
         </div>
-      </div>
-      <div
-        className={cn(
-          "relative flex flex-col gap-5 max-sm:p-2 sm:p-5",
-          canShowGradient && "p-0",
-        )}
-      >
-        <div
-          className="absolute inset-0 h-full w-full"
-          onClick={() => postPage()}
-        ></div>
+      </header>
+      <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5 sm:pb-5">
         {!!post.content && (
-          <Linkify
-            postId={post.id}
-            className={cn(canShowGradient && "underline")}
-          >
+          <Linkify postId={post.id} className={cn(canShowGradient && "block")}>
             <div
               className={cn(
-                "z-10 wrap-break-word whitespace-pre-line",
+                "wrap-break-word whitespace-pre-line",
                 canShowGradient &&
-                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
-                !post.attachments.length &&
-                  `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
+                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-2xl text-center ${post.content.length <= 70 ? "text-3xl max-sm:text-xl" : "text-xl max-sm:text-base"}`,
+                !canShowGradient &&
+                  !post.attachments.length &&
+                  "text-base sm:text-lg",
               )}
               onClick={() => {
                 if (canShowGradient) {
@@ -275,7 +271,9 @@ export default function Post({ post }: PostProps) {
                 }
               }}
             >
-              <p className="w-full">{post.content}</p>
+              <p className={cn("w-full", canShowGradient && "px-4")}>
+                {post.content}
+              </p>
             </div>
           </Linkify>
         )}
@@ -283,11 +281,14 @@ export default function Post({ post }: PostProps) {
           <MediaPreviews
             attachments={post.attachments}
             authorDisplayName={post.user.displayName}
+            comments={post._count.comments}
+            commentPolicy={post.commentPolicy}
+            onOpenComments={() => setShowComment(true)}
             onFullscreenChange={(_index, isFullscreen) => {
               setIsCarouselFullscreen(isFullscreen);
             }}
-            fullscreenDetails={
-              <div className="flex h-full min-h-0 flex-col bg-card text-foreground">
+            fullscreenDetails={(closeCarousel) => (
+              <div className="bg-card text-foreground flex h-full min-h-0 flex-col">
                 <div className="border-b p-4">
                   <div className="flex items-center gap-3">
                     <UserAvatar
@@ -296,9 +297,7 @@ export default function Post({ post }: PostProps) {
                       hideBadge={false}
                     />
                     <div>
-                      <p className="font-semibold">
-                        {post.user.displayName}
-                      </p>
+                      <p className="font-semibold">{post.user.displayName}</p>
                       <p className="text-muted-foreground text-sm">
                         <Time
                           time={post.createdAt}
@@ -334,23 +333,37 @@ export default function Post({ post }: PostProps) {
                   />
                   <CommentButton
                     comments={post._count.comments}
-                    onClick={() => setShowComment(true)}
+                    commentPolicy={post.commentPolicy}
+                    onClick={() => {
+                      setShowComment(true);
+                      closeCarousel();
+                    }}
                   />
                 </div>
+                <CommentPolicyNotice
+                  policy={post.commentPolicy}
+                  className="mx-4 mt-3"
+                />
                 <div className="min-h-0 flex-1 overflow-y-auto">
                   <Comments
                     post={post}
+                    comment={autoOpenComments ? comment : null}
                     onClose={() => setShowComment(false)}
                   />
                 </div>
               </div>
-            }
+            )}
           />
         )}
       </div>
-      <hr className="text-muted-foreground" />
-      <div className="flex justify-between gap-5 p-5">
-        <div className="flex items-center gap-5">
+      {post.commentPolicy !== "EVERYONE" && (
+        <CommentPolicyNotice
+          policy={post.commentPolicy}
+          className="mx-4 mb-3 sm:mx-5"
+        />
+      )}
+      <footer className="border-border/70 flex items-center justify-between border-t px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-2">
           <LikeButton
             postId={post.id}
             recipientId={post.user.id}
@@ -361,9 +374,13 @@ export default function Post({ post }: PostProps) {
           />
           <CommentButton
             comments={post._count.comments}
+            commentPolicy={post.commentPolicy}
             onClick={() => {
-              postPage("?show-comment=true");
-              setShowComment(!showComment);
+              if (pathname === `/posts/${post.id}`) {
+                setShowComment((current) => !current);
+              } else {
+                postPage("?show-comment=true");
+              }
             }}
           />
         </div>
@@ -375,12 +392,12 @@ export default function Post({ post }: PostProps) {
             ),
           }}
         />
-      </div>
+      </footer>
       <div
         className={cn(
           "bottom-0",
           !showComment &&
-            "max-sm:invisible max-sm:fixed max-sm:-bottom-full max-sm:z-50 max-sm:h-full max-sm:w-full max-sm:transition-[bottom] max-sm:overflow-hidden",
+            "max-sm:invisible max-sm:fixed max-sm:-bottom-full max-sm:z-50 max-sm:h-full max-sm:w-full max-sm:overflow-hidden max-sm:transition-[bottom]",
         )}
       >
         {showComment && (
@@ -390,12 +407,16 @@ export default function Post({ post }: PostProps) {
           ></div>
         )}
         {firstCommentRender && (
-          <Comments post={post} onClose={() => setShowComment(false)} />
+          <Comments
+            post={post}
+            comment={autoOpenComments ? comment : null}
+            onClose={() => setShowComment(false)}
+          />
         )}
         <Button
           variant="link"
           onClick={() => setShowComment(false)}
-          className="mx-auto block max-sm:hidden"
+          className={cn("mx-auto block", !showComment && "hidden")}
         >
           {hideComments}
         </Button>
@@ -422,7 +443,7 @@ function DisconnectedPost({
   const { t } = useTranslation();
   const pathname = usePathname();
   const { viewUserSProfile } = t();
-  const isOpen = pathname.startsWith(`/posts/${post.id}`)
+  const isOpen = pathname.startsWith(`/posts/${post.id}`);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/posts/${post.id}`;
@@ -436,14 +457,14 @@ function DisconnectedPost({
 
   return (
     <div className={cn(isOpen && "flex flex-col items-center gap-4", "w-full")}>
-      {
-        isOpen && <Link href="/" className="text-2xl font-bold">
-        <AppLogo size={70} />
-      </Link>
-      }
-      <article className="group/post font-emoji bg-card/50 sm:bg-card relative flex max-w-xl flex-col p-0.5 shadow-sm sm:rounded-md">
-        <div className="flex justify-between gap-3 p-5">
-          <div className="flex flex-wrap gap-3">
+      {isOpen && (
+        <Link href="/" className="text-2xl font-bold">
+          <AppLogo size={70} />
+        </Link>
+      )}
+      <article className="group/post bg-card relative flex w-full max-w-xl flex-col overflow-hidden rounded-2xl shadow-sm">
+        <header className="flex items-start justify-between gap-3 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
             <OchoLink
               href={`/users/${post.user.username}`}
               className="text-inherit"
@@ -451,33 +472,36 @@ function DisconnectedPost({
               <UserAvatar
                 userId={post.user.id}
                 avatarUrl={post.user.avatarUrl}
+                size={48}
                 hideBadge={false}
               />
             </OchoLink>
-            <div>
-              <span className={cn(verifiedCheck && "flex items-center gap-1")}>
+            <div className="min-w-0">
+              <span className="flex min-w-0 items-center gap-1">
                 <OchoLink
                   href={`/users/${post.user.username}`}
-                  className="block font-medium text-inherit"
+                  className="block truncate font-semibold text-inherit"
                 >
                   {post.user.displayName}
                 </OchoLink>
                 {verifiedCheck}
               </span>
-              <OchoLink
-                href={`/posts/${post.id}`}
-                className="text-muted-foreground block text-sm"
-                onClick={(event) => {
-                  event.preventDefault();
-                  onPostPage();
-                }}
-              >
-                <Time
-                  time={post.createdAt}
-                  relative={relative}
-                  long={!relative}
-                />
-              </OchoLink>
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm">
+                <OchoLink
+                  href={`/posts/${post.id}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onPostPage();
+                  }}
+                >
+                  <Time
+                    time={post.createdAt}
+                    relative={relative}
+                    long={!relative}
+                  />
+                </OchoLink>
+                <PostVisibilityBadge visibility={post.visibility} />
+              </div>
             </div>
           </div>
           <Button
@@ -488,24 +512,22 @@ function DisconnectedPost({
           >
             <Share2 size={20} />
           </Button>
-        </div>
-        <div
-          className={cn(
-            "relative flex flex-col gap-5 max-sm:p-2 sm:p-5",
-            canShowGradient && "p-0",
-          )}
-        >
+        </header>
+        <div className={cn("flex flex-col gap-4 px-4 pb-4 sm:px-5 sm:pb-5")}>
           {!!post.content && (
             <div
               className={cn(
-                "z-10 wrap-break-word whitespace-pre-line",
+                "wrap-break-word whitespace-pre-line",
                 canShowGradient &&
-                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${post.content.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
-                !post.attachments.length &&
-                  `${post.content.length <= 70 ? "text-3xl max-sm:text-2xl" : "text-lg max-sm:text-base"}`,
+                  `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-2xl text-center ${post.content.length <= 70 ? "text-3xl max-sm:text-xl" : "text-xl max-sm:text-base"}`,
+                !canShowGradient &&
+                  !post.attachments.length &&
+                  "text-base sm:text-lg",
               )}
             >
-              <p className="w-full">{post.content}</p>
+              <p className={cn("w-full", canShowGradient && "px-4")}>
+                {post.content}
+              </p>
             </div>
           )}
           {!!post.attachments.length && (
@@ -515,7 +537,13 @@ function DisconnectedPost({
             />
           )}
         </div>
-        <div className="bg-muted/30 text-muted-foreground rounded-b-md p-5 text-center text-sm">
+        {post.commentPolicy !== "EVERYONE" && (
+          <CommentPolicyNotice
+            policy={post.commentPolicy}
+            className="mx-4 mb-3 sm:mx-5"
+          />
+        )}
+        <div className="border-border/70 bg-muted/20 text-muted-foreground border-t p-4 text-center text-sm">
           <OchoLink
             href="/login"
             className="text-primary font-bold hover:underline"
@@ -531,14 +559,20 @@ function DisconnectedPost({
 interface MediaPreviewsProps {
   attachments: Media[];
   startIndex?: number;
+  comments?: number;
+  commentPolicy?: PostData["commentPolicy"];
+  onOpenComments?: () => void;
   onFullscreenChange?: (index: number, isFullscreen: boolean) => void;
   authorDisplayName?: string;
-  fullscreenDetails?: React.ReactNode;
+  fullscreenDetails?: (closeCarousel: () => void) => React.ReactNode;
 }
 
 function MediaPreviews({
   attachments,
   startIndex = 0,
+  comments,
+  commentPolicy,
+  onOpenComments,
   onFullscreenChange,
   authorDisplayName,
   fullscreenDetails,
@@ -599,13 +633,17 @@ function MediaPreviews({
       : containerRefs.current[index];
 
     if (!document.fullscreenElement && fullscreenTarget) {
-      void fullscreenTarget.requestFullscreen().catch((error: unknown) =>
-        console.error("Unable to enter fullscreen mode:", error),
-      );
+      void fullscreenTarget
+        .requestFullscreen()
+        .catch((error: unknown) =>
+          console.error("Unable to enter fullscreen mode:", error),
+        );
     } else if (document.fullscreenElement) {
-      void document.exitFullscreen().catch((error: unknown) =>
-        console.error("Unable to exit fullscreen mode:", error),
-      );
+      void document
+        .exitFullscreen()
+        .catch((error: unknown) =>
+          console.error("Unable to exit fullscreen mode:", error),
+        );
     }
   };
 
@@ -792,8 +830,8 @@ function MediaPreviews({
                 )}
               </Carousel>
             </div>
-            <aside className="hidden h-full w-[min(400px,32vw)] shrink-0 border-l border-border bg-card lg:block">
-              {fullscreenDetails}
+            <aside className="bg-card hidden h-full w-[min(400px,32vw)] shrink-0 lg:block">
+              {fullscreenDetails?.(() => setShowCarousel(false))}
             </aside>
             <button
               type="button"
@@ -803,6 +841,18 @@ function MediaPreviews({
             >
               <X size={28} />
             </button>
+            {onOpenComments && (
+              <div className="absolute right-4 bottom-4 z-20 lg:hidden">
+                <CommentButton
+                  comments={comments ?? 0}
+                  commentPolicy={commentPolicy}
+                  onClick={() => {
+                    onOpenComments();
+                    setShowCarousel(false);
+                  }}
+                />
+              </div>
+            )}
           </div>,
           document.body,
         )}
@@ -928,26 +978,96 @@ function FullscreenButton({
 interface CommentButtonProps {
   onClick: () => void;
   comments: number;
+  commentPolicy?: PostData["commentPolicy"];
 }
-export function CommentButton({ comments, onClick }: CommentButtonProps) {
+export function CommentButton({
+  comments,
+  onClick,
+  commentPolicy = "EVERYONE",
+}: CommentButtonProps) {
   const { t } = useTranslation();
 
-  const { comment: commentText, comments: commentsText } = t();
+  const {
+    comment: commentText,
+    comments: commentsText,
+    commentsDisabled,
+    commentsFollowersOnly,
+  } = t();
   return (
     <button
-      title={commentsText}
+      type="button"
+      title={
+        commentPolicy === "NO_ONE"
+          ? commentsDisabled
+          : commentPolicy === "FOLLOWERS"
+            ? commentsFollowersOnly
+            : commentsText
+      }
       onClick={onClick}
-      className="flex items-center gap-2"
+      className="hover:bg-muted flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors"
     >
-      {!!comments ? <MessageSquareMore /> : <MessageSquareIcon />}
-      {!!comments && (
-        <span className="text-sm font-medium tabular-nums">
-          {comments}{" "}
-          <span className="hidden sm:inline">
-            {comments > 1 ? commentsText : commentText}
-          </span>
-        </span>
+      {commentPolicy === "NO_ONE" ? (
+        <MessageSquareIcon className="text-muted-foreground size-5" />
+      ) : comments > 0 ? (
+        <MessageSquareMore className="size-5" />
+      ) : (
+        <MessageCircle className="size-5" />
       )}
+      <span>
+        {comments > 0
+          ? `${comments} ${comments > 1 ? commentsText : commentText}`
+          : commentText}
+      </span>
     </button>
+  );
+}
+
+function PostVisibilityBadge({
+  visibility,
+}: {
+  visibility: PostData["visibility"];
+}) {
+  const { t } = useTranslation();
+  const Icon =
+    visibility === "PUBLIC"
+      ? Globe2
+      : visibility === "FOLLOWERS"
+        ? UsersRound
+        : LockKeyhole;
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span aria-hidden="true">•</span>
+      <Icon className="size-3.5" />
+    </span>
+  );
+}
+
+export function CommentPolicyNotice({
+  policy,
+  className,
+}: {
+  policy: PostData["commentPolicy"];
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const { commentsDisabled, commentsFollowersOnly } = t();
+  if (policy === "EVERYONE") return null;
+
+  const disabled = policy === "NO_ONE";
+
+  return (
+    <div
+      role="status"
+      className={cn(
+        "bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-xl px-3 py-2 text-sm",
+        className,
+      )}
+    >
+      <MessageSquareIcon
+        className={cn("mt-0.5 size-4 shrink-0", disabled && "text-destructive")}
+      />
+      <span>{disabled ? commentsDisabled : commentsFollowersOnly}</span>
+    </div>
   );
 }

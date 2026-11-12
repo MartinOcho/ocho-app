@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { flushSync } from "react-dom";
 import { PostData } from "@/lib/types";
 import PostModal from "./PostModal";
 import { InstantPostModal, PostModalContext } from "@/context/PostModalContext";
@@ -34,10 +35,12 @@ export default function PostModalProvider({
 
   const openPost = (post: PostData, href: string) => {
     const postPath = href.split("?")[0];
-    setInstantPost({
-      post,
-      postPath,
-      sourceUrl: `${window.location.pathname}${window.location.search}`,
+    flushSync(() => {
+      setInstantPost({
+        post,
+        postPath,
+        sourceUrl: `${window.location.pathname}${window.location.search}`,
+      });
     });
     router.push(href);
   };

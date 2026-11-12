@@ -91,6 +91,7 @@ export const updatePostSchema = z.object({
   gradient: z.number().int().nullable(),
   visibility: z.enum(["PUBLIC", "FOLLOWERS", "PRIVATE"]),
   commentPolicy: z.enum(["EVERYONE", "FOLLOWERS", "NO_ONE"]),
+  deleteExistingComments: z.boolean().default(false),
 });
 
 export const updateUserProfileSchema = z.object({

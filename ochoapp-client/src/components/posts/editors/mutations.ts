@@ -107,6 +107,12 @@ export function useUpdatePostMutation() {
         },
       );
       await queryClient.invalidateQueries({ queryKey: ["post-feed"] });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["comments", updatedPost.id],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["replies"] }),
+      ]);
       router.refresh();
       toast({ description: postUpdated });
     },

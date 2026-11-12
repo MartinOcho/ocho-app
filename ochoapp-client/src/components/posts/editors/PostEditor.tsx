@@ -54,6 +54,7 @@ export default function PostEditor({
   const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>(
     post?.commentPolicy ?? "EVERYONE",
   );
+  const [deleteExistingComments, setDeleteExistingComments] = useState(false);
   const [triggerResize, setTriggerResize] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const { user } = useSession();
@@ -110,6 +111,8 @@ export default function PostEditor({
               : null,
           visibility,
           commentPolicy,
+          deleteExistingComments:
+            commentPolicy !== "EVERYONE" && deleteExistingComments,
         },
         { onSuccess: onClose },
       );
@@ -414,9 +417,13 @@ export default function PostEditor({
             <PostSetting
               label={commentAccess}
               value={commentPolicy}
-              onValueChange={(value) =>
-                setCommentPolicy(value as CommentPolicy)
-              }
+              onValueChange={(value) => {
+                const nextPolicy = value as CommentPolicy;
+                setCommentPolicy(nextPolicy);
+                if (nextPolicy === "EVERYONE") {
+                  setDeleteExistingComments(false);
+                }
+              }}
               inDialog={isDialog}
               options={[
                 { value: "EVERYONE", label: everyone },
@@ -425,6 +432,29 @@ export default function PostEditor({
               ]}
             />
           </div>
+          {post && post._count.comments > 0 && commentPolicy !== "EVERYONE" && (
+            <label className="border-border flex items-start gap-3 rounded-xl border p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={deleteExistingComments}
+                onChange={(event) =>
+                  setDeleteExistingComments(event.target.checked)
+                }
+                className="accent-primary mt-0.5 size-4"
+              />
+              <span>
+                <span className="block font-medium">
+                  {t("deleteExistingComments")}
+                </span>
+                <span className="text-muted-foreground">
+                  {t("deleteExistingCommentsDescription").replace(
+                    "[count]",
+                    String(post._count.comments),
+                  )}
+                </span>
+              </span>
+            </label>
+          )}
           <div className="flex w-full items-center justify-end gap-2">
             {isUploading && (
               <Loader2 className="text-primary size-5 animate-spin" />

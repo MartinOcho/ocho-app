@@ -10,7 +10,7 @@ export default function PostModalLoading() {
   const { instantPost } = usePostModal();
 
   useEffect(() => {
-    if (!window.matchMedia("(min-width: 1024px)").matches) {
+    if (!window.matchMedia("(min-width: 640px)").matches) {
       router.replace(window.location.href);
     }
   }, [router]);
