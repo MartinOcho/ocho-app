@@ -24,10 +24,10 @@ export default function CreatePostDialog() {
       <Button
         variant="ghost"
         onClick={() => setOpen(true)}
-        className="bg-card hover:bg-card/80 h-auto w-full justify-start gap-3 rounded-xl p-3 text-left shadow-sm"
+        className="bg-card/50 sm:bg-card hover:bg-card/80 h-auto w-full justify-start gap-3 rounded-none sm:rounded-2xl p-3 text-left shadow-sm"
       >
         <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={42} />
-        <span className="text-muted-foreground min-w-0 flex-1 truncate font-normal">
+        <span className="text-muted-foreground min-w-0 flex-1 truncate font-normal border-input bg-background rounded-3xl border p-3 px-4">
           {t("wtsup").replace("[name]", user.displayName.split(" ")[0])}
         </span>
       </Button>
