@@ -6,7 +6,14 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { useSubmitPostMutation, useUpdatePostMutation } from "./mutations";
 import LoadingButton from "@/components/LoadingButton";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
-import { ClipboardEvent, DragEvent, useEffect, useRef, useState } from "react";
+import {
+  ClipboardEvent,
+  DragEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,7 +62,9 @@ export default function PostEditor({
   const mutation = post ? updateMutation : submitMutation;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const gradientEditorRef = useRef<HTMLDivElement>(null);
-  const previousGradient = useRef(selectedGradient);
+  const wasShowingGradient = useRef(false);
+  const inputValueRef = useRef(input);
+  inputValueRef.current = input;
   const {
     startUpload,
     attachments,
@@ -141,13 +150,10 @@ export default function PostEditor({
     !attachments.length &&
     !post?.attachments.length;
 
-  useEffect(() => {
-    if (previousGradient.current === selectedGradient) return;
-
+  useLayoutEffect(() => {
     if (canShowGradient && gradientEditorRef.current) {
       const editor = gradientEditorRef.current;
-      const text = editor.querySelector("span");
-      if (text) text.textContent = input;
+      editor.textContent = inputValueRef.current;
       editor.focus();
       const selection = window.getSelection();
       const range = document.createRange();
@@ -155,16 +161,15 @@ export default function PostEditor({
       range.collapse(false);
       selection?.removeAllRanges();
       selection?.addRange(range);
-    } else {
-      textareaRef.current?.focus();
+      wasShowingGradient.current = true;
     }
-    previousGradient.current = selectedGradient;
-  }, [selectedGradient, canShowGradient, input]);
-
-  useEffect(() => {
-    if (canShowGradient && gradientEditorRef.current) {
-      const text = gradientEditorRef.current.querySelector("span");
-      if (text) text.textContent = input;
+    if (!canShowGradient && wasShowingGradient.current) {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(
+        inputValueRef.current.length,
+        inputValueRef.current.length,
+      );
+      wasShowingGradient.current = false;
     }
   }, [canShowGradient]);
 
@@ -305,20 +310,11 @@ export default function PostEditor({
               role="textbox"
               aria-multiline="true"
               aria-label={placeholder}
-              className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center overflow-y-auto rounded-[inherit] border-0 bg-transparent p-4 text-center leading-tight outline-none"
+              className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center overflow-y-auto rounded-[inherit] border-0 bg-transparent p-4 text-center leading-tight wrap-break-word whitespace-pre-wrap outline-none"
               onInput={(event) =>
                 setInput(event.currentTarget.textContent ?? "")
               }
-            >
-              <span
-                ref={(element) => {
-                  if (element && element.textContent !== input) {
-                    element.textContent = input;
-                  }
-                }}
-                className="block w-full break-words whitespace-pre-wrap"
-              />
-            </div>
+            />
             {!input && (
               <div
                 aria-hidden="true"
@@ -473,7 +469,7 @@ function PostSetting({
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className={inDialog ? "z-[100]" : undefined}>
+        <SelectContent className={inDialog ? "z-100" : undefined}>
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

@@ -32,7 +32,7 @@ export default function CreatePostDialog() {
         </span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-background fixed inset-0 top-0 left-0 z-[70] flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(90dvh,760px)] sm:max-h-[90dvh] sm:w-[min(92vw,680px)] sm:max-w-[680px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border [&>button:last-child]:hidden">
+        <DialogContent className="bg-background fixed inset-0 top-0 left-0 z-70 flex h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(90dvh,760px)] sm:max-h-[90dvh] sm:w-[min(92vw,680px)] sm:max-w-[680px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border [&>button:last-child]:hidden">
           <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
             <DialogClose asChild>
               <Button
