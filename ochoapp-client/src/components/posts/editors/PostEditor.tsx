@@ -3,7 +3,7 @@
 
 import UserAvatar from "@/components/UserAvatar";
 import { useSession } from "@/app/(main)/SessionProvider";
-import { useSubmitPostMutation } from "./mutations";
+import { useSubmitPostMutation, useUpdatePostMutation } from "./mutations";
 import LoadingButton from "@/components/LoadingButton";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
 import {
@@ -20,15 +20,39 @@ import Image from "next/image";
 import { Textarea } from "@/components/ui/textarea";
 import { VocabularyObject } from "@/lib/vocabulary";
 import { useTranslation } from "@/context/LanguageContext";
+import { CommentPolicy, Visibility } from "@prisma/client";
+import { PostData } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function PostEditor() {
+interface PostEditorProps {
+  post?: PostData;
+  onClose?: () => void;
+}
+
+export default function PostEditor({ post, onClose }: PostEditorProps) {
   const [clear, setClear] = useState(false);
-  const [input, setInput] = useState("");
-  const [gradient, setGradient] = useState<string | null>(null);
+  const [input, setInput] = useState(post?.content ?? "");
+  const [gradient, setGradient] = useState<string | null>(
+    post?.gradient ? `gradient-${post.gradient}` : null,
+  );
+  const [visibility, setVisibility] = useState<Visibility>(
+    post?.visibility ?? "PUBLIC",
+  );
+  const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>(
+    post?.commentPolicy ?? "EVERYONE",
+  );
   const [triggerResize, setTriggerResize] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const { user } = useSession();
-  const mutation = useSubmitPostMutation();
+  const submitMutation = useSubmitPostMutation();
+  const updateMutation = useUpdatePostMutation();
+  const mutation = post ? updateMutation : submitMutation;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const {
     startUpload,
@@ -44,18 +68,44 @@ export default function PostEditor() {
     wtsup,
     chooseBackground,
     removeBackground,
-    post,
+    post: postText,
+    save,
+    postVisibility,
+    everyone,
+    followers,
+    private: privateText,
+    commentAccess,
+    noOne,
+    preservePostMedia,
     fileMaxSizeReached,
   } = t();
 
   function uploadFiles(files: File[]) {
+    if (post) return;
     startUpload(files, { fileMaxSizeReached } as VocabularyObject);
   }
 
   const maxGradientLength = 100;
 
   function onSubmit() {
-    mutation.mutate(
+    if (post) {
+      updateMutation.mutate(
+        {
+          id: post.id,
+          content: input.trim(),
+          gradient:
+            gradient && input.trim().length <= maxGradientLength
+              ? Number(gradient.split("-")[1])
+              : null,
+          visibility,
+          commentPolicy,
+        },
+        { onSuccess: onClose },
+      );
+      return;
+    }
+
+    submitMutation.mutate(
       {
         content: input.trim(),
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
@@ -63,10 +113,14 @@ export default function PostEditor() {
           gradient && input.trim().length <= maxGradientLength
             ? Number(gradient.split("-")[1])
             : undefined,
+        visibility,
+        commentPolicy,
       },
       {
         onSuccess: () => {
           setGradient(null);
+          setVisibility("PUBLIC");
+          setCommentPolicy("EVERYONE");
           setInput("");
           resetMediaUpload();
           setClear(true);
@@ -79,7 +133,10 @@ export default function PostEditor() {
   const gradients = [1, 2, 3, 4, 5].map((i) => `gradient-${i}`);
 
   const canShowGradient =
-    input.length <= maxGradientLength && !!gradient && !attachments.length;
+    input.length <= maxGradientLength &&
+    !!gradient &&
+    !attachments.length &&
+    !post?.attachments.length;
 
   function onPaste(e: ClipboardEvent) {
     const files = Array.from(e.clipboardData.items)
@@ -87,23 +144,27 @@ export default function PostEditor() {
       .map((item) => item.getAsFile()) as File[];
     if (files.length > 0) {
       e.preventDefault();
+      if (post) return;
       uploadFiles(files);
     }
   }
 
   function onDragOver(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
+    if (post) return;
     setIsDragActive(true);
   }
 
   function onDragLeave(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
+    if (post) return;
     setIsDragActive(false);
   }
 
   function onDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDragActive(false);
+    if (post) return;
     const files = Array.from(e.dataTransfer.files);
     if (files.length) {
       uploadFiles(files);
@@ -173,9 +234,13 @@ export default function PostEditor() {
           removeAttachment={removeAttachment}
         />
       )}
+      {post && post.attachments.length > 0 && (
+        <p className="text-sm text-muted-foreground">{preservePostMedia}</p>
+      )}
       <div className="flex w-full flex-col items-center justify-end gap-3">
         {!isUploading &&
           !attachments.length &&
+          !post?.attachments.length &&
           input.trim().length <= maxGradientLength && (
             <div
               title={chooseBackground}
@@ -199,26 +264,89 @@ export default function PostEditor() {
               ))}
             </div>
           )}
-        <div className="flex w-full items-center justify-end gap-2">
-          {isUploading && (
-            <Loader2 className="size-5 animate-spin text-primary" />
-          )}
-          <AddAttachmentButton
-            onFilesSelected={uploadFiles}
-            disabled={isUploading || attachments.length >= 5}
-            clear={clear}
-          />
-          <LoadingButton
-            onClick={onSubmit}
-            loading={mutation.isPending}
-            disabled={(!input.trim() && !attachments.length) || isUploading}
-            className="min-w-20"
-          >
-            {post}
-          </LoadingButton>
+        <div className="flex w-full flex-col gap-3">
+          <div className="grid w-full gap-3 sm:grid-cols-2">
+            <PostSetting
+              label={postVisibility}
+              value={visibility}
+              onValueChange={(value) => setVisibility(value as Visibility)}
+              options={[
+                { value: "PUBLIC", label: everyone },
+                { value: "FOLLOWERS", label: followers },
+                { value: "PRIVATE", label: privateText },
+              ]}
+            />
+            <PostSetting
+              label={commentAccess}
+              value={commentPolicy}
+              onValueChange={(value) =>
+                setCommentPolicy(value as CommentPolicy)
+              }
+              options={[
+                { value: "EVERYONE", label: everyone },
+                { value: "FOLLOWERS", label: followers },
+                { value: "NO_ONE", label: noOne },
+              ]}
+            />
+          </div>
+          <div className="flex w-full items-center justify-end gap-2">
+            {isUploading && (
+              <Loader2 className="size-5 animate-spin text-primary" />
+            )}
+            {!post && (
+              <AddAttachmentButton
+                onFilesSelected={uploadFiles}
+                disabled={isUploading || attachments.length >= 5}
+                clear={clear}
+              />
+            )}
+            <LoadingButton
+              onClick={onSubmit}
+              loading={mutation.isPending}
+              disabled={
+                (!input.trim() &&
+                  !attachments.length &&
+                  !post?.attachments.length) ||
+                isUploading
+              }
+              className="min-w-20"
+            >
+              {post ? save : postText}
+            </LoadingButton>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function PostSetting({
+  label,
+  value,
+  onValueChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      <span className="font-medium">{label}</span>
+      <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
   );
 }
 

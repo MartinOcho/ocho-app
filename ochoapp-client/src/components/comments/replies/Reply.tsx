@@ -16,6 +16,7 @@ import { AuthorLikeIcon } from "../Comment";
 import Verified from "@/components/Verified";
 import { VerifiedType } from "@prisma/client";
 import { useTranslation } from "@/context/LanguageContext";
+import CommentEditForm from "../CommentEditForm";
 
 interface CommentProps {
   comment: CommentData;
@@ -30,6 +31,7 @@ export default function Reply({ comment, isTarget = false }: CommentProps) {
   const { appUser, author } = t();
   const [showInput, setShowInput] = useState(false);
   const [authorLiked, setAuthorLiked] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
    const expiresAt = comment.user.verified?.[0]?.expiresAt;
   const canExpire = !!(expiresAt ? new Date(expiresAt).getTime() : null);
@@ -112,16 +114,27 @@ export default function Reply({ comment, isTarget = false }: CommentProps) {
             {comment.user.id === user.id && (
               <CommentMoreButton
                 comment={comment}
+                onEdit={() => setIsEditing(true)}
                 className="absolute right-0 top-0 opacity-0 transition-opacity group-hover/reply:opacity-100 max-sm:opacity-100"
               />
             )}
           </div>
-          <Linkify postId={comment.postId}>
-            <p>{comment.content}</p>
-          </Linkify>
-          <div className="">
+          {isEditing ? (
+            <CommentEditForm
+              comment={comment}
+              onCancel={() => setIsEditing(false)}
+            />
+          ) : (
+            <Linkify postId={comment.postId}>
+              <p>{comment.content}</p>
+            </Linkify>
+          )}
+          <div>
             <span className="text-xs text-muted-foreground">
               <Time time={comment.createdAt} long />
+              {comment.editedAt && (
+                <span className="ms-2 italic">{t("edited")}</span>
+              )}
             </span>
           </div>
           <div className="flex w-full items-center gap-4">
@@ -138,17 +151,26 @@ export default function Reply({ comment, isTarget = false }: CommentProps) {
               }}
               onAuthorLikeChange={setAuthorLiked}
             />
-            <ReplyButton
-              replies={comment._count.replies}
-              onClick={() => setShowInput(true)}
-            />
+            {comment.post.commentPolicy !== "NO_ONE" &&
+              (comment.post.commentPolicy !== "FOLLOWERS" ||
+                comment.post.userId === user.id ||
+                comment.post.user.followers.length > 0) && (
+                <ReplyButton
+                  replies={comment._count.replies}
+                  onClick={() => setShowInput(true)}
+                />
+              )}
             {authorLiked && (
               <AuthorLikeIcon avatarUrl={comment.post.user.avatarUrl} userId={comment.post.user.id} />
             )}
           </div>
         </div>
       </div>
-      {showInput && (
+      {showInput &&
+        comment.post.commentPolicy !== "NO_ONE" &&
+        (comment.post.commentPolicy !== "FOLLOWERS" ||
+          comment.post.userId === user.id ||
+          comment.post.user.followers.length > 0) && (
         <ReplyInput comment={comment} onClose={() => setShowInput(false)} />
       )}
     </div>

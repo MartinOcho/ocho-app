@@ -13,6 +13,12 @@ enum Visibility {
   PRIVATE
 }
 
+enum CommentPolicy {
+  EVERYONE
+  FOLLOWERS
+  NO_ONE
+}
+
 enum MessagingPrivacy {
   EVERYONE
   FOLLOWERS
@@ -378,8 +384,10 @@ model Post {
   bookmarks           Bookmark[]
   linkedNotifications Notification[]
   visibility          Visibility     @default(PUBLIC)
+  commentPolicy       CommentPolicy  @default(EVERYONE)
 
   createdAt      DateTime        @default(now())
+  editedAt       DateTime?
   relevanceScore Int             @default(0)
   relevance      PostUserScore[]
 
@@ -474,6 +482,7 @@ model Comment {
   likes               CommentLike[]
 
   createdAt DateTime @default(now())
+  editedAt  DateTime?
 
   @@map("comments")
 }

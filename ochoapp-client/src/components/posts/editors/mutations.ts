@@ -5,10 +5,11 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { submitPost } from "./actions";
+import { submitPost, updatePost } from "./actions";
 import { PostsPage } from "@/lib/types";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { useTranslation } from "@/context/LanguageContext";
+import { useRouter } from "next/navigation";
 
 export function useSubmitPostMutation() {
   const { toast } = useToast();
@@ -77,4 +78,41 @@ export function useSubmitPostMutation() {
   });
 
   return mutation;
+}
+
+export function useUpdatePostMutation() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { t } = useTranslation();
+  const { postUpdated, postUpdateError } = t();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updatePost,
+    onSuccess: async (updatedPost) => {
+      await queryClient.cancelQueries({ queryKey: ["post-feed"] });
+      queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
+        { queryKey: ["post-feed"] },
+        (oldData) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((post) =>
+                post.id === updatedPost.id ? updatedPost : post,
+              ),
+            })),
+          };
+        },
+      );
+      await queryClient.invalidateQueries({ queryKey: ["post-feed"] });
+      router.refresh();
+      toast({ description: postUpdated });
+    },
+    onError(error) {
+      console.error(error);
+      toast({ variant: "destructive", description: postUpdateError });
+    },
+  });
 }

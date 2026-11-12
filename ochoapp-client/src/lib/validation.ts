@@ -81,6 +81,16 @@ export const createPostSchema = z.object({
   content: z.string(),
   mediaIds: z.array(z.string()).max(5, "Vous pouvez ajouter jusqu'à 5 médias"),
   gradient: z.number().int().nullable().optional(),
+  visibility: z.enum(["PUBLIC", "FOLLOWERS", "PRIVATE"]).default("PUBLIC"),
+  commentPolicy: z.enum(["EVERYONE", "FOLLOWERS", "NO_ONE"]).default("EVERYONE"),
+});
+
+export const updatePostSchema = z.object({
+  id: requiredString,
+  content: z.string().trim(),
+  gradient: z.number().int().nullable(),
+  visibility: z.enum(["PUBLIC", "FOLLOWERS", "PRIVATE"]),
+  commentPolicy: z.enum(["EVERYONE", "FOLLOWERS", "NO_ONE"]),
 });
 
 export const updateUserProfileSchema = z.object({

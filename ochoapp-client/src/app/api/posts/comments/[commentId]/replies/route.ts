@@ -21,6 +21,27 @@ export async function GET(
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
+    const parentComment = await prisma.comment.findFirst({
+      where: {
+        id: commentId,
+        post: {
+          OR: [
+            { userId: user.id },
+            { visibility: "PUBLIC" },
+            {
+              visibility: "FOLLOWERS",
+              user: { followers: { some: { followerId: user.id } } },
+            },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!parentComment) {
+      return Response.json({ error: "Commentaire introuvable" }, { status: 404 });
+    }
+
     // Étape 1 : Récupérer le commentaire cible si un commentId est fourni
     let targetComment = null;
     // if (comment) {

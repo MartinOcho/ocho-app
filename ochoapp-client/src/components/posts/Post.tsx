@@ -220,6 +220,9 @@ export default function Post({ post }: PostProps) {
                 relative={relative}
                 long={!relative}
               />
+              {post.editedAt && (
+                <span className="ms-2 italic">{t("edited")}</span>
+              )}
             </OchoLink>
           </div>
         </div>
@@ -302,6 +305,9 @@ export default function Post({ post }: PostProps) {
                           relative={relative}
                           long={!relative}
                         />
+                        {post.editedAt && (
+                          <span className="ms-2 italic">{t("edited")}</span>
+                        )}
                       </p>
                     </div>
                   </div>

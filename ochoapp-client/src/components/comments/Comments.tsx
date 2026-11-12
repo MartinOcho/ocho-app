@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import Draggable from "../Draggable";
 import { useProgress } from "@/context/ProgressContext";
 import { useTranslation } from "@/context/LanguageContext";
+import { useSession } from "@/app/(main)/SessionProvider";
 
 interface CommentsProps {
   post: PostData;
@@ -28,6 +29,7 @@ export default function Comments({ post, onClose }: CommentsProps) {
   const {startNavigation: navigate} = useProgress();
 
   const { t } = useTranslation();
+  const { user } = useSession();
   const router = useRouter();
 
   const {
@@ -94,6 +96,10 @@ export default function Comments({ post, onClose }: CommentsProps) {
   }, []);
 
   const comments = data?.pages.flatMap((page) => page.comments) || [];
+  const canComment =
+    post.commentPolicy === "EVERYONE" ||
+    (post.commentPolicy === "FOLLOWERS" &&
+      (post.userId === user.id || post.user.followers.length > 0));
 
   useEffect(() => {
     if (
@@ -130,7 +136,15 @@ export default function Comments({ post, onClose }: CommentsProps) {
         }
       }}
     >
-      <CommentInput post={post} />
+      {canComment ? (
+        <CommentInput post={post} />
+      ) : (
+        <p className="px-4 py-3 text-center text-sm text-muted-foreground">
+          {post.commentPolicy === "NO_ONE"
+            ? t("commentsDisabled")
+            : t("commentsFollowersOnly")}
+        </p>
+      )}
       {isFetchingNextPage && (
         <Loader2 className="mx-auto my-3 animate-spin sm:hidden" />
       )}

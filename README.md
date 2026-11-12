@@ -396,6 +396,8 @@ npx prisma migrate deploy
 npx prisma db push
 ```
 
+Après une mise à jour du schéma, exécutez `npx prisma db push` depuis `ochoapp-client` afin d'ajouter les champs de modification et les règles de commentaires à la base de données.
+
 #### (Optionnel) Seeder initial
 
 ```bash

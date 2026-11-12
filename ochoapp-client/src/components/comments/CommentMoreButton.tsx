@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import DeleteCommentDialog from "./DeleteCommentDialog";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/context/LanguageContext";
@@ -16,12 +16,14 @@ interface CommentMoreButtonProps {
   comment: CommentData;
   className?: string;
   onRemove?: () => void;
+  onEdit: () => void;
 }
 
 export default function CommentMoreButton({
   comment,
   className,
   onRemove,
+  onEdit,
 }: CommentMoreButtonProps) {
   const { t } = useTranslation();
   const {delete: deleteText} = t();
@@ -35,6 +37,12 @@ export default function CommentMoreButton({
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <DropdownMenuItem onClick={onEdit}>
+            <span className="flex items-center gap-3">
+              <Pencil className="size-4" />
+              {t("edit")}
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
             <span className="flex items-center gap-3 text-destructive">
               <Trash2 className="size-4" />

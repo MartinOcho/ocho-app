@@ -478,10 +478,15 @@ export function getCommentDataIncludes(loggedInUserId: string) {
     post: {
       select: {
         userId: true,
+        commentPolicy: true,
         user: {
           select: {
             id: true,
             avatarUrl: true,
+            followers: {
+              where: { followerId: loggedInUserId },
+              select: { followerId: true },
+            },
           },
         },
       },

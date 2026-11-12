@@ -20,6 +20,25 @@ export async function GET(
       return Response.json({ error: "Action non autorisée" }, { status: 401 });
     }
 
+    const accessiblePost = await prisma.post.findFirst({
+      where: {
+        id: postId,
+        OR: [
+          { userId: user.id },
+          { visibility: "PUBLIC" },
+          {
+            visibility: "FOLLOWERS",
+            user: { followers: { some: { followerId: user.id } } },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!accessiblePost) {
+      return Response.json({ error: "Publication introuvable" }, { status: 404 });
+    }
+
     // Étape 1 : Récupérer le commentaire cible si un commentId est fourni
     let targetComment = null;
     if (comment) {

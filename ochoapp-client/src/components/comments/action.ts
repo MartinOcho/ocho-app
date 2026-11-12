@@ -4,7 +4,36 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { CommentData, FirstCommentData, getCommentDataIncludes, PostData } from "@/lib/types";
 import { createCommentSchema } from "@/lib/validation";
-import kyInstance from "@/lib/ky";
+
+async function assertCanComment(postId: string, userId: string) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      userId: true,
+      commentPolicy: true,
+      user: {
+        select: {
+          followers: {
+            where: { followerId: userId },
+            select: { followerId: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!post) {
+    throw new Error("Publication introuvable");
+  }
+  if (
+    post.commentPolicy === "NO_ONE" ||
+    (post.commentPolicy === "FOLLOWERS" &&
+      post.userId !== userId &&
+      !post.user.followers.length)
+  ) {
+    throw new Error("Vous ne pouvez pas commenter cette publication");
+  }
+}
 
 export async function submitComment({
   post,
@@ -20,6 +49,7 @@ export async function submitComment({
   }
 
   const { content: validatedContent } = createCommentSchema.parse({ content });
+  await assertCanComment(post.id, user.id);
 
   const newComment = await prisma.comment.create({
     data: {
@@ -50,6 +80,7 @@ export async function submitReply({
   }
 
   const { content: validatedContent } = createCommentSchema.parse({ content });
+  await assertCanComment(firstLevelComment.postId, user.id);
 
   const newComment = await prisma.comment.create({
     data: {
@@ -63,6 +94,30 @@ export async function submitReply({
     include: getCommentDataIncludes(user.id),
   });
   return newComment;
+}
+
+export async function updateComment(input: { id: string; content: string }) {
+  const { user } = await validateRequest();
+  if (!user) {
+    throw new Error("Action non autorisée");
+  }
+
+  const { id, content } = input;
+  const { content: validatedContent } = createCommentSchema.parse({ content });
+  const comment = await prisma.comment.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
+
+  if (!comment || comment.userId !== user.id) {
+    throw new Error("Action non autorisée");
+  }
+
+  return prisma.comment.update({
+    where: { id },
+    data: { content: validatedContent, editedAt: new Date() },
+    include: getCommentDataIncludes(user.id),
+  });
 }
 
 export async function deleteComment(id: string) {

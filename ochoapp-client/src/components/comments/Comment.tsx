@@ -12,6 +12,7 @@ import ReplyButton from "./replies/ReplyButton";
 import Replies from "./replies/Replies";
 import ReplyInput from "./replies/ReplyInput";
 import { useState } from "react";
+import CommentEditForm from "./CommentEditForm";
 import { Button } from "../ui/button";
 import { Heart, MessageSquare } from "lucide-react";
 import { VerifiedType } from "@prisma/client";
@@ -42,6 +43,7 @@ export default function Comment({ comment, isTarget = false }: CommentProps) {
   const [repliesCount, setRepliesCount] = useState(comment._count.firstLevelOf);
   const [authorReplied, setAuthorReplied] = useState(comment.isRepliedByAuthor);
   const [authorLiked, setAuthorLiked] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const { appUser, author } = t();
 
   const expiresAt = comment.user.verified?.[0]?.expiresAt;
@@ -112,16 +114,27 @@ export default function Comment({ comment, isTarget = false }: CommentProps) {
             {comment.user.id === user.id && (
               <CommentMoreButton
                 comment={comment}
+                onEdit={() => setIsEditing(true)}
                 className="absolute right-0 top-0 transition-opacity group-hover/comment:opacity-100 sm:opacity-0"
               />
             )}
           </div>
-          <Linkify postId={comment.postId}>
-            <p>{comment.content}</p>
-          </Linkify>
-          <div className="">
+          {isEditing ? (
+            <CommentEditForm
+              comment={comment}
+              onCancel={() => setIsEditing(false)}
+            />
+          ) : (
+            <Linkify postId={comment.postId}>
+              <p>{comment.content}</p>
+            </Linkify>
+          )}
+          <div>
             <span className="text-xs text-muted-foreground">
               <Time time={comment.createdAt} long />
+              {comment.editedAt && (
+                <span className="ms-2 italic">{t("edited")}</span>
+              )}
             </span>
           </div>
           <div className="flex w-full items-center gap-4">
@@ -138,17 +151,26 @@ export default function Comment({ comment, isTarget = false }: CommentProps) {
               }}
               onAuthorLikeChange={setAuthorLiked}
             />
-            <ReplyButton
-              replies={repliesCount}
-              onClick={() => setShowInput(true)}
-            />
+            {comment.post.commentPolicy !== "NO_ONE" &&
+              (comment.post.commentPolicy !== "FOLLOWERS" ||
+                comment.post.userId === user.id ||
+                comment.post.user.followers.length > 0) && (
+                <ReplyButton
+                  replies={repliesCount}
+                  onClick={() => setShowInput(true)}
+                />
+              )}
             {authorLiked && (
               <AuthorLikeIcon avatarUrl={comment.post.user.avatarUrl} userId={comment.post.user.id} />
             )}
           </div>
         </div>
       </div>
-      {showInput && (
+      {showInput &&
+        comment.post.commentPolicy !== "NO_ONE" &&
+        (comment.post.commentPolicy !== "FOLLOWERS" ||
+          comment.post.userId === user.id ||
+          comment.post.user.followers.length > 0) && (
         <ReplyInput
           comment={{
             ...comment,

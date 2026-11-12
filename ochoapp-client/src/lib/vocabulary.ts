@@ -94,6 +94,15 @@ export const english = {
   postError: "Failed to publish your post. Please try again.",
   postDeleted: "Post deleted",
   unableToDeletePost: "Unable to delete the post. Please try again.",
+  postUpdated: "Post updated",
+  postUpdateError: "Unable to update the post. Please try again.",
+  editPost: "Edit post",
+  edited: "edited",
+  postVisibility: "Post visibility",
+  commentAccess: "Who can comment",
+  commentsDisabled: "Comments are disabled for this post.",
+  commentsFollowersOnly: "Only followers can comment on this post.",
+  preservePostMedia: "Existing media will be kept when you edit this post.",
   fileMaxSizeReached:
     "The file [name] has exceeded the maximum size of [size].",
   fileMaxLenReached: "You cannot upload more than [len] attachments at a time.",
@@ -161,6 +170,8 @@ export const english = {
   unaBleToSendComment: "Unable to send comment. Please try again.",
   commentDeleted: "Comment deleted",
   unableToDeleteComment: "Unable to delete comment. Please try again.",
+  commentUpdated: "Comment updated",
+  unableToUpdateComment: "Unable to update the comment. Please try again.",
   memberSince: "Member since",
   editProfile: "Edit Profile",
   profilePicture: "Profile picture",
@@ -692,6 +703,17 @@ export const french: Vocabulary = {
   postDeleted: "Publication supprimé",
   unableToDeletePost:
     "Impossible de supprimer la publication. Veuillez réessayer.",
+  postUpdated: "Publication modifiée",
+  postUpdateError: "Impossible de modifier la publication. Veuillez réessayer.",
+  editPost: "Modifier la publication",
+  edited: "modifié",
+  postVisibility: "Confidentialité de la publication",
+  commentAccess: "Qui peut commenter",
+  commentsDisabled: "Les commentaires sont désactivés pour cette publication.",
+  commentsFollowersOnly:
+    "Seuls vos abonnés peuvent commenter cette publication.",
+  preservePostMedia:
+    "Les médias existants seront conservés lors de la modification.",
   fileMaxSizeReached: "Le fichier [name] dépassé la taille maximale de [size].",
   fileMaxLenReached:
     "Vous ne pouvez pas téléverser plus de [len] pièces jointes à la fois.",
@@ -763,6 +785,9 @@ export const french: Vocabulary = {
   commentDeleted: "Commentaire supprimé",
   unableToDeleteComment:
     "Impossible de supprimer le commentaire. Veuillez réessayer.",
+  commentUpdated: "Commentaire modifié",
+  unableToUpdateComment:
+    "Impossible de modifier le commentaire. Veuillez réessayer.",
   memberSince: "Membre depuis",
   editProfile: "Modifier le profil",
   profilePicture: "Photo de profil",

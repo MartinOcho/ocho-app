@@ -77,9 +77,7 @@ export async function GET(req: NextRequest) {
             },
           },
           {
-            visibility: {
-              not: "PRIVATE"
-            },
+            visibility: "PUBLIC",
           },
         ],
       },

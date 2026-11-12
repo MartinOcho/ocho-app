@@ -5,7 +5,12 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useToast } from "../ui/use-toast";
-import { deleteComment, submitComment, submitReply } from "./action";
+import {
+  deleteComment,
+  submitComment,
+  submitReply,
+  updateComment,
+} from "./action";
 import { CommentsPage, RepliesPage } from "@/lib/types";
 import { redirect, usePathname, useRouter } from "next/navigation";
 import { useProgress } from "@/context/ProgressContext";
@@ -124,6 +129,38 @@ export function useSubmitReplyMutation(commentId: string, firstLevelCommentId: s
   });
 
   return mutation;
+}
+
+export function useUpdateCommentMutation() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { t } = useTranslation();
+  const { commentUpdated, unableToUpdateComment } = t();
+
+  return useMutation({
+    mutationFn: updateComment,
+    onSuccess: async (comment) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["comments", comment.postId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            "replies",
+            comment.firstLevelCommentId ?? comment.id,
+          ],
+        }),
+      ]);
+      toast({ description: commentUpdated });
+    },
+    onError(error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        description: unableToUpdateComment,
+      });
+    },
+  });
 }
 
 export function useDeleteCommentMutation() {
