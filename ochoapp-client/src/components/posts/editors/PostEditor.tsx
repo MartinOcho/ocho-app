@@ -6,13 +6,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { useSubmitPostMutation, useUpdatePostMutation } from "./mutations";
 import LoadingButton from "@/components/LoadingButton";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
-import {
-  ClipboardEvent,
-  DragEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { ClipboardEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,9 +27,15 @@ import {
 interface PostEditorProps {
   post?: PostData;
   onClose?: () => void;
+  variant?: "default" | "dialog";
 }
 
-export default function PostEditor({ post, onClose }: PostEditorProps) {
+export default function PostEditor({
+  post,
+  onClose,
+  variant = "default",
+}: PostEditorProps) {
+  const isDialog = variant === "dialog";
   const [clear, setClear] = useState(false);
   const [input, setInput] = useState(post?.content ?? "");
   const [gradient, setGradient] = useState<string | null>(
@@ -125,6 +125,7 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
           resetMediaUpload();
           setClear(true);
           setTimeout(() => setClear(false), 100);
+          onClose?.();
         },
       },
     );
@@ -178,48 +179,104 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className="flex flex-col gap-5 bg-card/50 p-5 shadow-sm max-sm:border-t-8 max-sm:border-solid max-sm:border-background sm:rounded-md sm:bg-card"
+      className={cn(
+        "flex flex-col gap-5",
+        isDialog
+          ? "bg-background min-h-0 flex-1 overflow-y-auto p-4 sm:p-6"
+          : "bg-card/50 max-sm:border-background sm:bg-card p-5 shadow-sm max-sm:border-t-8 max-sm:border-solid sm:rounded-md",
+      )}
     >
+      {isDialog && (
+        <div className="flex shrink-0 items-center gap-3">
+          <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={56} />
+          <span className="text-lg font-semibold">{user.displayName}</span>
+        </div>
+      )}
+      {isDialog &&
+        !isUploading &&
+        !attachments.length &&
+        !post?.attachments.length &&
+        input.trim().length <= maxGradientLength && (
+          <div
+            title={chooseBackground}
+            className="flex w-full items-center gap-3 p-1"
+          >
+            {gradients.map((gradient, index) => {
+              const isSelected = +(gradient.split("-")[1]) === index + 1;
+              return (
+              <Button
+                key={gradient}
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`${chooseBackground} ${index + 1}`}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setGradient((prev) => (prev === gradient ? null : gradient));
+                  textareaRef.current?.focus();
+                }}
+                className={cn(
+                  "border-background size-12 shrink-0 rounded-full border-2 p-0 shadow",
+                  `gradient-post ${gradient}`,
+                  isSelected && "ring-primary ring-2",
+                )}
+              />
+            )})}
+          </div>
+        )}
       <div
         className={cn(
-          "flex h-max gap-2 rounded-3xl border border-input bg-background p-1 transition-all duration-75",
+          "flex h-max gap-2 transition-all duration-75",
+          !isDialog && "border-input bg-background rounded-3xl border p-1",
           isDragActive
-            ? "outline-dashed outline-primary"
-            : "items-endring-primary ring-offset-background has-[textarea:focus-visible]:outline-none has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-offset-2",
-          !gradient && "items-end",
+            ? "outline-primary outline-dashed"
+            : !isDialog &&
+                "items-endring-primary ring-offset-background has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-offset-2 has-[textarea:focus-visible]:outline-none",
+          !gradient && !isDialog && "items-end",
+          isDialog && "h-full min-h-40 flex-1",
         )}
         onPaste={onPaste}
       >
-        <div className="flex flex-col justify-between">
-          {!!canShowGradient && (
-            <Button
-              onClick={() => {
-                setGradient(null);
-                textareaRef.current?.focus();
-                setTriggerResize((prev) => !prev);
-              }}
-              size="icon"
-              className={`min-h-0 animate-scale border border-input bg-background text-foreground outline-none ring-primary ring-offset-background hover:ring-2`}
-              title={removeBackground}
-            >
-              <XIcon size={20} />
-            </Button>
-          )}
-          <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} />
-        </div>
+        {!isDialog && (
+          <div className="flex flex-col justify-between">
+            {!!canShowGradient && (
+              <Button
+                onClick={() => {
+                  setGradient(null);
+                  textareaRef.current?.focus();
+                  setTriggerResize((prev) => !prev);
+                }}
+                size="icon"
+                className="animate-scale border-input bg-background text-foreground ring-primary ring-offset-background min-h-0 border outline-none hover:ring-2"
+                title={removeBackground}
+              >
+                <XIcon size={20} />
+              </Button>
+            )}
+            <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} />
+          </div>
+        )}
         <div
           className={cn(
-            "flex-1 max-w-full",
+            "max-w-full flex-1",
             canShowGradient &&
-              `aspect-video gradient-post ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+              `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
+            isDialog && "flex min-h-0 flex-col",
           )}
         >
           <Textarea
             ref={textareaRef}
             placeholder={placeholder}
             className={cn(
-              "max-h-[14rem] min-h-10 w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
-              canShowGradient && "text-center", canShowGradient && input.trim().length && "max-w-fit",
+              "w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
+              isDialog
+                ? "min-h-40 flex-1 resize-none text-xl sm:text-2xl"
+                : "max-h-[14rem] min-h-10",
+              canShowGradient && "text-center",
+              canShowGradient &&
+                input.trim().length &&
+                !isDialog &&
+                "max-w-fit",
             )}
             rows={1}
             value={input}
@@ -235,10 +292,11 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
         />
       )}
       {post && post.attachments.length > 0 && (
-        <p className="text-sm text-muted-foreground">{preservePostMedia}</p>
+        <p className="text-muted-foreground text-sm">{preservePostMedia}</p>
       )}
       <div className="flex w-full flex-col items-center justify-end gap-3">
-        {!isUploading &&
+        {!isDialog &&
+          !isUploading &&
           !attachments.length &&
           !post?.attachments.length &&
           input.trim().length <= maxGradientLength && (
@@ -257,14 +315,28 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
                     setTriggerResize((prev) => !prev);
                   }}
                   size="icon"
-                  className={`gradient-post ${gradient} min-h-0 animate-scale bg-[hsl(var(--gradient-4-default))] text-[hsl(var(--gradient-4-foreground))] hover:bg-[hsl(var(--gradient-4-default))]`}
+                  className={`gradient-post ${gradient} animate-scale min-h-0 bg-[hsl(var(--gradient-4-default))] text-[hsl(var(--gradient-4-foreground))] hover:bg-[hsl(var(--gradient-4-default))]`}
                 >
                   {" "}
                 </Button>
               ))}
             </div>
           )}
-        <div className="flex w-full flex-col gap-3">
+        <div
+          className={cn(
+            "flex w-full flex-col gap-3",
+            !isDialog && "items-center justify-end",
+          )}
+        >
+          {!post && (
+            <AddAttachmentButton
+              onFilesSelected={uploadFiles}
+              disabled={isUploading || attachments.length >= 5}
+              clear={clear}
+              tile={isDialog}
+              label={t("addMedia")}
+            />
+          )}
           <div className="grid w-full gap-3 sm:grid-cols-2">
             <PostSetting
               label={postVisibility}
@@ -291,14 +363,7 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
           </div>
           <div className="flex w-full items-center justify-end gap-2">
             {isUploading && (
-              <Loader2 className="size-5 animate-spin text-primary" />
-            )}
-            {!post && (
-              <AddAttachmentButton
-                onFilesSelected={uploadFiles}
-                disabled={isUploading || attachments.length >= 5}
-                clear={clear}
-              />
+              <Loader2 className="text-primary size-5 animate-spin" />
             )}
             <LoadingButton
               onClick={onSubmit}
@@ -309,7 +374,7 @@ export default function PostEditor({ post, onClose }: PostEditorProps) {
                   !post?.attachments.length) ||
                 isUploading
               }
-              className="min-w-20"
+              className={cn("min-w-20", isDialog && "w-full sm:w-auto")}
             >
               {post ? save : postText}
             </LoadingButton>
@@ -354,12 +419,16 @@ interface AddAttachmentButtonProps {
   onFilesSelected: (files: File[]) => void;
   disabled: boolean;
   clear: boolean;
+  tile?: boolean;
+  label?: string;
 }
 
 function AddAttachmentButton({
   onFilesSelected,
   disabled,
   clear,
+  tile = false,
+  label,
 }: AddAttachmentButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Clear the input on clear change
@@ -372,13 +441,18 @@ function AddAttachmentButton({
   return (
     <>
       <Button
-        variant="ghost"
-        size="icon"
-        className="text-primary hover:text-primary"
+        type="button"
+        variant={tile ? "secondary" : "ghost"}
+        size={tile ? "default" : "icon"}
+        className={cn(
+          "text-primary hover:text-primary",
+          tile && "text-foreground h-24 w-full flex-col gap-3 rounded-2xl",
+        )}
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <ImageIcon size={20} />
+        <ImageIcon size={tile ? 28 : 20} />
+        {tile && label}
       </Button>
       <input
         type="file"
@@ -457,7 +531,7 @@ function AttachmentPreview({
         <button
           onClick={onRemoveClick}
           title="Retirer la pièce jointe"
-          className="absolute right-3 top-3 rounded-full bg-foreground p-1.5 text-background transition-colors hover:bg-foreground/60"
+          className="bg-foreground text-background hover:bg-foreground/60 absolute top-3 right-3 rounded-full p-1.5 transition-colors"
         >
           <XIcon size={20} />
         </button>
@@ -465,15 +539,15 @@ function AttachmentPreview({
       {!!(isUploading && progress) && (
         <div className="absolute inset-0 h-full w-full select-none">
           <div
-            className={`absolute left-0 top-0 flex h-full w-full items-center rounded bg-background/80 px-2 py-1 text-center text-xl`}
+            className={`bg-background/80 absolute top-0 left-0 flex h-full w-full items-center rounded px-2 py-1 text-center text-xl`}
           ></div>
-          <div className="absolute left-[50%] top-0 z-10 flex h-full w-full translate-x-[-50%] items-center justify-center rounded text-center text-[2rem] font-bold text-foreground">
+          <div className="text-foreground absolute top-0 left-[50%] z-10 flex h-full w-full translate-x-[-50%] items-center justify-center rounded text-center text-[2rem] font-bold">
             {progress}%
           </div>
         </div>
       )}
       <div className="pointer-events-none absolute inset-0 p-1">
-        <p className="h-fit w-fit max-w-full select-none overflow-hidden text-ellipsis text-nowrap rounded-sm bg-muted/40 px-2 italic text-muted-foreground">
+        <p className="bg-muted/40 text-muted-foreground h-fit w-fit max-w-full overflow-hidden rounded-sm px-2 text-nowrap text-ellipsis italic select-none">
           {file.name}
         </p>
       </div>

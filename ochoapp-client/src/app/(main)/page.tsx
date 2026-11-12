@@ -1,4 +1,4 @@
-import PostEditor from "@/components/posts/editors/PostEditor";
+import CreatePostDialog from "@/components/posts/CreatePostDialog";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import ForYouFeed from "./ForYouFeed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,8 +19,8 @@ export default async function Home() {
   return (
     <>
       <SetNavigation navPage="home" />
-      <div className="w-full min-w-0 h-full flex flex-col gap-2 sm:gap-4 max-w-lg overflow-y-auto sm:px-1">
-        <PostEditor />
+      <div className="flex h-full w-full max-w-lg min-w-0 flex-col gap-2 overflow-y-auto sm:gap-4 sm:px-1">
+        <CreatePostDialog />
         <Tabs defaultValue="for-you">
           {/* Liste des onglets en haut  */}
           <TabsList>

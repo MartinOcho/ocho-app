@@ -44,7 +44,8 @@ export const english = {
   logout: "Logout",
   logoutDescription: "Are you sure you want to log out?",
   logoutError: "Failed to log out. Please try again.",
-  logoutMultipleDescription: "You have multiple accounts connected. What would you like to do?",
+  logoutMultipleDescription:
+    "You have multiple accounts connected. What would you like to do?",
   switchAccount: "Switch account",
   switchingAccount: "Switching account",
   switchingTo: "Switching to [account]",
@@ -57,12 +58,14 @@ export const english = {
   otherSessions: "Other sessions",
   noOtherSessions: "No other active sessions",
   confirmLogoutAll: "Are you sure you want to log out all other accounts?",
-  confirmLogoutAllDescription: "Are you sure you want to log out all other accounts? This action cannot be undone.",
+  confirmLogoutAllDescription:
+    "Are you sure you want to log out all other accounts? This action cannot be undone.",
   logoutAllOthers: "Log out all others",
   logoutAllDescription: "Log out all other accounts at once",
   back: "Back",
   active: "Active",
-  securityNote: "Sessions are managed securely via httpOnly cookies. Your login information is never stored in plain text in the browser.",
+  securityNote:
+    "Sessions are managed securely via httpOnly cookies. Your login information is never stored in plain text in the browser.",
   home: "Home",
   explore: "Explore",
   notifications: "Notifications",
@@ -78,7 +81,8 @@ export const english = {
   likedYourPost: "liked your post.",
   likedYourComment: "liked your comment.",
   taggedYou: "tagged you",
-  moderationNotification: "Your post has been flagged for moderation. You are the only one who can see your post.",
+  moderationNotification:
+    "Your post has been flagged for moderation. You are the only one who can see your post.",
   message: "Message",
   messages: "Messages",
   settings: "Settings",
@@ -88,6 +92,8 @@ export const english = {
   removeBackground: "Remove background",
   author: "Author",
   post: "Post",
+  newPost: "New post",
+  addMedia: "Photo or video",
   aPost: "Post",
   posts: "Posts",
   postSuccess: "Your post has been published successfully.",
@@ -215,7 +221,8 @@ export const english = {
   exportMyData: "Export my data",
   exportDataTitle: "Export Data",
   exportDataDescription: "Download a copy of your data",
-  exportDataWarning: "This may take a few minutes. Please do not close this page.",
+  exportDataWarning:
+    "This may take a few minutes. Please do not close this page.",
   exportDataSuccess: "Your data has been exported successfully.",
   exportDataError: "Failed to export data. Please try again.",
   exportData: "Export Data",
@@ -433,13 +440,17 @@ export const english = {
   appTitle: "{title} - OchoApp",
   appDescription: "The social media app for power nerd",
   redirection: "Redirection",
-  appNotOpening: "If the application does not open automatically, please allow redirections or click here.",
-  closeTabIfOpened: "You can close this tab if the application has been opened.",
-  closeTabNoRedirection: "You can close this tab if no redirection is in progress.",
+  appNotOpening:
+    "If the application does not open automatically, please allow redirections or click here.",
+  closeTabIfOpened:
+    "You can close this tab if the application has been opened.",
+  closeTabNoRedirection:
+    "You can close this tab if no redirection is in progress.",
   downloadApp: "Download the application",
   backToHome: "Back to home",
   aboutUser: "About {name}",
-  unauthorizedAccess: "You are not authorized to view this page. Please log in or create an account first.",
+  unauthorizedAccess:
+    "You are not authorized to view this page. Please log in or create an account first.",
   deleting: "Deleting...",
   deleteNow: "Delete now",
   confirmDelete: "Confirm deletion",
@@ -447,11 +458,12 @@ export const english = {
   closeChat: "Close chat",
   chatUnavailableTitle: "Chat unavailable",
   chatAccessDeniedTitle: "Access denied",
-  chatUnavailableDescription: "This chat has been deleted or is no longer available.",
+  chatUnavailableDescription:
+    "This chat has been deleted or is no longer available.",
   chatBannedDescription: "You have been banned from this chat.",
   chatRemovedDescription: "You have been removed from this chat.",
   ok: "OK",
-  noMessageFoundFor: "No message found for \"{searchQuery}\".",
+  noMessageFoundFor: 'No message found for "{searchQuery}".',
   messageSendingNotAllowed: "Sending messages not allowed",
   sending: "Sending...",
   failed: "Failed",
@@ -467,29 +479,35 @@ export const english = {
   currentUsername: "Current Username",
   newUsername: "New Username",
   changeUsername: "Change Username",
-  usernameRequirements: "Username must be 3-20 characters long, containing only letters, numbers, and underscores.",
+  usernameRequirements:
+    "Username must be 3-20 characters long, containing only letters, numbers, and underscores.",
   usernameChanged: "Username changed successfully",
   usernameChangeError: "Failed to change username",
   usernameTaken: "Username is already taken",
   usernameTooFrequent: "Username changes are limited to once per month",
   usernameChangeLimit: "You can change your username again in [days] days",
-  deleteAccountWarning: "This action is permanent and cannot be undone. All your data will be deleted.",
+  deleteAccountWarning:
+    "This action is permanent and cannot be undone. All your data will be deleted.",
   deleteAccountRequest: "Account deletion request",
   deleteAccountRequestTitle: "Request account deletion",
-  deleteAccountRequestDescription: "If you want us to remove your account, enter your email and any useful information. We will contact you as soon as possible.",
+  deleteAccountRequestDescription:
+    "If you want us to remove your account, enter your email and any useful information. We will contact you as soon as possible.",
   deleteAccountRequestEmail: "Email address",
   deleteAccountRequestDetails: "Details",
   deleteAccountRequestSubmit: "Send request",
   deleteAccountRequestSuccess: "Your deletion request has been submitted.",
-  deleteAccountRequestError: "Unable to send the deletion request. Please try again.",
+  deleteAccountRequestError:
+    "Unable to send the deletion request. Please try again.",
   deleteAccountRequestMandatoryEmail: "Email is required",
   contactEmails: "Contact emails",
-  contactEmailsDescription: "Use one of the following addresses if we need to reach you or send you information:",
+  contactEmailsDescription:
+    "Use one of the following addresses if we need to reach you or send you information:",
   accountDeleted: "Your account has been deleted successfully.",
   accountDeleteError: "Failed to delete account. Please try again.",
   passwordRequired: "Password is required",
   enterCurrentPassword: "Enter Current Password",
-  disableAccountWarning: "Your account will be disabled. You can reactivate it by contacting support.",
+  disableAccountWarning:
+    "Your account will be disabled. You can reactivate it by contacting support.",
   accountDisabled: "Your account has been disabled successfully.",
   accountDisableError: "Failed to disable account. Please try again.",
   userUpdated: "User updated successfully",
@@ -530,7 +548,8 @@ export const english = {
   disconnect: "Disconnect",
   disconnecting: "Disconnecting...",
   disconnectDevice: "Disconnect this device",
-  disconnectDescription: "Are you sure you want to disconnect this device? You will need to log in again if you access your account from this device.",
+  disconnectDescription:
+    "Are you sure you want to disconnect this device? You will need to log in again if you access your account from this device.",
   disconnectSuccess: "Session successfully removed",
   disconnectError: "Error removing session",
   expiresOn: "Expires on",
@@ -543,8 +562,10 @@ export const english = {
   manageActiveSessions: "Manage your active sessions across all devices",
   termsOfUse: "Terms of Use",
   privacyPolicy: "Privacy Policy",
-  privacyDisclaimer: "By using OchoApp, you accept these [terms] and read our [privacy].",
-  invalid_credentials: "Invalid username or password. Please check your information.",
+  privacyDisclaimer:
+    "By using OchoApp, you accept these [terms] and read our [privacy].",
+  invalid_credentials:
+    "Invalid username or password. Please check your information.",
   google_auth_failed: "Google authentication failed",
   google_session_expired: "Google session has expired",
   username_taken: "This username is already taken",
@@ -554,17 +575,20 @@ export const english = {
   group_invitation_group_id_required: "Group ID is required for invitation.",
   not_a_group_member: "You must be a member of this group to invite others.",
   invalid_group: "The selected group does not exist or is invalid.",
-  restricted_invitations_admin_only: "Only group administrators are allowed to send invitations.",
+  restricted_invitations_admin_only:
+    "Only group administrators are allowed to send invitations.",
   cannot_invite_self: "You are already in this group.",
   target_user_not_found: "Target user not found.",
   user_banned_from_group: "This user is banned from this group.",
   user_already_in_group: "This user is already a member of this group.",
   target_room_or_user_required: "Target room or user ID is required.",
-  invitation_already_pending: "An invitation for this group is already pending in this conversation.",
+  invitation_already_pending:
+    "An invitation for this group is already pending in this conversation.",
   min_group_members_required: "A group must have at least 2 members.",
   account_private: "This user does not accept direct messages.",
   authorized_follower_only: "You must follow this user to send them messages.",
-  private_propfiles_found: "Some invited users have private profiles blocking messaging.",
+  private_propfiles_found:
+    "Some invited users have private profiles blocking messaging.",
   invitation_expired: "The invitation to join this group has expired.",
   invitation_declined: "The invitation was declined.",
   group_full: "This group is full.",
@@ -572,8 +596,10 @@ export const english = {
   send_group_invitation_failed: "Failed to send invitation.",
   respond_to_invitation_failed: "Failed to respond to invitation.",
   invalid_room: "Invalid conversation room.",
-  room_not_pending_invitation: "This conversation is not in a pending invitation state.",
-  not_authorized_respond_invitation: "You are not authorized to respond to this invitation.",
+  room_not_pending_invitation:
+    "This conversation is not in a pending invitation state.",
+  not_authorized_respond_invitation:
+    "You are not authorized to respond to this invitation.",
   not_authorized: "You are not authorized to perform this action.",
   message_not_found: "Message not found.",
   invalid_message_state: "Invalid message state.",
@@ -589,15 +615,18 @@ export const english = {
   invalid_or_expired_invitation: "This invitation is invalid or has expired.",
   group_not_found: "Group not found.",
   group_access_denied: "Access denied to this group.",
-  group_edit_permission_denied: "You do not have permission to edit this group.",
+  group_edit_permission_denied:
+    "You do not have permission to edit this group.",
   invalid_member: "Invalid member.",
   member_already_left_or_invalid: "Member has already left or is invalid.",
   no_target_user_id: "Target user ID is required.",
   voicenote_not_found: "Voice note not found.",
   failed_to_create_saved_message: "Failed to create saved message.",
   failed_to_create_saved_voicenote: "Failed to create saved voice note.",
-  invitation_pending_one_message_only: "You can only send one message while the invitation is pending.",
-  invitation_pending_accept_required: "Please accept the invitation to send a message.",
+  invitation_pending_one_message_only:
+    "You can only send one message while the invitation is pending.",
+  invitation_pending_accept_required:
+    "Please accept the invitation to send a message.",
   room_messaging_restricted: "Messaging is restricted in this discussion.",
   invitation_not_replied: "An invitation is waiting for a reply.",
   failed_to_load_voicenote_message: "Failed to load voice note message.",
@@ -609,9 +638,10 @@ export type Vocabulary = typeof english;
 export const french: Vocabulary = {
   welcomeIntro: "Un endroit où même -vous- pouvez trouver un ami.",
   error: "Erreur",
-  deniedAccess: "Accès refusé", 
+  deniedAccess: "Accès refusé",
   microphoneAccessDenied: "Accès au microphone refusé",
-  anErrorOccurredWhileRecording: "Une erreur s'est produite lors de l'enregistrement",
+  anErrorOccurredWhileRecording:
+    "Une erreur s'est produite lors de l'enregistrement",
   login: "Connexion",
   signup: "Inscription",
   orContinueWith: "Ou continuer avec",
@@ -652,7 +682,8 @@ export const french: Vocabulary = {
   logout: "Déconnexion",
   logoutDescription: "Etes-vous sur de vouloir vous déconnecter ?",
   logoutError: "Une erreur s'est produite lors de la tentative de déconnexion.",
-  logoutMultipleDescription: "Vous avez plusieurs comptes connectés. Que voulez-vous faire ?",
+  logoutMultipleDescription:
+    "Vous avez plusieurs comptes connectés. Que voulez-vous faire ?",
   switchAccount: "Changer de compte",
   switchingAccount: "Changement de compte",
   switchingTo: "Passage à [account]",
@@ -664,13 +695,16 @@ export const french: Vocabulary = {
   currentSession: "Session actuelle",
   otherSessions: "Autres sessions",
   noOtherSessions: "Aucune autre session active",
-  confirmLogoutAll: "Êtes-vous sûr de vouloir déconnecter tous les autres comptes ?",
-  confirmLogoutAllDescription: "Êtes-vous sûr de vouloir déconnecter tous les autres comptes ? Cette action ne peut pas être annulée.",
+  confirmLogoutAll:
+    "Êtes-vous sûr de vouloir déconnecter tous les autres comptes ?",
+  confirmLogoutAllDescription:
+    "Êtes-vous sûr de vouloir déconnecter tous les autres comptes ? Cette action ne peut pas être annulée.",
   logoutAllOthers: "Déconnecter tous les autres",
   logoutAllDescription: "Déconnecter tous les autres comptes à la fois",
   back: "Retour",
   active: "Actif",
-  securityNote: "Les sessions sont gérées de manière sécurisée via des cookies httpOnly. Vos informations de connexion ne sont jamais stockées en clair dans le navigateur.",
+  securityNote:
+    "Les sessions sont gérées de manière sécurisée via des cookies httpOnly. Vos informations de connexion ne sont jamais stockées en clair dans le navigateur.",
   home: "Accueil",
   explore: "Explorer",
   notifications: "Notifications",
@@ -686,7 +720,8 @@ export const french: Vocabulary = {
   likedYourPost: "a aimé ta publication.",
   likedYourComment: "a aimé ton commentaire.",
   taggedYou: "vous a identifié",
-  moderationNotification: "Votre publication a été signalée pour modération. Personne d'autre ne peut la voir.",
+  moderationNotification:
+    "Votre publication a été signalée pour modération. Personne d'autre ne peut la voir.",
   message: "Message",
   messages: "Messages",
   settings: "Paramètres",
@@ -696,6 +731,8 @@ export const french: Vocabulary = {
   removeBackground: "Rétirer l'arrière-plan",
   author: "Auteur",
   post: "Publier",
+  newPost: "Nouvelle publication",
+  addMedia: "Photo ou vidéo",
   aPost: "Publication",
   posts: "Publications",
   postSuccess: "Votre publilcation a été publié avec succès.",
@@ -741,7 +778,8 @@ export const french: Vocabulary = {
   dataError: "Quelque chose s'est mal passé.",
   noPostOnProfile: "[name] n'a aucune publication publique.",
   thisProfileIsPrivate: "Ce profil est privé.",
-  thisIsFollowersOnlyProfile: "Ce profil est visible uniquement par les personnes qui vous suivent.",
+  thisIsFollowersOnlyProfile:
+    "Ce profil est visible uniquement par les personnes qui vous suivent.",
   noBookmark: "Vous n'avez pas encore de favoris.",
   bookmarks: "Favoris",
   loginToInteract: "Connectez-vous pour interagir",
@@ -810,9 +848,10 @@ export const french: Vocabulary = {
   privacy: "Confidentialité et sécurité",
   display: "Affichage",
   birthday: "Date de naissance",
-  noBirthdate: "Aucune date de naissance. Veuillez définir votre date de naissance",
+  noBirthdate:
+    "Aucune date de naissance. Veuillez définir votre date de naissance",
   updateBirthdate: "Mettre à jour votre date de naissance",
-  mustBeAtLeast13:"Vous devez avoir au moins 13 ans pour utiliser ce service.",
+  mustBeAtLeast13: "Vous devez avoir au moins 13 ans pour utiliser ce service.",
   day: "Jour",
   month: "Mois",
   year: "Année",
@@ -826,13 +865,15 @@ export const french: Vocabulary = {
   passwordChangeError: "Échec du changement de mot de passe",
   passwordMismatch: "Les mots de passe ne correspondent pas",
   passwordTooWeak: "Le mot de passe est trop faible",
-  passwordSecurityNote: "Pour votre sécurité, veuillez choisir un mot de passe fort",
+  passwordSecurityNote:
+    "Pour votre sécurité, veuillez choisir un mot de passe fort",
   updating: "Mise à jour...",
   username: "Nom d'utilisateur",
   exportMyData: "Exporter mes données",
   exportDataTitle: "Exporter les données",
   exportDataDescription: "Télécharger une copie de vos données",
-  exportDataWarning: "Cela peut prendre quelques minutes. Veuillez ne pas fermer cette page.",
+  exportDataWarning:
+    "Cela peut prendre quelques minutes. Veuillez ne pas fermer cette page.",
   exportDataSuccess: "Vos données ont été exportées avec succès.",
   exportDataError: "Échec de l'exportation des données. Veuillez réessayer.",
   exportData: "Exporter les données",
@@ -851,7 +892,8 @@ export const french: Vocabulary = {
   connected: "Connecté",
   realtimeServerOffline: "Le serveur de temps reel est hors ligne",
   connectionLost: "Connexion perdue",
-  youAreOffline: "Vous êtes hors ligne. Certaines fonctionnalités peuvent être limitées.",
+  youAreOffline:
+    "Vous êtes hors ligne. Certaines fonctionnalités peuvent être limitées.",
   // Reactions
   reactText: "Réagir",
   reactions: "Réactions",
@@ -994,9 +1036,11 @@ export const french: Vocabulary = {
   youReactedToYourMessage: "[name] avez réagi [r] à votre message",
   youReactedToMessage: "[name] avez réagi [r] au message de [member]",
   reactedToMessage: "[name] a réagi [r] à votre message",
-  reactedMemberMessage: "[name] a réagi  [r] au message de [member]",  mentionedYou: "[name] vous a mentionné",
+  reactedMemberMessage: "[name] a réagi  [r] au message de [member]",
+  mentionedYou: "[name] vous a mentionné",
   youMentioned: "Vous avez mentionné [member]",
-  messageMention: "[name] a mentionné [member]",  messageWithAttachment: "[name]: 📎 Pièce jointe",
+  messageMention: "[name] a mentionné [member]",
+  messageWithAttachment: "[name]: 📎 Pièce jointe",
   photo: "Photo",
   photos: "Photos",
   video: "Vidéo",
@@ -1009,7 +1053,8 @@ export const french: Vocabulary = {
   noPreview: "Discuter ?",
   deletedChat: "Discussion supprimée",
   uploadError: "Erreur de téléversement",
-  unableToUploadVoiceNote: "Impossible de téléverser la note vocale. Veuillez réessayer.",
+  unableToUploadVoiceNote:
+    "Impossible de téléverser la note vocale. Veuillez réessayer.",
   voiceNote: "Note vocale",
   voiceMessage: "Message vocal",
   canNoLongerInteract: "Vous ne pouvez plus interagir",
@@ -1054,13 +1099,17 @@ export const french: Vocabulary = {
   appTitle: "{title} - OchoApp",
   appDescription: "L'application de réseau social pour les nerds puissants",
   redirection: "Redirection",
-  appNotOpening: "Si l'application ne s'ouvre pas automatiquement, veuillez autoriser les redirections ou cliquez ici.",
-  closeTabIfOpened: "Vous pouvez fermer cet onglet si l'application a été ouverte.",
-  closeTabNoRedirection: "Vous pouvez fermer cet onglet si aucune redirection n'est en cours.",
+  appNotOpening:
+    "Si l'application ne s'ouvre pas automatiquement, veuillez autoriser les redirections ou cliquez ici.",
+  closeTabIfOpened:
+    "Vous pouvez fermer cet onglet si l'application a été ouverte.",
+  closeTabNoRedirection:
+    "Vous pouvez fermer cet onglet si aucune redirection n'est en cours.",
   downloadApp: "Télécharger l'application",
   backToHome: "Revenir à l'accueil",
   aboutUser: "À propos de {name}",
-  unauthorizedAccess: "Vous n'êtes pas autorisé à afficher cette page. Veuillez d'abord vous connecter ou créer un compte.",
+  unauthorizedAccess:
+    "Vous n'êtes pas autorisé à afficher cette page. Veuillez d'abord vous connecter ou créer un compte.",
   deleting: "Suppression...",
   deleteNow: "Supprimer maintenant",
   confirmDelete: "Confirmer la suppression",
@@ -1068,11 +1117,12 @@ export const french: Vocabulary = {
   closeChat: "Fermer la discussion",
   chatUnavailableTitle: "Discussion non disponible",
   chatAccessDeniedTitle: "Accès refusé",
-  chatUnavailableDescription: "Cette discussion a été supprimée ou n'est plus disponible.",
+  chatUnavailableDescription:
+    "Cette discussion a été supprimée ou n'est plus disponible.",
   chatBannedDescription: "Vous avez été banni de cette discussion.",
   chatRemovedDescription: "Vous avez été retiré de cette discussion.",
   ok: "OK",
-  noMessageFoundFor: "Aucun message trouvé pour \"{searchQuery}\".",
+  noMessageFoundFor: 'Aucun message trouvé pour "{searchQuery}".',
   messageSendingNotAllowed: "Envoi de messages non autorisés",
   sending: "Envoi...",
   failed: "Échec",
@@ -1088,33 +1138,43 @@ export const french: Vocabulary = {
   currentUsername: "Nom d'utilisateur actuel",
   newUsername: "Nouveau nom d'utilisateur",
   changeUsername: "Changer le nom d'utilisateur",
-  usernameRequirements: "Le nom d'utilisateur doit contenir entre 3 et 20 caractères, uniquement des lettres, chiffres et tirets bas.",
+  usernameRequirements:
+    "Le nom d'utilisateur doit contenir entre 3 et 20 caractères, uniquement des lettres, chiffres et tirets bas.",
   usernameChanged: "Nom d'utilisateur changé avec succès",
   usernameChangeError: "Échec du changement de nom d'utilisateur",
   usernameTaken: "Le nom d'utilisateur est déjà pris",
-  usernameTooFrequent: "Les changements de nom d'utilisateur sont limités à une fois par mois",
-  usernameChangeLimit: "Vous pouvez changer votre nom d'utilisateur à nouveau dans [days] jours",
-  deleteAccountWarning: "Cette action est permanente et ne peut pas être annulée. Toutes vos données seront supprimées.",
+  usernameTooFrequent:
+    "Les changements de nom d'utilisateur sont limités à une fois par mois",
+  usernameChangeLimit:
+    "Vous pouvez changer votre nom d'utilisateur à nouveau dans [days] jours",
+  deleteAccountWarning:
+    "Cette action est permanente et ne peut pas être annulée. Toutes vos données seront supprimées.",
   deleteAccountRequest: "Demande de suppression de compte",
   deleteAccountRequestTitle: "Demande de suppression de compte",
-  deleteAccountRequestDescription: "Si vous souhaitez que nous supprimions votre compte, saisissez votre email et les informations utiles. Nous vous contacterons dès que possible.",
+  deleteAccountRequestDescription:
+    "Si vous souhaitez que nous supprimions votre compte, saisissez votre email et les informations utiles. Nous vous contacterons dès que possible.",
   deleteAccountRequestEmail: "Adresse email",
   deleteAccountRequestDetails: "Informations",
   deleteAccountRequestSubmit: "Envoyer la demande",
   deleteAccountRequestSuccess: "Votre demande de suppression a été envoyée.",
-  deleteAccountRequestError: "Impossible d'envoyer la demande de suppression. Veuillez réessayer.",
+  deleteAccountRequestError:
+    "Impossible d'envoyer la demande de suppression. Veuillez réessayer.",
   deleteAccountRequestMandatoryEmail: "L'email est obligatoire",
   contactEmails: "Emails de contact",
-  contactEmailsDescription: "Utilisez l'une des adresses suivantes si nous devons vous joindre ou vous informer :",
+  contactEmailsDescription:
+    "Utilisez l'une des adresses suivantes si nous devons vous joindre ou vous informer :",
   accountDeleted: "Votre compte a été supprimé avec succès.",
   accountDeleteError: "Échec de la suppression du compte. Veuillez réessayer.",
   passwordRequired: "Le mot de passe est requis",
   enterCurrentPassword: "Entrez le mot de passe actuel",
-  disableAccountWarning: "Votre compte sera désactivé. Vous pouvez le réactiver en contactant le support.",
+  disableAccountWarning:
+    "Votre compte sera désactivé. Vous pouvez le réactiver en contactant le support.",
   accountDisabled: "Votre compte a été désactivé avec succès.",
-  accountDisableError: "Échec de la désactivation du compte. Veuillez réessayer.",
+  accountDisableError:
+    "Échec de la désactivation du compte. Veuillez réessayer.",
   userUpdated: "Utilisateur mis à jour avec succès",
-  unableToUpdateUser: "Impossible de mettre à jour l'utilisateur. Veuillez réessayer.",
+  unableToUpdateUser:
+    "Impossible de mettre à jour l'utilisateur. Veuillez réessayer.",
   profileVisibility: "Visibilité du profil",
   postPrivacy: "Confidentialité des publications",
   messagePrivacy: "Confidentialité des messages",
@@ -1144,14 +1204,16 @@ export const french: Vocabulary = {
   noMediaShared: "Aucun média partagé",
   activeSessions: "Sessions actives",
   noConnectedDevices: "Aucun appareil connecté trouvé",
-  youCanDisconnect: "Vous pouvez déconnecter les appareils auxquels vous n'avez plus accès.",
+  youCanDisconnect:
+    "Vous pouvez déconnecter les appareils auxquels vous n'avez plus accès.",
   lastActivity: "Dernière activité",
   session: "session",
   sessions: "sessions",
   disconnect: "Déconnecter",
   disconnecting: "Déconnexion...",
   disconnectDevice: "Déconnecter cet appareil",
-  disconnectDescription: "Êtes-vous sûr de vouloir déconnecter cet appareil ? Vous devrez vous reconnecter si vous accédez à votre compte depuis cet appareil.",
+  disconnectDescription:
+    "Êtes-vous sûr de vouloir déconnecter cet appareil ? Vous devrez vous reconnecter si vous accédez à votre compte depuis cet appareil.",
   disconnectSuccess: "Session supprimée avec succès",
   disconnectError: "Erreur lors de la suppression de la session",
   expiresOn: "Expire le",
@@ -1164,28 +1226,39 @@ export const french: Vocabulary = {
   manageActiveSessions: "Gérez vos sessions actives sur tous vos appareils",
   termsOfUse: "Conditions d'Utilisation",
   privacyPolicy: "politique de confidentialité",
-  privacyDisclaimer: "En utilisant OchoApp, vous acceptez ces [terms] et avez lu notre [privacy].",
-  invalid_credentials: "Nom d'utilisateur ou mot de passe incorrect. Vérifiez vos informations.",
+  privacyDisclaimer:
+    "En utilisant OchoApp, vous acceptez ces [terms] et avez lu notre [privacy].",
+  invalid_credentials:
+    "Nom d'utilisateur ou mot de passe incorrect. Vérifiez vos informations.",
   google_auth_failed: "L'authentification Google a échoué",
   google_session_expired: "La session Google a expiré",
   username_taken: "Ce nom d'utilisateur est déjà pris",
   account_creation_failed: "Échec de la création du compte",
   email_taken: "Cette adresse email est déjà enregistrée",
-  server_error: "Quelque chose s'est mal passé de notre côté, nous y travaillons",
-  group_invitation_group_id_required: "L'identifiant du groupe est requis pour l'invitation.",
-  not_a_group_member: "Vous devez être membre de ce groupe pour inviter d'autres personnes.",
+  server_error:
+    "Quelque chose s'est mal passé de notre côté, nous y travaillons",
+  group_invitation_group_id_required:
+    "L'identifiant du groupe est requis pour l'invitation.",
+  not_a_group_member:
+    "Vous devez être membre de ce groupe pour inviter d'autres personnes.",
   invalid_group: "Le groupe sélectionné n'existe pas ou n'est pas valide.",
-  restricted_invitations_admin_only: "Seuls les administrateurs du groupe sont autorisés à envoyer des invitations.",
+  restricted_invitations_admin_only:
+    "Seuls les administrateurs du groupe sont autorisés à envoyer des invitations.",
   cannot_invite_self: "Vous êtes déjà dans ce groupe.",
   target_user_not_found: "Utilisateur cible introuvable.",
   user_banned_from_group: "Cet utilisateur est banni de ce groupe.",
   user_already_in_group: "Cet utilisateur est déjà membre du groupe.",
-  target_room_or_user_required: "Salon cible ou identifiant utilisateur requis.",
-  invitation_already_pending: "Une invitation pour ce groupe est déjà en attente dans cette discussion.",
-  min_group_members_required: "Un groupe doit avoir au moins 2 membres valides.",
+  target_room_or_user_required:
+    "Salon cible ou identifiant utilisateur requis.",
+  invitation_already_pending:
+    "Une invitation pour ce groupe est déjà en attente dans cette discussion.",
+  min_group_members_required:
+    "Un groupe doit avoir au moins 2 membres valides.",
   account_private: "Cet utilisateur n'autorise pas les messages directs.",
-  authorized_follower_only: "Vous devez vous abonner à cet utilisateur pour lui envoyer des messages.",
-  private_propfiles_found: "Certains utilisateurs invités ont un profil privé bloquant les invitations.",
+  authorized_follower_only:
+    "Vous devez vous abonner à cet utilisateur pour lui envoyer des messages.",
+  private_propfiles_found:
+    "Certains utilisateurs invités ont un profil privé bloquant les invitations.",
   invitation_expired: "L'invitation pour rejoindre ce groupe a expiré.",
   invitation_declined: "L'invitation a été refusée.",
   group_full: "Le groupe est complet.",
@@ -1193,8 +1266,10 @@ export const french: Vocabulary = {
   send_group_invitation_failed: "Impossible d'envoyer l'invitation.",
   respond_to_invitation_failed: "Impossible de répondre à l'invitation.",
   invalid_room: "Discussion non valide.",
-  room_not_pending_invitation: "Cette discussion n'est pas en attente d'invitation.",
-  not_authorized_respond_invitation: "Vous n'êtes pas autorisé à répondre à cette invitation.",
+  room_not_pending_invitation:
+    "Cette discussion n'est pas en attente d'invitation.",
+  not_authorized_respond_invitation:
+    "Vous n'êtes pas autorisé à répondre à cette invitation.",
   not_authorized: "Vous n'êtes pas autorisé à effectuer cette action.",
   message_not_found: "Message introuvable.",
   invalid_message_state: "État du message non valide.",
@@ -1210,21 +1285,27 @@ export const french: Vocabulary = {
   invalid_or_expired_invitation: "L'invitation est invalide ou a expiré.",
   group_not_found: "Groupe introuvable.",
   group_access_denied: "Accès refusé au groupe.",
-  group_edit_permission_denied: "Vous n'avez pas la permission de modifier ce groupe.",
+  group_edit_permission_denied:
+    "Vous n'avez pas la permission de modifier ce groupe.",
   invalid_member: "Membre non valide.",
   member_already_left_or_invalid: "Le membre est déjà parti ou non valide.",
   no_target_user_id: "Identifiant de l'utilisateur cible requis.",
   voicenote_not_found: "Message vocal introuvable.",
   failed_to_create_saved_message: "Échec de la création du message enregistré.",
-  failed_to_create_saved_voicenote: "Échec de la création du message vocal enregistré.",
-  invitation_pending_one_message_only: "Vous ne pouvez envoyer qu'un seul message tant que l'invitation est en attente.",
-  invitation_pending_accept_required: "Veuillez accepter l'invitation pour envoyer un message.",
-  room_messaging_restricted: "L'envoi de messages est restreint dans cette discussion.",
+  failed_to_create_saved_voicenote:
+    "Échec de la création du message vocal enregistré.",
+  invitation_pending_one_message_only:
+    "Vous ne pouvez envoyer qu'un seul message tant que l'invitation est en attente.",
+  invitation_pending_accept_required:
+    "Veuillez accepter l'invitation pour envoyer un message.",
+  room_messaging_restricted:
+    "L'envoi de messages est restreint dans cette discussion.",
   invitation_not_replied: "Une invitation est en attente de réponse.",
   failed_to_load_voicenote_message: "Échec du chargement du message vocal.",
   decline_group_invitation_failed: "Échec du refus de l'invitation au groupe.",
   delete_room_failed: "Échec de la suppression de la discussion.",
-  restricted_group_deletion: "Seul le propriétaire du groupe peut le supprimer.",
+  restricted_group_deletion:
+    "Seul le propriétaire du groupe peut le supprimer.",
 };
 
 export const vocabulary = {
@@ -1294,10 +1375,13 @@ export function translation(
   }
 
   if (Array.isArray(keys)) {
-    return keys.reduce((acc, key) => {
-      acc[key] = applyReplacements(activeLang[key] ?? "", replacements);
-      return acc;
-    }, {} as Record<VocabularyKey, string>);
+    return keys.reduce(
+      (acc, key) => {
+        acc[key] = applyReplacements(activeLang[key] ?? "", replacements);
+        return acc;
+      },
+      {} as Record<VocabularyKey, string>,
+    );
   }
 
   return applyReplacements(activeLang[keys] ?? "", replacements);
