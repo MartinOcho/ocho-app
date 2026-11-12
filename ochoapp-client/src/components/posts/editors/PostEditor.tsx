@@ -38,7 +38,7 @@ export default function PostEditor({
   const isDialog = variant === "dialog";
   const [clear, setClear] = useState(false);
   const [input, setInput] = useState(post?.content ?? "");
-  const [gradient, setGradient] = useState<string | null>(
+  const [selectedGradient, setSelectedGradient] = useState<string | null>(
     post?.gradient ? `gradient-${post.gradient}` : null,
   );
   const [visibility, setVisibility] = useState<Visibility>(
@@ -54,6 +54,8 @@ export default function PostEditor({
   const updateMutation = useUpdatePostMutation();
   const mutation = post ? updateMutation : submitMutation;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const gradientEditorRef = useRef<HTMLDivElement>(null);
+  const previousGradient = useRef(selectedGradient);
   const {
     startUpload,
     attachments,
@@ -94,8 +96,8 @@ export default function PostEditor({
           id: post.id,
           content: input.trim(),
           gradient:
-            gradient && input.trim().length <= maxGradientLength
-              ? Number(gradient.split("-")[1])
+            selectedGradient && input.trim().length <= maxGradientLength
+              ? Number(selectedGradient.split("-")[1])
               : null,
           visibility,
           commentPolicy,
@@ -110,15 +112,15 @@ export default function PostEditor({
         content: input.trim(),
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         gradient:
-          gradient && input.trim().length <= maxGradientLength
-            ? Number(gradient.split("-")[1])
+          selectedGradient && input.trim().length <= maxGradientLength
+            ? Number(selectedGradient.split("-")[1])
             : undefined,
         visibility,
         commentPolicy,
       },
       {
         onSuccess: () => {
-          setGradient(null);
+          setSelectedGradient(null);
           setVisibility("PUBLIC");
           setCommentPolicy("EVERYONE");
           setInput("");
@@ -135,9 +137,36 @@ export default function PostEditor({
 
   const canShowGradient =
     input.length <= maxGradientLength &&
-    !!gradient &&
+    !!selectedGradient &&
     !attachments.length &&
     !post?.attachments.length;
+
+  useEffect(() => {
+    if (previousGradient.current === selectedGradient) return;
+
+    if (canShowGradient && gradientEditorRef.current) {
+      const editor = gradientEditorRef.current;
+      const text = editor.querySelector("span");
+      if (text) text.textContent = input;
+      editor.focus();
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    } else {
+      textareaRef.current?.focus();
+    }
+    previousGradient.current = selectedGradient;
+  }, [selectedGradient, canShowGradient, input]);
+
+  useEffect(() => {
+    if (canShowGradient && gradientEditorRef.current) {
+      const text = gradientEditorRef.current.querySelector("span");
+      if (text) text.textContent = input;
+    }
+  }, [canShowGradient]);
 
   function onPaste(e: ClipboardEvent) {
     const files = Array.from(e.clipboardData.items)
@@ -202,26 +231,28 @@ export default function PostEditor({
             className="flex w-full items-center gap-3 p-1"
           >
             {gradients.map((gradient, index) => {
-              const isSelected = +(gradient.split("-")[1]) === index + 1;
+              const isSelected = selectedGradient === gradient;
               return (
-              <Button
-                key={gradient}
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`${chooseBackground} ${index + 1}`}
-                aria-pressed={isSelected}
-                onClick={() => {
-                  setGradient((prev) => (prev === gradient ? null : gradient));
-                  textareaRef.current?.focus();
-                }}
-                className={cn(
-                  "border-background size-12 shrink-0 rounded-full border-2 p-0 shadow",
-                  `gradient-post ${gradient}`,
-                  isSelected && "ring-primary ring-2",
-                )}
-              />
-            )})}
+                <Button
+                  key={gradient}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${chooseBackground} ${index + 1}`}
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    setSelectedGradient((prev) =>
+                      prev === gradient ? null : gradient,
+                    );
+                  }}
+                  className={cn(
+                    "border-background size-12 shrink-0 rounded-full border-2 p-0 shadow",
+                    gradient,
+                    isSelected && "ring-primary ring-2",
+                  )}
+                />
+              );
+            })}
           </div>
         )}
       <div
@@ -232,8 +263,8 @@ export default function PostEditor({
             ? "outline-primary outline-dashed"
             : !isDialog &&
                 "items-endring-primary ring-offset-background has-[textarea:focus-visible]:ring-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-offset-2 has-[textarea:focus-visible]:outline-none",
-          !gradient && !isDialog && "items-end",
-          isDialog && "h-full min-h-40 flex-1",
+          !selectedGradient && !isDialog && "items-end",
+          isDialog && (canShowGradient ? "w-full" : "h-full min-h-40 flex-1"),
         )}
         onPaste={onPaste}
       >
@@ -242,7 +273,7 @@ export default function PostEditor({
             {!!canShowGradient && (
               <Button
                 onClick={() => {
-                  setGradient(null);
+                  setSelectedGradient(null);
                   textareaRef.current?.focus();
                   setTriggerResize((prev) => !prev);
                 }}
@@ -256,34 +287,70 @@ export default function PostEditor({
             <UserAvatar userId={user.id} avatarUrl={user.avatarUrl} size={40} />
           </div>
         )}
-        <div
-          className={cn(
-            "max-w-full flex-1",
-            canShowGradient &&
-              `gradient-post aspect-video ${gradient} flex items-center justify-center rounded-[1.4rem] rounded-s-md text-center transition-all ${input.length <= 70 ? "text-3xl max-sm:text-lg" : "text-xl max-sm:text-base"}`,
-            isDialog && "flex min-h-0 flex-col",
-          )}
-        >
-          <Textarea
-            ref={textareaRef}
-            placeholder={placeholder}
+        {canShowGradient ? (
+          <div
             className={cn(
-              "w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
-              isDialog
-                ? "min-h-40 flex-1 resize-none text-xl sm:text-2xl"
-                : "max-h-[14rem] min-h-10",
-              canShowGradient && "text-center",
-              canShowGradient &&
-                input.trim().length &&
-                !isDialog &&
-                "max-w-fit",
+              "relative flex aspect-video items-center justify-center overflow-hidden rounded-[1.4rem] rounded-s-md text-center leading-tight",
+              selectedGradient,
+              input.length <= 70
+                ? "text-3xl max-sm:text-lg"
+                : "text-xl max-sm:text-base",
+              isDialog ? "w-full" : "min-w-0 flex-1",
             )}
-            rows={1}
-            value={input}
-            onChange={({ target: { value } }) => setInput(value)}
-            triggerResize={triggerResize}
-          />
-        </div>
+          >
+            <div
+              ref={gradientEditorRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-multiline="true"
+              aria-label={placeholder}
+              className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center overflow-y-auto rounded-[inherit] border-0 bg-transparent p-4 text-center leading-tight outline-none"
+              onInput={(event) =>
+                setInput(event.currentTarget.textContent ?? "")
+              }
+            >
+              <span
+                ref={(element) => {
+                  if (element && element.textContent !== input) {
+                    element.textContent = input;
+                  }
+                }}
+                className="block w-full break-words whitespace-pre-wrap"
+              />
+            </div>
+            {!input && (
+              <div
+                aria-hidden="true"
+                className="text-muted-foreground pointer-events-none absolute inset-0 flex items-center justify-center p-4 text-center"
+              >
+                {placeholder}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "max-w-full flex-1",
+              isDialog && "flex min-h-0 flex-col",
+            )}
+          >
+            <Textarea
+              ref={textareaRef}
+              placeholder={placeholder}
+              className={cn(
+                "w-full overflow-y-auto rounded-none border-none bg-transparent px-0 ring-offset-transparent placeholder:text-gray-500 focus-visible:ring-transparent",
+                isDialog
+                  ? "min-h-40 flex-1 resize-none text-xl sm:text-2xl"
+                  : "max-h-[14rem] min-h-10",
+              )}
+              rows={1}
+              value={input}
+              onChange={({ target: { value } }) => setInput(value)}
+              triggerResize={triggerResize}
+            />
+          </div>
+        )}
       </div>
       {!!attachments.length && (
         <AttachmentPreviews
@@ -308,10 +375,9 @@ export default function PostEditor({
                 <Button
                   key={index + 1}
                   onClick={() => {
-                    setGradient((prev) =>
+                    setSelectedGradient((prev) =>
                       prev === gradient ? null : gradient,
                     );
-                    textareaRef.current?.focus();
                     setTriggerResize((prev) => !prev);
                   }}
                   size="icon"
@@ -333,7 +399,7 @@ export default function PostEditor({
               onFilesSelected={uploadFiles}
               disabled={isUploading || attachments.length >= 5}
               clear={clear}
-              tile={isDialog}
+              compact={isDialog}
               label={t("addMedia")}
             />
           )}
@@ -342,6 +408,7 @@ export default function PostEditor({
               label={postVisibility}
               value={visibility}
               onValueChange={(value) => setVisibility(value as Visibility)}
+              inDialog={isDialog}
               options={[
                 { value: "PUBLIC", label: everyone },
                 { value: "FOLLOWERS", label: followers },
@@ -354,6 +421,7 @@ export default function PostEditor({
               onValueChange={(value) =>
                 setCommentPolicy(value as CommentPolicy)
               }
+              inDialog={isDialog}
               options={[
                 { value: "EVERYONE", label: everyone },
                 { value: "FOLLOWERS", label: followers },
@@ -390,11 +458,13 @@ function PostSetting({
   value,
   onValueChange,
   options,
+  inDialog = false,
 }: {
   label: string;
   value: string;
   onValueChange: (value: string) => void;
   options: { value: string; label: string }[];
+  inDialog?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
@@ -403,7 +473,7 @@ function PostSetting({
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className={inDialog ? "z-[100]" : undefined}>
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
@@ -419,7 +489,7 @@ interface AddAttachmentButtonProps {
   onFilesSelected: (files: File[]) => void;
   disabled: boolean;
   clear: boolean;
-  tile?: boolean;
+  compact?: boolean;
   label?: string;
 }
 
@@ -427,7 +497,7 @@ function AddAttachmentButton({
   onFilesSelected,
   disabled,
   clear,
-  tile = false,
+  compact = false,
   label,
 }: AddAttachmentButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -442,17 +512,17 @@ function AddAttachmentButton({
     <>
       <Button
         type="button"
-        variant={tile ? "secondary" : "ghost"}
-        size={tile ? "default" : "icon"}
+        variant={compact ? "outline" : "ghost"}
+        size={compact ? "default" : "icon"}
         className={cn(
           "text-primary hover:text-primary",
-          tile && "text-foreground h-24 w-full flex-col gap-3 rounded-2xl",
+          compact && "h-10 w-fit gap-2 rounded-full px-4",
         )}
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <ImageIcon size={tile ? 28 : 20} />
-        {tile && label}
+        <ImageIcon size={20} />
+        {compact && label}
       </Button>
       <input
         type="file"
