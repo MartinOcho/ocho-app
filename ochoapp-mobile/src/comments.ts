@@ -12,6 +12,20 @@ import {
 import { checkVerification, formatUserResponse, getCurrentUser } from "./auth";
 import { createCommentSchema } from "./validation";
 
+function canComment(
+  commentPolicy: "EVERYONE" | "FOLLOWERS" | "NO_ONE",
+  postAuthorId: string,
+  userId: string,
+  isFollower: boolean,
+) {
+  return (
+    commentPolicy !== "NO_ONE" &&
+    (commentPolicy !== "FOLLOWERS" ||
+      postAuthorId === userId ||
+      isFollower)
+  );
+}
+
 export async function sendComment(req: Request, res: Response) {
   try {
     const { postId } = <{ postId: string }>req.params;
@@ -48,13 +62,38 @@ export async function sendComment(req: Request, res: Response) {
           },
         ],
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        commentPolicy: true,
+        user: {
+          select: {
+            followers: {
+              where: { followerId: userId },
+              select: { followerId: true },
+            },
+          },
+        },
+      },
     });
 
     if (!post) {
       return res.json({
         success: false,
         message: "Post not found.",
+      });
+    }
+
+    if (
+      !canComment(
+        post.commentPolicy,
+        post.userId,
+        userId,
+        post.user.followers.length > 0,
+      )
+    ) {
+      return res.json({
+        success: false,
+        message: "Vous ne pouvez pas commenter cette publication.",
       });
     }
 
@@ -372,13 +411,38 @@ export async function sendCommentReply(req: Request, res: Response) {
           },
         ],
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        commentPolicy: true,
+        user: {
+          select: {
+            followers: {
+              where: { followerId: userId },
+              select: { followerId: true },
+            },
+          },
+        },
+      },
     });
 
     if (!post) {
       return res.json({
         success: false,
         message: "Post not found.",
+      } as ApiResponse<null>);
+    }
+
+    if (
+      !canComment(
+        post.commentPolicy,
+        post.userId,
+        userId,
+        post.user.followers.length > 0,
+      )
+    ) {
+      return res.json({
+        success: false,
+        message: "Vous ne pouvez pas commenter cette publication.",
       } as ApiResponse<null>);
     }
 
