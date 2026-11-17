@@ -13,7 +13,7 @@ import { DefaultEventsMap, ExtendedError, Server, Socket } from "socket.io";
 import chalk from "chalk";
 import z from "zod";
 import prisma from "./prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, Privilege } from "@prisma/client";
 
 
 const JWT_SECRET =
@@ -661,12 +661,14 @@ export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;
 
 export const updateGroupChatProfileSchema = z.object({
   id: requiredString,
-  name: z.string().trim(),
+  name: z.string().trim().optional(),
   description: z
     .string()
     .trim()
-    .max(2000, "La description ne peut pas depasser 2000 caractères."),
+    .max(2000, "La description ne peut pas depasser 2000 caractères.")
+    .optional(),
   groupAvatarUrl: z.string().trim().url().nullable().optional(),
+  privilege: z.string().optional(),
 });
 
 export type UpdateGroupChatProfileValues = z.infer<
@@ -975,8 +977,10 @@ export function groupManagment(
       callback: (data: any) => void,
     ) => {
       try {
-        const { id: roomId, name, description, groupAvatarUrl } =
+        const { id: roomId, name, description, groupAvatarUrl, privilege: privilegeString } =
           updateGroupChatProfileSchema.parse(input);
+
+        const privilege = privilegeString as (Privilege | undefined);
 
         const room = await prisma.room.findUnique({
           where: { id: roomId },
@@ -1007,9 +1011,10 @@ export function groupManagment(
         const updatedRoom = await prisma.room.update({
           where: { id: roomId },
           data: {
-            name,
-            description,
+            ...(name !== undefined && { name }),
+            ...(description !== undefined && { description }),
             ...(groupAvatarUrl !== undefined && { groupAvatarUrl }),
+            ...(privilege !== undefined && { privilege }),
           },
           include: getChatRoomDataInclude(),
         });
